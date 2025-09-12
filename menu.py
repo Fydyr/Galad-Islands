@@ -6,7 +6,7 @@ import threading
 import pygame
 import sys
 import settings
-import credits
+# import credits
 import tkinter as tk
 import math
 
