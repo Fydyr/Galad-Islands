@@ -2,30 +2,33 @@
 
 # Menu principal en Pygame
 
+from random import random
 import threading
 import pygame
 import sys
 import settings
-# import credits
+import credits
 import tkinter as tk
 import math
+import random
 
 
 pygame.init()
 
 
-# Paramètres de la fenêtre
-WIDTH, HEIGHT = 800, 600
+
+# Chargement de l'image de fond
+bg_path = "galad_islands_bg.png"  # Renomme l'image fournie en galad_islands_bg.png
+bg_img = pygame.image.load(bg_path)
+WIDTH, HEIGHT = bg_img.get_width(), bg_img.get_height()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Galad Islands - Menu Principal")
 
-# Chargement du logo si présent
-import os
-logo_path = "logo.png"
-logo_img = None
-if os.path.exists(logo_path):
-	logo_img = pygame.image.load(logo_path)
-	logo_img = pygame.transform.smoothscale(logo_img, (220, 220))
+# Chargement du logo (remplacez le chemin par le bon fichier si besoin)
+try:
+	logo_img = pygame.image.load("galad_logo.png")
+except Exception:
+	logo_img = None
 
 
 # Couleurs inspirées du logo
@@ -59,7 +62,7 @@ class Button:
 		self.hover_color = BUTTON_HOVER
 
 
-	def draw(self, win, mouse_pos):
+	def draw(self, win, mouse_pos, pressed=False):
 		is_hover = self.rect.collidepoint(mouse_pos)
 		color = self.hover_color if is_hover else self.color
 		# Ombre portée sous le bouton
@@ -67,17 +70,21 @@ class Button:
 		shadow_rect.x += 4
 		shadow_rect.y += 4
 		pygame.draw.rect(win, (40, 80, 40), shadow_rect, border_radius=18)
+		# Animation d'enfoncement
+		offset = 4 if pressed else 0
+		btn_rect = self.rect.copy()
+		btn_rect.y += offset
 		# Bouton
-		pygame.draw.rect(win, color, self.rect, border_radius=18)
+		pygame.draw.rect(win, color, btn_rect, border_radius=18)
 		# Glow survol
 		if is_hover:
-			pygame.draw.rect(win, GOLD, self.rect, 4, border_radius=18)
+			pygame.draw.rect(win, GOLD, btn_rect, 4, border_radius=18)
 		# Texte avec ombre
 		txt_shadow = FONT.render(self.text, True, DARK_GOLD)
-		txt_shadow_rect = txt_shadow.get_rect(center=(self.rect.centerx+2, self.rect.centery+2))
+		txt_shadow_rect = txt_shadow.get_rect(center=(btn_rect.centerx+2, btn_rect.centery+2))
 		win.blit(txt_shadow, txt_shadow_rect)
 		txt = FONT.render(self.text, True, GOLD)
-		txt_rect = txt.get_rect(center=self.rect.center)
+		txt_rect = txt.get_rect(center=btn_rect.center)
 		win.blit(txt, txt_rect)
 
 	def click(self, mouse_pos):
@@ -188,53 +195,75 @@ def main_menu():
 	clock = pygame.time.Clock()
 	t = 0
 	running = True
-	while running:
-		# Fond animé : dégradé dynamique
-		t += 1
-		for y in range(HEIGHT):
-			ratio = y / HEIGHT
-			r = int(SKY_BLUE[0] + (SEA_BLUE[0] - SKY_BLUE[0]) * ratio + 20 * math.sin(t/60 + y/80))
-			g = int(SKY_BLUE[1] + (SEA_BLUE[1] - SKY_BLUE[1]) * ratio + 20 * math.sin(t/60 + y/100))
-			b = int(SKY_BLUE[2] + (SEA_BLUE[2] - SKY_BLUE[2]) * ratio + 20 * math.sin(t/60 + y/120))
-			pygame.draw.line(WIN, (r, g, b), (0, y), (WIDTH, y))
+	pressed_btn = None
+	pressed_timer = 0
 
-		# Bordure végétale
-		pygame.draw.rect(WIN, LEAF_GREEN, (30, 30, WIDTH-60, HEIGHT-60), 18)
+	# Initialisation des particules magiques
+	particles = []
+	for _ in range(30):
+		particles.append({
+			'x': WIDTH * 0.5 + random.uniform(-200, 200),
+			'y': HEIGHT * 0.5 + random.uniform(-150, 150),
+			'vx': random.uniform(-1, 1),
+			'vy': random.uniform(-1, 1),
+			'color': GOLD if _ % 2 == 0 else WHITE,
+			'radius': random.uniform(2, 5)
+		})
 
-		# Logo en haut si présent
-		if logo_img:
-			WIN.blit(logo_img, (WIDTH//2 - logo_img.get_width()//2, 40))
-			title_y = 40 + logo_img.get_height() + 10
-		else:
-			title_y = 60
+	try:
+		while running:
+			# Affiche l'image de fond
+			WIN.blit(bg_img, (0, 0))
 
-		# Titre avec ombre et doré
-		shadow = TITLE_FONT.render("Galad Islands", True, DARK_GOLD)
-		WIN.blit(shadow, (WIDTH//2 - shadow.get_width()//2 + 3, title_y+3))
-		title = TITLE_FONT.render("Galad Islands", True, GOLD)
-		WIN.blit(title, (WIDTH//2 - title.get_width()//2, title_y))
+			# Particules magiques
+			for p in particles:
+				p['x'] += p['vx']
+				p['y'] += p['vy']
+				if p['x'] < 0 or p['x'] > WIDTH: p['vx'] *= -1
+				if p['y'] < 0 or p['y'] > HEIGHT: p['vy'] *= -1
+				pygame.draw.circle(WIN, p['color'], (int(p['x']), int(p['y'])), int(p['radius']))
 
-		mouse_pos = pygame.mouse.get_pos()
-		for btn in buttons:
-			btn.draw(WIN, mouse_pos)
+			# Position des boutons à droite du logo
+			btn_x = int(WIDTH * 0.62)
+			btn_y_start = int(HEIGHT * 0.18)
+			btn_gap = 20
+			for i, btn in enumerate(buttons):
+				btn.rect.x = btn_x
+				btn.rect.y = btn_y_start + i * (button_height + btn_gap)
 
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				running = False
-			if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-				for btn in buttons:
-					if btn.rect.collidepoint(mouse_pos):
-						if btn.text == "Quitter":
+			mouse_pos = pygame.mouse.get_pos()
+			for btn in buttons:
+				is_pressed = (btn == pressed_btn and pressed_timer > 0)
+				btn.draw(WIN, mouse_pos, pressed=is_pressed)
+
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					running = False
+				if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+					for btn in buttons:
+						if btn.rect.collidepoint(mouse_pos):
+							pressed_btn = btn
+							pressed_timer = 8  # frames
+				if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+					if pressed_btn and pressed_btn.rect.collidepoint(mouse_pos):
+						if pressed_btn.text == "Quitter":
 							running = False
 						else:
-							btn.click(mouse_pos)
+							pressed_btn.click(mouse_pos)
+					pressed_btn = None
+					pressed_timer = 0
 
-		if not running:
-			break
+			if pressed_timer > 0:
+				pressed_timer -= 1
+			if not running:
+				break
 
-		pygame.display.update()
-		clock.tick(60)
-
+			pygame.display.update()
+			clock.tick(60)
+	except Exception as e:
+		print(f"Erreur dans la boucle principale: {e}")
+		import traceback
+		traceback.print_exc()
 	quitter()
 
 if __name__ == "__main__":
