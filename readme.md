@@ -1,76 +1,52 @@
-# 🏝️ Galad Islands - RTS Naval
+# Galad Islands
 
-**Jeu de stratégie temps réel** basé sur Pygame avec architecture modulaire.
+Galad Islands is a game developed with PyGame.
 
-## 🚀 Installation
+## Description
+
+Galad Islands is an adventure game where the player explores mysterious islands, and faces enemies to uncover the secrets of the archipelago.
+
+## Installation
+
+Clone the repository and install the dependencies:
 
 ```bash
 git clone https://github.com/Fydyr/Galad-Islands.git
-cd SAE5A_jeu
-python -m venv venv
-venv\Scripts\activate
+cd Galad-Islands
 pip install -r requirements.txt
 ```
 
-## ▶️ Lancement
+## Dependencies
+
+- [pygame](https://www.pygame.org/)
+- [numpy](https://numpy.org/)
+- [numba](https://numba.pydata.org/)
+- [llvmlite](https://llvmlite.readthedocs.io/)
+
+Make sure to list all libraries used in your `requirements.txt`.
+
+## How to Run
+
+To start the game, run the main file:
 
 ```bash
-python main.py          # Lancer le jeu
-python dev.py --test    # Tests et développement
+python main.py
 ```
 
-## 🎨 Assets et Sprites
+## Features
 
-**Dossier sprites** : `assets/sprites/`
+- Procedurally generated islands
+- Basic combat system
+- IA for troops
 
+## License
+
+This project is licensed under the MIT License.
+
+---
+
+### Command to install the project's requirements
+
+```bash
+pip install -r requirements.txt
 ```
-assets/
-├── sprites/
-│   ├── units/        # tes guerriers, archers, navires...
-│   ├── buildings/    # casernes, tours, châteaux...
-│   ├── terrain/      # tiles eau, îles, forêts...
-│   └── ui/          # boutons, icônes, curseurs...
-├── sounds/          # effets sonores
-└── fonts/           # polices personnalisées
-```
-
-**Formats recommandés** :
-- PNG avec transparence
-- Unités : 32x32 ou 64x64 px
-- Terrain : 32x32 px (tiles)
-- UI : variable selon besoin
-
-## 🏗️ Architecture
-
-### Structure modulaire
-```
-src/
-├── components/      # Composants du moteur
-│   ├── core/       # Moteur principal, boucle de jeu
-│   ├── entities/   # Système d'entités et unités
-│   ├── renderer/   # Rendu, sprites, effets
-│   ├── ai/         # IA et pathfinding
-│   ├── physics/    # Collisions et mouvements
-│   └── world/      # Génération de monde
-└── interfaces/     # Communication entre composants
-```
-
-### Event Bus
-Communication décentralisée entre composants :
-```python
-# Publier un événement
-EventBus.publish("unit_created", unit_data)
-
-# S'abonner à un événement  
-EventBus.subscribe("unit_destroyed", callback_function)
-```
-
-## �️ Développement
-
-### Performance
-- **Target** : 60 FPS stable
-- **Optimisation** : Numba + NumPy pour calculs critiques
-
-## 📖 Documentation
-
-- **Assets** : Guide dans `assets/README_ASSETS.md`
