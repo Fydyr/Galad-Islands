@@ -18,7 +18,7 @@ pygame.init()
 
 
 # Chargement de l'image de fond
-bg_path = "galad_islands_bg.png"  # Renomme l'image fournie en galad_islands_bg.png
+bg_path = "galad_islands_bg2.png"  # Renomme l'image fournie en galad_islands_bg.png
 bg_img = pygame.image.load(bg_path)
 WIDTH, HEIGHT = bg_img.get_width(), bg_img.get_height()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -268,3 +268,4 @@ def main_menu():
 
 if __name__ == "__main__":
 	main_menu()
+
