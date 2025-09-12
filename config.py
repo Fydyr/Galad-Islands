@@ -311,8 +311,8 @@ class ConfigControles:
     TOUCHE_DROITE = pygame.K_d
     
     # Déplacement alternatif (flèches)
-    TOUCHE_HAUT = pygame.K_UP
-    TOUCHE_BAS = pygame.K_DOWN
+    TOUCHE_FLECHE_HAUT = pygame.K_UP
+    TOUCHE_FLECHE_BAS = pygame.K_DOWN
     TOUCHE_FLECHE_GAUCHE = pygame.K_LEFT
     TOUCHE_FLECHE_DROITE = pygame.K_RIGHT
     
@@ -363,7 +363,7 @@ class ConfigGraphique:
     """Configuration du rendu graphique."""
     
     # Couleurs principales (R, G, B)
-    COULEUR_FOND = (0, 50, 100)        # Bleu ciel sombre
+    COULEUR_NUAGE = (0, 50, 100)        # Bleu ciel sombre
     COULEUR_EAU = (0, 80, 150)         # Bleu océan
     COULEUR_ILOT = (101, 67, 33)       # Brun terre
     COULEUR_OR = (255, 215, 0)         # Jaune or
