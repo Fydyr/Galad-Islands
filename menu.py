@@ -1,20 +1,31 @@
 # importation de tkinter pour l'interface graphique
 
 # Menu principal en Pygame
+
 import threading
 import pygame
 import sys
 import settings
-import credits
+# import credits
 import tkinter as tk
+import math
 
 
 pygame.init()
 
+
 # Paramètres de la fenêtre
-WIDTH, HEIGHT = 600, 600
+WIDTH, HEIGHT = 800, 600
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Menu Principal - Submarine Wars")
+pygame.display.set_caption("Galad Islands - Menu Principal")
+
+# Chargement du logo si présent
+import os
+logo_path = "logo.png"
+logo_img = None
+if os.path.exists(logo_path):
+	logo_img = pygame.image.load(logo_path)
+	logo_img = pygame.transform.smoothscale(logo_img, (220, 220))
 
 
 # Couleurs inspirées du logo
@@ -29,9 +40,13 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
 
-# Police
-FONT = pygame.font.SysFont("Arial", 32, bold=True)
-TITLE_FONT = pygame.font.SysFont("Arial", 56, bold=True)
+# Police stylée si disponible
+try:
+	FONT = pygame.font.Font("GaladFont.ttf", 36)
+	TITLE_FONT = pygame.font.Font("GaladFont.ttf", 72)
+except:
+	FONT = pygame.font.SysFont("Arial", 36, bold=True)
+	TITLE_FONT = pygame.font.SysFont("Arial", 72, bold=True)
 
 # Boutons
 
@@ -43,14 +58,24 @@ class Button:
 		self.color = BUTTON_GREEN
 		self.hover_color = BUTTON_HOVER
 
+
 	def draw(self, win, mouse_pos):
-		color = self.hover_color if self.rect.collidepoint(mouse_pos) else self.color
-		pygame.draw.rect(win, color, self.rect, border_radius=12)
-		# Ombre portée
-		shadow = FONT.render(self.text, True, DARK_GOLD)
-		shadow_rect = shadow.get_rect(center=(self.rect.centerx+2, self.rect.centery+2))
-		win.blit(shadow, shadow_rect)
-		# Texte doré
+		is_hover = self.rect.collidepoint(mouse_pos)
+		color = self.hover_color if is_hover else self.color
+		# Ombre portée sous le bouton
+		shadow_rect = self.rect.copy()
+		shadow_rect.x += 4
+		shadow_rect.y += 4
+		pygame.draw.rect(win, (40, 80, 40), shadow_rect, border_radius=18)
+		# Bouton
+		pygame.draw.rect(win, color, self.rect, border_radius=18)
+		# Glow survol
+		if is_hover:
+			pygame.draw.rect(win, GOLD, self.rect, 4, border_radius=18)
+		# Texte avec ombre
+		txt_shadow = FONT.render(self.text, True, DARK_GOLD)
+		txt_shadow_rect = txt_shadow.get_rect(center=(self.rect.centerx+2, self.rect.centery+2))
+		win.blit(txt_shadow, txt_shadow_rect)
 		txt = FONT.render(self.text, True, GOLD)
 		txt_rect = txt.get_rect(center=self.rect.center)
 		win.blit(txt, txt_rect)
@@ -83,7 +108,7 @@ def crédits():
 		title.pack(pady=10)
 		tk.Label(win, text="BUT3 Informatique", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 14)).pack()
 		tk.Label(win, text="Développé par :", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 14)).pack(pady=5)
-		auteurs = ["Fournier Enzo", "Alluin Edouard", "Damman Alexandre", "Lambert Romain", "Cailliau Ethan"]
+		auteurs = ["Fournier Enzo", "Alluin Edouard", "Damman Alexandre", "Lambert Romain", "Cailliau Ethann", "Behani Julien"]
 		for auteur in auteurs:
 			tk.Label(win, text=f"  - {auteur}", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(anchor="w", padx=40)
 		tk.Label(win, text="Année universitaire : 2025-2026", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 13)).pack(pady=10)
@@ -99,13 +124,14 @@ def aide():
     def show_help_window():
         win = tk.Tk()
         win.title("Aide du jeu")
-        win.geometry("500x500")
+        win.geometry("1000x500")
         win.configure(bg="#1e1e1e")
 
         tk.Label(win, text="Instructions du jeu", fg="#FFD700", bg="#1e1e1e", font=("Arial", 18, "bold")).pack(pady=10)
-        tk.Label(win, text="Déplacez votre sous-marin, évitez les obstacles et battez les ennemis.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 13)).pack(pady=10)
-        tk.Label(win, text="Utilisez les flèches pour vous déplacer.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(pady=5)
-        tk.Label(win, text="Appuyez sur ESPACE pour tirer.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(pady=5)
+        tk.Label(win, text="Explorez l'île de Galad, collectez des ressources et résolvez des énigmes pour progresser dans l'aventure.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 13)).pack(pady=10)
+        tk.Label(win, text="Utilisez les flèches pour déplacer votre personnage sur l'île.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(pady=5)
+        tk.Label(win, text="Appuyez sur ESPACE pour interagir avec les objets ou les personnages.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(pady=5)
+        tk.Label(win, text="Résolvez des énigmes et découvrez les secrets cachés de l'île pour terminer le jeu.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(pady=5)
 
         # Bouton secret pour entrer un code de triche
         def show_cheat_window():
@@ -159,26 +185,34 @@ for i in range(num_buttons):
 
 # Boucle principale
 def main_menu():
+	clock = pygame.time.Clock()
+	t = 0
 	running = True
 	while running:
-
-		# Fond dégradé bleu-vert
+		# Fond animé : dégradé dynamique
+		t += 1
 		for y in range(HEIGHT):
-			color = [
-				int(SKY_BLUE[0] + (SEA_BLUE[0] - SKY_BLUE[0]) * y / HEIGHT),
-				int(SKY_BLUE[1] + (SEA_BLUE[1] - SKY_BLUE[1]) * y / HEIGHT),
-				int(SKY_BLUE[2] + (SEA_BLUE[2] - SKY_BLUE[2]) * y / HEIGHT)
-			]
-			pygame.draw.line(WIN, color, (0, y), (WIDTH, y))
+			ratio = y / HEIGHT
+			r = int(SKY_BLUE[0] + (SEA_BLUE[0] - SKY_BLUE[0]) * ratio + 20 * math.sin(t/60 + y/80))
+			g = int(SKY_BLUE[1] + (SEA_BLUE[1] - SKY_BLUE[1]) * ratio + 20 * math.sin(t/60 + y/100))
+			b = int(SKY_BLUE[2] + (SEA_BLUE[2] - SKY_BLUE[2]) * ratio + 20 * math.sin(t/60 + y/120))
+			pygame.draw.line(WIN, (r, g, b), (0, y), (WIDTH, y))
 
 		# Bordure végétale
 		pygame.draw.rect(WIN, LEAF_GREEN, (30, 30, WIDTH-60, HEIGHT-60), 18)
 
+		# Logo en haut si présent
+		if logo_img:
+			WIN.blit(logo_img, (WIDTH//2 - logo_img.get_width()//2, 40))
+			title_y = 40 + logo_img.get_height() + 10
+		else:
+			title_y = 60
+
 		# Titre avec ombre et doré
-		shadow = TITLE_FONT.render("Galad Island", True, DARK_GOLD)
-		WIN.blit(shadow, (WIDTH//2 - shadow.get_width()//2 + 3, 63))
-		title = TITLE_FONT.render("Galad Island", True, GOLD)
-		WIN.blit(title, (WIDTH//2 - title.get_width()//2, 60))
+		shadow = TITLE_FONT.render("Galad Islands", True, DARK_GOLD)
+		WIN.blit(shadow, (WIDTH//2 - shadow.get_width()//2 + 3, title_y+3))
+		title = TITLE_FONT.render("Galad Islands", True, GOLD)
+		WIN.blit(title, (WIDTH//2 - title.get_width()//2, title_y))
 
 		mouse_pos = pygame.mouse.get_pos()
 		for btn in buttons:
@@ -199,6 +233,7 @@ def main_menu():
 			break
 
 		pygame.display.update()
+		clock.tick(60)
 
 	quitter()
 
