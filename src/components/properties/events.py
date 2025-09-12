@@ -2,7 +2,6 @@ from dataclasses import dataclass as component
 
 @component
 class Events:
-    tempete: bool = False
-    vague_bandits: bool = False
-    kraken: bool = False
-    coffre_volant: bool = False
+    event_chance: float = 0.0
+    event_duration: float = 0.0
+    event_active: bool = False
