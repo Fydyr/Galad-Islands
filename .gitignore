@@ -1,1 +1,78 @@
+# Scripts Python pour le développement
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
 /venv
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environnements virtuels
+venv/
+ENV/
+env/
+.venv/
+
+# IDE et éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Pygame et fichiers temporaires
+*.tmp
+*.log
+
+# Tests et coverage
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Documentation générée
+docs/_build/
+docs/build/
+
+# Assets temporaires et builds
+assets/temp/
+build/
+dist/
+
+# Configuration locale
+config_local.py
+.env
+.env.local
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Saves et fichiers utilisateur
+saves/
+*.save
+profiles/
+
+# Instructions de développement
+.github/instructions/
