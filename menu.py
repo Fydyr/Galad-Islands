@@ -5,7 +5,7 @@ import threading
 import pygame
 import sys
 import settings
-import credits
+# import credits
 import tkinter as tk
 
 
@@ -83,7 +83,7 @@ def crédits():
 		title.pack(pady=10)
 		tk.Label(win, text="BUT3 Informatique", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 14)).pack()
 		tk.Label(win, text="Développé par :", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 14)).pack(pady=5)
-		auteurs = ["Fournier Enzo", "Alluin Edouard", "Damman Alexandre", "Lambert Romain", "Cailliau Ethan"]
+		auteurs = ["Fournier Enzo", "Alluin Edouard", "Damman Alexandre", "Lambert Romain", "Cailliau Ethann"]
 		for auteur in auteurs:
 			tk.Label(win, text=f"  - {auteur}", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(anchor="w", padx=40)
 		tk.Label(win, text="Année universitaire : 2025-2026", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 13)).pack(pady=10)
@@ -202,5 +202,5 @@ def main_menu():
 
 	quitter()
 
-if __name__ == "__main__":
-	main_menu()
+if __name__ == "__main__": # Uniquement pendant le developpement
+    	main_menu()
