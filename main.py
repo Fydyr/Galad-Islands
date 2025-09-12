@@ -1,6 +1,7 @@
 # Importations
 import pygame
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, GAME_TITLE
+from menu import main_menu
 
 
 
@@ -22,7 +23,7 @@ pygame.display.set_caption(GAME_TITLE)
 
 
 
-# Fonction pour le menu principal
+# Placeholder for main menu function
 def menu_principal():
     """Gére le menu principal du jeu
 
@@ -41,5 +42,6 @@ def menu_principal():
 
 
 if __name__ == "__main__":
-    menu_principal()
+    #menu_principal()
+    main_menu()
     pygame.quit()
