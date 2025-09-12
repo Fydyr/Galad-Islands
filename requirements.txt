@@ -1,31 +1,4 @@
-# Galad Islands - Dépendances Python
-# Installation : pip install -r requirements.txt
-
-# Moteur de jeu principal
-pygame>=2.5.0
-
-# Calcul scientifique et optimisation
-numpy>=1.24.0
-scipy>=1.10.0
-numba>=0.57.0
-
-# Interface utilisateur
-pygame-gui>=0.6.0
-
-# Tests et qualité de code
-pytest>=7.0.0
-pytest-cov>=4.0.0
-pytest-benchmark>=4.0.0
-
-# Outils de développement
-black>=23.0.0
-flake8>=6.0.0
-mypy>=1.0.0
-
-# Documentation
-sphinx>=6.0.0
-sphinx-rtd-theme>=1.2.0
-
-# Utilitaires
-pyyaml>=6.0.0
-pillow>=9.5.0
+llvmlite==0.44.0
+numba==0.61.2
+numpy==2.2.6
+pygame==2.6.1
