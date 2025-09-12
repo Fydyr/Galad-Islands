@@ -1,7 +1,7 @@
 # Importations
 import pygame
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, GAME_TITLE
 from menu import main_menu
+from settings import SCREEN_WIDTH, SCREEN_HEIGHT, GAME_TITLE
 
 
 
