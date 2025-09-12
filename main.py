@@ -23,7 +23,7 @@ pygame.display.set_caption(GAME_TITLE)
 
 
 # Placeholder for main menu function
-def main():
+def old_main_menu():
     """Gére le menu principal du jeu
 
     Returns:
