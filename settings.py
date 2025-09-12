@@ -9,3 +9,7 @@ GAME_TITLE = "Galad Islands"
 TILE_SIZE = 32
 MAP_WIDTH = 40
 MAP_HEIGHT = 25
+
+def afficher_options():
+    print("Affichage des options...")
+    # Vous pouvez ajouter ici du code pour afficher ou modifier les paramètres du jeu
