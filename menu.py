@@ -20,7 +20,7 @@ pygame.mixer.init()
 
 
 # Chargement de l'image de fond
-bg_path = os.path.join("image", "galad_islands_bg2.png")
+bg_path = os.path.join("src/image", "galad_islands_bg2.png")
 bg_img = pygame.image.load(bg_path)
 WIDTH, HEIGHT = bg_img.get_width(), bg_img.get_height()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -313,3 +313,4 @@ def main_menu():
 
 if __name__ == "__main__":
 	main_menu()
+
