@@ -1,14 +1,19 @@
+import math
 
 # Fenêtre
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1168
+SCREEN_HEIGHT = 629
 FPS = 30
 GAME_TITLE = "Galad Islands"
 
+
+
+
 # Carte
-TILE_SIZE = 32
-MAP_WIDTH = 40
-MAP_HEIGHT = 25
+MAP_WIDTH = 30  # nombre de cases en largeur (modifiable)
+MAP_HEIGHT = 30 # nombre de cases en hauteur (modifiable)
+TILE_SIZE = 32  # taille d'une case en pixels
+MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.02)
 
 def afficher_options():
     print("Affichage des options...")
