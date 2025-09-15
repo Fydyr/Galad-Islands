@@ -1,5 +1,5 @@
 from dataclasses import dataclass as component
 
 @component
-class Heal:
+class HealComponent:
     amount: int = 0

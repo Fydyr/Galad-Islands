@@ -3,7 +3,7 @@ from typing import Dict, Optional, Callable
 import numpy as np
 
 @component
-class Troops:
+class TroopsComponent:
     """
     Définit les caractéristiques d'un type d'unité militaire.
     

@@ -1,7 +1,7 @@
 from dataclasses import dataclass as component
 
 @component
-class Radius:
+class RadiusComponent:
     radius: float = 0.0
     angle: float = 0.0
     omnidirectional: bool = False
