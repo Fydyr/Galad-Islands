@@ -170,6 +170,27 @@ def aide():
     threading.Thread(target=show_help_window).start()
 
 
+def scénario():
+	print("Affichage du scénario")
+	def show_scenario_window():
+		win = tk.Tk()
+		win.title("Scénario")
+		win.geometry("700x400")
+		win.configure(bg="#1e1e1e")
+
+		tk.Label(win, text="Scénario", fg="#FFD700", bg="#1e1e1e", font=("Arial", 18, "bold")).pack(pady=10)
+		scenario_text = (
+			"Depuis des siècles, les îles de Galad flottent dans le ciel, suspendues entre les vents magiques et les nuages éternels.\n"
+			"Ces îles abritent des ressources rares : le Cristal d’Aerion, capable d’alimenter les bateaux volants et de donner à son porteur un pouvoir colossal.\n"
+			"Longtemps, un équilibre fragile régna entre les aventuriers et les créatures mystiques des cieux.\n"
+			"Mais la soif de pouvoir et la peur de disparaître ont brisé cette trêve."
+		)
+		tk.Label(win, text=scenario_text, fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 13), justify="left", wraplength=650).pack(pady=10)
+		tk.Button(win, text="Fermer", command=win.destroy, font=("Arial", 12)).pack(pady=20)
+		win.mainloop()
+
+	threading.Thread(target=show_scenario_window).start()
+
 def quitter():
 	pygame.quit()
 	sys.exit()
@@ -179,12 +200,12 @@ def quitter():
 # Création des boutons centrés
 button_width, button_height = 250, 60
 gap = 20
-num_buttons = 5
+num_buttons = 6
 total_height = num_buttons * button_height + (num_buttons - 1) * gap
 start_y = (HEIGHT - total_height) // 2 + 40  # Décalage pour le titre
 buttons = []
-labels = ["Jouer", "Options", "Crédits", "Aide", "Quitter"]
-callbacks = [jouer, options, crédits, aide, quitter]
+labels = ["Jouer", "Options", "Crédits", "Aide", "Scénario", "Quitter"]
+callbacks = [jouer, options, crédits, aide, scénario, quitter]
 for i in range(num_buttons):
 	x = WIDTH // 2 - button_width // 2
 	y = start_y + i * (button_height + gap)
@@ -268,4 +289,3 @@ def main_menu():
 
 if __name__ == "__main__":
 	main_menu()
-
