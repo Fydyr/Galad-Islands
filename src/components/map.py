@@ -44,46 +44,29 @@ def map():
     img_cloud = pygame.transform.scale(img_cloud, (2*TILE_SIZE, 2*TILE_SIZE))
 
     # Placement des bases alliée et ennemie (blocs 2x2 aux coins opposés)
-    def bloc_libre_type(x, y, value, size=2):
+    # --- Fonctions utilitaires ---
+    def bloc_libre(x, y, size=2, avoid_bases=True, avoid_type=None):
+        """
+        Vérifie si un bloc size*size est libre à partir de (x, y),
+        qu'il n'est pas adjacent à une île générique ou à une base si avoid_bases=True (zone de sécurité 6x6 autour des bases),
+        et qu'il n'est pas à côté d'un type donné (avoid_type).
+        """
         if x > MAP_WIDTH-size or y > MAP_HEIGHT-size:
             return False
+        # Bloc lui-même
         for dy in range(size):
             for dx in range(size):
                 if grid[y+dy][x+dx] != 0:
                     return False
-        return True
-
-    # Base alliée (4x4) en haut à gauche
-    x, y = 0, 0
-    for dy in range(4):
-        for dx in range(4):
-            grid[y+dy][x+dx] = 4
-    coord_ally = (x, y)
-    # Base ennemie (4x4) en bas à droite
-    x, y = MAP_WIDTH-4, MAP_HEIGHT-4
-    for dy in range(4):
-        for dx in range(4):
-            grid[y+dy][x+dx] = 5
-    coord_enemy = (x, y)
-        
-        # Placement aléatoire des îles génériques (blocs 2x2)
-    def bloc_libre(x, y, avoid_bases=True):
-        """Vérifie si un bloc 2x2 est libre à partir de (x, y), qu'il n'est pas adjacent à une île générique ou à une base si avoid_bases=True (zone de sécurité 6x6 autour des bases)"""
-        if x > MAP_WIDTH-2 or y > MAP_HEIGHT-2:
-            return False
-        # Vérifie le bloc lui-même
-        for dy in range(2):
-            for dx in range(2):
-                if grid[y+dy][x+dx] != 0:
-                    return False
-        # Vérifie les cases adjacentes autour du bloc
-        for dy in range(-1, 3):
-            for dx in range(-1, 3):
-                # Si la case est en dehors du bloc mais dans la zone adjacente
-                if (dx < 0 or dx > 1 or dy < 0 or dy > 1):
+        # Cases adjacentes autour du bloc
+        for dy in range(-1, size+1):
+            for dx in range(-1, size+1):
+                if (dx < 0 or dx >= size or dy < 0 or dy >= size):
                     nx, ny = x+dx, y+dy
                     if 0 <= nx < MAP_WIDTH and 0 <= ny < MAP_HEIGHT:
                         if grid[ny][nx] == 2:
+                            return False
+                        if avoid_type is not None and grid[ny][nx] == avoid_type:
                             return False
         # Zone de sécurité autour des bases alliée et ennemie (6x6)
         if avoid_bases:
@@ -91,66 +74,49 @@ def map():
                 for dy in range(-2, 6):
                     for dx in range(-2, 6):
                         nx, ny = bx+dx, by+dy
-                        # Si la case de la zone de sécurité recouvre le bloc à placer
-                        for bdy in range(2):
-                            for bdx in range(2):
+                        for bdy in range(size):
+                            for bdx in range(size):
                                 if nx == x+bdx and ny == y+bdy:
                                     return False
         return True
 
-    placed_generic = 0
-    min_dist_island = 2  # distance minimale entre deux îles (en cases)
-    generic_centers = []
-    while placed_generic < GENERIC_ISLAND_RATE:
-        x, y = randint(1, MAP_WIDTH-3), randint(1, MAP_HEIGHT-3)
-        if bloc_libre(x, y, avoid_bases=True):
-            # centre du bloc 2x2
-            cx, cy = x+0.5, y+0.5
-            trop_proche = False
-            for gcx, gcy in generic_centers:
-                if abs(gcx - cx) < min_dist_island and abs(gcy - cy) < min_dist_island:
-                    trop_proche = True
-                    break
-            if not trop_proche:
-                for dy in range(2):
-                    for dx in range(2):
-                        grid[y+dy][x+dx] = 2
-                generic_centers.append((cx, cy))
-                placed_generic += 1
+    def placer_bloc_aleatoire(valeur, nombre, size=2, min_dist=2, avoid_bases=True, avoid_type=None):
+        """Place un certain nombre de blocs de taille size*size sur la grille, avec contrainte de distance et de sécurité."""
+        placed = 0
+        centers = []
+        while placed < nombre:
+            x, y = randint(1, MAP_WIDTH-size-1), randint(1, MAP_HEIGHT-size-1)
+            if bloc_libre(x, y, size=size, avoid_bases=avoid_bases, avoid_type=avoid_type):
+                cx, cy = x+size/2-0.5, y+size/2-0.5
+                trop_proche = False
+                for px, py in centers:
+                    if abs(px - cx) < min_dist and abs(py - cy) < min_dist:
+                        trop_proche = True
+                        break
+                if not trop_proche:
+                    for dy in range(size):
+                        for dx in range(size):
+                            grid[y+dy][x+dx] = valeur
+                    centers.append((cx, cy))
+                    placed += 1
+        return centers
 
-    # Placement aléatoire des nuages (blocs 2x2)
-    placed_cloud = 0
-    cloud_coords = []
-    while placed_cloud < 10:
-        x, y = randint(1, MAP_WIDTH-3), randint(1, MAP_HEIGHT-3)
-        if bloc_libre_type(x, y, 1):
-            for dy in range(2):
-                for dx in range(2):
-                    grid[y+dy][x+dx] = 1
-            cloud_coords.append((x, y))
-            placed_cloud += 1
-            
-            
-    # Placement aléatoire des mines avec contrainte de distance minimale (blocs 2x2)
-    placed_mine = 0
-    min_dist = 2  # distance minimale entre deux mines (en cases)
-    mine_coords = []
-    while placed_mine < MINE_RATE:
-        x, y = randint(1, MAP_WIDTH-3), randint(1, MAP_HEIGHT-3)
-        # On utilise bloc_libre avec avoid_bases=True pour éviter les bases
-        if bloc_libre(x, y, avoid_bases=True):
-            trop_proche = False
-            cx, cy = x+0.5, y+0.5
-            for mx, my in mine_coords:
-                if abs(mx - cx) < min_dist and abs(my - cy) < min_dist:
-                    trop_proche = True
-                    break
-            if not trop_proche:
-                for dy in range(2):
-                    for dx in range(2):
-                        grid[y+dy][x+dx] = 3
-                mine_coords.append((cx, cy))
-                placed_mine += 1
+    # --- Placement des bases ---
+    for dy in range(4):
+        for dx in range(4):
+            grid[dy][dx] = 4
+    for dy in range(4):
+        for dx in range(4):
+            grid[MAP_HEIGHT-4+dy][MAP_WIDTH-4+dx] = 5
+
+    # --- Placement des îles génériques ---
+    placer_bloc_aleatoire(2, GENERIC_ISLAND_RATE, size=2, min_dist=2, avoid_bases=True)
+
+    # --- Placement des nuages ---
+    placer_bloc_aleatoire(1, 10, size=2, min_dist=0, avoid_bases=False)
+
+    # --- Placement des mines ---
+    placer_bloc_aleatoire(3, MINE_RATE, size=2, min_dist=2, avoid_bases=True)
 
     # Affichage de la grille
     
