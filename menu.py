@@ -7,10 +7,9 @@ import threading
 import pygame
 import sys
 import settings
-import credits
 import tkinter as tk
-import math
 import random
+import src.components.map as game_map
 
 
 pygame.init()
@@ -18,11 +17,15 @@ pygame.init()
 
 
 # Chargement de l'image de fond
-bg_path = "galad_islands_bg2.png"  # Renomme l'image fournie en galad_islands_bg.png
-bg_img = pygame.image.load(bg_path)
-WIDTH, HEIGHT = bg_img.get_width(), bg_img.get_height()
-WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+
+# Utilise la taille de la map définie dans settings
+WIN = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
 pygame.display.set_caption("Galad Islands - Menu Principal")
+
+# Chargement et redimensionnement du background
+bg_path = "galad_islands_bg2.png"
+bg_img = pygame.image.load(bg_path)
+bg_img = pygame.transform.scale(bg_img, (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
 
 # Chargement du logo (remplacez le chemin par le bon fichier si besoin)
 try:
@@ -94,7 +97,13 @@ class Button:
 # Fonctions des boutons
 def jouer():
 	print("Lancement du jeu...")
-	# À compléter : lancer la boucle du jeu
+	# Sauvegarde la fenêtre du menu
+	menu_size = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
+	# Lance la map dans une nouvelle fenêtre
+	game_map.map()
+	# Restaure la fenêtre du menu après fermeture de la map
+	pygame.display.set_mode(menu_size)
+	pygame.display.set_caption("Galad Islands - Menu Principal")
 
 def options():
 	print("Menu des options")
@@ -181,12 +190,12 @@ button_width, button_height = 250, 60
 gap = 20
 num_buttons = 5
 total_height = num_buttons * button_height + (num_buttons - 1) * gap
-start_y = (HEIGHT - total_height) // 2 + 40  # Décalage pour le titre
+start_y = (settings.SCREEN_HEIGHT - total_height) // 2 + 40  # Décalage pour le titre
 buttons = []
 labels = ["Jouer", "Options", "Crédits", "Aide", "Quitter"]
 callbacks = [jouer, options, crédits, aide, quitter]
 for i in range(num_buttons):
-	x = WIDTH // 2 - button_width // 2
+	x = settings.SCREEN_WIDTH // 2 - button_width // 2
 	y = start_y + i * (button_height + gap)
 	buttons.append(Button(labels[i], x, y, button_width, button_height, callbacks[i]))
 
@@ -202,8 +211,8 @@ def main_menu():
 	particles = []
 	for _ in range(30):
 		particles.append({
-			'x': WIDTH * 0.5 + random.uniform(-200, 200),
-			'y': HEIGHT * 0.5 + random.uniform(-150, 150),
+			'x': settings.SCREEN_WIDTH * 0.5 + random.uniform(-200, 200),
+			'y': settings.SCREEN_HEIGHT * 0.5 + random.uniform(-150, 150),
 			'vx': random.uniform(-1, 1),
 			'vy': random.uniform(-1, 1),
 			'color': GOLD if _ % 2 == 0 else WHITE,
@@ -219,13 +228,13 @@ def main_menu():
 			for p in particles:
 				p['x'] += p['vx']
 				p['y'] += p['vy']
-				if p['x'] < 0 or p['x'] > WIDTH: p['vx'] *= -1
-				if p['y'] < 0 or p['y'] > HEIGHT: p['vy'] *= -1
+				if p['x'] < 0 or p['x'] > settings.SCREEN_WIDTH: p['vx'] *= -1
+				if p['y'] < 0 or p['y'] > settings.SCREEN_HEIGHT: p['vy'] *= -1
 				pygame.draw.circle(WIN, p['color'], (int(p['x']), int(p['y'])), int(p['radius']))
 
 			# Position des boutons à droite du logo
-			btn_x = int(WIDTH * 0.62)
-			btn_y_start = int(HEIGHT * 0.18)
+			btn_x = int(settings.SCREEN_WIDTH * 0.62)
+			btn_y_start = int(settings.SCREEN_HEIGHT * 0.18)
 			btn_gap = 20
 			for i, btn in enumerate(buttons):
 				btn.rect.x = btn_x
