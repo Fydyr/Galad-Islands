@@ -27,7 +27,7 @@ WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Galad Islands - Menu Principal")
 
 # Chargement et lecture de la musique d'ambiance
-music_path = os.path.join("sounds", "xDeviruchi-TitleTheme.wav")
+music_path = os.path.join("assets/sounds", "xDeviruchi-TitleTheme.wav")
 try:
     pygame.mixer.music.load(music_path)
     pygame.mixer.music.set_volume(0.5)  # Volume à 50%
@@ -44,7 +44,7 @@ except Exception:
 
 # Chargement du son de sélection
 try:
-	select_sound = pygame.mixer.Sound(os.path.join("sounds", "select_sound_2.mp3"))
+	select_sound = pygame.mixer.Sound(os.path.join("assets/sounds", "select_sound_2.mp3"))
 	select_sound.set_volume(0.7)
 except Exception as e:
 	select_sound = None
@@ -313,5 +313,6 @@ def main_menu():
 
 if __name__ == "__main__":
 	main_menu()
+
 
 
