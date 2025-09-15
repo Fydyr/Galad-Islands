@@ -1,5 +1,5 @@
 from dataclasses import dataclass as component
 
 @component
-class CanCollide:
+class CanCollideComponent:
     pass

@@ -1,7 +1,6 @@
 from dataclasses import dataclass as component
 
 @component
-class Health:
+class HealthComponent:
     currentHealth: int = 0
     maxHealth: int = 0
-    

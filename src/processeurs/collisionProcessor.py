@@ -1,6 +1,6 @@
 import esper
-from components.properties.positionComponent import Position
-from components.properties.canCollideComponent import CanCollide
+from components.properties.positionComponent import PositionComponent as Position
+from components.properties.canCollideComponent import CanCollideComponent as CanCollide
 
 class CollisionProcessor(esper.Processor):
     def check_collision(self, pos1, size1, pos2, size2):

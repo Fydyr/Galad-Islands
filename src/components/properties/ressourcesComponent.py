@@ -1,5 +1,5 @@
 from dataclasses import dataclass as component
 
 @component
-class Ressources:
+class RessourcesComponent:
     gold: int = 0
