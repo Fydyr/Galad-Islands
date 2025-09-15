@@ -7,27 +7,48 @@ import threading
 import pygame
 import sys
 import settings
+import credits
 import tkinter as tk
 import math
 import random
+import os
 
 
 pygame.init()
+pygame.mixer.init()
 
 
 
 # Chargement de l'image de fond
-bg_path = "galad_islands_bg2.png"  # Renomme l'image fournie en galad_islands_bg.png
+bg_path = os.path.join("image", "galad_islands_bg2.png")
 bg_img = pygame.image.load(bg_path)
 WIDTH, HEIGHT = bg_img.get_width(), bg_img.get_height()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Galad Islands - Menu Principal")
 
+# Chargement et lecture de la musique d'ambiance
+music_path = os.path.join("sounds", "xDeviruchi-TitleTheme.wav")
+try:
+    pygame.mixer.music.load(music_path)
+    pygame.mixer.music.set_volume(0.5)  # Volume à 50%
+    pygame.mixer.music.play(-1)  # Joue en boucle (-1)
+    print("Musique d'ambiance chargée et jouée")
+except Exception as e:
+    print(f"Impossible de charger la musique: {e}")
+
 # Chargement du logo (remplacez le chemin par le bon fichier si besoin)
 try:
-	logo_img = pygame.image.load("galad_logo.png")
+    logo_img = pygame.image.load(os.path.join("image", "galad_logo.png"))
 except Exception:
-	logo_img = None
+    logo_img = None
+
+# Chargement du son de sélection
+try:
+	select_sound = pygame.mixer.Sound(os.path.join("sounds", "select_sound_2.mp3"))
+	select_sound.set_volume(0.7)
+except Exception as e:
+	select_sound = None
+	print(f"Impossible de charger le son de sélection: {e}")
 
 
 # Couleurs inspirées du logo
@@ -88,6 +109,9 @@ class Button:
 
 	def click(self, mouse_pos):
 		if self.rect.collidepoint(mouse_pos):
+			# Joue le son de sélection si chargé
+			if 'select_sound' in globals() and select_sound:
+				select_sound.play()
 			self.callback()
 
 # Fonctions des boutons
@@ -191,6 +215,7 @@ def scénario():
 	threading.Thread(target=show_scenario_window).start()
 
 def quitter():
+	pygame.mixer.music.stop()  # Arrête la musique avant de quitter
 	pygame.quit()
 	sys.exit()
 
