@@ -1,9 +1,9 @@
 import esper
-from components.properties.speZasper import SpeZasper
-from components.properties.speBarhamus import speBarhamus
-from components.properties.speDraupnir import SpeDraupnir
-from components.properties.speDruid import SpeDruid
-from components.properties.speArchitect import SpeArchitect
+from src.components.properties.speZasper import SpeZasper
+from src.components.properties.speBarhamus import speBarhamus
+from src.components.properties.speDraupnir import SpeDraupnir
+from src.components.properties.speDruid import SpeDruid
+from src.components.properties.speArchitect import SpeArchitect
 
 class CapacitiesSpecialesProcessor(esper.Processor):
     def process(self, dt):

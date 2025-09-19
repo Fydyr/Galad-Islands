@@ -1,6 +1,6 @@
 import esper
-from components.properties.positionComponent import PositionComponent as Position
-from components.properties.canCollideComponent import CanCollideComponent as CanCollide
+from src.components.properties.positionComponent import PositionComponent as Position
+from src.components.properties.canCollideComponent import CanCollideComponent as CanCollide
 
 class CollisionProcessor(esper.Processor):
     def check_collision(self, pos1, size1, pos2, size2):
@@ -17,7 +17,7 @@ class CollisionProcessor(esper.Processor):
         return not (right1 < left2 or right2 < left1 or bottom1 < top2 or bottom2 < top1)
 
     def process(self):
-        entities = list(self.world.get_components(Position, CanCollide))
+        entities = list(esper.get_components(Position, CanCollide))
         n = len(entities)
         for i in range(n):
             ent1, (pos1, col1) = entities[i]
