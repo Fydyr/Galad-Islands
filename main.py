@@ -16,7 +16,7 @@ ROUGE = (200, 0, 0)
 # Initialize Pygame
 pygame.init()
 
-# Main function sans création de fenêtre (le menu s'en charge)
+# Main function without window creation (handled by the menu)
 def main():
     """Gére la logique entre le menu et le jeu
 
