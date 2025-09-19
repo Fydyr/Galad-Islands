@@ -18,7 +18,7 @@ pygame.init()
 
 # Main function without window creation (handled by the menu)
 def main():
-    """Gére la logique entre le menu et le jeu
+    """Gère la logique entre le menu et le jeu
 
     Returns:
         None
