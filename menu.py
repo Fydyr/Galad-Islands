@@ -7,10 +7,12 @@ import threading
 import pygame
 import sys
 import settings
+# import credits
 import tkinter as tk
+import math
 import random
 import os
-from game import game
+import src.components.map as game_map
 
 
 pygame.init()
@@ -19,14 +21,26 @@ pygame.mixer.init()
 
 
 # Chargement de l'image de fond
-bg_path = os.path.join("assets/image", "galad_islands_bg2.png")
+bg_path = os.path.join("image", "galad_islands_bg2.png")
 bg_img = pygame.image.load(bg_path)
-WIDTH, HEIGHT = bg_img.get_width(), bg_img.get_height()
-WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+
+# Utilisation des dimensions de settings
+SCREEN_WIDTH = settings.SCREEN_WIDTH
+SCREEN_HEIGHT = settings.SCREEN_HEIGHT
+
+# Fenêtre redimensionnable avec bouton fullscreen
+WIN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("Galad Islands - Menu Principal")
 
+# Variables pour gérer le mode plein écran
+is_fullscreen = False
+original_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
+
+# Redimensionner l'image de fond pour s'adapter aux dimensions
+bg_img = pygame.transform.scale(bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
 # Chargement et lecture de la musique d'ambiance
-music_path = os.path.join("assets/sounds", "xDeviruchi-TitleTheme.wav")
+music_path = os.path.join("sounds", "xDeviruchi-TitleTheme.wav")
 try:
     pygame.mixer.music.load(music_path)
     pygame.mixer.music.set_volume(0.5)  # Volume à 50%
@@ -43,7 +57,7 @@ except Exception:
 
 # Chargement du son de sélection
 try:
-	select_sound = pygame.mixer.Sound(os.path.join("assets/sounds", "select_sound_2.mp3"))
+	select_sound = pygame.mixer.Sound(os.path.join("sounds", "select_sound_2.mp3"))
 	select_sound.set_volume(0.7)
 except Exception as e:
 	select_sound = None
@@ -70,7 +84,21 @@ except:
 	FONT = pygame.font.SysFont("Arial", 36, bold=True)
 	TITLE_FONT = pygame.font.SysFont("Arial", 72, bold=True)
 
-# Boutons
+
+# Liste d'astuces ou citations à afficher en bas du menu
+TIPS = [
+	"Astuce : Parlez à tous les personnages, certains ont des quêtes cachées !",
+	"Citation : 'L'aventure commence là où s'arrête la peur.'",
+	"Astuce : Utilisez l'environnement pour résoudre certaines énigmes.",
+	"Citation : 'Celui qui ose, gagne.'",
+	"Astuce : Pensez à sauvegarder régulièrement votre progression.",
+	"Citation : 'Le vrai trésor, c'est le voyage.'",
+	"Astuce : Explorez chaque recoin, des secrets vous attendent !",
+	"Citation : 'Un héros n'abandonne jamais.'",
+	"Astuce : Les objets rares sont parfois bien cachés... ouvrez l'œil !",
+	"Citation : 'La persévérance est la clé du succès.'"
+]
+current_tip = random.choice(TIPS)
 
 class Button:
 	def __init__(self, text, x, y, w, h, callback):
@@ -116,8 +144,11 @@ class Button:
 # Fonctions des boutons
 def jouer():
 	print("Lancement du jeu...")
-	game()
-
+	# Lance la map dans une nouvelle fenêtre
+	game_map.map()
+	# Restaure la fenêtre du menu après fermeture de la map
+	pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+	pygame.display.set_caption("Galad Islands - Menu Principal")
 
 def options():
 	print("Menu des options")
@@ -214,6 +245,26 @@ def scénario():
 
 	threading.Thread(target=show_scenario_window).start()
 
+def toggle_fullscreen():
+	global is_fullscreen, WIN, SCREEN_WIDTH, SCREEN_HEIGHT, bg_img, original_size
+	
+	if not is_fullscreen:
+		# Passer en mode plein écran
+		info = pygame.display.Info()
+		SCREEN_WIDTH = info.current_w
+		SCREEN_HEIGHT = info.current_h
+		WIN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
+		is_fullscreen = True
+	else:
+		# Revenir en mode fenêtré
+		SCREEN_WIDTH, SCREEN_HEIGHT = original_size
+		WIN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+		is_fullscreen = False
+	
+	# Redimensionner l'image de fond
+	bg_img = pygame.transform.scale(pygame.image.load(bg_path), (SCREEN_WIDTH, SCREEN_HEIGHT))
+	print(f"Mode {'plein écran' if is_fullscreen else 'fenêtré'} activé: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+
 def quitter():
 	pygame.mixer.music.stop()  # Arrête la musique avant de quitter
 	pygame.quit()
@@ -226,17 +277,18 @@ button_width, button_height = 250, 60
 gap = 20
 num_buttons = 6
 total_height = num_buttons * button_height + (num_buttons - 1) * gap
-start_y = (settings.SCREEN_HEIGHT - total_height) // 2 + 40  # Décalage pour le titre
+start_y = (SCREEN_HEIGHT - total_height) // 2 + 40  # Décalage pour le titre
 buttons = []
 labels = ["Jouer", "Options", "Crédits", "Aide", "Scénario", "Quitter"]
 callbacks = [jouer, options, crédits, aide, scénario, quitter]
 for i in range(num_buttons):
-	x = settings.SCREEN_WIDTH // 2 - button_width // 2
+	x = SCREEN_WIDTH // 2 - button_width // 2
 	y = start_y + i * (button_height + gap)
 	buttons.append(Button(labels[i], x, y, button_width, button_height, callbacks[i]))
 
 # Boucle principale
 def main_menu():
+	global SCREEN_WIDTH, SCREEN_HEIGHT, bg_img, WIN
 	clock = pygame.time.Clock()
 	t = 0
 	running = True
@@ -247,8 +299,8 @@ def main_menu():
 	particles = []
 	for _ in range(30):
 		particles.append({
-			'x': settings.SCREEN_WIDTH * 0.5 + random.uniform(-200, 200),
-			'y': settings.SCREEN_HEIGHT * 0.5 + random.uniform(-150, 150),
+			'x': SCREEN_WIDTH * 0.5 + random.uniform(-200, 200),
+			'y': SCREEN_HEIGHT * 0.5 + random.uniform(-150, 150),
 			'vx': random.uniform(-1, 1),
 			'vy': random.uniform(-1, 1),
 			'color': GOLD if _ % 2 == 0 else WHITE,
@@ -264,31 +316,67 @@ def main_menu():
 			for p in particles:
 				p['x'] += p['vx']
 				p['y'] += p['vy']
-				if p['x'] < 0 or p['x'] > settings.SCREEN_WIDTH: p['vx'] *= -1
-				if p['y'] < 0 or p['y'] > settings.SCREEN_HEIGHT: p['vy'] *= -1
+				if p['x'] < 0 or p['x'] > SCREEN_WIDTH: p['vx'] *= -1
+				if p['y'] < 0 or p['y'] > SCREEN_HEIGHT: p['vy'] *= -1
 				pygame.draw.circle(WIN, p['color'], (int(p['x']), int(p['y'])), int(p['radius']))
 
 			# Position des boutons à droite du logo
-			btn_x = int(settings.SCREEN_WIDTH * 0.62)
-			btn_y_start = int(settings.SCREEN_HEIGHT * 0.18)
+			btn_x = int(SCREEN_WIDTH * 0.62)
+			btn_y_start = int(SCREEN_HEIGHT * 0.18)
 			btn_gap = 20
 			for i, btn in enumerate(buttons):
 				btn.rect.x = btn_x
 				btn.rect.y = btn_y_start + i * (button_height + btn_gap)
 
 			mouse_pos = pygame.mouse.get_pos()
+			
+			# Dessiner tous les boutons du menu
 			for btn in buttons:
 				is_pressed = (btn == pressed_btn and pressed_timer > 0)
 				btn.draw(WIN, mouse_pos, pressed=is_pressed)
 
+			# Affichage de l'astuce/citation en bas du menu
+			tip_font = pygame.font.SysFont("Arial", 24, italic=True)
+			tip_surf = tip_font.render(current_tip, True, (230, 230, 180))
+			tip_rect = tip_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 30))
+			# Ombre pour la lisibilité
+			shadow = tip_font.render(current_tip, True, (40, 40, 40))
+			shadow_rect = tip_rect.copy()
+			shadow_rect.x += 2
+			shadow_rect.y += 2
+			WIN.blit(shadow, shadow_rect)
+			WIN.blit(tip_surf, tip_rect)
+			
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					running = False
+				if event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_ESCAPE:
+						# Permet de quitter le mode plein écran avec Escape
+						if is_fullscreen:
+							toggle_fullscreen()
+						else:
+							running = False
+					elif event.key == pygame.K_F11:
+						# Basculer en fullscreen avec F11
+						toggle_fullscreen()
+				if event.type == pygame.VIDEORESIZE:
+					# Gérer le redimensionnement de la fenêtre
+					if not is_fullscreen:
+						SCREEN_WIDTH, SCREEN_HEIGHT = event.w, event.h
+						WIN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+						bg_img = pygame.transform.scale(pygame.image.load(bg_path), (SCREEN_WIDTH, SCREEN_HEIGHT))
+						# Ajuster les particules aux nouvelles dimensions
+						for p in particles:
+							if p['x'] > SCREEN_WIDTH: p['x'] = SCREEN_WIDTH - 10
+							if p['y'] > SCREEN_HEIGHT: p['y'] = SCREEN_HEIGHT - 10
 				if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+					# Vérifier les boutons du menu
 					for btn in buttons:
 						if btn.rect.collidepoint(mouse_pos):
 							pressed_btn = btn
-							pressed_timer = 8  # frames
+							pressed_timer = 8
+							break
 				if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
 					if pressed_btn and pressed_btn.rect.collidepoint(mouse_pos):
 						if pressed_btn.text == "Quitter":
@@ -313,6 +401,3 @@ def main_menu():
 
 if __name__ == "__main__":
 	main_menu()
-
-
-
