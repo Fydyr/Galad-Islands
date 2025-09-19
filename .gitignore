@@ -67,3 +67,5 @@ profiles/
 
 # Instructions de développement
 .github/instructions/
+technicalGameDesign.md
+GameDesign.md
