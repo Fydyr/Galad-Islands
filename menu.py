@@ -21,7 +21,7 @@ pygame.mixer.init()
 
 
 # Chargement de l'image de fond
-bg_path = os.path.join("image", "galad_islands_bg2.png")
+bg_path = os.path.join("assets", "galad_islands_bg2.png")
 bg_img = pygame.image.load(bg_path)
 WIDTH, HEIGHT = bg_img.get_width(), bg_img.get_height()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -169,71 +169,140 @@ def crédits():
 	import threading
 	threading.Thread(target=show_credits_window).start()
 
-def aide():
-    print("Instructions du jeu")
-    # Fenêtre Tkinter pour l'aide et le bouton secret
-    def show_help_window():
-        win = tk.Tk()
-        win.title("Aide du jeu")
-        win.geometry("1000x500")
-        win.configure(bg="#1e1e1e")
 
-        tk.Label(win, text="Instructions du jeu", fg="#FFD700", bg="#1e1e1e", font=("Arial", 18, "bold")).pack(pady=10)
-        tk.Label(win, text="Explorez l'île de Galad, collectez des ressources et résolvez des énigmes pour progresser dans l'aventure.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 13)).pack(pady=10)
-        tk.Label(win, text="Utilisez les flèches pour déplacer votre personnage sur l'île.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(pady=5)
-        tk.Label(win, text="Appuyez sur ESPACE pour interagir avec les objets ou les personnages.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(pady=5)
-        tk.Label(win, text="Résolvez des énigmes et découvrez les secrets cachés de l'île pour terminer le jeu.", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(pady=5)
+import re
+def afficher_modale(titre, md_path):
+    import textwrap
 
-        # Bouton secret pour entrer un code de triche
-        def show_cheat_window():
-            cheat_win = tk.Toplevel(win)
-            cheat_win.title("Code secret")
-            cheat_win.geometry("400x280")
-            cheat_win.configure(bg="#222222")
+    if not os.path.exists(md_path):
+        lines = ["# Contenu introuvable : " + md_path]
+    else:
+        with open(md_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
 
-            tk.Label(cheat_win, text="Entrez le code de triche :", fg="#FFD700", bg="#222222", font=("Arial", 13)).pack(pady=10)
-            code_entry = tk.Entry(cheat_win, font=("Arial", 12))
-            code_entry.pack(pady=5)
+    # Liste qui contiendra texte ou image
+    parsed_elements = []
 
-            code = ["GOLDENFISH", "SUBMARINEPOWER", "INFINITEAMMO"]  # Liste des codes valides
+    for line in lines:
+        line = line.strip()
+        # Image Markdown ![alt](chemin)
+        img_match = re.match(r'!\[.*?\]\((.*?)\)', line)
+        if img_match:
+            img_path = img_match.group(1)
+            # Si chemin relatif, on le considère relatif au dossier assets
+            if not os.path.isabs(img_path):
+                img_path = os.path.join("assets", img_path)
+            try:
+                img = pygame.image.load(img_path)
+                # Redimensionner si trop large
+                max_width = 640
+                if img.get_width() > max_width:
+                    ratio = max_width / img.get_width()
+                    img = pygame.transform.smoothscale(img, (int(img.get_width()*ratio), int(img.get_height()*ratio)))
+                parsed_elements.append(("image", img))
+            except:
+                parsed_elements.append(("text", f"Image introuvable: {img_path}", {"bold": False, "italic": False, "size":28, "color":WHITE}))
+            continue
 
-            def check_code():
-                user_code = code_entry.get().strip()
-                if user_code in code:
-                    tk.Label(cheat_win, text="Code valide ! Triche activée.", fg="#00FF00", bg="#222222", font=("Arial", 12)).pack(pady=5)
-                else:
-                    tk.Label(cheat_win, text="Code incorrect.", fg="#FF3333", bg="#222222", font=("Arial", 12)).pack(pady=5)
+        # Sinon texte normal
+        style = {"bold": False, "italic": False, "size": 28, "color": WHITE}
+        if line.startswith("### "):
+            style["size"] = 28
+            style["color"] = GOLD
+            style["bold"] = True
+            line = line[4:]
+        elif line.startswith("## "):
+            style["size"] = 32
+            style["color"] = GOLD
+            line = line[3:]
+        elif line.startswith("# "):
+            style["size"] = 40
+            style["color"] = GOLD
+            style["bold"] = True
+            line = line[2:]
+        if "**" in line:
+            line = re.sub(r"\*\*(.*?)\*\*", r"\1", line)
+            style["bold"] = True
+        if "_" in line:
+            line = re.sub(r"_(.*?)_", r"\1", line)
+            style["italic"] = True
+        parsed_elements.append(("text", line, style))
 
-            tk.Button(cheat_win, text="Valider", command=check_code, font=("Arial", 12)).pack(pady=10)
-            tk.Button(cheat_win, text="Fermer", command=cheat_win.destroy, font=("Arial", 11)).pack(pady=5)
+    # --- Création modale ---
+    modal_w, modal_h = 700, 500
+    modal_surface = pygame.Surface((modal_w, modal_h), pygame.SRCALPHA)
+    modal_rect = modal_surface.get_rect(center=(WIDTH//2, HEIGHT//2))
+    scroll = 0
+    clock = pygame.time.Clock()
+    running = True
 
-        tk.Button(win, text="cheat-code", command=show_cheat_window, font=("Arial", 12), bg="#444444", fg="#FFD700").pack(pady=20)
-        tk.Button(win, text="Fermer", command=win.destroy, font=("Arial", 12)).pack(pady=10)
-        win.mainloop()
+    # Pré-calcul hauteur totale pour scroll
+    elements_height = []
+    wrapped_elements = []
+    for elem in parsed_elements:
+        if elem[0] == "text":
+            text, style = elem[1], elem[2]
+            font = pygame.font.SysFont("Arial", style["size"], bold=style["bold"], italic=style["italic"])
+            wrapped_lines = textwrap.wrap(text, width=modal_w//(style["size"]//2))
+            for line in wrapped_lines:
+                wrapped_elements.append(("text", line, style))
+                elements_height.append(style["size"]+8)
+        elif elem[0] == "image":
+            img = elem[1]
+            wrapped_elements.append(("image", img))
+            elements_height.append(img.get_height()+10)
+    total_height = sum(elements_height) + 20
 
-    threading.Thread(target=show_help_window).start()
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+                elif event.key == pygame.K_DOWN:
+                    scroll = max(scroll - 20, -(total_height - modal_h + 20))
+                elif event.key == pygame.K_UP:
+                    scroll = min(scroll + 20, 0)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 4:  # molette haut
+                    scroll = min(scroll + 20, 0)
+                if event.button == 5:  # molette bas
+                    scroll = max(scroll - 20, -(total_height - modal_h + 20))
 
+        WIN.blit(bg_img,(0,0))
+        overlay = pygame.Surface((WIDTH, HEIGHT))
+        overlay.fill((0,0,0))
+        overlay.set_alpha(150)
+        WIN.blit(overlay, (0,0))
+
+        modal_surface.fill((30,30,30,240))
+        pygame.draw.rect(modal_surface, GOLD, modal_surface.get_rect(), 4, border_radius=12)
+
+        y = 20 + scroll
+        for elem in wrapped_elements:
+            if elem[0] == "text":
+                _, text, style = elem
+                font = pygame.font.SysFont("Arial", style["size"], bold=style["bold"], italic=style["italic"])
+                rendered = font.render(text, True, style["color"])
+                modal_surface.blit(rendered, (30, y))
+                y += style["size"] + 8
+            elif elem[0] == "image":
+                img = elem[1]
+                modal_surface.blit(img, ((modal_w - img.get_width())//2, y))
+                y += img.get_height() + 10
+
+        WIN.blit(modal_surface, modal_rect.topleft)
+        pygame.display.flip()
+        clock.tick(30)
 
 def scénario():
-	print("Affichage du scénario")
-	def show_scenario_window():
-		win = tk.Tk()
-		win.title("Scénario")
-		win.geometry("700x400")
-		win.configure(bg="#1e1e1e")
-
-		tk.Label(win, text="Scénario", fg="#FFD700", bg="#1e1e1e", font=("Arial", 18, "bold")).pack(pady=10)
-		scenario_text = (
-			"Depuis des siècles, les îles de Galad flottent dans le ciel, suspendues entre les vents magiques et les nuages éternels.\n"
-			"Ces îles abritent des ressources rares : le Cristal d’Aerion, capable d’alimenter les bateaux volants et de donner à son porteur un pouvoir colossal.\n"
-			"Longtemps, un équilibre fragile régna entre les aventuriers et les créatures mystiques des cieux.\n"
-			"Mais la soif de pouvoir et la peur de disparaître ont brisé cette trêve."
-		)
-		tk.Label(win, text=scenario_text, fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 13), justify="left", wraplength=650).pack(pady=10)
-		tk.Button(win, text="Fermer", command=win.destroy, font=("Arial", 12)).pack(pady=20)
-		win.mainloop()
-
-	threading.Thread(target=show_scenario_window).start()
+    afficher_modale("Scénario", "assets/docs/scenario.md")
+    
+def aide():
+	print("Affichage de l'aide")
+	afficher_modale("Aide", "assets/docs/help.md")
 
 def quitter():
 	pygame.mixer.music.stop()  # Arrête la musique avant de quitter
