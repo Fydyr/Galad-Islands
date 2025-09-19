@@ -1,6 +1,6 @@
 import esper
 from components.properties.positionComponent import PositionComponent
-from components.properties.positionComponent import PositionComponent
+from components.properties.spriteComponent import SpriteComponent
 
 class RenderProcessor(esper.Processor):
     def __init__(self, screen):
@@ -9,4 +9,4 @@ class RenderProcessor(esper.Processor):
 
     def process(self):
         for entity, (pos, sprite) in self.world.get_components(PositionComponent, SpriteComponent):
-            self.screen.blit(sprite.image, (pos.x, pos.y))
+            self.screen.blit(sprite.image_path, (pos.x, pos.y))

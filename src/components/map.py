@@ -152,31 +152,6 @@ def afficher_grille(window, grid, images):
                 window.blit(images['ally'], (j*TILE_SIZE, i*TILE_SIZE))
             if all(grid[i+dy][j+dx] == 5 for dy in range(4) for dx in range(4)):
                 window.blit(images['enemy'], (j*TILE_SIZE, i*TILE_SIZE))
-
-def map():
-    """
-    Fonction principale qui gère la carte du jeu avec une grille pour l'IA.
-    Initialise pygame, crée la grille, place les éléments et lance la boucle d'affichage.
-    Returns:
-        list[list[int]]: Grille finale de la carte
-    """
-    pygame.init()
-    window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE))
-    pygame.display.set_caption("Galad Islands - Carte")
-    grid = creer_grille()
-    images = charger_images()
-    placer_elements(grid)
-    running = True
-    clock = pygame.time.Clock()
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-                pygame.display.set_caption("Galad Islands")
-        afficher_grille(window, grid, images)
-        pygame.display.flip()
-        clock.tick(60)
-    return grid
     
     
     
