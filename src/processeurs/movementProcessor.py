@@ -1,6 +1,6 @@
 import esper
-from components.properties.velocityComponent import VelocityComponent as Velocity
-from components.properties.positionComponent import PositionComponent as Position
+from src.components.properties.velocityComponent import VelocityComponent as Velocity
+from src.components.properties.positionComponent import PositionComponent as Position
 
 class MovementProcessor(esper.Processor):
 
