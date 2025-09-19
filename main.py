@@ -1,6 +1,7 @@
 # Importations
 import pygame
 from menu import main_menu
+from game import game
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, GAME_TITLE
 import sys
 
@@ -24,7 +25,7 @@ pygame.display.set_caption(GAME_TITLE)
 
 # Placeholder for main menu function
 def main():
-    """Gére le menu principal du jeu
+    """Gére la logique entre le menu et le jeu
 
     Returns:
         None
@@ -34,23 +35,28 @@ def main():
     running = True
     while running:
         for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.QUIT:
                 running = False
 
         if not inGame:
-            if main_menu() == 'quit':
+            menu_choice = main_menu()
+            if menu_choice == 'quit':
                 running = False
+            if menu_choice == 'play':
+                inGame = True
         
         else:
-            pass
+            game()
+            inGame = False
 
 
     window.fill(BLANC)  # Efface l'écran
 
     pygame.display.flip()
 
+    pygame.quit()
+    sys.exit()
+
 
 if __name__ == "__main__":
     main_menu()
-    pygame.quit()
-    sys.exit()
