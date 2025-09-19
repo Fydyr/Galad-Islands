@@ -11,10 +11,20 @@ import tkinter as tk
 import random
 import os
 import src.components.map as game_map
+from config_manager import config_manager, set_resolution
 
 
 pygame.init()
 pygame.mixer.init()
+
+# Charger les préférences utilisateur au démarrage
+try:
+    from config_manager import load_user_preferences
+    load_user_preferences()
+    print(f"Résolution chargée: {settings.SCREEN_WIDTH}x{settings.SCREEN_HEIGHT}")
+except Exception as e:
+    print(f"Erreur lors du chargement des préférences: {e}")
+    print("Utilisation des paramètres par défaut")
 
 
 
@@ -126,8 +136,204 @@ def jouer():
 
 def options():
 	print("Menu des options")
-	# À compléter : afficher/options
-	settings.afficher_options()
+	# Fenêtre Tkinter pour les options
+	def show_options_window():
+		win = tk.Tk()
+		win.title("Options - Galad Islands")
+		win.geometry("650x500")
+		win.configure(bg="#1e1e1e")
+		win.resizable(False, False)
+
+		# Titre
+		title = tk.Label(win, text="Options du jeu", fg="#FFD700", bg="#1e1e1e", font=("Arial", 18, "bold"))
+		title.pack(pady=15)
+
+		# Section résolution
+		resolution_frame = tk.Frame(win, bg="#2a2a2a", relief="raised", bd=1)
+		resolution_frame.pack(pady=10, padx=20, fill="x")
+
+		tk.Label(resolution_frame, text="🖥️ Résolution d'écran", fg="#FFD700", bg="#2a2a2a", font=("Arial", 14, "bold")).pack(pady=10)
+		
+		# Résolution actuelle
+		current_width, current_height = config_manager.get_resolution()
+		current_tile_size = settings.calculate_adaptive_tile_size_for_resolution(current_width, current_height)
+		current_res_text = f"Actuelle: {current_width}x{current_height} (Tuiles: {current_tile_size}px)"
+		current_label = tk.Label(resolution_frame, text=current_res_text, fg="#90EE90", bg="#2a2a2a", font=("Arial", 12))
+		current_label.pack(pady=5)
+
+		# Liste des résolutions disponibles
+		resolutions = config_manager.get_all_resolutions()
+
+		selected_resolution = tk.StringVar(value=f"{current_width}x{current_height}")
+
+		tk.Label(resolution_frame, text="Choisir une nouvelle résolution :", fg="#DDDDDD", bg="#2a2a2a", font=("Arial", 12)).pack(pady=(10, 5))
+
+		# Frame pour les boutons radio avec scrollbar si nécessaire
+		radio_frame = tk.Frame(resolution_frame, bg="#2a2a2a")
+		radio_frame.pack(pady=5, padx=10)
+
+		# Boutons radio pour chaque résolution
+		for width, height, description in resolutions:
+			tile_size = settings.calculate_adaptive_tile_size_for_resolution(width, height)
+			visible_tiles_x = width // tile_size
+			visible_tiles_y = height // tile_size
+			
+			radio_text = f"{description} - Tuiles: {tile_size}px ({visible_tiles_x}x{visible_tiles_y} visibles)"
+			
+			radio = tk.Radiobutton(
+				radio_frame,
+				text=radio_text,
+				variable=selected_resolution,
+				value=f"{width}x{height}",
+				fg="#DDDDDD",
+				bg="#2a2a2a",
+				selectcolor="#444444",
+				font=("Arial", 10),
+				activebackground="#3a3a3a",
+				activeforeground="#FFFFFF"
+			)
+			radio.pack(anchor="w", pady=2)
+
+		# Section audio (pour l'avenir)
+		audio_frame = tk.Frame(win, bg="#2a2a2a", relief="raised", bd=1)
+		audio_frame.pack(pady=10, padx=20, fill="x")
+
+		tk.Label(audio_frame, text="🔊 Audio", fg="#FFD700", bg="#2a2a2a", font=("Arial", 14, "bold")).pack(pady=5)
+		
+		volume_info = f"Volume musique: {int(config_manager.get('volume_music', 0.5) * 100)}%"
+		tk.Label(audio_frame, text=volume_info, fg="#CCCCCC", bg="#2a2a2a", font=("Arial", 10)).pack(pady=2)
+		tk.Label(audio_frame, text="(Paramètres audio à venir)", fg="#888888", bg="#2a2a2a", font=("Arial", 9)).pack(pady=2)
+
+		# Section informations
+		info_frame = tk.Frame(win, bg="#2a2a2a", relief="raised", bd=1)
+		info_frame.pack(pady=10, padx=20, fill="x")
+
+		tk.Label(info_frame, text="ℹ️ Informations", fg="#FFD700", bg="#2a2a2a", font=("Arial", 14, "bold")).pack(pady=5)
+		
+		info_text = (
+			"• La taille des tuiles s'adapte automatiquement à la résolution\n"
+			"• Au minimum 15x10 tuiles sont toujours visibles à l'écran\n"
+			"• Les modifications prennent effet immédiatement\n"
+			"• Contrôles: WASD/Flèches (caméra), Molette (zoom), F1 (debug)"
+		)
+		tk.Label(info_frame, text=info_text, fg="#CCCCCC", bg="#2a2a2a", font=("Arial", 10), justify="left").pack(pady=5, padx=10)
+
+		# Boutons d'action
+		button_frame = tk.Frame(win, bg="#1e1e1e")
+		button_frame.pack(pady=20)
+
+		def apply_resolution():
+			selected = selected_resolution.get()
+			if selected:
+				width, height = map(int, selected.split('x'))
+				
+				# Sauvegarder dans le gestionnaire de config
+				success_config = set_resolution(width, height)
+				
+				# IMPORTANT: Modifier directement le fichier settings.py
+				success_settings = modify_settings_file(width, height)
+				
+				if success_config and success_settings:
+					# Mettre à jour immédiatement les settings en mémoire
+					settings.SCREEN_WIDTH = width
+					settings.SCREEN_HEIGHT = height
+					settings.TILE_SIZE = settings.calculate_adaptive_tile_size()
+					
+					# Afficher une confirmation
+					import tkinter.messagebox as msgbox
+					success_msg = f"✅ Résolution changée pour {width}x{height}\n\nLes changements prendront effet au prochain lancement du jeu !"
+					msgbox.showinfo("Succès", success_msg)
+					
+					# Mettre à jour l'affichage de la résolution actuelle
+					new_tile_size = settings.calculate_adaptive_tile_size_for_resolution(width, height)
+					current_label.config(text=f"Actuelle: {width}x{height} (Tuiles: {new_tile_size}px)")
+					
+					win.destroy()
+				else:
+					import tkinter.messagebox as msgbox
+					msgbox.showerror("Erreur", "Impossible de sauvegarder la configuration.")
+
+		def modify_settings_file(new_width, new_height):
+			"""Modifie directement le fichier settings.py avec la nouvelle résolution"""
+			try:
+				# Lire le fichier settings.py
+				with open('settings.py', 'r', encoding='utf-8') as f:
+					content = f.read()
+				
+				# Remplacer les valeurs de résolution avec regex précis
+				import re
+				
+				# Pattern pour SCREEN_WIDTH = nombre
+				width_pattern = r'SCREEN_WIDTH = \d+'
+				new_width_line = f'SCREEN_WIDTH = {new_width}'
+				content = re.sub(width_pattern, new_width_line, content)
+				
+				# Pattern pour SCREEN_HEIGHT = nombre  
+				height_pattern = r'SCREEN_HEIGHT = \d+'
+				new_height_line = f'SCREEN_HEIGHT = {new_height}'
+				content = re.sub(height_pattern, new_height_line, content)
+				
+				# Écrire le fichier modifié
+				with open('settings.py', 'w', encoding='utf-8') as f:
+					f.write(content)
+				
+				print(f"✅ Fichier settings.py modifié: {new_width}x{new_height}")
+				return True
+				
+			except Exception as e:
+				print(f"❌ Erreur lors de la modification des settings: {e}")
+				return False
+
+		def preview_resolution():
+			"""Affiche un aperçu de la résolution sélectionnée"""
+			selected = selected_resolution.get()
+			if selected:
+				width, height = map(int, selected.split('x'))
+				tile_size = settings.calculate_adaptive_tile_size_for_resolution(width, height)
+				visible_x = width // tile_size
+				visible_y = height // tile_size
+				
+				preview_text = f"""Aperçu pour {width}x{height}:
+				
+• Taille des tuiles: {tile_size}px
+• Tuiles visibles: {visible_x} x {visible_y}
+• Taille totale carte: {30 * tile_size}px x {30 * tile_size}px
+• Pourcentage visible: {(visible_x * visible_y) / (30 * 30) * 100:.1f}%"""
+
+				import tkinter.messagebox as msgbox
+				msgbox.showinfo("Aperçu Résolution", preview_text)
+
+		def reset_defaults():
+			"""Remet les paramètres par défaut"""
+			import tkinter.messagebox as msgbox
+			if msgbox.askyesno("Confirmation", "Remettre tous les paramètres par défaut ?"):
+				config_manager.reset_to_defaults()
+				config_manager.save_config()
+				msgbox.showinfo("Succès", "Paramètres remis par défaut !")
+				win.destroy()
+
+		# Boutons avec icônes et couleurs
+		tk.Button(button_frame, text="✓ Appliquer", command=apply_resolution, 
+				 font=("Arial", 12, "bold"), bg="#4CAF50", fg="white", padx=20, pady=5).pack(side="left", padx=5)
+		
+		tk.Button(button_frame, text="👁️ Aperçu", command=preview_resolution,
+				 font=("Arial", 12), bg="#2196F3", fg="white", padx=20, pady=5).pack(side="left", padx=5)
+		
+		tk.Button(button_frame, text="🔄 Défaut", command=reset_defaults,
+				 font=("Arial", 12), bg="#FF9800", fg="white", padx=20, pady=5).pack(side="left", padx=5)
+		
+		tk.Button(button_frame, text="❌ Fermer", command=win.destroy, 
+				 font=("Arial", 12), bg="#f44336", fg="white", padx=20, pady=5).pack(side="left", padx=5)
+
+		# Centrer la fenêtre
+		win.update_idletasks()
+		x = (win.winfo_screenwidth() // 2) - (win.winfo_width() // 2)
+		y = (win.winfo_screenheight() // 2) - (win.winfo_height() // 2)
+		win.geometry(f"+{x}+{y}")
+
+		win.mainloop()
+
+	threading.Thread(target=show_options_window).start()
 
 
 def crédits():
