@@ -1,0 +1,11 @@
+{
+    "screen_width": 800,
+    "screen_height": 600,
+    "volume_master": 0.8,
+    "volume_music": 0.5,
+    "volume_effects": 0.7,
+    "fullscreen": false,
+    "vsync": true,
+    "show_fps": false,
+    "language": "fr"
+}

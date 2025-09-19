@@ -2,8 +2,8 @@ import math
 import pygame
 
 # Fenêtre
-SCREEN_WIDTH = 1168
-SCREEN_HEIGHT = 629
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 FPS = 30
 GAME_TITLE = "Galad Islands"
 
