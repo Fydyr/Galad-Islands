@@ -1,7 +1,95 @@
 # Importation des modules nécessaires
 import pygame
-from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE
+from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED
 from random import randint
+
+class Camera:
+    """
+    Classe gérant la caméra pour l'affichage adaptatif de la carte.
+    Permet le déplacement, le zoom et l'optimisation de l'affichage.
+    """
+    def __init__(self, screen_width, screen_height):
+        self.x = 0.0  # Position X de la caméra en pixels monde
+        self.y = 0.0  # Position Y de la caméra en pixels monde
+        self.zoom = 1.0  # Facteur de zoom
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        
+        # Limites de la carte en pixels
+        self.world_width = MAP_WIDTH * TILE_SIZE
+        self.world_height = MAP_HEIGHT * TILE_SIZE
+        
+    def update(self, dt, keys):
+        """Met à jour la position de la caméra selon les entrées clavier."""
+        move_speed = CAMERA_SPEED * dt / self.zoom  # Plus on zoome, plus on bouge lentement
+        
+        # Déplacement avec les touches
+        if keys[pygame.K_LEFT] or keys[pygame.K_q]:
+            self.x -= move_speed
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            self.x += move_speed
+        if keys[pygame.K_UP] or keys[pygame.K_z]:
+            self.y -= move_speed
+        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+            self.y += move_speed
+            
+        # Contraindre la caméra dans les limites du monde
+        self._constrain_camera()
+    
+    def handle_zoom(self, zoom_delta):
+        """Gère le zoom avec la molette de la souris."""
+        old_zoom = self.zoom
+        self.zoom += zoom_delta * ZOOM_SPEED
+        self.zoom = max(ZOOM_MIN, min(ZOOM_MAX, self.zoom))
+        
+        # Ajuster la position pour zoomer vers le centre de l'écran
+        if self.zoom != old_zoom:
+            zoom_ratio = self.zoom / old_zoom
+            center_x = self.x + self.screen_width / (2 * old_zoom)
+            center_y = self.y + self.screen_height / (2 * old_zoom)
+            
+            self.x = center_x - self.screen_width / (2 * self.zoom)
+            self.y = center_y - self.screen_height / (2 * self.zoom)
+            
+        self._constrain_camera()
+    
+    def _constrain_camera(self):
+        """Contraint la caméra pour ne pas sortir des limites du monde."""
+        # Calculer la taille visible avec le zoom
+        visible_width = self.screen_width / self.zoom
+        visible_height = self.screen_height / self.zoom
+        
+        # Contraintes
+        max_x = max(0, self.world_width - visible_width)
+        max_y = max(0, self.world_height - visible_height)
+        
+        self.x = max(0, min(max_x, self.x))
+        self.y = max(0, min(max_y, self.y))
+    
+    def world_to_screen(self, world_x, world_y):
+        """Convertit une position monde en position écran."""
+        screen_x = (world_x - self.x) * self.zoom
+        screen_y = (world_y - self.y) * self.zoom
+        return screen_x, screen_y
+    
+    def screen_to_world(self, screen_x, screen_y):
+        """Convertit une position écran en position monde."""
+        world_x = screen_x / self.zoom + self.x
+        world_y = screen_y / self.zoom + self.y
+        return world_x, world_y
+    
+    def get_visible_tiles(self):
+        """Retourne les indices des tuiles visibles à l'écran."""
+        # Calculer les limites en coordonnées tuiles
+        tile_size_zoomed = TILE_SIZE * self.zoom
+        
+        # Limites du monde visible
+        start_x = max(0, int(self.x // TILE_SIZE))
+        start_y = max(0, int(self.y // TILE_SIZE))
+        end_x = min(MAP_WIDTH, int((self.x + self.screen_width / self.zoom) // TILE_SIZE) + 1)
+        end_y = min(MAP_HEIGHT, int((self.y + self.screen_height / self.zoom) // TILE_SIZE) + 1)
+        
+        return start_x, start_y, end_x, end_y
 
 
 def creer_grille():
@@ -122,60 +210,156 @@ def placer_elements(grid):
     # Mines
     placer_bloc_aleatoire(grid, 3, MINE_RATE, size=2, min_dist=2, avoid_bases=True)
 
-def afficher_grille(window, grid, images):
+def afficher_grille(window, grid, images, camera):
     """
     Affiche la grille de jeu dans la fenêtre pygame, avec tous les éléments graphiques.
+    Utilise le système de caméra pour n'afficher que les éléments visibles.
     Args:
         window (pygame.Surface): Fenêtre d'affichage
         grid (list[list[int]]): Grille de la carte
         images (dict[str, pygame.Surface]): Dictionnaire des images par type
+        camera (Camera): Instance de la caméra pour le viewport
     """
-    # Fond
-    for i in range(MAP_HEIGHT):
-        for j in range(MAP_WIDTH):
-            pos_x = j * TILE_SIZE
-            pos_y = i * TILE_SIZE
-            window.blit(images['sea'], (pos_x, pos_y))
-    # Blocs 2x2 (nuages, îles, mines)
-    for i in range(MAP_HEIGHT-1):
-        for j in range(MAP_WIDTH-1):
-            if (grid[i][j] == 1 and grid[i][j+1] == 1 and grid[i+1][j] == 1 and grid[i+1][j+1] == 1):
-                window.blit(images['cloud'], (j*TILE_SIZE, i*TILE_SIZE))
-            if (grid[i][j] == 2 and grid[i][j+1] == 2 and grid[i+1][j] == 2 and grid[i+1][j+1] == 2):
-                window.blit(images['generic_island'], (j*TILE_SIZE, i*TILE_SIZE))
-            if (grid[i][j] == 3 and grid[i][j+1] == 3 and grid[i+1][j] == 3 and grid[i+1][j+1] == 3):
-                window.blit(images['mine'], (j*TILE_SIZE, i*TILE_SIZE))
-    # Bases 4x4
-    for i in range(MAP_HEIGHT-3):
-        for j in range(MAP_WIDTH-3):
+    # Obtenir les limites visibles
+    start_x, start_y, end_x, end_y = camera.get_visible_tiles()
+    
+    # Fond marin - optimisé pour ne dessiner que les tuiles visibles
+    for i in range(start_y, end_y):
+        for j in range(start_x, end_x):
+            world_x = j * TILE_SIZE
+            world_y = i * TILE_SIZE
+            screen_x, screen_y = camera.world_to_screen(world_x, world_y)
+            
+            # Redimensionner selon le zoom
+            tile_size = int(TILE_SIZE * camera.zoom)
+            sea_scaled = pygame.transform.scale(images['sea'], (tile_size, tile_size))
+            window.blit(sea_scaled, (screen_x, screen_y))
+    
+    # Fonction helper pour dessiner un élément avec gestion du zoom
+    def draw_element(element_image, grid_x, grid_y, element_size=2):
+        world_x = grid_x * TILE_SIZE
+        world_y = grid_y * TILE_SIZE
+        screen_x, screen_y = camera.world_to_screen(world_x, world_y)
+        
+        # Redimensionner selon le zoom
+        display_size = int(element_size * TILE_SIZE * camera.zoom)
+        element_scaled = pygame.transform.scale(element_image, (display_size, display_size))
+        window.blit(element_scaled, (screen_x, screen_y))
+    
+    # Blocs 2x2 (nuages, îles, mines) - optimisé avec camera culling
+    for i in range(max(0, start_y-1), min(MAP_HEIGHT-1, end_y)):
+        for j in range(max(0, start_x-1), min(MAP_WIDTH-1, end_x)):
+            # Vérifier que le bloc 2x2 est dans les limites et entièrement du même type
+            if (i+1 < MAP_HEIGHT and j+1 < MAP_WIDTH):
+                # Nuages
+                if (grid[i][j] == 1 and grid[i][j+1] == 1 and 
+                    grid[i+1][j] == 1 and grid[i+1][j+1] == 1):
+                    draw_element(images['cloud'], j, i, 2)
+                
+                # Îles génériques
+                elif (grid[i][j] == 2 and grid[i][j+1] == 2 and 
+                      grid[i+1][j] == 2 and grid[i+1][j+1] == 2):
+                    draw_element(images['generic_island'], j, i, 2)
+                
+                # Mines
+                elif (grid[i][j] == 3 and grid[i][j+1] == 3 and 
+                      grid[i+1][j] == 3 and grid[i+1][j+1] == 3):
+                    draw_element(images['mine'], j, i, 2)
+    
+    # Bases 4x4 - optimisé avec camera culling
+    for i in range(max(0, start_y-3), min(MAP_HEIGHT-3, end_y)):
+        for j in range(max(0, start_x-3), min(MAP_WIDTH-3, end_x)):
+            # Base alliée
             if all(grid[i+dy][j+dx] == 4 for dy in range(4) for dx in range(4)):
-                window.blit(images['ally'], (j*TILE_SIZE, i*TILE_SIZE))
-            if all(grid[i+dy][j+dx] == 5 for dy in range(4) for dx in range(4)):
-                window.blit(images['enemy'], (j*TILE_SIZE, i*TILE_SIZE))
+                draw_element(images['ally'], j, i, 4)
+            
+            # Base ennemie
+            elif all(grid[i+dy][j+dx] == 5 for dy in range(4) for dx in range(4)):
+                draw_element(images['enemy'], j, i, 4)
 
 def map():
     """
     Fonction principale qui gère la carte du jeu avec une grille pour l'IA.
-    Initialise pygame, crée la grille, place les éléments et lance la boucle d'affichage.
+    Initialise pygame, crée la grille, place les éléments et lance la boucle d'affichage
+    avec système de caméra adaptatif.
     Returns:
         list[list[int]]: Grille finale de la carte
     """
     pygame.init()
-    window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE))
+    
+    # Utiliser la résolution d'écran définie dans settings
+    window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Galad Islands - Carte")
+    
+    # Initialiser les composants
     grid = creer_grille()
     images = charger_images()
     placer_elements(grid)
+    
+    # Créer la caméra
+    camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
+    # Centrer la caméra sur la carte au démarrage
+    camera.x = (MAP_WIDTH * TILE_SIZE - SCREEN_WIDTH) // 2
+    camera.y = (MAP_HEIGHT * TILE_SIZE - SCREEN_HEIGHT) // 2
+    camera._constrain_camera()
+    
     running = True
     clock = pygame.time.Clock()
+    
+    # Police pour afficher les informations de debug
+    font = pygame.font.Font(None, 36)
+    
     while running:
+        dt = clock.tick(60) / 1000.0  # Delta time en secondes
+        
+        # Gestion des événements
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
                 pygame.display.set_caption("Galad Islands")
-        afficher_grille(window, grid, images)
+            
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:  # Quitter avec Échap
+                    running = False
+                    pygame.display.set_caption("Galad Islands")
+            
+            # Gestion du zoom avec la molette
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 4:  # Molette vers le haut
+                    camera.handle_zoom(1)
+                elif event.button == 5:  # Molette vers le bas
+                    camera.handle_zoom(-1)
+        
+        # Gestion des touches pressées
+        keys = pygame.key.get_pressed()
+        camera.update(dt, keys)
+        
+        # Effacer l'écran
+        window.fill((0, 50, 100))  # Couleur de fond bleu océan
+        
+        # Afficher la grille avec la caméra
+        afficher_grille(window, grid, images, camera)
+        
+        # Affichage des informations de debug (optionnel)
+        if keys[pygame.K_F1]:  # Appuyez sur F1 pour voir les infos debug
+            debug_info = [
+                f"Caméra: ({camera.x:.1f}, {camera.y:.1f})",
+                f"Zoom: {camera.zoom:.2f}x",
+                f"Taille tuile: {TILE_SIZE}px",
+                f"Résolution: {SCREEN_WIDTH}x{SCREEN_HEIGHT}",
+                f"FPS: {clock.get_fps():.1f}"
+            ]
+            
+            for i, info in enumerate(debug_info):
+                text_surface = font.render(info, True, (255, 255, 255))
+                window.blit(text_surface, (10, 10 + i * 30))
+        
+        # Instructions à l'écran
+        help_text = font.render("Flèches/WASD: Déplacer | Molette: Zoom | F1: Debug | Échap: Quitter", True, (255, 255, 255))
+        window.blit(help_text, (10, SCREEN_HEIGHT - 30))
+        
         pygame.display.flip()
-        clock.tick(60)
+    
     return grid
     
     
