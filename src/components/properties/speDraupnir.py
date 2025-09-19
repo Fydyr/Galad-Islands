@@ -4,11 +4,11 @@ from dataclasses import dataclass as component
 class SpeDraupnir:
     
     def __init__(self, is_active=False, available=False, cooldown=0.0, cooldown_duration=0.0, used=False):
-        self.is_active: bool = False
-        self.available: bool = False # Peut-on activer la capacité ?
-        self.cooldown: float = 0.0 # Temps de recharge avant la prochaine utilisation
-        self.cooldown_duration: float = 0.0 # Durée du cooldown
-        self.used: bool = False # Indique si la capacité a été utilisée
+        self.is_active: bool = is_active
+        self.available: bool = available # Peut-on activer la capacité ?
+        self.cooldown: float = cooldown # Temps de recharge avant la prochaine utilisation
+        self.cooldown_duration: float = cooldown_duration # Durée du cooldown
+        self.used: bool = used # Indique si la capacité a été utilisée
 
     def activate(self):
         """

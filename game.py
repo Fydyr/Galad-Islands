@@ -3,7 +3,7 @@ import pygame
 import settings
 import src.components.map as game_map
 import esper as es
-from src.processeurs import movementProcessor, collisionProcessor
+from src.processeurs import movementProcessor, collisionProcessor, renderingProcessor
 from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
@@ -31,11 +31,12 @@ def game():
     game_map.placer_elements(grid)
     images = game_map.charger_images()
 
-    
     movement_processor = movementProcessor.MovementProcessor()
     collision_processor = collisionProcessor.CollisionProcessor()
+    rendering_processor = renderingProcessor.RenderProcessor(window)
     es.add_processor(collision_processor, priority=2)
     es.add_processor(movement_processor, priority=3)
+    es.add_processor(rendering_processor, priority=9)
 
     test_vessel = es.create_entity()
     es.add_component(test_vessel, PositionComponent())
@@ -51,7 +52,8 @@ def game():
         
         update_screen(window, grid, images)
         es.process()
-    pass
+        pygame.display.flip()
+        clock.tick(60)
 
 def update_screen(window, grid, images):
     game_map.afficher_grille(window, grid, images)

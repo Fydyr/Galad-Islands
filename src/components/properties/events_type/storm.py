@@ -2,5 +2,6 @@ from dataclasses import dataclass as component
 
 @component
 class Storm:
-    tempete_duree: float = 0 
-    tempete_cooldown: float = 0 
+    def __init__(self, tempete_duree=0, tempete_cooldown=0):
+        self.tempete_duree: float = tempete_duree
+        self.tempete_cooldown: float = tempete_cooldown
