@@ -17,11 +17,13 @@ class TroopsComponent:
         ability_cooldown: Délai de rechargement de la capacité (en secondes)
         ability_function: Fonction de la capacité spéciale
     """
-    unit_type: str
-    height: float
-    width: float
-    # action_range: float
-    reload_delay: float
-    special_ability: str
-    ability_cooldown: float
-    ability_function: Optional[Callable] = None
+
+    def __init__ ( self, unit_type: str = "", height: float = 0.0, width: float = 0.0, reload_delay: float = 0.0, special_ability: str = "", ability_cooldown: float = 0.0, ability_function: Optional[Callable] = None ):
+        self.unit_type: str
+        self.height: float
+        self.width: float
+        # action_range: float
+        self.reload_delay: float
+        self.special_ability: str
+        self.ability_cooldown: float
+        self.ability_function: Optional[Callable] = None

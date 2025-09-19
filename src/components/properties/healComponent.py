@@ -2,4 +2,5 @@ from dataclasses import dataclass as component
 
 @component
 class HealComponent:
-    amount: int = 0
+    def __init__(self, amount=0):
+        self.amount: int = 0

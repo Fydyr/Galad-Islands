@@ -2,5 +2,6 @@ from dataclasses import dataclass as component
 
 @component
 class AttackComponent:
-    hitPoints: int = 0
+    def __init__(self, hitPoints=0):
+        self.hitPoints: int = 0
     

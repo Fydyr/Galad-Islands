@@ -2,12 +2,13 @@ from dataclasses import dataclass as component
 
 @component
 class speBarhamus:
-    is_active: bool = False
-    reduction_min: float = 0.0
-    reduction_max: float = 0.0
-    reduction_value: float = 0.0
-    duration: float = 0.0
-    timer: float = 0.0  # Temps restant de la réduction
+    def __init__(self, is_active=False, reduction_min=0.0, reduction_max=0.0, reduction_value=0.0, duration=0.0, timer=0.0):
+        self.is_active: bool = False
+        self.reduction_min: float = 0.0
+        self.reduction_max: float = 0.0
+        self.reduction_value: float = 0.0
+        self.duration: float = 0.0
+        self.timer: float = 0.0  # Temps restant de la réduction
 
     def activate(self, reduction: float, duration: float):
         """
