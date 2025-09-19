@@ -7,7 +7,9 @@ import threading
 import pygame
 import sys
 import settings
+# import credits
 import tkinter as tk
+import math
 import random
 import os
 import src.components.map as game_map
@@ -19,14 +21,14 @@ pygame.mixer.init()
 
 
 # Chargement de l'image de fond
-bg_path = os.path.join("assets/image", "galad_islands_bg2.png")
+bg_path = os.path.join("image", "galad_islands_bg2.png")
 bg_img = pygame.image.load(bg_path)
 WIDTH, HEIGHT = bg_img.get_width(), bg_img.get_height()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Galad Islands - Menu Principal")
 
 # Chargement et lecture de la musique d'ambiance
-music_path = os.path.join("assets/sounds", "xDeviruchi-TitleTheme.wav")
+music_path = os.path.join("sounds", "xDeviruchi-TitleTheme.wav")
 try:
     pygame.mixer.music.load(music_path)
     pygame.mixer.music.set_volume(0.5)  # Volume à 50%
@@ -43,7 +45,7 @@ except Exception:
 
 # Chargement du son de sélection
 try:
-	select_sound = pygame.mixer.Sound(os.path.join("assets/sounds", "select_sound_2.mp3"))
+	select_sound = pygame.mixer.Sound(os.path.join("sounds", "select_sound_2.mp3"))
 	select_sound.set_volume(0.7)
 except Exception as e:
 	select_sound = None
@@ -70,7 +72,21 @@ except:
 	FONT = pygame.font.SysFont("Arial", 36, bold=True)
 	TITLE_FONT = pygame.font.SysFont("Arial", 72, bold=True)
 
-# Boutons
+
+# Liste d'astuces ou citations à afficher en bas du menu
+TIPS = [
+	"Astuce : Parlez à tous les personnages, certains ont des quêtes cachées !",
+	"Citation : 'L'aventure commence là où s'arrête la peur.'",
+	"Astuce : Utilisez l'environnement pour résoudre certaines énigmes.",
+	"Citation : 'Celui qui ose, gagne.'",
+	"Astuce : Pensez à sauvegarder régulièrement votre progression.",
+	"Citation : 'Le vrai trésor, c'est le voyage.'",
+	"Astuce : Explorez chaque recoin, des secrets vous attendent !",
+	"Citation : 'Un héros n'abandonne jamais.'",
+	"Astuce : Les objets rares sont parfois bien cachés... ouvrez l'œil !",
+	"Citation : 'La persévérance est la clé du succès.'"
+]
+current_tip = random.choice(TIPS)
 
 class Button:
 	def __init__(self, text, x, y, w, h, callback):
@@ -231,12 +247,12 @@ button_width, button_height = 250, 60
 gap = 20
 num_buttons = 6
 total_height = num_buttons * button_height + (num_buttons - 1) * gap
-start_y = (settings.SCREEN_HEIGHT - total_height) // 2 + 40  # Décalage pour le titre
+start_y = (HEIGHT - total_height) // 2 + 40  # Décalage pour le titre
 buttons = []
 labels = ["Jouer", "Options", "Crédits", "Aide", "Scénario", "Quitter"]
 callbacks = [jouer, options, crédits, aide, scénario, quitter]
 for i in range(num_buttons):
-	x = settings.SCREEN_WIDTH // 2 - button_width // 2
+	x = WIDTH // 2 - button_width // 2
 	y = start_y + i * (button_height + gap)
 	buttons.append(Button(labels[i], x, y, button_width, button_height, callbacks[i]))
 
@@ -252,8 +268,8 @@ def main_menu():
 	particles = []
 	for _ in range(30):
 		particles.append({
-			'x': settings.SCREEN_WIDTH * 0.5 + random.uniform(-200, 200),
-			'y': settings.SCREEN_HEIGHT * 0.5 + random.uniform(-150, 150),
+			'x': WIDTH * 0.5 + random.uniform(-200, 200),
+			'y': HEIGHT * 0.5 + random.uniform(-150, 150),
 			'vx': random.uniform(-1, 1),
 			'vy': random.uniform(-1, 1),
 			'color': GOLD if _ % 2 == 0 else WHITE,
@@ -269,13 +285,13 @@ def main_menu():
 			for p in particles:
 				p['x'] += p['vx']
 				p['y'] += p['vy']
-				if p['x'] < 0 or p['x'] > settings.SCREEN_WIDTH: p['vx'] *= -1
-				if p['y'] < 0 or p['y'] > settings.SCREEN_HEIGHT: p['vy'] *= -1
+				if p['x'] < 0 or p['x'] > WIDTH: p['vx'] *= -1
+				if p['y'] < 0 or p['y'] > HEIGHT: p['vy'] *= -1
 				pygame.draw.circle(WIN, p['color'], (int(p['x']), int(p['y'])), int(p['radius']))
 
 			# Position des boutons à droite du logo
-			btn_x = int(settings.SCREEN_WIDTH * 0.62)
-			btn_y_start = int(settings.SCREEN_HEIGHT * 0.18)
+			btn_x = int(WIDTH * 0.62)
+			btn_y_start = int(HEIGHT * 0.18)
 			btn_gap = 20
 			for i, btn in enumerate(buttons):
 				btn.rect.x = btn_x
@@ -286,6 +302,17 @@ def main_menu():
 				is_pressed = (btn == pressed_btn and pressed_timer > 0)
 				btn.draw(WIN, mouse_pos, pressed=is_pressed)
 
+			# Affichage de l'astuce/citation en bas du menu
+			tip_font = pygame.font.SysFont("Arial", 24, italic=True)
+			tip_surf = tip_font.render(current_tip, True, (230, 230, 180))
+			tip_rect = tip_surf.get_rect(center=(WIDTH // 2, HEIGHT - 30))
+			# Ombre pour la lisibilité
+			shadow = tip_font.render(current_tip, True, (40, 40, 40))
+			shadow_rect = tip_rect.copy()
+			shadow_rect.x += 2
+			shadow_rect.y += 2
+			WIN.blit(shadow, shadow_rect)
+			WIN.blit(tip_surf, tip_rect)
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					running = False
@@ -318,6 +345,3 @@ def main_menu():
 
 if __name__ == "__main__":
 	main_menu()
-
-
-
