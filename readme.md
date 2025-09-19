@@ -22,6 +22,9 @@ pip install -r requirements.txt
 - [numpy](https://numpy.org/)
 - [numba](https://numba.pydata.org/)
 - [llvmlite](https://llvmlite.readthedocs.io/)
+- [esper] (https://esper.readthedocs.io/)
+- [markdown](https://python-markdown.github.io/)
+- [tkhtmlview](https://pypi.org/project/tkhtmlview/)
 
 Make sure to list all libraries used in your `requirements.txt`.
 
