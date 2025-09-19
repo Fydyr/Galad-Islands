@@ -5,15 +5,16 @@ from typing import List
 @component
 class SpeDruid:
    
-    # Capacité Lierre Volant
-    is_active: bool = False
-    available: bool = False
-    cooldown: float = 0.0
-    cooldown_duration: float = 0.0           # 4s de recharge
-    immobilization_duration: float = 0.0     # 5s d'immobilisation
-    target_id: int = None                    # ID de la cible immobilisée
-    remaining_duration: float = 0.0          # Temps restant d'immobilisation
-    
+    def __init__(self, is_active=False, available=True, cooldown=0.0, cooldown_duration=0.0, immobilization_duration=0.0, target_id=None, remaining_duration=0.0):
+        # Capacité Lierre Volant
+        self.is_active: bool = False
+        self.available: bool = False
+        self.cooldown: float = 0.0
+        self.cooldown_duration: float = 0.0           # 4s de recharge
+        self.immobilization_duration: float = 0.0     # 5s d'immobilisation
+        self.target_id: int = None                    # ID de la cible immobilisée
+        self.remaining_duration: float = 0.0          # Temps restant d'immobilisation
+        
     
     def can_cast_ivy(self) -> bool:
         """

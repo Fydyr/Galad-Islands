@@ -3,9 +3,10 @@ from src.components.properties.canCollideComponent import CanCollideComponent
 
 @component
 class SpeZasper:
-    is_active: bool = False
-    duration: float = 0.0
-    timer: float = 0.0 # Temps restant d'invincibilité
+    def __init__(self, is_active=False, duration=0.0, timer=0.0):
+        self.is_active: bool = False
+        self.duration: float = 0.0
+        self.timer: float = 0.0 # Temps restant d'invincibilité
 
     def activate(self):
         """Active la manoeuvre d'évasion. (CanCollide désactivé)"""
