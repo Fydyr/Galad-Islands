@@ -1,1 +1,145 @@
-ceci est un message de test du **help.md**
+# Guide du Joueur - Galad Islands
+
+## Contrôles du Jeu
+
+### Joueur 1
+- **Z** : Avancer
+- **S** : Reculer
+- **Q** : Tourner à gauche
+- **D** : Tourner à droite
+- **A** : Sélectionner la troupe précédente
+- **E** : Sélectionner la prochaine troupe
+- **R** : Activer le mode attaque
+- **T** : Activer la capacité spéciale
+
+### Joueur 2
+- **↑** : Avancer
+- **↓** : Reculer
+- **←** : Tourner à gauche
+- **→** : Tourner à droite
+- **:** : Sélectionner la troupe précédente
+- **!** : Sélectionner la prochaine troupe
+- **L** : Activer le mode attaque
+- **M** : Activer la capacité spéciale
+
+## Guide des Troupes
+
+### Unités de Combat
+
+#### **Zasper** (Scout Léger) - 10 Gold
+- **Vitesse** : 5/s (Le plus rapide!)
+- **Dégâts** : 10-15
+- **Armure** : 60 PV
+- **Portée** : 5 cases
+- **Rechargement** : 1s
+- **Capacité spéciale** : _Manœuvre d'évasion_ - Invincibilité 3s
+- **Stratégie** : Idéal pour la reconnaissance et les frappes rapides. Ne tire que vers l'avant.
+
+#### **Barhamus** (Maraudeur Moyen) - 20 Gold
+- **Vitesse** : 3.5/s
+- **Dégâts** : 20-30 (salve) / 10-15 (boulet)
+- **Armure** : 130 PV
+- **Portée** : 7 cases
+- **Rechargement** : 2s
+- **Capacité spéciale** : _Bouclier de mana_ - Réduit les dégâts de 20-45%
+- **Stratégie** : Équilibré, peut tirer depuis l'avant et les côtés.
+
+#### **Draupnir** (Léviathan Lourd) - 40 Gold
+- **Vitesse** : 2/s (Le plus lent)
+- **Dégâts** : 40-60 (salve) / 15-20 (boulet)
+- **Armure** : 300 PV (Le plus résistant!)
+- **Portée** : 10 cases
+- **Rechargement** : 4.5s
+- **Capacité spéciale** : _Seconde salve_ - Tire immédiatement une 2e salve
+- **Stratégie** : Tank puissant avec 3 canons de chaque côté, parfait pour les assauts frontaux.
+
+### Unités de Support
+
+#### **Druid** - 30 Gold
+- **Vitesse** : 4/s
+- **Soin** : 20 PV
+- **Armure** : 100 PV
+- **Portée** : 7 cases
+- **Rechargement** : 4s
+- **Capacité spéciale** : _Lierre volant_ - Immobilise un ennemi 5s
+- **Stratégie** : Support essentiel pour maintenir vos troupes en vie.
+
+#### **Architect** - 30 Gold
+- **Vitesse** : 4/s
+- **Armure** : 100 PV
+- **Capacité spéciale** : _Rechargement automatique_ - Divise par 2 le cooldown des alliés (rayon 8 cases)
+- **Stratégie** : Peut construire des tours sur les îles pour défendre ou soigner.
+
+## Structures
+
+### Tour de Défense
+- **Dégâts** : 25
+- **Portée** : 8 cases
+- **Rechargement** : 10s
+- **Armure** : 70 PV
+- **Note** : Construite par l'Architect sur les îles
+
+### Tour de Soin
+- **Soin** : 15 PV
+- **Portée** : 5 cases
+- **Rechargement** : 10s
+- **Armure** : 70 PV
+- **Note** : Construite par l'Architect sur les îles
+
+## Événements Aléatoires
+
+### Dangers
+- **Tempêtes** (15% chance)
+  - Dégâts : 30 toutes les 3s
+  - Zone : 4 cases
+  - Durée : 20s
+
+- **Vague de bandits** (25% chance)
+  - 1-6 navires ennemis
+  - Dégâts : 20
+  - Traverse la carte d'ouest en est
+
+- **Kraken** (10% chance)
+  - Dégâts : 70
+  - 2-6 tentacules
+  - Attaque les îles et détruit tours/ressources
+
+- **Mines volantes**
+  - Dégâts : 40
+  - Placement aléatoire au début de partie
+
+### Bonus
+- **Coffres volants** (20% chance)
+  - Récompense : 10-20 Gold
+  - 2-5 coffres par événement
+  - Durée : 20s avant disparition
+
+## Conseils Stratégiques
+
+### Début de Partie
+1. Commencez avec 2-3 Zasper pour explorer rapidement
+2. Sécurisez les îles proches pour les ressources
+3. Placez un Architect sur une île stratégique
+
+### Milieu de Partie
+1. Équilibrez votre flotte : scouts, maraudeurs et support
+2. Utilisez les Druids pour maintenir vos unités en vie
+3. Anticipez les événements aléatoires
+
+### Fin de Partie
+1. Rassemblez vos forces pour l'assaut final
+2. Les Draupnir sont excellents pour détruire les bases
+3. Gardez des unités en défense de votre base
+
+## Objectif
+Détruisez la base ennemie tout en protégeant la vôtre!
+
+## Configuration Requise Minimale
+- **CPU** : Intel i3 ou équivalent
+- **GPU** : Carte graphique intégrée ou GTX 1050
+- **RAM** : 4 Go
+- **Stockage** : 2 Go
+- **OS** : Windows
+
+---
+_Bon vol et que les vents vous soient favorables!_
