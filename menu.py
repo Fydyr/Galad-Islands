@@ -151,30 +151,6 @@ def options():
 	# À compléter : afficher/options
 	settings.afficher_options()
 
-
-def crédits():
-	print("Jeu réalisé par ...")
-	# Fenêtre Tkinter pour les crédits
-	def show_credits_window():
-		win = tk.Tk()
-		win.title("Crédits")
-		win.geometry("400x350")
-		win.configure(bg="#1e1e1e")
-
-		title = tk.Label(win, text="Projet SAE - Jeu Vidéo", fg="#FFD700", bg="#1e1e1e", font=("Arial", 18, "bold"))
-		title.pack(pady=10)
-		tk.Label(win, text="BUT3 Informatique", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 14)).pack()
-		tk.Label(win, text="Développé par :", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 14)).pack(pady=5)
-		auteurs = ["Fournier Enzo", "Alluin Edouard", "Damman Alexandre", "Lambert Romain", "Cailliau Ethann", "Behani Julien"]
-		for auteur in auteurs:
-			tk.Label(win, text=f"  - {auteur}", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 12)).pack(anchor="w", padx=40)
-		tk.Label(win, text="Année universitaire : 2025-2026", fg="#DDDDDD", bg="#1e1e1e", font=("Arial", 13)).pack(pady=10)
-		tk.Button(win, text="Fermer", command=win.destroy, font=("Arial", 12)).pack(pady=10)
-		win.mainloop()
-
-	import threading
-	threading.Thread(target=show_credits_window).start()
-
 def afficher_modale(titre, md_path):
     import textwrap
     import re
@@ -512,6 +488,10 @@ def afficher_modale(titre, md_path):
     # Nettoyage des caches (optionnel)
     image_cache.clear()
     font_cache.clear()
+
+def crédits():
+	print("Jeu réalisé par ...")
+	afficher_modale("Crédits", "assets/docs/credits.md")
 
 def aide():
     print("Instructions du jeu")
