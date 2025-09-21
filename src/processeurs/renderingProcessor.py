@@ -10,4 +10,6 @@ class RenderProcessor(esper.Processor):
 
     def process(self):
         for ent, (pos, sprite) in esper.get_components(PositionComponent, SpriteComponent):
-            self.screen.blit(pygame.image.load(sprite.image_path), (pos.x, pos.y))
+            # self.screen.blit(pygame.transform.scale(pygame.image.load(sprite.image_path), (pos.x, pos.y)), (sprite.height, sprite.width))
+            rotated_image = pygame.transform.rotate(pygame.image.load(sprite.image_path), pos.direction)
+            self.screen.blit(rotated_image, (pos.x, pos.y))
