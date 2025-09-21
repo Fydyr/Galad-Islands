@@ -32,17 +32,17 @@ def game():
     game_map.placer_elements(grid)
     images = game_map.charger_images()
 
-    # movement_processor = movementProcessor.MovementProcessor()
+    movement_processor = movementProcessor.MovementProcessor()
     collision_processor = collisionProcessor.CollisionProcessor()
     rendering_processor = renderingProcessor.RenderProcessor(window)
     es.add_processor(collision_processor, priority=2)
-    # es.add_processor(movement_processor, priority=3)
+    es.add_processor(movement_processor, priority=3)
     es.add_processor(rendering_processor, priority=9)
 
     test_vessel = es.create_entity()
-    es.add_component(test_vessel, PositionComponent(0, 0))
-    # es.add_component(test_vessel, VelocityComponent(0, 50, -10))
-    es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Zasper.png"))
+    es.add_component(test_vessel, PositionComponent(10, 10, 100, 100, 90))
+    es.add_component(test_vessel, VelocityComponent(-2, 50, -10))
+    es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Zasper.png", 100, 100))
 
     while running:
         for event in pygame.event.get():
