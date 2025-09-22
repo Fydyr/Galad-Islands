@@ -31,10 +31,15 @@ except Exception as e:
 
 # Chargement de l'image de fond
 bg_path = os.path.join("assets/image", "galad_islands_bg2.png")
-bg_img = pygame.image.load(bg_path)
-WIDTH, HEIGHT = bg_img.get_width(), bg_img.get_height()
+bg_img_original = pygame.image.load(bg_path)  # Charger l'image originale une seule fois
+
+# Obtenir la résolution depuis les paramètres
+WIDTH, HEIGHT = settings.get_screen_width(), settings.get_screen_height()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Galad Islands - Menu Principal")
+
+# Redimensionner l'image de fond pour l'adapter à la résolution actuelle
+bg_img = pygame.transform.scale(bg_img_original, (WIDTH, HEIGHT))
 
 # Chargement et lecture de la musique d'ambiance
 music_path = os.path.join("assets/sounds", "xDeviruchi-TitleTheme.wav")
@@ -479,19 +484,18 @@ def quitter():
 
 
 
-# Création des boutons centrés
-button_width, button_height = 250, 60
-gap = 20
+# Création des boutons
+button_width, button_height = 280, 65  # Taille légèrement augmentée pour une meilleure lisibilité
+gap = 25
 num_buttons = 6
-total_height = num_buttons * button_height + (num_buttons - 1) * gap
-start_y = (settings.get_screen_height() - total_height) // 2 + 40  # Décalage pour le titre
 buttons = []
 labels = ["Jouer", "Options", "Crédits", "Aide", "Scénario", "Quitter"]
 callbacks = [jouer, options, crédits, aide, scénario, quitter]
+
+# Le positionnement se fera dans la boucle principale pour être dynamique
 for i in range(num_buttons):
-	x = settings.get_screen_width() // 2 - button_width // 2
-	y = start_y + i * (button_height + gap)
-	buttons.append(Button(labels[i], x, y, button_width, button_height, callbacks[i]))
+    # Position initiale non critique, sera écrasée
+    buttons.append(Button(labels[i], 0, 0, button_width, button_height, callbacks[i]))
 
 # Boucle principale
 def main_menu(window):
@@ -504,14 +508,15 @@ def main_menu(window):
 
 	# Initialisation des particules magiques
 	particles = []
-	for _ in range(30):
+	screen_width, screen_height = settings.get_screen_width(), settings.get_screen_height()
+	for _ in range(50):  # Augmenter le nombre pour un effet plus dense
 		particles.append({
-			'x': settings.get_screen_width() * 0.5 + random.uniform(-200, 200),
-			'y': settings.get_screen_height() * 0.5 + random.uniform(-150, 150),
-			'vx': random.uniform(-1, 1),
-			'vy': random.uniform(-1, 1),
-			'color': GOLD if _ % 2 == 0 else WHITE,
-			'radius': random.uniform(2, 5)
+			'x': random.uniform(0, screen_width),
+			'y': random.uniform(0, screen_height),
+			'vx': random.uniform(-0.5, 0.5),
+			'vy': random.uniform(-0.5, 0.5),
+			'color': random.choice([GOLD, WHITE, SKY_BLUE]),
+			'radius': random.uniform(1, 4)
 		})
 
 	try:
@@ -523,17 +528,22 @@ def main_menu(window):
 			for p in particles:
 				p['x'] += p['vx']
 				p['y'] += p['vy']
-				if p['x'] < 0 or p['x'] > settings.get_screen_width(): p['vx'] *= -1
-				if p['y'] < 0 or p['y'] > settings.get_screen_height(): p['vy'] *= -1
+				# Renvoyer les particules de l'autre côté de l'écran pour un effet continu
+				if p['x'] < -p['radius']: p['x'] = screen_width + p['radius']
+				if p['x'] > screen_width + p['radius']: p['x'] = -p['radius']
+				if p['y'] < -p['radius']: p['y'] = screen_height + p['radius']
+				if p['y'] > screen_height + p['radius']: p['y'] = -p['radius']
+				
 				pygame.draw.circle(window, p['color'], (int(p['x']), int(p['y'])), int(p['radius']))
 
-			# Position des boutons à droite du logo
-			btn_x = int(settings.get_screen_width() * 0.62)
-			btn_y_start = int(settings.get_screen_height() * 0.18)
-			btn_gap = 20
+			# Positionnement dynamique des boutons sur la droite
+			total_button_height = num_buttons * button_height + (num_buttons - 1) * gap
+			start_y = (screen_height - total_button_height) // 2
+			btn_x = int(screen_width * 0.95 - button_width) # Ancré à 95% de la largeur
+
 			for i, btn in enumerate(buttons):
 				btn.rect.x = btn_x
-				btn.rect.y = btn_y_start + i * (button_height + btn_gap)
+				btn.rect.y = start_y + i * (button_height + gap)
 
 			mouse_pos = pygame.mouse.get_pos()
 			for btn in buttons:
@@ -569,7 +579,7 @@ def main_menu(window):
 	return 'quit'
 
 if __name__ == "__main__":
-	main_menu()
+	main_menu(WIN)
 
 
 
