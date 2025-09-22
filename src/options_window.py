@@ -57,9 +57,9 @@ def show_options_window():
 			main_canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
 
 	# Bind global pour la molette (plus simple et robuste)
-	main_canvas.bind_all('<MouseWheel>', _on_mousewheel)
-	main_canvas.bind_all('<Button-4>', _on_mousewheel)
-	main_canvas.bind_all('<Button-5>', _on_mousewheel)
+	main_canvas.bind('<MouseWheel>', _on_mousewheel)
+	main_canvas.bind('<Button-4>', _on_mousewheel)
+	main_canvas.bind('<Button-5>', _on_mousewheel)
 
 	# Section résolution
 	resolution_frame = tk.Frame(content_frame, bg="#2a2a2a", relief="raised", bd=1)
