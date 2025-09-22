@@ -10,6 +10,8 @@ from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.spriteComponent import SpriteComponent
 from src.components.properties.playerSelectedComponent import PlayerSelectedComponent
 from src.components.properties.playerComponent import PlayerComponent
+from src.components.properties.attackComponent import AttackComponent
+from src.components.properties.healthComponent import HealthComponent
 
 def game():
     """Gére la logique entre le menu et le jeu
@@ -47,10 +49,12 @@ def game():
     es.add_component(player, PlayerComponent())
 
     test_vessel = es.create_entity()
-    es.add_component(test_vessel, PositionComponent(10, 10, 100, 100, 180))
+    es.add_component(test_vessel, PositionComponent(10, 10, 180))
     es.add_component(test_vessel, VelocityComponent(0, 2, -0.5))
     es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Zasper.png", 80, 100))
     es.add_component(test_vessel, PlayerSelectedComponent(player))
+    es.add_component(test_vessel, AttackComponent(10))
+    es.add_component(test_vessel, HealthComponent(40))
 
     while running:
         for event in pygame.event.get():
