@@ -12,7 +12,7 @@ import tkinter as tk
 import math
 import random
 import os
-import src.components.map as game_map
+import src.components.mapComponent as game_map
 
 
 pygame.init()
