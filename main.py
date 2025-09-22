@@ -1,8 +1,8 @@
 # Importations
 import pygame
 from menu import main_menu
-from game import game
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, GAME_TITLE
+from src.components.map import init_game_map, run_game_frame
+from settings import GAME_TITLE
 from config_manager import config_manager
 import sys
 
@@ -26,9 +26,6 @@ mode = config_manager.get("window_mode", "windowed")
 flags = 0
 if mode == "fullscreen":
     flags = pygame.FULLSCREEN
-    info = pygame.display.Info()
-    width = info.current_w
-    height = info.current_h
 
 WINDOW_SIZE = (width, height)
 window = pygame.display.set_mode(WINDOW_SIZE, flags)
@@ -42,33 +39,32 @@ def main():
     Returns:
         None
     """
-    inGame = False
+    game_state = None
+    in_game = False
+    clock = pygame.time.Clock()
 
     running = True
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        dt = clock.tick(60) / 1000.0
 
-        if not inGame:
-            menu_choice = main_menu()
+        if not in_game:
+            menu_choice = main_menu(window)
             if menu_choice == 'quit':
                 running = False
-            if menu_choice == 'play':
-                inGame = True
+            elif menu_choice == 'play':
+                game_state = init_game_map(width, height)
+                in_game = True
         
         else:
-            game()
-            inGame = False
+            if not run_game_frame(window, game_state, dt):
+                in_game = False # Retour au menu
+                pygame.display.set_caption(GAME_TITLE) # Restaurer le titre
 
-
-    window.fill(BLANC)  # Efface l'écran
-
-    pygame.display.flip()
+        pygame.display.flip()
 
     pygame.quit()
     sys.exit()
 
 
 if __name__ == "__main__":
-    main_menu()
+    main()
