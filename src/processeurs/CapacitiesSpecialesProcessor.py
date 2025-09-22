@@ -1,6 +1,6 @@
 import esper
 from components.properties.ability.speZasperComponent import SpeZasper
-from components.properties.ability.speBarhamusComponent import speBarhamus
+from components.properties.ability.speBarhamusComponent import SpeBarhamus
 from components.properties.ability.speDraupnirComponent import SpeDraupnir
 from components.properties.ability.speDruidComponent import SpeDruid
 from components.properties.ability.speArchitectComponent import SpeArchitect
