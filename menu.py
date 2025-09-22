@@ -20,8 +20,7 @@ pygame.mixer.init()
 
 # Charger les préférences utilisateur au démarrage via settings.ConfigManager
 try:
-	# settings.config_manager.load_config() est appelée à l'instanciation, mais on peut recharger explicitement
-	settings.config_manager.load_config()
+	# Les préférences utilisateur sont chargées à l'instanciation de config_manager.
 	# Mettre à jour les settings en mémoire si nécessaire
 	w, h = settings.config_manager.get_resolution()
 	try:
