@@ -20,15 +20,14 @@ pygame.mixer.init()
 
 # Charger les préférences utilisateur au démarrage via settings.ConfigManager
 try:
-	# settings.config_manager.load_config() est appelée à l'instanciation, mais on peut recharger explicitement
-	settings.config_manager.load_config()
+	# Les préférences utilisateur sont chargées à l'instanciation de config_manager.
 	# Mettre à jour les settings en mémoire si nécessaire
 	w, h = settings.config_manager.get_resolution()
 	try:
 		settings.SCREEN_WIDTH = int(w)
 		settings.SCREEN_HEIGHT = int(h)
-	except Exception:
-		pass
+	except (ValueError, TypeError) as e:
+		print(f"Erreur lors de la conversion de la résolution en entier: {e}")
 	settings.TILE_SIZE = settings.calculate_adaptive_tile_size()
 	print(f"Résolution chargée: {settings.get_screen_width()}x{settings.get_screen_height()}")
 except Exception as e:
