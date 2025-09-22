@@ -299,7 +299,6 @@ def options():
 			"• La taille des tuiles s'adapte automatiquement à la résolution\n"
 			"• Au minimum 15x10 tuiles sont toujours visibles à l'écran\n"
 			"• Les modifications prennent effet immédiatement\n"
-			"• Contrôles: WASD/Flèches (caméra), Molette (zoom), F1 (debug)"
 		)
 		tk.Label(info_frame, text=info_text, fg="#CCCCCC", bg="#2a2a2a", font=("Arial", 10), justify="left").pack(pady=5, padx=10)
 
@@ -334,25 +333,7 @@ def options():
 				else:
 					import tkinter.messagebox as msgbox
 					msgbox.showerror("Erreur", "Impossible de sauvegarder la configuration.")
-
-		def preview_resolution():
-			"""Affiche un aperçu de la résolution sélectionnée"""
-			selected = selected_resolution.get()
-			if selected:
-				width, height = map(int, selected.split('x'))
-				tile_size = settings.calculate_adaptive_tile_size_for_resolution(width, height)
-				visible_x = width // tile_size
-				visible_y = height // tile_size
 				
-				preview_text = f"""Aperçu pour {width}x{height}:
-				
-• Taille des tuiles: {tile_size}px
-• Tuiles visibles: {visible_x} x {visible_y}
-• Taille totale carte: {30 * tile_size}px x {30 * tile_size}px
-• Pourcentage visible: {(visible_x * visible_y) / (30 * 30) * 100:.1f}%"""
-
-				import tkinter.messagebox as msgbox
-				msgbox.showinfo("Aperçu Résolution", preview_text)
 
 		def reset_defaults():
 			"""Remet les paramètres par défaut"""
@@ -366,8 +347,6 @@ def options():
 		tk.Button(button_frame, text="✓ Appliquer & Sauver", command=apply_resolution, 
 				 font=("Arial", 12, "bold"), bg="#4CAF50", fg="white", padx=20, pady=5).pack(side="left", padx=5)
 		
-		tk.Button(button_frame, text="👁️ Aperçu", command=preview_resolution,
-				 font=("Arial", 12), bg="#2196F3", fg="white", padx=20, pady=5).pack(side="left", padx=5)
 		
 		tk.Button(button_frame, text="🔄 Défaut", command=reset_defaults,
 				 font=("Arial", 12), bg="#FF9800", fg="white", padx=20, pady=5).pack(side="left", padx=5)
