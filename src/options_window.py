@@ -57,9 +57,9 @@ def show_options_window():
 			main_canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
 
 	# Bind global pour la molette (plus simple et robuste)
-	main_canvas.bind_all('<MouseWheel>', _on_mousewheel)
-	main_canvas.bind_all('<Button-4>', _on_mousewheel)
-	main_canvas.bind_all('<Button-5>', _on_mousewheel)
+	main_canvas.bind('<MouseWheel>', _on_mousewheel)
+	main_canvas.bind('<Button-4>', _on_mousewheel)
+	main_canvas.bind('<Button-5>', _on_mousewheel)
 
 	# Section résolution
 	resolution_frame = tk.Frame(content_frame, bg="#2a2a2a", relief="raised", bd=1)
@@ -73,7 +73,7 @@ def show_options_window():
 	try:
 		current_w = int(current_width)
 		current_h = int(current_height)
-	except Exception:
+	except (ValueError, TypeError):
 		current_w = int(settings.SCREEN_WIDTH)
 		current_h = int(settings.SCREEN_HEIGHT)
 	current_tile_size = settings.calculate_adaptive_tile_size_for_resolution(current_w, current_h)
@@ -185,7 +185,7 @@ def show_options_window():
 		if selected:
 			try:
 				width, height = map(int, selected.split('x'))
-			except Exception:
+			except (ValueError, TypeError):
 				return
 
 			# Sauvegarder via settings helper
