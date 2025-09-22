@@ -215,42 +215,11 @@ def options():
 
 		tk.Label(resolution_frame, text="Choisir une nouvelle résolution :", fg="#DDDDDD", bg="#2a2a2a", font=("Arial", 12)).pack(pady=(10, 5))
 
-		# Frame pour les boutons radio avec scrollbar si nécessaire
+		# Frame pour les boutons radio
 		radio_container = tk.Frame(resolution_frame, bg="#2a2a2a")
 		radio_container.pack(pady=5, padx=10, fill="x")
 
-		# Canvas + Scrollbar pour rendre la liste des résolutions défilable
-		canvas = tk.Canvas(radio_container, bg="#2a2a2a", highlightthickness=0, height=180)
-		scrollbar = tk.Scrollbar(radio_container, orient="vertical", command=canvas.yview)
-		scrollable_frame = tk.Frame(canvas, bg="#2a2a2a")
-
-		def _on_frame_configure(event=None):
-			canvas.configure(scrollregion=canvas.bbox("all"))
-
-		scrollable_frame.bind("<Configure>", _on_frame_configure)
-		canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-		canvas.configure(yscrollcommand=scrollbar.set)
-
-		# Disposition du canvas et de la scrollbar
-		canvas.pack(side="left", fill="both", expand=True)
-		scrollbar.pack(side="right", fill="y")
-
-		# Support molette souris (Linux/Mac/Windows)
-		def _on_mousewheel(event):
-			# Sur Linux, event.num 4/5; sur Windows/Mac, event.delta
-			if getattr(event, 'num', None) == 4:
-				canvas.yview_scroll(-3, 'units')
-			elif getattr(event, 'num', None) == 5:
-				canvas.yview_scroll(3, 'units')
-			else:
-				canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
-
-		for widget in (canvas, scrollable_frame, radio_container):
-			widget.bind_all('<MouseWheel>', _on_mousewheel)
-			widget.bind_all('<Button-4>', _on_mousewheel)
-			widget.bind_all('<Button-5>', _on_mousewheel)
-
-		# Boutons radio pour chaque résolution (dans la zone défilable)
+		# Boutons radio pour chaque résolution
 		for width, height, description in resolutions:
 			tile_size = settings.calculate_adaptive_tile_size_for_resolution(width, height)
 			visible_tiles_x = width // tile_size
@@ -259,7 +228,7 @@ def options():
 			radio_text = f"{description} - Tuiles: {tile_size}px ({visible_tiles_x}x{visible_tiles_y} visibles)"
 			
 			radio = tk.Radiobutton(
-				scrollable_frame,
+				radio_container,
 				text=radio_text,
 				variable=selected_resolution,
 				value=f"{width}x{height}",
@@ -272,8 +241,8 @@ def options():
 			)
 			radio.pack(anchor="w", pady=2)
 
-		# Section audio (pour l'avenir)
-		audio_frame = tk.Frame(win, bg="#2a2a2a", relief="raised", bd=1)
+		# Section audio
+		audio_frame = tk.Frame(content_frame, bg="#2a2a2a", relief="raised", bd=1)
 		audio_frame.pack(pady=10, padx=20, fill="x")
 
 		tk.Label(audio_frame, text="🔊 Audio", fg="#FFD700", bg="#2a2a2a", font=("Arial", 14, "bold")).pack(pady=5)
