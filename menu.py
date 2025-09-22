@@ -241,6 +241,30 @@ def options():
 			)
 			radio.pack(anchor="w", pady=2)
 
+		# Section affichage
+		display_frame = tk.Frame(content_frame, bg="#2a2a2a", relief="raised", bd=1)
+		display_frame.pack(pady=10, padx=20, fill="x")
+		tk.Label(display_frame, text="🖼️ Mode d'affichage", fg="#FFD700", bg="#2a2a2a", font=("Arial", 14, "bold")).pack(pady=5)
+
+		window_mode = tk.StringVar(value=config_manager.get("window_mode", "windowed"))
+
+		def set_window_mode():
+			mode = window_mode.get()
+			config_manager.set("window_mode", mode)
+			print(f"Mode d'affichage changé pour : {mode}")
+
+		modes = [("Fenêtré", "windowed"), ("Plein écran", "fullscreen")]
+		for text, mode in modes:
+			tk.Radiobutton(
+				display_frame,
+				text=text,
+				variable=window_mode,
+				value=mode,
+				command=set_window_mode,
+				fg="#DDDDDD", bg="#2a2a2a", selectcolor="#444444",
+				font=("Arial", 10), activebackground="#3a3a3a", activeforeground="#FFFFFF"
+			).pack(anchor="w", padx=20)
+
 		# Section audio
 		audio_frame = tk.Frame(content_frame, bg="#2a2a2a", relief="raised", bd=1)
 		audio_frame.pack(pady=10, padx=20, fill="x")
