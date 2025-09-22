@@ -73,7 +73,7 @@ def show_options_window():
 	try:
 		current_w = int(current_width)
 		current_h = int(current_height)
-	except Exception:
+	except (ValueError, TypeError):
 		current_w = int(settings.SCREEN_WIDTH)
 		current_h = int(settings.SCREEN_HEIGHT)
 	current_tile_size = settings.calculate_adaptive_tile_size_for_resolution(current_w, current_h)
