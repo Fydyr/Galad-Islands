@@ -1,0 +1,29 @@
+# Configuration commitizen pour l'équipe
+[tool.commitizen]
+name = "cz_conventional_commits" 
+version_provider = "pep621"
+tag_format = "v$version"
+update_changelog_on_bump = true
+
+[tool.commitizen.settings]
+# Types de commits autorisés
+allowed_types = [
+    "feat",     # Nouvelle fonctionnalité  
+    "fix",      # Correction de bug
+    "docs",     # Documentation uniquement
+    "style",    # Formatage, espaces, etc.
+    "refactor", # Refactorisation du code
+    "perf",     # Amélioration des performances
+    "test",     # Ajout ou modification de tests
+    "build",    # Système de build ou dépendances
+    "ci",       # Configuration CI
+    "chore",    # Maintenance
+    "revert"    # Annulation d'un commit
+]
+
+check_consistency = true
+use_shortcuts = true
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
