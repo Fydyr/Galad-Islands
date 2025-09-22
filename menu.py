@@ -41,7 +41,6 @@ try:
     pygame.mixer.music.load(music_path)
     pygame.mixer.music.set_volume(0.5)  # Volume à 50%
     pygame.mixer.music.play(-1)  # Joue en boucle (-1)
-    print("Musique d'ambiance chargée et jouée")
 except Exception as e:
     print(f"Impossible de charger la musique: {e}")
 
@@ -78,10 +77,7 @@ BLACK = (0, 0, 0)
 def create_adaptive_font(screen_width, screen_height, size_ratio=0.025, bold=False):
     """Crée une police dont la taille s'adapte aux dimensions de l'écran."""
     size = max(12, int(min(screen_width, screen_height) * size_ratio))
-    try:
-        return pygame.font.Font("GaladFont.ttf", size)
-    except:
-        return pygame.font.SysFont("Arial", size, bold=bold)
+    return pygame.font.SysFont("Arial", size, bold=bold)
 
 def create_title_font(screen_width, screen_height):
     """Crée une police de titre adaptative."""
@@ -226,7 +222,6 @@ class SmallButton:
 
 # Fonctions des boutons
 def jouer():
-    print("Lancement du jeu...")
     # Lance la map dans une nouvelle fenêtre
     game()
 
@@ -267,9 +262,10 @@ def afficher_modale(titre, md_path):
             font_cache[key] = pygame.font.SysFont("Arial", size, bold=bold, italic=italic)
         return font_cache[key]
 
-    def load_image(img_path, max_width=620):
-        if img_path in image_cache:
-            return image_cache[img_path]
+    def load_image(img_path, max_width=620):  # Valeur par défaut raisonnable
+        cache_key = (img_path, max_width)
+        if cache_key in image_cache:
+            return image_cache[cache_key]
         try:
             img = pygame.image.load(img_path)
             if img.get_width() > max_width:
@@ -278,35 +274,48 @@ def afficher_modale(titre, md_path):
                     img,
                     (int(img.get_width() * ratio), int(img.get_height() * ratio))
                 )
-            image_cache[img_path] = img
+            image_cache[cache_key] = img
             return img
         except pygame.error:
             return None
 
-    def parse_markdown_line(line):
+    def parse_markdown_line(line, modal_width):
+        def get_responsive_font_size(base_size, modal_width):
+            """
+            Calcule une taille de police responsive basée sur la largeur du modal
+            La taille de référence est pour un modal de 720px de large
+            """
+            reference_width = 720
+            scale_factor = modal_width / reference_width
+            # Limite le facteur entre 0.7 et 1.5 pour éviter des tailles extrêmes
+            scale_factor = max(0.7, min(1.5, scale_factor))
+            return int(base_size * scale_factor)
+            
         line = line.strip()
         img_match = re.match(r'!\[.*?\]\((.*?)\)', line)
         if img_match:
             img_path = img_match.group(1)
             if not os.path.isabs(img_path):
                 img_path = os.path.join("assets", img_path)
-            img = load_image(img_path)
+            # Calculer la largeur max en fonction de la largeur du modal
+            max_width = int(modal_width * 0.6)  # 60% de la largeur du modal
+            img = load_image(img_path, max_width)
             if img:
                 return ("image", img)
             else:
-                return ("text", f"Image introuvable: {img_path}", {"bold": False, "italic": False, "size": 28, "color": WHITE})
-        style = {"bold": False, "italic": False, "size": 28, "color": WHITE}
+                return ("text", f"Image introuvable: {img_path}", {"bold": False, "italic": False, "size": get_responsive_font_size(28, modal_width), "color": WHITE})
+        style = {"bold": False, "italic": False, "size": get_responsive_font_size(28, modal_width), "color": WHITE}
         if line.startswith("#### "):
-            style.update({"size": 24, "color": (200, 200, 150), "bold": True})
+            style.update({"size": get_responsive_font_size(24, modal_width), "color": (200, 200, 150), "bold": True})
             line = line[5:]
         elif line.startswith("### "):
-            style.update({"size": 28, "color": GOLD, "bold": True})
+            style.update({"size": get_responsive_font_size(28, modal_width), "color": GOLD, "bold": True})
             line = line[4:]
         elif line.startswith("## "):
-            style.update({"size": 32, "color": GOLD})
+            style.update({"size": get_responsive_font_size(32, modal_width), "color": GOLD})
             line = line[3:]
         elif line.startswith("# "):
-            style.update({"size": 40, "color": GOLD, "bold": True})
+            style.update({"size": get_responsive_font_size(40, modal_width), "color": GOLD, "bold": True})
             line = line[2:]
         if "**" in line:
             line = re.sub(r"\*\*(.*?)\*\*", r"\1", line)
@@ -316,29 +325,68 @@ def afficher_modale(titre, md_path):
             style["italic"] = True
         return ("text", line, style)
 
-    parsed_elements = [parse_markdown_line(line) for line in lines if line.strip()]
-
-    MODAL_CONFIG = {
-        'width': 720,
-        'height': 500,
-        'scrollbar_width': 20,
-        'content_width': 680,
-        'margin': 30,
-        'padding': 20,
-        'scroll_speed': 20,
-        'bg_color': (30, 30, 30, 240),
-        'border_color': GOLD,
-        'border_width': 4
-    }
-
-    modal_surface = pygame.Surface((MODAL_CONFIG['width'], MODAL_CONFIG['height']), pygame.SRCALPHA)
-    # Récupérer la surface d'affichage courante pour centrer la modale
+    def get_modal_config(screen_width, screen_height):
+        """
+        Calcule la configuration du modal en fonction de la taille de l'écran
+        Utilise des pourcentages pour une interface responsive
+        """
+        # Le modal fait 70% de la largeur et 80% de la hauteur de l'écran
+        # avec des contraintes min/max pour éviter les cas extrêmes
+        modal_width = max(400, min(1000, int(screen_width * 0.7)))
+        modal_height = max(300, min(700, int(screen_height * 0.8)))
+        
+        # Scrollbar proportionnelle mais avec une taille minimale utilisable
+        scrollbar_width = max(15, int(modal_width * 0.03))
+        
+        # Largeur de contenu = largeur totale - scrollbar - marges
+        content_width = modal_width - scrollbar_width - 40
+        
+        # Marges et padding proportionnels
+        margin = max(15, int(modal_width * 0.04))
+        padding = max(10, int(modal_width * 0.03))
+        
+        # Vitesse de scroll proportionnelle
+        scroll_speed = max(15, int(modal_height * 0.04))
+        
+        return {
+            'width': modal_width,
+            'height': modal_height,
+            'scrollbar_width': scrollbar_width,
+            'content_width': content_width,
+            'margin': margin,
+            'padding': padding,
+            'scroll_speed': scroll_speed,
+            'bg_color': (30, 30, 30, 240),
+            'border_color': GOLD,
+            'border_width': max(2, int(modal_width * 0.006))
+        }
+    
+    def get_responsive_font_size(base_size, modal_width):
+        """
+        Calcule une taille de police responsive basée sur la largeur du modal
+        La taille de référence est pour un modal de 720px de large
+        """
+        reference_width = 720
+        scale_factor = modal_width / reference_width
+        # Limite le facteur entre 0.7 et 1.5 pour éviter des tailles extrêmes
+        scale_factor = max(0.7, min(1.5, scale_factor))
+        return int(base_size * scale_factor)
+    
+    # Obtenir les dimensions de l'écran pour le modal responsive
+    # Recalculer à chaque ouverture pour s'adapter aux changements de taille
     surf = pygame.display.get_surface()
     if surf is None:
         info = pygame.display.Info()
         WIDTH, HEIGHT = info.current_w, info.current_h
     else:
         WIDTH, HEIGHT = surf.get_size()
+    
+    MODAL_CONFIG = get_modal_config(WIDTH, HEIGHT)
+
+    # Parser les éléments maintenant que MODAL_CONFIG est défini
+    parsed_elements = [parse_markdown_line(line, MODAL_CONFIG['width']) for line in lines if line.strip()]
+
+    modal_surface = pygame.Surface((MODAL_CONFIG['width'], MODAL_CONFIG['height']), pygame.SRCALPHA)
     modal_rect = modal_surface.get_rect(center=(WIDTH//2, HEIGHT//2))
     # Préparer un fond mis à l'échelle depuis l'image originale
     try:
@@ -406,14 +454,72 @@ def afficher_modale(titre, md_path):
         MODAL_CONFIG['height'] - btn_config['height'] - 20,
         btn_config['width'], btn_config['height']
     )
-    btn_font = get_font(24, bold=True)
-    btn_text_surface = btn_font.render("Fermer", True, WHITE)
-    btn_text_pos = (
-        close_btn_rect.centerx - btn_text_surface.get_width() // 2,
-        close_btn_rect.centery - btn_text_surface.get_height() // 2
-    )
+    
+    # Fonction locale pour calculer les tailles responsives
+    def calc_responsive_font_size(base_size):
+        reference_width = 720
+        scale_factor = MODAL_CONFIG['width'] / reference_width
+        scale_factor = max(0.7, min(1.5, scale_factor))
+        return int(base_size * scale_factor)
+    
+    # Fonction pour recalculer le bouton fermer de manière responsive
+    def update_close_button():
+        # Taille responsive du bouton : entre 80 et 140 pixels de large
+        btn_w = max(80, min(140, int(MODAL_CONFIG['width'] * 0.15)))
+        btn_h = max(30, min(50, int(MODAL_CONFIG['height'] * 0.06)))
+        
+        # Position dans le coin bas-droit avec marge
+        margin = max(15, int(MODAL_CONFIG['width'] * 0.02))
+        btn_x = MODAL_CONFIG['width'] - btn_w - margin
+        btn_y = MODAL_CONFIG['height'] - btn_h - margin
+        
+        close_btn_rect.update(btn_x, btn_y, btn_w, btn_h)
+        
+        # Calculer la taille de police qui rentre dans le bouton
+        # La police ne doit pas dépasser 70% de la hauteur du bouton
+        max_font_height = int(btn_h * 0.7)
+        font_size = max(10, min(max_font_height, calc_responsive_font_size(16)))
+        
+        btn_font = get_font(font_size, bold=True)
+        btn_text_surface = btn_font.render("Fermer", True, WHITE)
+        
+        # Centrer le texte dans le bouton
+        text_x = close_btn_rect.centerx - btn_text_surface.get_width() // 2
+        text_y = close_btn_rect.centery - btn_text_surface.get_height() // 2
+        
+        return btn_text_surface, (text_x, text_y)
+    
+    # Calcul initial du bouton
+    btn_text_surface, btn_text_pos = update_close_button()
 
     while running:
+        # Recalculer les dimensions à chaque frame pour la responsivité
+        current_surf = pygame.display.get_surface()
+        if current_surf is not None:
+            current_width, current_height = current_surf.get_size()
+            # Recalculer MODAL_CONFIG pour les nouvelles dimensions
+            MODAL_CONFIG = get_modal_config(current_width, current_height)
+            # Recalculer la surface et la position du modal
+            modal_surface = pygame.Surface((MODAL_CONFIG['width'], MODAL_CONFIG['height']), pygame.SRCALPHA)
+            modal_rect = modal_surface.get_rect(center=(current_width//2, current_height//2))
+            # Recalculer les éléments qui dépendent des dimensions
+            total_content_height = sum(elements_height) + 80
+            content_area_height = MODAL_CONFIG['height'] - 80
+            max_scroll = max(0, total_content_height - content_area_height)
+            # Réajuster le scroll si nécessaire
+            scroll = max(scroll, -max_scroll)
+            scroll = min(scroll, 0)
+            # Recalculer les positions de la scrollbar
+            scrollbar_x = MODAL_CONFIG['width'] - MODAL_CONFIG['scrollbar_width'] - 5
+            scrollbar_track_rect = pygame.Rect(scrollbar_x, 20, MODAL_CONFIG['scrollbar_width'], content_area_height - 20)
+            # Recalculer le bouton fermer
+            btn_text_surface, btn_text_pos = update_close_button()
+            # Mettre à jour le background si nécessaire
+            try:
+                bg_scaled = pygame.transform.scale(bg_original, (current_width, current_height))
+            except Exception:
+                bg_scaled = None
+        
         scrollbar_thumb_rect = calculate_scrollbar_thumb()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -437,6 +543,9 @@ def afficher_modale(titre, md_path):
                         event.pos[1] - modal_rect.top
                     )
                     if close_btn_rect.collidepoint(mouse_pos):
+                        # Jouer le son de sélection si disponible
+                        if 'select_sound' in globals() and select_sound:
+                            select_sound.play()
                         running = False
                         continue
                     if scrollbar_track_rect.collidepoint(mouse_pos):
@@ -455,16 +564,19 @@ def afficher_modale(titre, md_path):
                     )
                     scroll = scroll_from_mouse_y(mouse_pos[1])
 
+        # Déterminer la surface de rendu à utiliser
+        render_surface = pygame.display.get_surface()
+        
         # Dessiner le fond actuel (si disponible)
         if 'bg_scaled' in locals() and bg_scaled:
-            surf.blit(bg_scaled, (0, 0))
+            render_surface.blit(bg_scaled, (0, 0))
         else:
             # fallback: remplir en semi-opaque
-            surf.fill((10, 10, 10))
+            render_surface.fill((10, 10, 10))
         overlay = pygame.Surface((WIDTH, HEIGHT))
         overlay.fill((0, 0, 0))
         overlay.set_alpha(150)
-        surf.blit(overlay, (0, 0))
+        render_surface.blit(overlay, (0, 0))
         modal_surface.fill(MODAL_CONFIG['bg_color'])
         pygame.draw.rect(
             modal_surface,
@@ -504,26 +616,25 @@ def afficher_modale(titre, md_path):
             thumb_color = LIGHT_GRAY if dragging_scrollbar else GRAY
             pygame.draw.rect(modal_surface, thumb_color, scrollbar_thumb_rect, border_radius=8)
             pygame.draw.rect(modal_surface, WHITE, scrollbar_thumb_rect, 1, border_radius=8)
-        pygame.draw.rect(modal_surface, btn_config['color'], close_btn_rect, border_radius=8)
+        
+        # Dessiner le bouton fermer avec la couleur rouge correcte
+        pygame.draw.rect(modal_surface, (200, 50, 50), close_btn_rect, border_radius=8)
         pygame.draw.rect(modal_surface, WHITE, close_btn_rect, 2, border_radius=8)
         modal_surface.blit(btn_text_surface, btn_text_pos)
-        surf.blit(modal_surface, modal_rect.topleft)
+        render_surface.blit(modal_surface, modal_rect.topleft)
         pygame.display.flip()
         clock.tick(60)
     image_cache.clear()
     font_cache.clear()
 
 def crédits():
-    print("Jeu réalisé par ...")
     afficher_modale("Crédits", "assets/docs/credits.md")
 
 def aide():
-    print("Instructions du jeu")
     afficher_modale("Aide", "assets/docs/help.md")
 
 
 def scénario():
-    print("Affichage du scénario")
     afficher_modale("Scénario", "assets/docs/scenario.md")
 
 def toggle_fullscreen():
@@ -537,7 +648,6 @@ def toggle_fullscreen():
         global is_borderless
         is_borderless = False
     display_dirty = True
-    print(f"Demande de bascule fullscreen -> {is_fullscreen}")
 
 def toggle_borderless():
     """Basculer le flag borderless windowed et demander une mise à jour de
@@ -549,7 +659,6 @@ def toggle_borderless():
         return
     is_borderless = not is_borderless
     display_dirty = True
-    print(f"Demande de bascule borderless -> {is_borderless}")
 
 def quitter():
     pygame.mixer.music.stop()  # Arrête la musique avant de quitter
@@ -564,6 +673,43 @@ num_buttons = 6
 labels = ["Jouer", "Options", "Crédits", "Aide", "Scénario", "Quitter"]
 callbacks = [jouer, options, crédits, aide, scénario, quitter]
 borderless_button = None
+
+
+def update_layout(screen_width, screen_height, buttons, borderless_button):
+    """
+    Met à jour les positions et tailles de tous les éléments d'interface.
+    Cette fonction centralise toute la logique responsive du menu principal.
+    Appeler uniquement lors d'un resize ou d'un changement de mode d'affichage.
+    """
+    # Calcul des tailles responsives pour les boutons principaux
+    btn_w = max(int(screen_width * 0.12), min(int(screen_width * 0.28), 520))
+    btn_h = max(int(screen_height * 0.06), min(int(screen_height * 0.12), 150))
+    btn_gap = max(int(screen_height * 0.01), int(screen_height * 0.02))
+    btn_x = int(screen_width * 0.62)
+    
+    # Calculer la hauteur totale nécessaire pour tous les boutons
+    total_buttons_height = len(buttons) * btn_h + (len(buttons) - 1) * btn_gap
+    # Centrer verticalement en laissant 10% d'espace en haut et en bas
+    available_height = screen_height * 0.8  # 80% de l'écran disponible
+    btn_y_start = int(screen_height * 0.1 + (available_height - total_buttons_height) / 2)
+    
+    # Mettre à jour tous les boutons principaux
+    for i, btn in enumerate(buttons):
+        btn.rect.x = btn_x
+        btn.rect.y = btn_y_start + i * (btn_h + btn_gap)
+        btn.rect.w = btn_w
+        btn.rect.h = btn_h
+    
+    # Mise à jour du petit bouton borderless (taille et position entièrement responsives)
+    small_btn_w = max(int(screen_width * 0.05), int(screen_width * 0.08))
+    small_btn_h = max(int(screen_height * 0.025), int(screen_height * 0.04))
+    borderless_button.rect.w = small_btn_w
+    borderless_button.rect.h = small_btn_h
+    borderless_button.rect.x = screen_width - small_btn_w - int(screen_width * 0.01)
+    borderless_button.rect.y = int(screen_height * 0.01)
+    
+    # Retourner les données pour la police des boutons
+    return max(12, int(btn_h * 0.45))
 
 
 # Boucle principale
@@ -635,6 +781,14 @@ def main_menu(win=None):
     small_btn_y = int(SCREEN_HEIGHT * 0.01)
     borderless_button = SmallButton("Windowed", small_btn_x, small_btn_y, small_btn_w_init, small_btn_h_init, toggle_borderless)
 
+    # Calculer la disposition initiale
+    menu_font_size = update_layout(SCREEN_WIDTH, SCREEN_HEIGHT, buttons, borderless_button)
+    menu_font = pygame.font.SysFont("Arial", menu_font_size, bold=True)
+    
+    # Variables pour tracker les changements de layout
+    layout_dirty = False
+    last_screen_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
+
     try:
         while running:
             # Appliquer les changements d'affichage demandés de manière atomique
@@ -656,19 +810,28 @@ def main_menu(win=None):
                     SCREEN_WIDTH, SCREEN_HEIGHT = original_size
                     os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
-                # Mettre à jour le background immédiatement
+                # Marquer le layout comme nécessitant une mise à jour
+                layout_dirty = True
+                display_dirty = False
+                
+            # Vérifier si la taille de la fenêtre a changé
+            current_screen_size = win.get_size()
+            if current_screen_size != last_screen_size:
+                SCREEN_WIDTH, SCREEN_HEIGHT = current_screen_size
+                layout_dirty = True
+                last_screen_size = current_screen_size
+                
+            # Recalculer le layout uniquement si nécessaire
+            if layout_dirty:
+                # Mettre à jour le background
                 bg_img = pygame.transform.scale(bg_original, (SCREEN_WIDTH, SCREEN_HEIGHT))
-                # Mettre à jour la position du borderless_button si créé
-                if 'borderless_button' in globals() and borderless_button:
-                    borderless_button.rect.x = SCREEN_WIDTH - 90
-                    display_dirty = False
-            # Recompute sizes each loop
-            SCREEN_WIDTH, SCREEN_HEIGHT = win.get_size()
-            if bg_img.get_size() != (SCREEN_WIDTH, SCREEN_HEIGHT):
-                bg_img = pygame.transform.scale(bg_original, (SCREEN_WIDTH, SCREEN_HEIGHT))
-                # Recalculer les polices adaptatives à chaque changement de taille
+                # Recalculer les polices adaptatives
                 FONT = create_adaptive_font(SCREEN_WIDTH, SCREEN_HEIGHT)
                 TITLE_FONT = create_title_font(SCREEN_WIDTH, SCREEN_HEIGHT)
+                # Recalculer toutes les positions et tailles
+                menu_font_size = update_layout(SCREEN_WIDTH, SCREEN_HEIGHT, buttons, borderless_button)
+                menu_font = pygame.font.SysFont("Arial", menu_font_size, bold=True)
+                layout_dirty = False
 
             # Draw background
             win.blit(bg_img, (0, 0))
@@ -681,42 +844,9 @@ def main_menu(win=None):
                 if p['y'] < 0 or p['y'] > SCREEN_HEIGHT: p['vy'] *= -1
                 pygame.draw.circle(win, p['color'], (int(p['x']), int(p['y'])), int(p['radius']))
 
-            # Position et taille des boutons entièrement proportionnelles
-            # largeur = 12% à 28% de l'écran, hauteur = 6% à 12% de la hauteur
-            btn_w = max(int(SCREEN_WIDTH * 0.12), min(int(SCREEN_WIDTH * 0.28), 520))
-            btn_h = max(int(SCREEN_HEIGHT * 0.06), min(int(SCREEN_HEIGHT * 0.12), 150))
-            # espacement proportionnel entre boutons
-            btn_gap = max(int(SCREEN_HEIGHT * 0.01), int(SCREEN_HEIGHT * 0.02))
-            btn_x = int(SCREEN_WIDTH * 0.62)
-            
-            # Calculer la hauteur totale nécessaire pour tous les boutons
-            total_buttons_height = len(buttons) * btn_h + (len(buttons) - 1) * btn_gap
-            # Centrer verticalement en laissant 10% d'espace en haut et en bas
-            available_height = SCREEN_HEIGHT * 0.8  # 80% de l'écran disponible
-            btn_y_start = int(SCREEN_HEIGHT * 0.1 + (available_height - total_buttons_height) / 2)
-            
-            for i, btn in enumerate(buttons):
-                btn.rect.x = btn_x
-                btn.rect.y = btn_y_start + i * (btn_h + btn_gap)
-                # mettre à jour taille du rect
-                btn.rect.w = btn_w
-                btn.rect.h = btn_h
-
-            # Préparer une police adaptée à la hauteur du bouton
-            font_size = max(12, int(btn_h * 0.45))
-            menu_font = pygame.font.SysFont("Arial", font_size, bold=True)
-
             mouse_pos = pygame.mouse.get_pos()
 
-            # Mise à jour du petit bouton (taille et position entièrement responsives)
-            small_btn_w = max(int(SCREEN_WIDTH * 0.05), int(SCREEN_WIDTH * 0.08))
-            small_btn_h = max(int(SCREEN_HEIGHT * 0.025), int(SCREEN_HEIGHT * 0.04))
-            borderless_button.rect.w = small_btn_w
-            borderless_button.rect.h = small_btn_h
-            borderless_button.rect.x = SCREEN_WIDTH - small_btn_w - int(SCREEN_WIDTH * 0.01)
-            borderless_button.rect.y = int(SCREEN_HEIGHT * 0.01)
-
-            # Dessiner tous les boutons
+            # Dessiner tous les boutons (les positions sont déjà calculées)
             for btn in buttons:
                 is_pressed = (btn == pressed_btn and pressed_timer > 0)
                 btn.draw(win, mouse_pos, pressed=is_pressed, font=menu_font)
@@ -751,6 +881,7 @@ def main_menu(win=None):
                     if not is_fullscreen and not is_borderless:
                         SCREEN_WIDTH, SCREEN_HEIGHT = event.w, event.h
                         pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                        layout_dirty = True
                         for p in particles:
                             if p['x'] > SCREEN_WIDTH: p['x'] = SCREEN_WIDTH - 10
                             if p['y'] > SCREEN_HEIGHT: p['y'] = SCREEN_HEIGHT - 10
