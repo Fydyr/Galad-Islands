@@ -4,7 +4,7 @@ from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.baseComponent import BaseComponent 
-from settings.controls import KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_PREV_TROOP, KEY_NEXT_TROOP, KEY_ATTACK_MODE, KEY_SPECIAL_ABILITY
+from src.settings.controls import KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_PREV_TROOP, KEY_NEXT_TROOP, KEY_ATTACK_MODE, KEY_SPECIAL_ABILITY
 import pygame
 
 class PlayerControlProcessor(esper.Processor):
