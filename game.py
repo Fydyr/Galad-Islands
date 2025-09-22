@@ -1,7 +1,7 @@
 # Importations
 import pygame
 import settings
-import components.mapComponent as game_map
+import src.components.mapComponent as game_map
 import esper as es
 from src.processeurs import movementProcessor, collisionProcessor, renderingProcessor
 from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE
