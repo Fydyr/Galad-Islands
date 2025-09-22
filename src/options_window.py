@@ -57,9 +57,15 @@ def show_options_window():
 			main_canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
 
 	# Bind global pour la molette (plus simple et robuste)
-	main_canvas.bind('<MouseWheel>', _on_mousewheel)
-	main_canvas.bind('<Button-4>', _on_mousewheel)
-	main_canvas.bind('<Button-5>', _on_mousewheel)
+	# Utiliser win.bind_all pour capter les événements même si le focus n'est pas strictement
+	# sur le canvas (corrige les problèmes sur Windows / Linux / macOS).
+	win.bind_all('<MouseWheel>', _on_mousewheel)
+	win.bind_all('<Button-4>', _on_mousewheel)
+	win.bind_all('<Button-5>', _on_mousewheel)
+
+	# Garantir que le canvas reçoit le focus quand la souris y entre (utile pour quelques gestionnaires)
+	main_canvas.bind('<Enter>', lambda e: main_canvas.focus_set())
+	main_canvas.bind('<Leave>', lambda e: win.focus_set())
 
 	# Section résolution
 	resolution_frame = tk.Frame(content_frame, bg="#2a2a2a", relief="raised", bd=1)
