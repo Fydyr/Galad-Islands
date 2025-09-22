@@ -127,13 +127,7 @@ class Button:
 # Fonctions des boutons
 def jouer():
 	print("Lancement du jeu...")
-	# Sauvegarde la fenêtre du menu
-	menu_size = (settings.get_screen_width(), settings.get_screen_height())
-	# Lance la map dans une nouvelle fenêtre
-	game_map.map()
-	# Restaure la fenêtre du menu après fermeture de la map
-	pygame.display.set_mode(menu_size)
-	pygame.display.set_caption("Galad Islands - Menu Principal")
+	return "play"
 
 def options():
 	print("Menu des options")
@@ -481,9 +475,7 @@ def scénario():
 	threading.Thread(target=show_scenario_window).start()
 
 def quitter():
-	pygame.mixer.music.stop()  # Arrête la musique avant de quitter
-	pygame.quit()
-	sys.exit()
+	return "quit"
 
 
 
@@ -502,12 +494,13 @@ for i in range(num_buttons):
 	buttons.append(Button(labels[i], x, y, button_width, button_height, callbacks[i]))
 
 # Boucle principale
-def main_menu():
+def main_menu(window):
 	clock = pygame.time.Clock()
 	t = 0
 	running = True
 	pressed_btn = None
 	pressed_timer = 0
+	menu_choice = None
 
 	# Initialisation des particules magiques
 	particles = []
@@ -524,7 +517,7 @@ def main_menu():
 	try:
 		while running:
 			# Affiche l'image de fond
-			WIN.blit(bg_img, (0, 0))
+			window.blit(bg_img, (0, 0))
 
 			# Particules magiques
 			for p in particles:
@@ -532,7 +525,7 @@ def main_menu():
 				p['y'] += p['vy']
 				if p['x'] < 0 or p['x'] > settings.get_screen_width(): p['vx'] *= -1
 				if p['y'] < 0 or p['y'] > settings.get_screen_height(): p['vy'] *= -1
-				pygame.draw.circle(WIN, p['color'], (int(p['x']), int(p['y'])), int(p['radius']))
+				pygame.draw.circle(window, p['color'], (int(p['x']), int(p['y'])), int(p['radius']))
 
 			# Position des boutons à droite du logo
 			btn_x = int(settings.get_screen_width() * 0.62)
@@ -545,11 +538,11 @@ def main_menu():
 			mouse_pos = pygame.mouse.get_pos()
 			for btn in buttons:
 				is_pressed = (btn == pressed_btn and pressed_timer > 0)
-				btn.draw(WIN, mouse_pos, pressed=is_pressed)
+				btn.draw(window, mouse_pos, pressed=is_pressed)
 
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
-					running = False
+					return 'quit'
 				if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 					for btn in buttons:
 						if btn.rect.collidepoint(mouse_pos):
@@ -557,17 +550,14 @@ def main_menu():
 							pressed_timer = 8  # frames
 				if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
 					if pressed_btn and pressed_btn.rect.collidepoint(mouse_pos):
-						if pressed_btn.text == "Quitter":
-							running = False
-						else:
-							pressed_btn.click(mouse_pos)
+						action = pressed_btn.callback()
+						if action in ['play', 'quit']:
+							return action
 					pressed_btn = None
 					pressed_timer = 0
 
 			if pressed_timer > 0:
 				pressed_timer -= 1
-			if not running:
-				break
 
 			pygame.display.update()
 			clock.tick(60)
@@ -575,7 +565,8 @@ def main_menu():
 		print(f"Erreur dans la boucle principale: {e}")
 		import traceback
 		traceback.print_exc()
-	quitter()
+		return 'quit'
+	return 'quit'
 
 if __name__ == "__main__":
 	main_menu()

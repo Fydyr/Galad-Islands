@@ -1,5 +1,6 @@
 # Importation des modules nécessaires
 import pygame
+import sys
 from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED
 from random import randint
 
@@ -277,6 +278,84 @@ def afficher_grille(window, grid, images, camera):
             elif all(grid[i+dy][j+dx] == 5 for dy in range(4) for dx in range(4)):
                 draw_element(images['enemy'], j, i, 4)
 
+def init_game_map(screen_width, screen_height):
+    """
+    Initialise les composants de la carte du jeu.
+    Returns:
+        dict: Un dictionnaire contenant les composants initialisés (grid, images, camera).
+    """
+    grid = creer_grille()
+    images = charger_images()
+    placer_elements(grid)
+    
+    camera = Camera(screen_width, screen_height)
+    camera.x = (MAP_WIDTH * TILE_SIZE - screen_width) // 2
+    camera.y = (MAP_HEIGHT * TILE_SIZE - screen_height) // 2
+    camera._constrain_camera()
+    
+    return {"grid": grid, "images": images, "camera": camera}
+
+def run_game_frame(window, game_state, dt):
+    """
+    Exécute une seule frame de la logique et du rendu de la carte.
+    Args:
+        window (pygame.Surface): La surface sur laquelle dessiner.
+        game_state (dict): L'état actuel du jeu (grid, images, camera).
+        dt (float): Delta time en secondes.
+    Returns:
+        bool: True pour continuer le jeu, False pour revenir au menu.
+    """
+    camera = game_state["camera"]
+    grid = game_state["grid"]
+    images = game_state["images"]
+    
+    # Gestion des événements
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                return False  # Revenir au menu
+        
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 4:
+                camera.handle_zoom(1)
+            elif event.button == 5:
+                camera.handle_zoom(-1)
+
+    # Gestion des touches pressées
+    keys = pygame.key.get_pressed()
+    camera.update(dt, keys)
+    
+    # Effacer l'écran
+    window.fill((0, 50, 100))
+    
+    # Afficher la grille
+    afficher_grille(window, grid, images, camera)
+    
+    # Affichage des informations de debug
+    if keys[pygame.K_F1]:
+        font = pygame.font.Font(None, 36)
+        debug_info = [
+            f"Caméra: ({camera.x:.1f}, {camera.y:.1f})",
+            f"Zoom: {camera.zoom:.2f}x",
+            f"Taille tuile: {TILE_SIZE}px",
+            f"Résolution: {window.get_width()}x{window.get_height()}",
+            f"FPS: {1/dt if dt > 0 else 0:.1f}"
+        ]
+        for i, info in enumerate(debug_info):
+            text_surface = font.render(info, True, (255, 255, 255))
+            window.blit(text_surface, (10, 10 + i * 30))
+            
+    # Instructions
+    font = pygame.font.Font(None, 36)
+    help_text = font.render("Flèches/WASD: Déplacer | Molette: Zoom | F1: Debug | Échap: Quitter", True, (255, 255, 255))
+    window.blit(help_text, (10, window.get_height() - 30))
+    
+    return True # Continuer le jeu
+
 def map():
     """
     Fonction principale qui gère la carte du jeu avec une grille pour l'IA.
@@ -291,76 +370,19 @@ def map():
     window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Galad Islands - Carte")
     
-    # Initialiser les composants
-    grid = creer_grille()
-    images = charger_images()
-    placer_elements(grid)
-    
-    # Créer la caméra
-    camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
-    # Centrer la caméra sur la carte au démarrage
-    camera.x = (MAP_WIDTH * TILE_SIZE - SCREEN_WIDTH) // 2
-    camera.y = (MAP_HEIGHT * TILE_SIZE - SCREEN_HEIGHT) // 2
-    camera._constrain_camera()
+    game_state = init_game_map(SCREEN_WIDTH, SCREEN_HEIGHT)
     
     running = True
     clock = pygame.time.Clock()
     
-    # Police pour afficher les informations de debug
-    font = pygame.font.Font(None, 36)
-    
     while running:
         dt = clock.tick(60) / 1000.0  # Delta time en secondes
         
-        # Gestion des événements
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-                pygame.display.set_caption("Galad Islands")
-            
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:  # Quitter avec Échap
-                    running = False
-                    pygame.display.set_caption("Galad Islands")
-            
-            # Gestion du zoom avec la molette
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:  # Molette vers le haut
-                    camera.handle_zoom(1)
-                elif event.button == 5:  # Molette vers le bas
-                    camera.handle_zoom(-1)
-        
-        # Gestion des touches pressées
-        keys = pygame.key.get_pressed()
-        camera.update(dt, keys)
-        
-        # Effacer l'écran
-        window.fill((0, 50, 100))  # Couleur de fond bleu océan
-        
-        # Afficher la grille avec la caméra
-        afficher_grille(window, grid, images, camera)
-        
-        # Affichage des informations de debug (optionnel)
-        if keys[pygame.K_F1]:  # Appuyez sur F1 pour voir les infos debug
-            debug_info = [
-                f"Caméra: ({camera.x:.1f}, {camera.y:.1f})",
-                f"Zoom: {camera.zoom:.2f}x",
-                f"Taille tuile: {TILE_SIZE}px",
-                f"Résolution: {SCREEN_WIDTH}x{SCREEN_HEIGHT}",
-                f"FPS: {clock.get_fps():.1f}"
-            ]
-            
-            for i, info in enumerate(debug_info):
-                text_surface = font.render(info, True, (255, 255, 255))
-                window.blit(text_surface, (10, 10 + i * 30))
-        
-        # Instructions à l'écran
-        help_text = font.render("Flèches/WASD: Déplacer | Molette: Zoom | F1: Debug | Échap: Quitter", True, (255, 255, 255))
-        window.blit(help_text, (10, SCREEN_HEIGHT - 30))
+        running = run_game_frame(window, game_state, dt)
         
         pygame.display.flip()
     
-    return grid
+    return game_state["grid"]
     
     
     
