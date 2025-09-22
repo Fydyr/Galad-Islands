@@ -1,7 +1,7 @@
 # Importations
 import pygame
 import settings
-import src.components.map as game_map
+import src.components.mapComponent as game_map
 import esper as es
 from src.processeurs import movementProcessor, collisionProcessor, renderingProcessor
 from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE
@@ -40,7 +40,7 @@ def game():
     es.add_processor(rendering_processor, priority=9)
 
     test_vessel = es.create_entity()
-    es.add_component(test_vessel, PositionComponent(10, 10, 100, 100, 90))
+    es.add_component(test_vessel, PositionComponent(10, 10, 100, 100, 0))
     es.add_component(test_vessel, VelocityComponent(-2, 50, -10))
     es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Zasper.png", 100, 100))
 
