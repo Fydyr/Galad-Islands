@@ -3,6 +3,7 @@ from src.components.properties.playerSelectedComponent import PlayerSelectedComp
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.attackComponent import AttackComponent
+from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.baseComponent import BaseComponent 
 from src.settings.controls import KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_PREV_TROOP, KEY_NEXT_TROOP, KEY_ATTACK, KEY_SPECIAL_ABILITY
 import pygame
@@ -37,6 +38,35 @@ class PlayerControlProcessor(esper.Processor):
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
                     base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
+            if keys[getattr(pygame, f'K_{KEY_ATTACK}')]:
+                if (esper.has_component(entity, AttackComponent) and
+                    esper.has_component(entity, CanCollideComponent) and
+                    esper.has_component(entity, PositionComponent) and
+                    esper.has_component(entity, VelocityComponent)
+                    ):
+
+                    attack = esper.component_for_entity(entity, AttackComponent)
+                    canCollide = esper.component_for_entity(entity, CanCollideComponent)
+                    position = esper.component_for_entity(entity, PositionComponent)
+                    velocity = esper.component_for_entity(entity, VelocityComponent)
+
+                    bullet_entity = esper.create_entity()
+                    esper.add_component(bullet_entity, PositionComponent(
+                        x=position.x,
+                        y=position.y,
+                        direction=position.direction
+                    ))
+                    bullet_speed = 10.0 
+                    esper.add_component(bullet_entity, VelocityComponent(
+                        currentSpeed= bullet_speed,
+                        maxUpSpeed= bullet_speed,
+                        maxReverseSpeed=0.0,
+                    ))
+                    esper.add_component(bullet_entity, AttackComponent(
+                        hitPoints=attack.hitPoints
+                    ))
+                    esper.add_component(bullet_entity, CanCollideComponent())
+                
                 
 
 
