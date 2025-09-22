@@ -3,6 +3,7 @@ import pygame
 from menu import main_menu
 from game import game
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, GAME_TITLE
+from config_manager import config_manager
 import sys
 
 
@@ -18,8 +19,19 @@ pygame.init()
 
 
 # Main window
-WINDOW_SIZE = (SCREEN_WIDTH, SCREEN_HEIGHT)
-window = pygame.display.set_mode(WINDOW_SIZE)
+width = config_manager.get("screen_width")
+height = config_manager.get("screen_height")
+mode = config_manager.get("window_mode", "windowed")
+
+flags = 0
+if mode == "fullscreen":
+    flags = pygame.FULLSCREEN
+    info = pygame.display.Info()
+    width = info.current_w
+    height = info.current_h
+
+WINDOW_SIZE = (width, height)
+window = pygame.display.set_mode(WINDOW_SIZE, flags)
 pygame.display.set_caption(GAME_TITLE)
 
 
