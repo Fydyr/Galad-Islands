@@ -12,7 +12,7 @@ import tkinter as tk
 import math
 import random
 import os
-import src.components.mapComponent as game_map
+from game import game
 
 
 pygame.init()
@@ -207,10 +207,7 @@ class SmallButton:
 def jouer():
 	print("Lancement du jeu...")
 	# Lance la map dans une nouvelle fenêtre
-	game_map.map()
-	# Restaure la fenêtre du menu après fermeture de la map
-	pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-	pygame.display.set_caption("Galad Islands - Menu Principal")
+	game()
 
 def options():
 	print("Menu des options")
