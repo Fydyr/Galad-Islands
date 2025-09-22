@@ -12,6 +12,7 @@ import random
 import os
 import src.components.map as game_map
 from config_manager import config_manager, set_resolution
+from settings import get_screen_width, get_screen_height
 
 
 pygame.init()
@@ -21,7 +22,7 @@ pygame.mixer.init()
 try:
     from config_manager import load_user_preferences
     load_user_preferences()
-    print(f"Résolution chargée: {settings.SCREEN_WIDTH}x{settings.SCREEN_HEIGHT}")
+    print(f"Résolution chargée: {settings.get_screen_width()}x{settings.get_screen_height()}")
 except Exception as e:
     print(f"Erreur lors du chargement des préférences: {e}")
     print("Utilisation des paramètres par défaut")
@@ -39,7 +40,7 @@ pygame.display.set_caption("Galad Islands - Menu Principal")
 music_path = os.path.join("assets/sounds", "xDeviruchi-TitleTheme.wav")
 try:
     pygame.mixer.music.load(music_path)
-    pygame.mixer.music.set_volume(0.5)  # Volume à 50%
+    pygame.mixer.music.set_volume(config_manager.get('volume_music', 0.5))  # Utiliser le volume de la config
     pygame.mixer.music.play(-1)  # Joue en boucle (-1)
     print("Musique d'ambiance chargée et jouée")
 except Exception as e:
@@ -127,7 +128,7 @@ class Button:
 def jouer():
 	print("Lancement du jeu...")
 	# Sauvegarde la fenêtre du menu
-	menu_size = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
+	menu_size = (settings.get_screen_width(), settings.get_screen_height())
 	# Lance la map dans une nouvelle fenêtre
 	game_map.map()
 	# Restaure la fenêtre du menu après fermeture de la map
@@ -140,9 +141,9 @@ def options():
 	def show_options_window():
 		win = tk.Tk()
 		win.title("Options - Galad Islands")
-		win.geometry("650x500")
+		win.geometry("800x600")
 		win.configure(bg="#1e1e1e")
-		win.resizable(False, False)
+		win.resizable(True, True)
 
 		# Titre
 		title = tk.Label(win, text="Options du jeu", fg="#FFD700", bg="#1e1e1e", font=("Arial", 18, "bold"))
@@ -169,10 +170,41 @@ def options():
 		tk.Label(resolution_frame, text="Choisir une nouvelle résolution :", fg="#DDDDDD", bg="#2a2a2a", font=("Arial", 12)).pack(pady=(10, 5))
 
 		# Frame pour les boutons radio avec scrollbar si nécessaire
-		radio_frame = tk.Frame(resolution_frame, bg="#2a2a2a")
-		radio_frame.pack(pady=5, padx=10)
+		radio_container = tk.Frame(resolution_frame, bg="#2a2a2a")
+		radio_container.pack(pady=5, padx=10, fill="x")
 
-		# Boutons radio pour chaque résolution
+		# Canvas + Scrollbar pour rendre la liste des résolutions défilable
+		canvas = tk.Canvas(radio_container, bg="#2a2a2a", highlightthickness=0, height=180)
+		scrollbar = tk.Scrollbar(radio_container, orient="vertical", command=canvas.yview)
+		scrollable_frame = tk.Frame(canvas, bg="#2a2a2a")
+
+		def _on_frame_configure(event=None):
+			canvas.configure(scrollregion=canvas.bbox("all"))
+
+		scrollable_frame.bind("<Configure>", _on_frame_configure)
+		canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+		canvas.configure(yscrollcommand=scrollbar.set)
+
+		# Disposition du canvas et de la scrollbar
+		canvas.pack(side="left", fill="both", expand=True)
+		scrollbar.pack(side="right", fill="y")
+
+		# Support molette souris (Linux/Mac/Windows)
+		def _on_mousewheel(event):
+			# Sur Linux, event.num 4/5; sur Windows/Mac, event.delta
+			if getattr(event, 'num', None) == 4:
+				canvas.yview_scroll(-3, 'units')
+			elif getattr(event, 'num', None) == 5:
+				canvas.yview_scroll(3, 'units')
+			else:
+				canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
+
+		for widget in (canvas, scrollable_frame, radio_container):
+			widget.bind_all('<MouseWheel>', _on_mousewheel)
+			widget.bind_all('<Button-4>', _on_mousewheel)
+			widget.bind_all('<Button-5>', _on_mousewheel)
+
+		# Boutons radio pour chaque résolution (dans la zone défilable)
 		for width, height, description in resolutions:
 			tile_size = settings.calculate_adaptive_tile_size_for_resolution(width, height)
 			visible_tiles_x = width // tile_size
@@ -181,7 +213,7 @@ def options():
 			radio_text = f"{description} - Tuiles: {tile_size}px ({visible_tiles_x}x{visible_tiles_y} visibles)"
 			
 			radio = tk.Radiobutton(
-				radio_frame,
+				scrollable_frame,
 				text=radio_text,
 				variable=selected_resolution,
 				value=f"{width}x{height}",
@@ -200,9 +232,24 @@ def options():
 
 		tk.Label(audio_frame, text="🔊 Audio", fg="#FFD700", bg="#2a2a2a", font=("Arial", 14, "bold")).pack(pady=5)
 		
-		volume_info = f"Volume musique: {int(config_manager.get('volume_music', 0.5) * 100)}%"
-		tk.Label(audio_frame, text=volume_info, fg="#CCCCCC", bg="#2a2a2a", font=("Arial", 10)).pack(pady=2)
-		tk.Label(audio_frame, text="(Paramètres audio à venir)", fg="#888888", bg="#2a2a2a", font=("Arial", 9)).pack(pady=2)
+		def update_volume_label(value):
+			volume_label.config(text=f"Volume musique: {int(float(value) * 100)}%")
+			
+		def set_music_volume(value):
+			volume = float(value)
+			pygame.mixer.music.set_volume(volume)
+			config_manager.set('volume_music', volume)
+			update_volume_label(value)
+
+		initial_volume = config_manager.get('volume_music', 0.5)
+		volume_label = tk.Label(audio_frame, text=f"Volume musique: {int(initial_volume * 100)}%", fg="#CCCCCC", bg="#2a2a2a", font=("Arial", 10))
+		volume_label.pack(pady=2)
+
+		volume_slider = tk.Scale(audio_frame, from_=0, to=1, resolution=0.01, orient="horizontal",
+								 command=set_music_volume, bg="#2a2a2a", fg="#DDDDDD",
+								 troughcolor="#555555", highlightbackground="#2a2a2a")
+		volume_slider.set(initial_volume)
+		volume_slider.pack(pady=5, padx=10, fill="x")
 
 		# Section informations
 		info_frame = tk.Frame(win, bg="#2a2a2a", relief="raised", bd=1)
@@ -230,10 +277,7 @@ def options():
 				# Sauvegarder dans le gestionnaire de config
 				success_config = set_resolution(width, height)
 				
-				# IMPORTANT: Modifier directement le fichier settings.py
-				success_settings = modify_settings_file(width, height)
-				
-				if success_config and success_settings:
+				if success_config:
 					# Mettre à jour immédiatement les settings en mémoire
 					settings.SCREEN_WIDTH = width
 					settings.SCREEN_HEIGHT = height
@@ -252,37 +296,6 @@ def options():
 				else:
 					import tkinter.messagebox as msgbox
 					msgbox.showerror("Erreur", "Impossible de sauvegarder la configuration.")
-
-		def modify_settings_file(new_width, new_height):
-			"""Modifie directement le fichier settings.py avec la nouvelle résolution"""
-			try:
-				# Lire le fichier settings.py
-				with open('settings.py', 'r', encoding='utf-8') as f:
-					content = f.read()
-				
-				# Remplacer les valeurs de résolution avec regex précis
-				import re
-				
-				# Pattern pour SCREEN_WIDTH = nombre
-				width_pattern = r'SCREEN_WIDTH = \d+'
-				new_width_line = f'SCREEN_WIDTH = {new_width}'
-				content = re.sub(width_pattern, new_width_line, content)
-				
-				# Pattern pour SCREEN_HEIGHT = nombre  
-				height_pattern = r'SCREEN_HEIGHT = \d+'
-				new_height_line = f'SCREEN_HEIGHT = {new_height}'
-				content = re.sub(height_pattern, new_height_line, content)
-				
-				# Écrire le fichier modifié
-				with open('settings.py', 'w', encoding='utf-8') as f:
-					f.write(content)
-				
-				print(f"✅ Fichier settings.py modifié: {new_width}x{new_height}")
-				return True
-				
-			except Exception as e:
-				print(f"❌ Erreur lors de la modification des settings: {e}")
-				return False
 
 		def preview_resolution():
 			"""Affiche un aperçu de la résolution sélectionnée"""
@@ -312,8 +325,7 @@ def options():
 				msgbox.showinfo("Succès", "Paramètres remis par défaut !")
 				win.destroy()
 
-		# Boutons avec icônes et couleurs
-		tk.Button(button_frame, text="✓ Appliquer", command=apply_resolution, 
+		tk.Button(button_frame, text="✓ Appliquer & Sauver", command=apply_resolution, 
 				 font=("Arial", 12, "bold"), bg="#4CAF50", fg="white", padx=20, pady=5).pack(side="left", padx=5)
 		
 		tk.Button(button_frame, text="👁️ Aperçu", command=preview_resolution,
@@ -322,7 +334,11 @@ def options():
 		tk.Button(button_frame, text="🔄 Défaut", command=reset_defaults,
 				 font=("Arial", 12), bg="#FF9800", fg="white", padx=20, pady=5).pack(side="left", padx=5)
 		
-		tk.Button(button_frame, text="❌ Fermer", command=win.destroy, 
+		def close_options():
+			config_manager.save_config()
+			win.destroy()
+
+		tk.Button(button_frame, text="❌ Fermer", command=close_options, 
 				 font=("Arial", 12), bg="#f44336", fg="white", padx=20, pady=5).pack(side="left", padx=5)
 
 		# Centrer la fenêtre
@@ -437,12 +453,12 @@ button_width, button_height = 250, 60
 gap = 20
 num_buttons = 6
 total_height = num_buttons * button_height + (num_buttons - 1) * gap
-start_y = (settings.SCREEN_HEIGHT - total_height) // 2 + 40  # Décalage pour le titre
+start_y = (settings.get_screen_height() - total_height) // 2 + 40  # Décalage pour le titre
 buttons = []
 labels = ["Jouer", "Options", "Crédits", "Aide", "Scénario", "Quitter"]
 callbacks = [jouer, options, crédits, aide, scénario, quitter]
 for i in range(num_buttons):
-	x = settings.SCREEN_WIDTH // 2 - button_width // 2
+	x = settings.get_screen_width() // 2 - button_width // 2
 	y = start_y + i * (button_height + gap)
 	buttons.append(Button(labels[i], x, y, button_width, button_height, callbacks[i]))
 
@@ -458,8 +474,8 @@ def main_menu():
 	particles = []
 	for _ in range(30):
 		particles.append({
-			'x': settings.SCREEN_WIDTH * 0.5 + random.uniform(-200, 200),
-			'y': settings.SCREEN_HEIGHT * 0.5 + random.uniform(-150, 150),
+			'x': settings.get_screen_width() * 0.5 + random.uniform(-200, 200),
+			'y': settings.get_screen_height() * 0.5 + random.uniform(-150, 150),
 			'vx': random.uniform(-1, 1),
 			'vy': random.uniform(-1, 1),
 			'color': GOLD if _ % 2 == 0 else WHITE,
@@ -475,13 +491,13 @@ def main_menu():
 			for p in particles:
 				p['x'] += p['vx']
 				p['y'] += p['vy']
-				if p['x'] < 0 or p['x'] > settings.SCREEN_WIDTH: p['vx'] *= -1
-				if p['y'] < 0 or p['y'] > settings.SCREEN_HEIGHT: p['vy'] *= -1
+				if p['x'] < 0 or p['x'] > settings.get_screen_width(): p['vx'] *= -1
+				if p['y'] < 0 or p['y'] > settings.get_screen_height(): p['vy'] *= -1
 				pygame.draw.circle(WIN, p['color'], (int(p['x']), int(p['y'])), int(p['radius']))
 
 			# Position des boutons à droite du logo
-			btn_x = int(settings.SCREEN_WIDTH * 0.62)
-			btn_y_start = int(settings.SCREEN_HEIGHT * 0.18)
+			btn_x = int(settings.get_screen_width() * 0.62)
+			btn_y_start = int(settings.get_screen_height() * 0.18)
 			btn_gap = 20
 			for i, btn in enumerate(buttons):
 				btn.rect.x = btn_x

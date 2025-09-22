@@ -5,7 +5,7 @@ Gère la sauvegarde et le chargement des préférences utilisateur.
 
 import json
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 CONFIG_FILE = "galad_config.json"
 
@@ -88,6 +88,23 @@ class ConfigManager:
             (2560, 1440, "QHD (2560x1440)"),
             (1168, 629, "Personnalisée (1168x629)")
         ]
+    
+    def get_volume(self) -> dict:
+        """Récupère les paramètres de volume."""
+        return {
+            "master": self.config.get("volume_master", 1.0),
+            "music": self.config.get("volume_music", 1.0),
+            "effects": self.config.get("volume_effects", 1.0),
+        }
+
+    def set_volume(self, music: Optional[float] = None, effects: Optional[float] = None, master: Optional[float] = None):
+        """Définit les paramètres de volume."""
+        if music is not None:
+            self.config["volume_music"] = max(0.0, min(1.0, music))
+        if effects is not None:
+            self.config["volume_effects"] = max(0.0, min(1.0, effects))
+        if master is not None:
+            self.config["volume_master"] = max(0.0, min(1.0, master))
 
 # Instance globale du gestionnaire de configuration
 config_manager = ConfigManager()

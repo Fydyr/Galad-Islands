@@ -1,9 +1,9 @@
 import math
 import pygame
+from config_manager import config_manager
 
 # Fenêtre
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH, SCREEN_HEIGHT = config_manager.get_resolution()
 FPS = 30
 GAME_TITLE = "Galad Islands"
 
@@ -84,3 +84,9 @@ def calculate_adaptive_tile_size_for_resolution(width, height):
     adaptive_size = max(16, min(64, adaptive_size))
     
     return adaptive_size
+
+def get_screen_width():
+    return config_manager.get("screen_width")
+
+def get_screen_height():
+    return config_manager.get("screen_height")
