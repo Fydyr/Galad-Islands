@@ -2,8 +2,7 @@
 import pygame
 from menu import main_menu
 from src.components.map import init_game_map, run_game_frame
-from settings import GAME_TITLE
-from config_manager import config_manager
+from settings import GAME_TITLE, config_manager
 import sys
 
 

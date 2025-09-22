@@ -2,30 +2,37 @@
 
 # Menu principal en Pygame
 
-from random import random
 import threading
-import pygame
-import sys
-import settings
-import tkinter as tk
-import random
 import os
+import random
+import sys
+
+import pygame
+import tkinter as tk
+
+import settings
 import src.components.map as game_map
-from config_manager import config_manager, set_resolution
-from settings import get_screen_width, get_screen_height
 
 
 pygame.init()
 pygame.mixer.init()
 
-# Charger les préférences utilisateur au démarrage
+# Charger les préférences utilisateur au démarrage via settings.ConfigManager
 try:
-    from config_manager import load_user_preferences
-    load_user_preferences()
-    print(f"Résolution chargée: {settings.get_screen_width()}x{settings.get_screen_height()}")
+	# settings.config_manager.load_config() est appelée à l'instanciation, mais on peut recharger explicitement
+	settings.config_manager.load_config()
+	# Mettre à jour les settings en mémoire si nécessaire
+	w, h = settings.config_manager.get_resolution()
+	try:
+		settings.SCREEN_WIDTH = int(w)
+		settings.SCREEN_HEIGHT = int(h)
+	except Exception:
+		pass
+	settings.TILE_SIZE = settings.calculate_adaptive_tile_size()
+	print(f"Résolution chargée: {settings.get_screen_width()}x{settings.get_screen_height()}")
 except Exception as e:
-    print(f"Erreur lors du chargement des préférences: {e}")
-    print("Utilisation des paramètres par défaut")
+	print(f"Erreur lors du chargement des préférences: {e}")
+	print("Utilisation des paramètres par défaut")
 
 
 
@@ -44,23 +51,28 @@ bg_img = pygame.transform.scale(bg_img_original, (WIDTH, HEIGHT))
 # Chargement et lecture de la musique d'ambiance
 music_path = os.path.join("assets/sounds", "xDeviruchi-TitleTheme.wav")
 try:
-    pygame.mixer.music.load(music_path)
-    pygame.mixer.music.set_volume(config_manager.get('volume_music', 0.5))  # Utiliser le volume de la config
-    pygame.mixer.music.play(-1)  # Joue en boucle (-1)
-    print("Musique d'ambiance chargée et jouée")
+	pygame.mixer.music.load(music_path)
+	pygame.mixer.music.set_volume(settings.config_manager.get('volume_music', 0.5) or 0.5)  # Utiliser le volume de la config
+	pygame.mixer.music.play(-1)  # Joue en boucle (-1)
+	print("Musique d'ambiance chargée et jouée")
 except Exception as e:
-    print(f"Impossible de charger la musique: {e}")
+	print(f"Impossible de charger la musique: {e}")
 
-# Chargement du logo (remplacez le chemin par le bon fichier si besoin)
+# Chargement du logo (utilise le dossier assets/image si présent)
 try:
-    logo_img = pygame.image.load(os.path.join("image", "galad_logo.png"))
+	logo_path = os.path.join("assets", "image", "galad_logo.png")
+	if not os.path.exists(logo_path):
+		logo_path = os.path.join("image", "galad_logo.png")
+	logo_img = pygame.image.load(logo_path) if os.path.exists(logo_path) else None
 except Exception:
-    logo_img = None
+	logo_img = None
 
 # Chargement du son de sélection
 try:
-	select_sound = pygame.mixer.Sound(os.path.join("assets/sounds", "select_sound_2.mp3"))
-	select_sound.set_volume(0.7)
+	select_path = os.path.join("assets", "sounds", "select_sound_2.mp3")
+	select_sound = pygame.mixer.Sound(select_path) if os.path.exists(select_path) else None
+	if select_sound:
+		select_sound.set_volume(0.7)
 except Exception as e:
 	select_sound = None
 	print(f"Impossible de charger le son de sélection: {e}")
@@ -157,7 +169,7 @@ def options():
 		main_frame = tk.Frame(win, bg="#1e1e1e")
 		main_frame.pack(side="top", fill="both", expand=True)
 
-		# Canvas pour le défilement
+		# Canvas pour le défilement et son contenu
 		main_canvas = tk.Canvas(main_frame, bg="#1e1e1e", highlightthickness=0)
 		main_canvas.pack(side="left", fill="both", expand=True)
 
@@ -168,17 +180,17 @@ def options():
 
 		# Frame de contenu à l'intérieur du Canvas
 		content_frame = tk.Frame(main_canvas, bg="#1e1e1e")
-		main_canvas.create_window((0, 0), window=content_frame, anchor="nw")
+		content_window = main_canvas.create_window((0, 0), window=content_frame, anchor="nw")
 
 		def _on_frame_configure(event=None):
 			main_canvas.configure(scrollregion=main_canvas.bbox("all"))
 			# Ajuster la largeur du content_frame à celle du canvas
-			main_canvas.itemconfig(main_canvas.create_window((0, 0), window=content_frame, anchor="nw"), width=main_canvas.winfo_width())
+			main_canvas.itemconfig(content_window, width=main_canvas.winfo_width())
 
 		content_frame.bind("<Configure>", _on_frame_configure)
 		main_canvas.bind("<Configure>", _on_frame_configure)
 
-		# Support molette souris
+		# Support molette souris (Windows/Mac/Linux)
 		def _on_mousewheel(event):
 			if event.num == 4:
 				main_canvas.yview_scroll(-1, 'units')
@@ -186,13 +198,11 @@ def options():
 				main_canvas.yview_scroll(1, 'units')
 			else:
 				main_canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
-		
-		for widget in (win, main_canvas, content_frame):
-			widget.bind_all('<MouseWheel>', _on_mousewheel)
-			widget.bind_all('<Button-4>', _on_mousewheel)
-			widget.bind_all('<Button-5>', _on_mousewheel)
 
-		# --- Tout le contenu des options va maintenant dans `content_frame` ---
+		# Bind global pour la molette (plus simple et robuste)
+		main_canvas.bind_all('<MouseWheel>', _on_mousewheel)
+		main_canvas.bind_all('<Button-4>', _on_mousewheel)
+		main_canvas.bind_all('<Button-5>', _on_mousewheel)
 
 		# Section résolution
 		resolution_frame = tk.Frame(content_frame, bg="#2a2a2a", relief="raised", bd=1)
@@ -201,16 +211,23 @@ def options():
 		tk.Label(resolution_frame, text="🖥️ Résolution d'écran", fg="#FFD700", bg="#2a2a2a", font=("Arial", 14, "bold")).pack(pady=10)
 		
 		# Résolution actuelle
-		current_width, current_height = config_manager.get_resolution()
-		current_tile_size = settings.calculate_adaptive_tile_size_for_resolution(current_width, current_height)
-		current_res_text = f"Actuelle: {current_width}x{current_height} (Tuiles: {current_tile_size}px)"
+		current_width, current_height = settings.config_manager.get_resolution()
+		# Cast safe
+		try:
+			current_w = int(current_width)
+			current_h = int(current_height)
+		except Exception:
+			current_w = int(settings.SCREEN_WIDTH)
+			current_h = int(settings.SCREEN_HEIGHT)
+		current_tile_size = settings.calculate_adaptive_tile_size_for_resolution(current_w, current_h)
+		current_res_text = f"Actuelle: {current_w}x{current_h} (Tuiles: {current_tile_size}px)"
 		current_label = tk.Label(resolution_frame, text=current_res_text, fg="#90EE90", bg="#2a2a2a", font=("Arial", 12))
 		current_label.pack(pady=5)
 
 		# Liste des résolutions disponibles
-		resolutions = config_manager.get_all_resolutions()
+		resolutions = settings.get_all_resolutions()
 
-		selected_resolution = tk.StringVar(value=f"{current_width}x{current_height}")
+		selected_resolution = tk.StringVar(value=f"{current_w}x{current_h}")
 
 		tk.Label(resolution_frame, text="Choisir une nouvelle résolution :", fg="#DDDDDD", bg="#2a2a2a", font=("Arial", 12)).pack(pady=(10, 5))
 
@@ -245,11 +262,11 @@ def options():
 		display_frame.pack(pady=10, padx=20, fill="x")
 		tk.Label(display_frame, text="🖼️ Mode d'affichage", fg="#FFD700", bg="#2a2a2a", font=("Arial", 14, "bold")).pack(pady=5)
 
-		window_mode = tk.StringVar(value=config_manager.get("window_mode", "windowed"))
+		window_mode = tk.StringVar(value=settings.config_manager.get("window_mode", "windowed"))
 
-		def set_window_mode():
+		def set_window_mode_cb():
 			mode = window_mode.get()
-			config_manager.set("window_mode", mode)
+			settings.set_window_mode(mode)
 			print(f"Mode d'affichage changé pour : {mode}")
 
 		modes = [("Fenêtré", "windowed"), ("Plein écran", "fullscreen")]
@@ -259,7 +276,7 @@ def options():
 				text=text,
 				variable=window_mode,
 				value=mode,
-				command=set_window_mode,
+				command=set_window_mode_cb,
 				fg="#DDDDDD", bg="#2a2a2a", selectcolor="#444444",
 				font=("Arial", 10), activebackground="#3a3a3a", activeforeground="#FFFFFF"
 			).pack(anchor="w", padx=20)
@@ -273,19 +290,19 @@ def options():
 		def update_volume_label(value):
 			volume_label.config(text=f"Volume musique: {int(float(value) * 100)}%")
 			
-		def set_music_volume(value):
+		def set_music_volume_cb(value):
 			volume = float(value)
 			pygame.mixer.music.set_volume(volume)
-			config_manager.set('volume_music', volume)
+			settings.set_music_volume(volume)
 			update_volume_label(value)
 
-		initial_volume = config_manager.get('volume_music', 0.5)
+		initial_volume = settings.config_manager.get('volume_music', 0.5) or 0.5
 		volume_label = tk.Label(audio_frame, text=f"Volume musique: {int(initial_volume * 100)}%", fg="#CCCCCC", bg="#2a2a2a", font=("Arial", 10))
 		volume_label.pack(pady=2)
 
 		volume_slider = tk.Scale(audio_frame, from_=0, to=1, resolution=0.01, orient="horizontal",
-								 command=set_music_volume, bg="#2a2a2a", fg="#DDDDDD",
-								 troughcolor="#555555", highlightbackground="#2a2a2a")
+				command=set_music_volume_cb, bg="#2a2a2a", fg="#DDDDDD",
+					troughcolor="#555555", highlightbackground="#2a2a2a")
 		volume_slider.set(initial_volume)
 		volume_slider.pack(pady=5, padx=10, fill="x")
 
@@ -309,26 +326,24 @@ def options():
 		def apply_resolution():
 			selected = selected_resolution.get()
 			if selected:
-				width, height = map(int, selected.split('x'))
-				
-				# Sauvegarder dans le gestionnaire de config
-				success_config = set_resolution(width, height)
-				
-				if success_config:
-					# Mettre à jour immédiatement les settings en mémoire
-					settings.SCREEN_WIDTH = width
-					settings.SCREEN_HEIGHT = height
-					settings.TILE_SIZE = settings.calculate_adaptive_tile_size()
-					
-					# Afficher une confirmation
+				try:
+					width, height = map(int, selected.split('x'))
+				except Exception:
+					return
+
+				# Sauvegarder via settings helper
+				ok = settings.apply_resolution(width, height)
+
+				if ok:
+					# Confirmation utilisateur
 					import tkinter.messagebox as msgbox
-					success_msg = f"✅ Résolution changée pour {width}x{height}\n\nLes changements prendront effet au prochain lancement du jeu !"
+					success_msg = f"✅ Résolution changée pour {width}x{height}\n\nLes changements prendront effet immédiatement (et sont sauvegardés)."
 					msgbox.showinfo("Succès", success_msg)
-					
+
 					# Mettre à jour l'affichage de la résolution actuelle
 					new_tile_size = settings.calculate_adaptive_tile_size_for_resolution(width, height)
 					current_label.config(text=f"Actuelle: {width}x{height} (Tuiles: {new_tile_size}px)")
-					
+
 					win.destroy()
 				else:
 					import tkinter.messagebox as msgbox
@@ -339,10 +354,12 @@ def options():
 			"""Remet les paramètres par défaut"""
 			import tkinter.messagebox as msgbox
 			if msgbox.askyesno("Confirmation", "Remettre tous les paramètres par défaut ?"):
-				config_manager.reset_to_defaults()
-				config_manager.save_config()
-				msgbox.showinfo("Succès", "Paramètres remis par défaut !")
-				win.destroy()
+				ok = settings.reset_defaults()
+				if ok:
+					msgbox.showinfo("Succès", "Paramètres remis par défaut !")
+					win.destroy()
+				else:
+					msgbox.showerror("Erreur", "Impossible de sauvegarder les paramètres par défaut.")
 
 		tk.Button(button_frame, text="✓ Appliquer & Sauver", command=apply_resolution, 
 				 font=("Arial", 12, "bold"), bg="#4CAF50", fg="white", padx=20, pady=5).pack(side="left", padx=5)
@@ -352,7 +369,8 @@ def options():
 				 font=("Arial", 12), bg="#FF9800", fg="white", padx=20, pady=5).pack(side="left", padx=5)
 		
 		def close_options():
-			config_manager.save_config()
+			# Le save est déjà fait par les helpers mais on s'assure
+			settings.config_manager.save_config()
 			win.destroy()
 
 		tk.Button(button_frame, text="❌ Fermer", command=close_options, 
@@ -366,7 +384,10 @@ def options():
 
 		win.mainloop()
 
-	threading.Thread(target=show_options_window).start()
+	# Lancer la fenêtre d'options dans un thread daemon pour ne pas bloquer Pygame
+	thread = threading.Thread(target=show_options_window)
+	thread.daemon = True
+	thread.start()
 
 
 def crédits():

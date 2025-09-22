@@ -1,6 +1,102 @@
 import math
+import json
+import os
 import pygame
-from config_manager import config_manager
+from typing import Any, Optional
+
+# --- Configuration embarquée (migrée depuis config_manager.py) ---
+CONFIG_FILE = "galad_config.json"
+
+DEFAULT_CONFIG = {
+    "screen_width": 1168,
+    "screen_height": 629,
+    "window_mode": "windowed",  # "windowed", "fullscreen"
+    "volume_master": 0.8,
+    "volume_music": 0.5,
+    "volume_effects": 0.7,
+    "vsync": True,
+    "show_fps": False,
+    "language": "fr"
+}
+
+
+class ConfigManager:
+    """Gestionnaire de configuration pour les paramètres du jeu."""
+    def __init__(self, path: str = CONFIG_FILE):
+        self.path = path
+        self.config = DEFAULT_CONFIG.copy()
+        self.load_config()
+
+    def load_config(self) -> None:
+        try:
+            if os.path.exists(self.path):
+                with open(self.path, 'r', encoding='utf-8') as f:
+                    saved_config = json.load(f)
+                    for key, value in saved_config.items():
+                        if key in self.config:
+                            self.config[key] = value
+                print(f"Configuration chargée depuis {self.path}")
+            else:
+                print("Fichier de configuration non trouvé, utilisation des valeurs par défaut")
+        except Exception as e:
+            print(f"Erreur lors du chargement de la configuration: {e}")
+            print("Utilisation des valeurs par défaut")
+
+    def save_config(self) -> bool:
+        try:
+            with open(self.path, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, indent=4, ensure_ascii=False)
+            print(f"Configuration sauvegardée dans {self.path}")
+            return True
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde de la configuration: {e}")
+            return False
+
+    def get(self, key: str, default=None) -> Any:
+        return self.config.get(key, default)
+
+    def set(self, key: str, value: Any) -> None:
+        self.config[key] = value
+
+    def get_resolution(self) -> tuple:
+        return (self.config.get("screen_width"), self.config.get("screen_height"))
+
+    def set_resolution(self, width: int, height: int) -> None:
+        self.config["screen_width"] = int(width)
+        self.config["screen_height"] = int(height)
+
+    def reset_to_defaults(self) -> None:
+        self.config = DEFAULT_CONFIG.copy()
+
+    def get_all_resolutions(self) -> list:
+        return [
+            (800, 600, "SVGA (800x600)"),
+            (1024, 768, "XGA (1024x768)"),
+            (1280, 720, "HD 720p (1280x720)"),
+            (1366, 768, "WXGA (1366x768)"),
+            (1920, 1080, "Full HD (1920x1080)"),
+            (2560, 1440, "QHD (2560x1440)"),
+            (1168, 629, "Personnalisée (1168x629)")
+        ]
+
+    def get_volume(self) -> dict:
+        return {
+            "master": self.config.get("volume_master", 1.0),
+            "music": self.config.get("volume_music", 1.0),
+            "effects": self.config.get("volume_effects", 1.0),
+        }
+
+    def set_volume(self, music: Optional[float] = None, effects: Optional[float] = None, master: Optional[float] = None):
+        if music is not None:
+            self.config["volume_music"] = max(0.0, min(1.0, float(music)))
+        if effects is not None:
+            self.config["volume_effects"] = max(0.0, min(1.0, float(effects)))
+        if master is not None:
+            self.config["volume_master"] = max(0.0, min(1.0, float(master)))
+
+
+# Instance globale compatible
+config_manager = ConfigManager()
 
 # Fenêtre
 SCREEN_WIDTH, SCREEN_HEIGHT = config_manager.get_resolution()
@@ -42,33 +138,6 @@ ZOOM_MIN = 0.5
 ZOOM_MAX = 3.0
 ZOOM_SPEED = 0.1
 
-def afficher_options():
-    """
-    Affiche les options de configuration et permet de changer la résolution.
-    """
-    print("=== Options de Galad Islands ===")
-    print(f"Résolution actuelle: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
-    print(f"Taille des tuiles adaptative: {TILE_SIZE}px")
-    print(f"FPS cible: {FPS}")
-    print()
-    print("Résolutions disponibles:")
-    resolutions = [
-        (1280, 720, "HD 720p"),
-        (1920, 1080, "Full HD 1080p"),
-        (1366, 768, "WXGA"),
-        (1168, 629, "Personnalisée")
-    ]
-    
-    for i, (w, h, name) in enumerate(resolutions, 1):
-        tile_size = calculate_adaptive_tile_size_for_resolution(w, h)
-        print(f"{i}. {name} ({w}x{h}) - Tuiles: {tile_size}px")
-    
-    print("\nLe système s'adapte automatiquement à la résolution choisie.")
-    print("Les commandes dans le jeu:")
-    print("- Flèches directionnelles ou WASD : Déplacer la caméra")
-    print("- Molette de la souris : Zoomer/Dézoomer")
-    print("- F1 : Afficher les informations de debug")
-    print("- Échap : Quitter")
 
 def calculate_adaptive_tile_size_for_resolution(width, height):
     """
@@ -90,3 +159,69 @@ def get_screen_width():
 
 def get_screen_height():
     return config_manager.get("screen_height")
+
+
+# --- Helpers supplémentaires exposés pour menu/options ---
+def get_all_resolutions():
+    """Liste des résolutions prises en charge (width, height, description)."""
+    return [
+        (800, 600, "SVGA (800x600)"),
+        (1024, 768, "XGA (1024x768)"),
+        (1280, 720, "HD 720p (1280x720)"),
+        (1366, 768, "WXGA (1366x768)"),
+        (1920, 1080, "Full HD (1920x1080)"),
+        (2560, 1440, "QHD (2560x1440)"),
+        (1168, 629, "Personnalisée (1168x629)")
+    ]
+
+
+def set_window_mode(mode: str):
+    """Met à jour le mode d'affichage et sauvegarde la config."""
+    config_manager.set("window_mode", mode)
+    return config_manager.save_config()
+
+
+def set_music_volume(value: float):
+    """Met à jour le volume musique (persistant)."""
+    try:
+        value = float(value)
+    except Exception:
+        value = 0.5
+    config_manager.set('volume_music', value)
+    return config_manager.save_config()
+
+
+def apply_resolution(width: int, height: int):
+    """Applique et sauvegarde une nouvelle résolution.
+
+    Met à jour également les valeurs en mémoire (SCREEN_WIDTH/HEIGHT/TILE_SIZE).
+    Retourne True si la sauvegarde a réussi.
+    """
+    config_manager.set_resolution(width, height)
+    ok = config_manager.save_config()
+    # Mettre à jour en mémoire
+    global SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE
+    try:
+        SCREEN_WIDTH = int(width)
+        SCREEN_HEIGHT = int(height)
+    except Exception:
+        # Conserver les valeurs précédentes en cas d'erreur
+        pass
+    TILE_SIZE = calculate_adaptive_tile_size()
+    return ok
+
+
+def reset_defaults():
+    """Réinitialise la configuration aux valeurs par défaut et sauvegarde."""
+    config_manager.reset_to_defaults()
+    ok = config_manager.save_config()
+    # Recharger les valeurs en mémoire
+    w, h = config_manager.get_resolution()
+    global SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE
+    try:
+        SCREEN_WIDTH = int(w)
+        SCREEN_HEIGHT = int(h)
+    except Exception:
+        pass
+    TILE_SIZE = calculate_adaptive_tile_size()
+    return ok
