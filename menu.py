@@ -141,16 +141,62 @@ def options():
 	def show_options_window():
 		win = tk.Tk()
 		win.title("Options - Galad Islands")
+		win.minsize(650, 500)  # Taille minimale pour la fenêtre
 		win.geometry("800x600")
 		win.configure(bg="#1e1e1e")
 		win.resizable(True, True)
 
 		# Titre
 		title = tk.Label(win, text="Options du jeu", fg="#FFD700", bg="#1e1e1e", font=("Arial", 18, "bold"))
-		title.pack(pady=15)
+		title.pack(pady=15, side="top", fill="x")
+
+		# Frame pour les boutons du bas
+		bottom_button_frame = tk.Frame(win, bg="#1e1e1e")
+		bottom_button_frame.pack(side="bottom", fill="x", pady=20)
+
+		# Frame principale pour le contenu défilable
+		main_frame = tk.Frame(win, bg="#1e1e1e")
+		main_frame.pack(side="top", fill="both", expand=True)
+
+		# Canvas pour le défilement
+		main_canvas = tk.Canvas(main_frame, bg="#1e1e1e", highlightthickness=0)
+		main_canvas.pack(side="left", fill="both", expand=True)
+
+		# Scrollbar
+		scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=main_canvas.yview)
+		scrollbar.pack(side="right", fill="y")
+		main_canvas.configure(yscrollcommand=scrollbar.set)
+
+		# Frame de contenu à l'intérieur du Canvas
+		content_frame = tk.Frame(main_canvas, bg="#1e1e1e")
+		main_canvas.create_window((0, 0), window=content_frame, anchor="nw")
+
+		def _on_frame_configure(event=None):
+			main_canvas.configure(scrollregion=main_canvas.bbox("all"))
+			# Ajuster la largeur du content_frame à celle du canvas
+			main_canvas.itemconfig(main_canvas.create_window((0, 0), window=content_frame, anchor="nw"), width=main_canvas.winfo_width())
+
+		content_frame.bind("<Configure>", _on_frame_configure)
+		main_canvas.bind("<Configure>", _on_frame_configure)
+
+		# Support molette souris
+		def _on_mousewheel(event):
+			if event.num == 4:
+				main_canvas.yview_scroll(-1, 'units')
+			elif event.num == 5:
+				main_canvas.yview_scroll(1, 'units')
+			else:
+				main_canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
+		
+		for widget in (win, main_canvas, content_frame):
+			widget.bind_all('<MouseWheel>', _on_mousewheel)
+			widget.bind_all('<Button-4>', _on_mousewheel)
+			widget.bind_all('<Button-5>', _on_mousewheel)
+
+		# --- Tout le contenu des options va maintenant dans `content_frame` ---
 
 		# Section résolution
-		resolution_frame = tk.Frame(win, bg="#2a2a2a", relief="raised", bd=1)
+		resolution_frame = tk.Frame(content_frame, bg="#2a2a2a", relief="raised", bd=1)
 		resolution_frame.pack(pady=10, padx=20, fill="x")
 
 		tk.Label(resolution_frame, text="🖥️ Résolution d'écran", fg="#FFD700", bg="#2a2a2a", font=("Arial", 14, "bold")).pack(pady=10)
@@ -266,8 +312,8 @@ def options():
 		tk.Label(info_frame, text=info_text, fg="#CCCCCC", bg="#2a2a2a", font=("Arial", 10), justify="left").pack(pady=5, padx=10)
 
 		# Boutons d'action
-		button_frame = tk.Frame(win, bg="#1e1e1e")
-		button_frame.pack(pady=20)
+		button_frame = tk.Frame(bottom_button_frame, bg="#1e1e1e")
+		button_frame.pack(pady=0) # Pas de padding vertical ici, géré par le conteneur parent
 
 		def apply_resolution():
 			selected = selected_resolution.get()
