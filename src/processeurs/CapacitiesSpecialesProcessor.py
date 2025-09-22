@@ -1,6 +1,6 @@
 import esper
 from src.components.properties.speZasper import SpeZasper
-from src.components.properties.speBarhamus import speBarhamus
+from src.components.properties.speBarhamus import SpeBarhamus
 from src.components.properties.speDraupnir import SpeDraupnir
 from src.components.properties.speDruid import SpeDruid
 from src.components.properties.speArchitect import SpeArchitect
@@ -8,22 +8,22 @@ from src.components.properties.speArchitect import SpeArchitect
 class CapacitiesSpecialesProcessor(esper.Processor):
     def process(self, dt):
         # Zasper : manœuvre d’évasion (invincibilité)
-        for ent, (spe_zasper) in self.world.get_component(SpeZasper):
-            spe_zasper.update(dt, self.world, ent)
+        for ent, (speZasper) in esper.get_component(SpeZasper):
+            speZasper.update(dt)
         
         # Barhamus : bouclier de mana (réduction dégâts)
-        for ent, (spe_barhamus) in self.world.get_component(speBarhamus):
-            spe_barhamus.update(dt, self.world, ent)
+        for ent, (speBarhamus) in esper.get_component(SpeBarhamus):
+            speBarhamus.update(dt, ent)
         
         # Draupnir : seconde salve (instantané, cooldown)
-        for ent, (spe_draupnir) in self.world.get_component(SpeDraupnir):
-            spe_draupnir.update(dt)
+        for ent, (speDraupnir) in esper.get_component(SpeDraupnir):
+            speDraupnir.update(dt, ent)
         
         # Druid : lierre volant (immobilisation)
-        for ent, (spe_druid) in self.world.get_component(SpeDruid):
-            spe_druid.update(dt)
+        for ent, (speDruid) in esper.get_component(SpeDruid):
+            speDruid.update(dt, ent)
         
          # Architect : rechargement automatique (effet de zone)
-        for ent, (spe_architect) in self.world.get_component(SpeArchitect):
-            spe_architect.update(dt)
+        for ent, (speArchitect) in esper.get_component(SpeArchitect):
+            speArchitect.update(dt, ent)
 
