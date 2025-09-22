@@ -16,7 +16,7 @@ ROUGE = (200, 0, 0)
 # Initialize Pygame
 pygame.init()
 
-
+#cs
 # Main window
 WINDOW_SIZE = (SCREEN_WIDTH, SCREEN_HEIGHT)
 window = pygame.display.set_mode(WINDOW_SIZE)
