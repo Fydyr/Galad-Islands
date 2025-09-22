@@ -40,9 +40,9 @@ def game():
     es.add_processor(rendering_processor, priority=9)
 
     test_vessel = es.create_entity()
-    es.add_component(test_vessel, PositionComponent(10, 10, 100, 100, 0))
+    es.add_component(test_vessel, PositionComponent(10, 10, 100, 100, 20))
     es.add_component(test_vessel, VelocityComponent(-2, 50, -10))
-    es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Zasper.png", 100, 100))
+    es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Zasper.png", 80, 100))
 
     while running:
         for event in pygame.event.get():
