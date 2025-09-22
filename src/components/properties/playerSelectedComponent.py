@@ -1,5 +1,4 @@
 from dataclasses import dataclass as component
-import pygame
 
 @component
 class PlayerSelectedComponent:
