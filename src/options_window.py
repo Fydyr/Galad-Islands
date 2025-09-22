@@ -185,7 +185,7 @@ def show_options_window():
 		if selected:
 			try:
 				width, height = map(int, selected.split('x'))
-			except Exception:
+			except (ValueError, TypeError):
 				return
 
 			# Sauvegarder via settings helper
