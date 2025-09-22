@@ -29,10 +29,6 @@ class PlayerControlProcessor(esper.Processor):
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
                     position.direction = (position.direction - 1) % 360
-            if keys[getattr(pygame, f'K_{KEY_RIGHT}')]:
-                if esper.has_component(entity, PositionComponent):
-                    position = esper.component_for_entity(entity, PositionComponent)
-                    position.direction = (position.direction + 1) % 360
             if keys[ord(KEY_PREV_TROOP)]:
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
