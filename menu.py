@@ -26,8 +26,8 @@ try:
 	try:
 		settings.SCREEN_WIDTH = int(w)
 		settings.SCREEN_HEIGHT = int(h)
-	except Exception:
-		pass
+	except (ValueError, TypeError) as e:
+		print(f"Erreur lors de la conversion de la résolution en entier: {e}")
 	settings.TILE_SIZE = settings.calculate_adaptive_tile_size()
 	print(f"Résolution chargée: {settings.get_screen_width()}x{settings.get_screen_height()}")
 except Exception as e:
