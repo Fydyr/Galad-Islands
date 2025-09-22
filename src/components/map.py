@@ -231,9 +231,16 @@ def afficher_grille(window, grid, images, camera):
             world_y = i * TILE_SIZE
             screen_x, screen_y = camera.world_to_screen(world_x, world_y)
             
-            # Redimensionner selon le zoom
+            # Redimensionner selon le zoom, avec cache pour éviter de rescaler à chaque frame
             tile_size = int(TILE_SIZE * camera.zoom)
-            sea_scaled = pygame.transform.scale(images['sea'], (tile_size, tile_size))
+            if not hasattr(afficher_grille, "_sea_cache"):
+                afficher_grille._sea_cache = {"zoom": None, "image": None, "size": None}
+            sea_cache = afficher_grille._sea_cache
+            if sea_cache["zoom"] != camera.zoom or sea_cache["size"] != tile_size:
+                sea_cache["image"] = pygame.transform.scale(images['sea'], (tile_size, tile_size))
+                sea_cache["zoom"] = camera.zoom
+                sea_cache["size"] = tile_size
+            sea_scaled = sea_cache["image"]
             window.blit(sea_scaled, (screen_x, screen_y))
     
     # Fonction helper pour dessiner un élément avec gestion du zoom
