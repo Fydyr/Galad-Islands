@@ -201,12 +201,21 @@ def apply_resolution(width: int, height: int):
     ok = config_manager.save_config()
     # Mettre à jour en mémoire
     global SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE
+    # Validation explicite des valeurs fournies
     try:
-        SCREEN_WIDTH = int(width)
-        SCREEN_HEIGHT = int(height)
-    except Exception:
-        # Conserver les valeurs précédentes en cas d'erreur
-        pass
+        nw = int(width)
+        nh = int(height)
+    except (TypeError, ValueError) as e:
+        print(f"⚠️ Résolution invalide fournie: {width}x{height} — {e}. Valeurs précédentes conservées.")
+    else:
+        # Limites raisonnables pour éviter des résolutions absurdes
+        MIN_W, MIN_H = 200, 200
+        MAX_W, MAX_H = 10000, 10000
+        if not (MIN_W <= nw <= MAX_W and MIN_H <= nh <= MAX_H):
+            print(f"⚠️ Résolution hors limites: {nw}x{nh} — Valeurs précédentes conservées.")
+        else:
+            SCREEN_WIDTH = nw
+            SCREEN_HEIGHT = nh
     TILE_SIZE = calculate_adaptive_tile_size()
     return ok
 
@@ -219,9 +228,17 @@ def reset_defaults():
     w, h = config_manager.get_resolution()
     global SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE
     try:
-        SCREEN_WIDTH = int(w)
-        SCREEN_HEIGHT = int(h)
-    except Exception:
-        pass
+        nw = int(w)
+        nh = int(h)
+    except (TypeError, ValueError) as e:
+        print(f"⚠️ Ne peut pas recharger les valeurs par défaut en mémoire: {w}x{h} — {e}")
+    else:
+        MIN_W, MIN_H = 200, 200
+        MAX_W, MAX_H = 10000, 10000
+        if not (MIN_W <= nw <= MAX_W and MIN_H <= nh <= MAX_H):
+            print(f"⚠️ Valeurs par défaut hors limites: {nw}x{nh} — valeurs précédentes conservées.")
+        else:
+            SCREEN_WIDTH = nw
+            SCREEN_HEIGHT = nh
     TILE_SIZE = calculate_adaptive_tile_size()
     return ok
