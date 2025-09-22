@@ -1,6 +1,10 @@
 from dataclasses import dataclass as component
+import pygame
 
 @component
 class PlayerSelectedComponent:
-# Le petit Edouard complètera le component après quelques réglages, donc pas touche !!!
-    pass
+    def __init__(self, player_id: int):
+        """
+        player_id : identifiant du joueur qui contrôle cette entité (0 = joueur 1, 1 = joueur 2, etc.)
+        """
+        self.player_id = player_id

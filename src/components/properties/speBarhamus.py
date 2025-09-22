@@ -1,7 +1,7 @@
 from dataclasses import dataclass as component
 
 @component
-class speBarhamus:
+class SpeBarhamus:
     def __init__(self, is_active=False, reduction_min=0.0, reduction_max=0.0, reduction_value=0.0, duration=0.0, timer=0.0):
         self.is_active: bool = is_active
         self.reduction_min: float = reduction_min
