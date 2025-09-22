@@ -3,11 +3,13 @@ import pygame
 import settings
 import src.components.mapComponent as game_map
 import esper as es
-from src.processeurs import movementProcessor, collisionProcessor, renderingProcessor
+from src.processeurs import movementProcessor, collisionProcessor, renderingProcessor, playerControlProcessor
 from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.spriteComponent import SpriteComponent
+from src.components.properties.playerSelectedComponent import PlayerSelectedComponent
+from src.components.properties.playerComponent import PlayerComponent
 
 def game():
     """Gére la logique entre le menu et le jeu
@@ -34,15 +36,21 @@ def game():
 
     movement_processor = movementProcessor.MovementProcessor()
     collision_processor = collisionProcessor.CollisionProcessor()
+    playerControls = playerControlProcessor.PlayerControlProcessor()
     rendering_processor = renderingProcessor.RenderProcessor(window)
     es.add_processor(collision_processor, priority=2)
     es.add_processor(movement_processor, priority=3)
+    es.add_processor(playerControls, priority=4)
     es.add_processor(rendering_processor, priority=9)
 
+    player = es.create_entity()
+    es.add_component(player, PlayerComponent())
+
     test_vessel = es.create_entity()
-    es.add_component(test_vessel, PositionComponent(10, 10, 100, 100, 20))
-    es.add_component(test_vessel, VelocityComponent(-2, 50, -10))
+    es.add_component(test_vessel, PositionComponent(10, 10, 100, 100, 180))
+    es.add_component(test_vessel, VelocityComponent(0, 2, -0.5))
     es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Zasper.png", 80, 100))
+    es.add_component(test_vessel, PlayerSelectedComponent(player))
 
     while running:
         for event in pygame.event.get():

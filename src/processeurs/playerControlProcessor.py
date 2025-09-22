@@ -39,3 +39,4 @@ class PlayerControlProcessor(esper.Processor):
                 if esper.has_component(entity, ):
                     attack = esper.component_for_entity(entity, AttackComponent)
                     attack.hitPoints += 10  # Example action: increase hit points
+
