@@ -6,5 +6,5 @@ KEY_RIGHT = "d"
 
 KEY_PREV_TROOP = "&"      # Sélectionner la troupe précédente
 KEY_NEXT_TROOP = '"'      # Sélectionner la prochaine troupe
-KEY_ATTACK_MODE = "a"     # Activer le mode attaque
+KEY_ATTACK = "a"     # Activer le mode attaque
 KEY_SPECIAL_ABILITY = "e" # Activer la capacité spéciale
