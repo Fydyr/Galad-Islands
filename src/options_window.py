@@ -3,7 +3,7 @@
 
 import tkinter as tk
 import pygame
-import settings.settings as settings
+import settings
 
 def show_options_window():
 	"""Affiche la fenêtre des options du jeu"""
