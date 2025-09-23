@@ -5,7 +5,7 @@
 from random import random
 import pygame
 import sys
-import settings
+import settings.settings as settings
 # import credits
 import random
 import os
