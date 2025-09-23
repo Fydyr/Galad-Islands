@@ -13,7 +13,6 @@ from src.game import game
 import setup.setup_team_hooks as setup_hooks
 import setup.install_commitizen_universal as install_cz
 from src.afficherModale import afficher_modale
-import threading
 from src.options_window import show_options_window
 
 
@@ -243,11 +242,8 @@ def jouer():
 
 def options():
     print("Menu des options")
-    # À compléter : afficher/options
-    # Ouvre la fenêtre d'options Tkinter dans un thread daemon pour
-    # ne pas bloquer la boucle principale Pygame.
-    t = threading.Thread(target=show_options_window, daemon=True)
-    t.start()
+    # Afficher la modale des options en Pygame (synchrone)
+    show_options_window()
 
 def crédits():
     afficher_modale("Crédits", "assets/docs/credits.md", bg_original=bg_original, select_sound=select_sound)
