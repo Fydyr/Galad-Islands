@@ -24,14 +24,14 @@ class Camera:
         """Met à jour la position de la caméra selon les entrées clavier."""
         move_speed = CAMERA_SPEED * dt / self.zoom  # Plus on zoome, plus on bouge lentement
         
-        # Déplacement avec les touches
-        if keys[pygame.K_LEFT] or keys[pygame.K_q]:
+        # Déplacement avec les flèches uniquement (ne pas utiliser Z/Q/S/D)
+        if keys[pygame.K_LEFT]:
             self.x -= move_speed
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+        if keys[pygame.K_RIGHT]:
             self.x += move_speed
-        if keys[pygame.K_UP] or keys[pygame.K_z]:
+        if keys[pygame.K_UP]:
             self.y -= move_speed
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+        if keys[pygame.K_DOWN]:
             self.y += move_speed
             
         # Contraindre la caméra dans les limites du monde

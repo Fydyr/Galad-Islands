@@ -2,9 +2,10 @@ from dataclasses import dataclass as component
 
 @component
 class RadiusComponent:
-    radius: float = 0.0
-    angle: float = 0.0
-    omnidirectional: bool = False
-    can_shoot_from_side: bool = False
-    bullets_front: int = 0
-    bullets_side: int = 0
+    def __init__(self, radius=0.0, angle=0.0, omnidirectional=False, can_shoot_from_side=False, bullets_front=0, bullets_sides=0):
+        self.radius: float = radius
+        self.angle: float = angle
+        self.omnidirectional: bool = omnidirectional
+        self.can_shoot_from_side: bool = can_shoot_from_side
+        self.bullets_front: int = bullets_front
+        self.bullets_side: int = bullets_sides

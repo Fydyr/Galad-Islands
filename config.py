@@ -19,7 +19,7 @@ class ConfigJeu:
     # Informations du jeu
     NOM_JEU = "Galad Islands"
     VERSION = "0.1.0-alpha"
-    DEVELOPPEURS = ["Behani Julien", "Fournier Enzo", "Alluin Edouard"]
+    DEVELOPPEURS = ["Behani Julien", "Fournier Enzo", "Alluin Edouard", "Cailliau Ethan", "Lambert Romain", "Damman Alexandre"]
     
     # Fenêtre et affichage
     LARGEUR_ECRAN = 1280
