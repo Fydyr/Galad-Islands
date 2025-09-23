@@ -25,6 +25,7 @@ pip install -r requirements.txt
 - [esper] (https://esper.readthedocs.io/)
 - [markdown](https://python-markdown.github.io/)
 - [tkhtmlview](https://pypi.org/project/tkhtmlview/)
+- [commitizen](https://commitizen-tools.github.io/commitizen/)
 
 Make sure to list all libraries used in your `requirements.txt`.
 

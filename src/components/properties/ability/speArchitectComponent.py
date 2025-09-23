@@ -3,13 +3,15 @@ from typing import List, Dict, Optional, Tuple
 
 @component
 class SpeArchitect:
-    is_active: bool = False
-    available: bool = False
-    radius: float = 0.0 #Rayon d'effet de la capacité
-    reload_factor: float = 0.0 # Divise la durée  de rechargement par 2
-    affected_units: List[int] = None # IDs des unités affectées
-    duration: float = 0.0 # Durée de l'effet
-    timer: float = 0.0 # Temps restant 
+    
+    def __init__(self, is_active: bool = False, available: bool = False, radius: float = 0.0, reload_factor: float = 0.0, affected_units: Optional[List[int]] = None, duration: float = 0.0, timer: float = 0.0):
+        self.is_active: bool = False
+        self.available: bool = False
+        self.radius: float = 0.0 #Rayon d'effet de la capacité
+        self.reload_factor: float = 0.0 # Divise la durée  de rechargement par 2
+        self.affected_units: List[int] = None # IDs des unités affectées
+        self.duration: float = 0.0 # Durée de l'effet
+        self.timer: float = 0.0 # Temps restant 
     
 
     def __post_init__(self):

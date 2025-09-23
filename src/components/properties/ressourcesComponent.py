@@ -2,4 +2,5 @@ from dataclasses import dataclass as component
 
 @component
 class RessourcesComponent:
-    gold: int = 0
+    def __init__(self, gold=0):
+        self.gold: int = gold
