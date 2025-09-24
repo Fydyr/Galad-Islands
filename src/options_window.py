@@ -1,5 +1,6 @@
 # options_window.py
 # Modale des options pour Galad Islands en Pygame
+# Il n'est pas un fichier 'md' car il a besoin d'interactions contraitement aux autres.
 
 import pygame
 import settings
