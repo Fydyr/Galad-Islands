@@ -136,6 +136,8 @@ TIPS = [
     "T'as pas 100 balles pour le mettre sur Steam ?",
     "Les profesionnels ont des standards.",
     "Ce jeu a été fait avec amour (et surtout avec de la douleur)",
+    "Enzo, tu peux débloquer le main ?",
+    "All hail the git master",
 ]
 
 current_tip = random.choice(TIPS)
