@@ -17,14 +17,14 @@ RED = (200, 100, 100)
 BLUE = (100, 150, 200)
 
 def draw_button(surface, rect, text, font, color, text_color=WHITE, border=True):
-	"""Dessine un bouton avec du texte centré"""
-	pygame.draw.rect(surface, color, rect, border_radius=8)
-	if border:
-		pygame.draw.rect(surface, WHITE, rect, 2, border_radius=8)
-	
-	text_surf = font.render(text, True, text_color)
-	text_rect = text_surf.get_rect(center=rect.center)
-	surface.blit(text_surf, text_rect)
+    """Dessine un bouton avec du texte centré"""
+    pygame.draw.rect(surface, color, rect, border_radius=8)
+    if border:
+        pygame.draw.rect(surface, WHITE, rect, 2, border_radius=8)
+    
+    text_surf = font.render(text, True, text_color)
+    text_rect = text_surf.get_rect(center=rect.center)
+    surface.blit(text_surf, text_rect)
 
 
 def show_options_window():
