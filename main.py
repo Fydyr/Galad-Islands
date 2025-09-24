@@ -135,10 +135,12 @@ TIPS = [
     "Tu savais que le jeu n'est pas disponible sur Steam ?",
     "T'as pas 100 balles pour le mettre sur Steam ?",
     "Les profesionnels ont des standards.",
-    "Ce jeu a été fait avec amour (et surtout de la douleur)",
+    "Ce jeu a été fait avec amour (et surtout avec de la douleur)",
 ]
 
 current_tip = random.choice(TIPS)
+tip_change_timer = 0  # Timer pour changer les astuces
+TIP_CHANGE_INTERVAL = 5.0  # Changer d'astuce toutes les 5 secondes
 
 class Button:
     def __init__(self, text, x, y, w, h, callback):
@@ -369,7 +371,7 @@ def main_menu(win=None):
     """Affiche le menu. Si `win` est fourni (surface Pygame), le menu s'adapte
     à sa taille. Sinon, crée une fenêtre locale pour compatibilité.
     """
-    global borderless_button, display_dirty, is_fullscreen, is_borderless
+    global borderless_button, display_dirty, is_fullscreen, is_borderless, current_tip, tip_change_timer
     clock = pygame.time.Clock()
     running = True
     pressed_btn = None
@@ -446,6 +448,15 @@ def main_menu(win=None):
 
     try:
         while running:
+            # Delta time pour les animations
+            dt = clock.tick(60) / 1000.0
+            
+            # Changer d'astuce automatiquement
+            tip_change_timer += dt
+            if tip_change_timer >= TIP_CHANGE_INTERVAL:
+                current_tip = random.choice(TIPS)
+                tip_change_timer = 0
+            
             # Synchroniser avec la config externe (fenêtre d'options)
             try:
                 current_mode = settings.config_manager.get("window_mode", "windowed")
@@ -573,7 +584,7 @@ def main_menu(win=None):
                 break
 
             pygame.display.update()
-            clock.tick(60)
+            # clock.tick(60) déjà appelé au début de la boucle pour dt
     except Exception as e:
         print(f"Erreur dans la boucle principale: {e}")
         import traceback
