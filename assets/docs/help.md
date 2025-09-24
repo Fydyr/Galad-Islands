@@ -22,6 +22,11 @@
 - **L** : Activer le mode attaque
 - **M** : Activer la capacité spéciale
 
+### Caméra / Carte
+- **Flèches (↑ ↓ ← →)** : Déplacer la caméra sur la carte (haut/bas/gauche/droite)
+- **Molette de la souris** : Zoom avant/arrière sur la carte
+- **Échap** : Quitter la vue carte et revenir au menu
+
 ## Guide des Troupes
 
 ### Unités de Combat

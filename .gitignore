@@ -54,6 +54,7 @@ dist/
 config_local.py
 .env
 .env.local
+./venv/
 
 # Fichiers système
 .DS_Store
@@ -64,6 +65,7 @@ desktop.ini
 saves/
 *.save
 profiles/
+galad_config.json
 
 # Instructions de développement
 .github/instructions/
