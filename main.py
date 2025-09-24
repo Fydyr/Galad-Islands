@@ -115,6 +115,27 @@ TIPS = [
     "Citation : 'Le pouvoir sans prudence mène à la chute.'",
     "Astuce : Les bandits n’attaquent pas que vos ennemis… parfois, il vaut mieux esquiver que combattre.",
     "Citation : 'Le chaos des cieux ne pardonne pas l’arrogance.'",
+    "Buvez de l'eau, faites des pauses, et souvenez-vous que vous êtes géniaux !",
+    "Un bon commandant ne prend pas de drogues, sauf du café éventuellement.",
+    "1 + 1 = 1",
+    "Ne jetez pas le cailliou dans la machine à laver, ça abîme les vêtements !",
+    "Méfiez-vous de l'IA, sauf celle de Galad Islands ; elle est sympa !",
+    "A ne pas reproduire chez soi !",
+    "Ne refaisez pas ce jeu chez vous : ceci est réalisé par des professionnels !",
+    "Astuce : Méfiez-vous de votre adversaire. Il est peut-être dans vos murs",
+    "Nous ne sommes pas responsables des brisages d'amitiés.",
+    "Si vous pensez que tout est fini, c'est que ce n'est que le début",
+    "Astuce : Pour gagner, dites que votre adversaire a du pétrole. Les Etats-Unis viendront vous aider.",
+    "Nos vaisseaux sont biodégradables. Pensez à l'environnement !",
+    "Non, ce n'est pas la faute du jeu si vous perdez. Vous êtes juste nul.le.",
+    "Non, ce n'est pas un singe qui joue contre vous.",
+    "Test de filtre de beauté : ... Vous ne dépassez pas le seuil requis pour passer ce test.",
+    "Promis, il n'y a pas de plagiat de Murder Drones dans ce jeu.", # Je me suis permis une ref à une SAE précédente
+    "Attention, il est interdit à une IA d'affronter la notre.",
+    "Tu savais que le jeu n'est pas disponible sur Steam ?",
+    "T'as pas 100 balles pour le mettre sur Steam ?",
+    "Les profesionnels ont des standards.",
+    "Ce jeu a été fait avec amour (et surtout de la douleur)",
 ]
 
 current_tip = random.choice(TIPS)
