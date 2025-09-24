@@ -4,7 +4,7 @@
 ### Développé par :
 - Alluin Edouard
 - Behani Julien
-- Cailliau Ethan
+- Cailliau Ethann
 - Damman Alexandre
 - Fournier Enzo
 - Lambert Romain
