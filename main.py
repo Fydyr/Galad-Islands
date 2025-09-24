@@ -115,6 +115,7 @@ TIPS = [
     "Citation : 'Le pouvoir sans prudence mène à la chute.'",
     "Astuce : Les bandits n’attaquent pas que vos ennemis… parfois, il vaut mieux esquiver que combattre.",
     "Citation : 'Le chaos des cieux ne pardonne pas l’arrogance.'",
+    "Astuce : gardez toujours une armée chez vous. Votre ennemi a peut être envoyé quelqu'un.",
     "Buvez de l'eau, faites des pauses, et souvenez-vous que vous êtes géniaux !",
     "Un bon commandant ne prend pas de drogues, sauf du café éventuellement.",
     "1 + 1 = 1",
@@ -138,9 +139,8 @@ TIPS = [
     "Ce jeu a été fait avec amour (et surtout avec de la douleur)",
     "Enzo, tu peux débloquer le main ?",
     "All hail the git master",
-    "La d'où on vient, on a un dompteur de goéland qui travail dans l'armée",
-    "Comment ça, on vous dit plus de bétises que d'astuces ?",
-    "Astuce : gardez toujours une armée chez vous. Votre ennemi a peut être envoyé quelqu'un."
+    "La d'où on vient, on a un dompteur de goéland qui travaille dans l'armée.",
+    "Comment ça, on vous dit plus de bétises que d'astuces ?"
 ]
 
 current_tip = random.choice(TIPS)
