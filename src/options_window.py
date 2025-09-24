@@ -237,7 +237,6 @@ def show_options_window():
         info_lines = [
             "• Le mode fenêtré/plein écran s'applique en fermant le menu",
             "• Les modifications de volume prennent effet immédiatement",
-            "• Utilisez la molette pour faire défiler le menu"
         ]
 
         for line in info_lines:
