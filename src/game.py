@@ -40,6 +40,13 @@ def game(window=None):
     images = game_state["images"]
     camera = game_state["camera"]
 
+    # Nettoyer toutes les entités existantes avant de créer de nouvelles
+    for entity in list(es._entities.keys()):
+        es.delete_entity(entity)
+    
+    # Nettoyer tous les processeurs existants
+    es._processors.clear()
+
     movement_processor = movementProcessor.MovementProcessor()
     collision_processor = collisionProcessor.CollisionProcessor()
     playerControls = playerControlProcessor.PlayerControlProcessor()
