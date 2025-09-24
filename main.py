@@ -138,6 +138,9 @@ TIPS = [
     "Ce jeu a été fait avec amour (et surtout avec de la douleur)",
     "Enzo, tu peux débloquer le main ?",
     "All hail the git master",
+    "La d'où on vient, on a un dompteur de goéland qui travail dans l'armée",
+    "Comment ça, on vous dit plus de bétises que d'astuces ?",
+    "Astuce : gardez toujours une armée chez vous. Votre ennemi a peut être envoyé quelqu'un."
 ]
 
 current_tip = random.choice(TIPS)
