@@ -61,16 +61,6 @@ def show_options_window():
     max_scroll = 0
 
     # Récupérer les données actuelles
-    current_width, current_height = settings.config_manager.get_resolution()
-    try:
-        current_w = int(current_width)
-        current_h = int(current_height)
-    except (ValueError, TypeError):
-        current_w = settings.SCREEN_WIDTH
-        current_h = settings.SCREEN_HEIGHT
-
-    resolutions = settings.get_all_resolutions()
-    selected_resolution = (current_w, current_h)
     window_mode = settings.config_manager.get("window_mode", "windowed")
     music_volume = settings.config_manager.get("volume_music", 0.5) or 0.5
 
@@ -79,7 +69,6 @@ def show_options_window():
 
     # Zones d'interaction (recalculées à chaque frame)
     buttons = {}
-    res_items = {}
     modes = {}
     slider_rect = None
 
@@ -102,12 +91,6 @@ def show_options_window():
                         local_x = mx - modal_rect.left
                         local_y = my - modal_rect.top
 
-                        # Gestion des clics sur les résolutions
-                        for res, rect in res_items.items():
-                            if rect.collidepoint(local_x, local_y):
-                                selected_resolution = res
-                                break
-
                         # Gestion des clics sur les modes d'affichage
                         for mode, rect in modes.items():
                             if rect.collidepoint(local_x, local_y):
@@ -127,21 +110,10 @@ def show_options_window():
                         for name, rect in buttons.items():
                             if rect.collidepoint(local_x, local_y):
                                 if name == "apply":
-                                    settings.apply_resolution(
-                                    	selected_resolution[0], selected_resolution[1])
                                     settings.set_window_mode(window_mode)
                                     settings.set_music_volume(music_volume)
                                 elif name == "reset":
                                     settings.reset_defaults()
-                                    current_w, current_h = settings.config_manager.get_resolution()
-                                    try:
-                                        current_w = int(current_w)
-                                        current_h = int(current_h)
-                                    except:
-                                        current_w = settings.SCREEN_WIDTH
-                                        current_h = settings.SCREEN_HEIGHT
-                                    selected_resolution = (
-                                    	current_w, current_h)
                                     window_mode = settings.config_manager.get(
                                     	"window_mode", "windowed")
                                     music_volume = settings.config_manager.get(
@@ -167,7 +139,6 @@ def show_options_window():
 
         # Réinitialiser les zones d'interaction
         buttons.clear()
-        res_items.clear()
         modes.clear()
         slider_rect = None
 
@@ -190,48 +161,6 @@ def show_options_window():
             (modal_width - 40, 2000), flags=pygame.SRCALPHA)
         content_y_pos = 0
         line_height = 35
-
-        # Section Résolution
-        section_surf = font_section.render("🖥️ Résolution d'écran", True, GOLD)
-        content_surf.blit(section_surf, (0, content_y_pos))
-        content_y_pos += 40
-
-        # Résolution actuelle
-        current_tile_size = settings.calculate_adaptive_tile_size_for_resolution(
-            current_w, current_h)
-        current_text = f"Actuelle: {current_w}x{current_h} (Tuiles: {current_tile_size}px)"
-        current_surf = font_normal.render(current_text, True, GREEN)
-        content_surf.blit(current_surf, (0, content_y_pos))
-        content_y_pos += 30
-
-        # Liste des résolutions
-        for i, (w, h, desc) in enumerate(resolutions):
-            color = WHITE if (w, h) == selected_resolution else LIGHT_GRAY
-            if (w, h) == selected_resolution:
-                # Surbrillance pour la résolution sélectionnée
-                highlight_rect = pygame.Rect(
-                    0, content_y_pos - 2, modal_width - 60, line_height - 5)
-                pygame.draw.rect(content_surf, (60, 60, 100),
-                                 highlight_rect, border_radius=4)
-
-            tile_size = settings.calculate_adaptive_tile_size_for_resolution(
-            	w, h)
-            visible_tiles_x = w // tile_size
-            visible_tiles_y = h // tile_size
-            text = f"• {desc} - Tuiles: {tile_size}px ({visible_tiles_x}x{visible_tiles_y} visibles)"
-            text_surf = font_small.render(text, True, color)
-            content_surf.blit(text_surf, (10, content_y_pos))
-
-            # Créer la zone cliquable en coordonnées modal-local
-            item_rect = pygame.Rect(
-            	0, content_y_pos, modal_width - 60, line_height)
-            modal_local_rect = item_rect.move(
-            	content_rect.left, content_rect.top + scroll_y)
-            res_items[(w, h)] = modal_local_rect
-
-            content_y_pos += line_height
-
-        content_y_pos += 20
 
         # Section Mode d'affichage
         section_surf = font_section.render("🖼️ Mode d'affichage", True, GOLD)
@@ -305,10 +234,9 @@ def show_options_window():
         content_y_pos += 30
 
         info_lines = [
-            "• La taille des tuiles s'adapte automatiquement à la résolution",
-            "• Au minimum 15x10 tuiles sont toujours visibles à l'écran",
-            "• Les changements de résolution s'appliquent en fermant le menu",
-            "• Les autres modifications prennent effet immédiatement"
+            "• Le mode fenêtré/plein écran s'applique en fermant le menu",
+            "• Les modifications de volume prennent effet immédiatement",
+            "• Utilisez la molette pour faire défiler le menu"
         ]
 
         for line in info_lines:
