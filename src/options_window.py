@@ -307,7 +307,8 @@ def show_options_window():
         info_lines = [
             "• La taille des tuiles s'adapte automatiquement à la résolution",
             "• Au minimum 15x10 tuiles sont toujours visibles à l'écran",
-            "• Les modifications prennent effet immédiatement"
+            "• Les changements de résolution s'appliquent en fermant le menu",
+            "• Les autres modifications prennent effet immédiatement"
         ]
 
         for line in info_lines:
