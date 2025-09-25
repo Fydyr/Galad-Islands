@@ -13,22 +13,39 @@ class PlayerControlProcessor(esper.Processor):
 
     def __init__(self):
         self.fire_event = False  # Initialisation de l'état de l'événement de tir
+        self.slowing_down = False  # Indique si le frein est activé
 
     def process(self):
         keys = pygame.key.get_pressed()
         for entity, selected in esper.get_component(PlayerSelectedComponent):
             radius = esper.component_for_entity(entity, RadiusComponent)
 
-            if keys[getattr(pygame, f'K_{KEY_UP}')]:
+            # Gestion du frein progressif
+            if keys[pygame.K_LCTRL]:
+                if esper.has_component(entity, VelocityComponent):
+                    velocity = esper.component_for_entity(entity, VelocityComponent)
+                    self.slowing_down = True
+                    # Ralentit progressivement jusqu'à l'arrêt
+                    if abs(velocity.currentSpeed) > 0.01:
+                        velocity.currentSpeed *= 0.9  # Ralentissement progressif
+                    else:
+                        velocity.currentSpeed = 0.0
+                        self.slowing_down = False
+            else:
+                self.slowing_down = False
+
+            # Accélération uniquement si le frein n'est pas activé
+            if not self.slowing_down and keys[getattr(pygame, f'K_{KEY_UP}')]:
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     if velocity.currentSpeed < velocity.maxUpSpeed:
                         velocity.currentSpeed += 0.2
-            if keys[getattr(pygame, f'K_{KEY_DOWN}')]:
+            if not self.slowing_down and keys[getattr(pygame, f'K_{KEY_DOWN}')]:
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     if velocity.currentSpeed > velocity.maxReverseSpeed:
                         velocity.currentSpeed -= 0.1
+
             if keys[getattr(pygame, f'K_{KEY_RIGHT}')]:
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
@@ -37,10 +54,6 @@ class PlayerControlProcessor(esper.Processor):
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
                     position.direction = (position.direction - 1) % 360
-            if keys[pygame.K_LCTRL]:
-                if esper.has_component(entity, VelocityComponent):
-                    velocity = esper.component_for_entity(entity, VelocityComponent)
-                    velocity.currentSpeed = 0.0
             if keys[ord(KEY_PREV_TROOP)]:
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
@@ -53,10 +66,9 @@ class PlayerControlProcessor(esper.Processor):
                 radius.cooldown -= 0.1  # Réduction du cooldown
             else:
                 if keys[getattr(pygame, f'K_{KEY_ATTACK}')]:
-                    # envoie un event sui s'appelle "attack_event" qui crée un projectile
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
-                 
+
                 
 
 
