@@ -16,7 +16,8 @@ DEFAULT_CONFIG = {
     "volume_effects": 0.7,
     "vsync": True,
     "show_fps": False,
-    "language": "fr"
+    "language": "fr",
+    "camera_sensitivity": 1.0
 }
 
 
@@ -94,6 +95,10 @@ class ConfigManager:
         if master is not None:
             self.config["volume_master"] = max(0.0, min(1.0, float(master)))
 
+    def set_camera_sensitivity(self, sensitivity: Optional[float] = None):
+        if sensitivity is not None:
+            self.config["camera_sensitivity"] = max(0.1, min(5.0, float(sensitivity)))
+
 
 # Instance globale compatible
 config_manager = ConfigManager()
@@ -163,7 +168,7 @@ def get_screen_height():
 
 
 # --- Helpers supplémentaires exposés pour menu/options ---
-def get_all_resolutions():
+def get_all_resolutions(): # Ne sert plus à rien, peut être supprimé ?
     """Liste des résolutions prises en charge (width, height, description)."""
     return [
         (800, 600, "SVGA (800x600)"),
@@ -179,6 +184,16 @@ def get_all_resolutions():
 def set_window_mode(mode: str):
     """Met à jour le mode d'affichage et sauvegarde la config."""
     config_manager.set("window_mode", mode)
+    return config_manager.save_config()
+
+
+def set_camera_sensitivity(value: float):
+    """Met à jour la sensibilité de la caméra (persistant)."""
+    try:
+        value = float(value)
+    except (ValueError, TypeError):
+        value = 1.0
+    config_manager.set_camera_sensitivity(sensitivity=value)
     return config_manager.save_config()
 
 
