@@ -434,17 +434,6 @@ def main_menu(win=None):
                 pass
             # Appliquer les changements d'affichage demandés de manière atomique
             if display_dirty:
-                pygame.quit()
-                pygame.init()
-                pygame.mixer.init()
-                # Recharger la musique car pygame.quit() l'a arrêtée
-                try:
-                    pygame.mixer.music.load(music_path)
-                    pygame.mixer.music.set_volume(0.5)
-                    pygame.mixer.music.play(-1)
-                except Exception as e:
-                    print(f"Impossible de recharger la musique après le changement de mode: {e}")
-
                 # Recréer la surface d'affichage selon les flags
                 if is_fullscreen:
                     info = pygame.display.Info()
@@ -452,8 +441,18 @@ def main_menu(win=None):
                     SCREEN_HEIGHT = info.current_h
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
                 else:
-                    SCREEN_WIDTH, SCREEN_HEIGHT = original_size
-                    win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                    # Récupérer la résolution actuelle depuis les settings (au cas où elle aurait changé)
+                    SCREEN_WIDTH = settings.SCREEN_WIDTH
+                    SCREEN_HEIGHT = settings.SCREEN_HEIGHT
+                    # Solution pour Windows : créer d'abord une fenêtre de taille minimale
+                    # puis la redimensionner pour forcer le gestionnaire de fenêtres à recalculer
+                    if sys.platform == "win32":
+                        # Créer une petite fenêtre temporaire
+                        pygame.display.set_mode((100, 100), pygame.RESIZABLE)
+                        # Puis immédiatement la redimensionner à la taille souhaitée
+                        win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                    else:
+                        win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
                 
                 # Marquer le layout comme nécessitant une mise à jour
                 layout_dirty = True
