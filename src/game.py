@@ -12,6 +12,7 @@ from src.components.properties.playerSelectedComponent import PlayerSelectedComp
 from src.components.properties.playerComponent import PlayerComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.healthComponent import HealthComponent
+from src.ui.action_bar import ActionBar
 
 def game(window=None):
     """Gère la logique entre le menu et le jeu.
@@ -33,6 +34,9 @@ def game(window=None):
 
     clock = pygame.time.Clock()
     clock.tick(60)
+
+    # Initialiser l'ActionBar
+    action_bar = ActionBar(window.get_width(), window.get_height())
 
     # Initialiser la grille, les images et la caméra via la fonction utilitaire
     game_state = game_map.init_game_map(window.get_width(), window.get_height())
@@ -92,24 +96,40 @@ def game(window=None):
                     if created_local_window:
                         pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
                         pygame.display.set_caption("Galad Islands - Menu Principal")
+                else:
+                    # Donner la priorité à l'ActionBar pour les events clavier
+                    action_bar.handle_event(event)
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                # Molette de la souris: 4 = up, 5 = down
-                if event.button == 4:
-                    camera.handle_zoom(1)
-                elif event.button == 5:
-                    camera.handle_zoom(-1)
+                # Donner la priorité à l'ActionBar pour les events souris
+                if not action_bar.handle_event(event):
+                    # Si l'ActionBar n'a pas géré l'événement, traiter le zoom
+                    if event.button == 4:
+                        camera.handle_zoom(1)
+                    elif event.button == 5:
+                        camera.handle_zoom(-1)
+            elif event.type == pygame.MOUSEMOTION:
+                # Gérer le survol des boutons
+                action_bar.handle_event(event)
+            elif event.type == pygame.VIDEORESIZE:
+                # Redimensionner l'ActionBar quand la fenêtre change de taille
+                action_bar.resize(event.w, event.h)
 
         # Mettre à jour la logique de la caméra à partir des touches pressées
         keys = pygame.key.get_pressed()
         camera.update(dt, keys)
 
+        # Mettre à jour l'ActionBar
+        action_bar.update(dt)
+
         # Mettre à jour l'affichage et la logique ECS
-        update_screen(window, grid, images, camera)
+        update_screen(window, grid, images, camera, action_bar)
         es.process()
         pygame.display.flip()
 
-def update_screen(window, grid, images, camera):
+def update_screen(window, grid, images, camera, action_bar):
     # Effacer l'écran (évite les artefacts lors du redimensionnement / zoom)
     window.fill((0, 50, 100))
     # Délègue l'affichage de la grille en fournissant la caméra
     game_map.afficher_grille(window, grid, images, camera)
+    # Dessiner l'ActionBar par-dessus le jeu
+    action_bar.draw(window)
