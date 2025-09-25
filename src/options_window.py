@@ -252,8 +252,8 @@ def show_options_window():
 
         content_y_pos += 50
 
-        # Section Graphismes
-        section_surf = font_section.render("Graphismes", True, GOLD)
+        # Section Contrôles
+        section_surf = font_section.render("Contrôles", True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 40
 
