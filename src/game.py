@@ -1,14 +1,16 @@
 # Importations
 import pygame
 import settings
-import src.components.mapComponent as game_map
 import esper as es
-from src.processeurs import movementProcessor, collisionProcessor, renderingProcessor, playerControlProcessor
+import src.components.mapComponent as game_map
 from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE
+from src.processeurs import movementProcessor, collisionProcessor, renderingProcessor, playerControlProcessor
+from src.fonctions.projectileCreator import create_projectile
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.spriteComponent import SpriteComponent
 from src.components.properties.playerSelectedComponent import PlayerSelectedComponent
+from src.components.properties.teamComponent import TeamComponent
 from src.components.properties.playerComponent import PlayerComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.healthComponent import HealthComponent
@@ -56,6 +58,8 @@ def game(window=None):
     es.add_processor(playerControls, priority=4)
     es.add_processor(rendering_processor, priority=9)
 
+    es.set_handler('attack_event', create_projectile)
+
     player = es.create_entity()
     es.add_component(player, PlayerComponent())
 
@@ -67,11 +71,14 @@ def game(window=None):
     es.add_component(test_vessel, VelocityComponent(0, 2, -0.5))
     es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Zasper.png", 80, 100))
     es.add_component(test_vessel, PlayerSelectedComponent(player))
+    es.add_component(test_vessel, TeamComponent(1))
     es.add_component(test_vessel, AttackComponent(10))
     es.add_component(test_vessel, HealthComponent(40))
 
-    # La caméra est déjà centrée par init_game_map()
-    # Pas besoin de la recentrer ici
+    # Centrer la caméra sur le vaisseau au démarrage
+    camera.x = center_x - camera.screen_width / (2 * camera.zoom)
+    camera.y = center_y - camera.screen_height / (2 * camera.zoom)
+    camera._constrain_camera()
 
     while running:
         # Delta time en secondes
