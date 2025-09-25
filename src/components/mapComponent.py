@@ -1,7 +1,7 @@
 # Importation des modules nécessaires
 import pygame
 import sys
-from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED
+from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED, CLOUD_RATE
 from random import randint
 
 class Camera:
@@ -231,7 +231,7 @@ def placer_elements(grid):
     # Îles génériques
     placer_bloc_aleatoire(grid, 2, GENERIC_ISLAND_RATE, size=1, min_dist=2, avoid_bases=True)
     # Nuages
-    placer_bloc_aleatoire(grid, 1, 10, size=1, min_dist=0, avoid_bases=False)
+    placer_bloc_aleatoire(grid, 1, CLOUD_RATE, size=1, min_dist=0, avoid_bases=False)
     # Mines
     placer_bloc_aleatoire(grid, 3, MINE_RATE, size=1, min_dist=2, avoid_bases=True)
 
