@@ -7,7 +7,7 @@ TIPS = [
     "Citation : 'Une flotte unie est plus forte qu'un héros isolé.'",
     "Astuce : Méfiez-vous des tempêtes, elles frappent sans distinction entre alliés et ennemis.",
     "Citation : 'Le ciel appartient à ceux qui osent le conquérir.'",
-    "Astuce : Placez vos Architectes sur les îles pour construire des tours et sécuriser vos positions.",
+    "Astuce : Placez vos Architectes proche des îles pour construire des tours et sécuriser vos positions.",
     "Citation : 'Défendre ses terres, c'est déjà préparer la victoire.'",
     "Astuce : Les Druids peuvent soigner vos troupes, protégez-les à tout prix.",
     "Citation : 'Dans la guerre, chaque souffle compte.'",
