@@ -525,6 +525,14 @@ def main_menu(win=None):
                     if not is_fullscreen and not is_borderless:
                         SCREEN_WIDTH, SCREEN_HEIGHT = event.w, event.h
                         pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                        
+                        # Sauvegarder la nouvelle résolution dans la configuration
+                        try:
+                            settings.apply_resolution(SCREEN_WIDTH, SCREEN_HEIGHT)
+                            print(f"💾 Résolution sauvegardée: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+                        except Exception as e:
+                            print(f"⚠️ Impossible de sauvegarder la résolution: {e}")
+                        
                         layout_dirty = True
                         for p in particles:
                             if p['x'] > SCREEN_WIDTH: p['x'] = SCREEN_WIDTH - 10
