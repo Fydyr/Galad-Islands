@@ -14,8 +14,10 @@ from src.components.properties.teamComponent import TeamComponent
 from src.components.properties.playerComponent import PlayerComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.healthComponent import HealthComponent
+from src.afficherModale import afficher_modale
+import os
 
-def game(window=None):
+def game(window=None, bg_original=None, select_sound=None):
     """Gère la logique entre le menu et le jeu.
 
     Si `window` est fourni, la carte s'affichera dans cette surface existante
@@ -99,6 +101,8 @@ def game(window=None):
                     if created_local_window:
                         pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
                         pygame.display.set_caption("Galad Islands - Menu Principal")
+                elif event.key == pygame.K_F1:
+                    afficher_modale("Aide", "assets/docs/help.md", bg_original=bg_original, select_sound=select_sound)
                 elif event.key == pygame.K_F3:
                     show_debug = not show_debug
             elif event.type == pygame.MOUSEBUTTONDOWN:
