@@ -349,7 +349,8 @@ def main_menu(win=None):
             SCREEN_WIDTH, SCREEN_HEIGHT = info.current_w, info.current_h
         else:
             # Fenêtré redimensionnable par défaut
-            os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
+            if sys.platform != "win32":
+                os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
             win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("Galad Islands - Menu Principal")
         created_local_window = True
@@ -447,7 +448,8 @@ def main_menu(win=None):
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.NOFRAME)
                 else:
                     SCREEN_WIDTH, SCREEN_HEIGHT = original_size
-                    os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
+                    if sys.platform != "win32":
+                        os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
                 # Marquer le layout comme nécessitant une mise à jour
                 layout_dirty = True
