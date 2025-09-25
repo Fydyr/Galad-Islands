@@ -58,6 +58,7 @@ class ActionType(Enum):
     BUILD_HEAL_TOWER = "build_heal_tower"
     GLOBAL_ATTACK = "global_attack"
     GLOBAL_DEFENSE = "global_defense"
+    SWITCH_CAMP = "switch_camp"
 
 @dataclass
 class ActionButton:
@@ -100,7 +101,7 @@ class ActionBar:
         self.bar_rect = pygame.Rect(0, screen_height - self.bar_height, 
                                   self.bar_width, self.bar_height)
         
-        # Polices améliorées
+        # Polices
         try:
             self.font_normal = pygame.font.Font(None, 24)
             self.font_small = pygame.font.Font(None, 18)
@@ -118,6 +119,9 @@ class ActionBar:
         self.current_mode = "normal"  # normal, attack, move, build
         self.global_attack_active = False
         self.global_defense_active = False
+        self.global_attack_timer = 0.0
+        self.global_defense_timer = 0.0
+        self.current_camp = "ally"  # ally ou enemy pour le spawn
         
         # Animation et effets
         self.button_glow_timer = 0
@@ -128,8 +132,10 @@ class ActionBar:
         self.action_buttons: List[ActionButton] = []
         self.button_rects: List[pygame.Rect] = []
         self.global_button_rects: List[pygame.Rect] = []
+        self.camp_button_rect: Optional[pygame.Rect] = None
         self.hovered_button = -1
         self.hovered_global_button = -1
+        self.hovered_camp_button = False
         self.pressed_button = -1
         
         # Configuration des unités
@@ -249,6 +255,30 @@ class ActionBar:
                 print(f"Erreur lors du chargement de l'icône {button.icon_path}: {e}")
                 self.icons[button.action_type] = self._create_placeholder_icon(button.text, button.is_global)
     
+    def resize(self, new_width: int, new_height: int):
+        """Adapte l'ActionBar à la nouvelle résolution."""
+        self.screen_width = new_width
+        self.screen_height = new_height
+        self.bar_width = new_width
+        self.bar_rect = pygame.Rect(0, new_height - self.bar_height, 
+                                  self.bar_width, self.bar_height)
+        self._update_button_positions()
+        
+        # Recréer les polices adaptées à la nouvelle résolution
+        try:
+            font_scale = min(new_width, new_height) / 800  # Base sur 800px
+            font_scale = max(0.8, min(1.5, font_scale))  # Limiter l'échelle
+            
+            self.font_normal = pygame.font.Font(None, int(24 * font_scale))
+            self.font_small = pygame.font.Font(None, int(18 * font_scale))
+            self.font_large = pygame.font.Font(None, int(32 * font_scale))
+            self.font_title = pygame.font.Font(None, int(28 * font_scale))
+        except:
+            self.font_normal = pygame.font.SysFont("Arial", int(24 * font_scale), bold=True)
+            self.font_small = pygame.font.SysFont("Arial", int(18 * font_scale))
+            self.font_large = pygame.font.SysFont("Arial", int(32 * font_scale), bold=True)
+            self.font_title = pygame.font.SysFont("Arial", int(28 * font_scale), bold=True)
+    
     def _create_placeholder_icon(self, text: str, is_global: bool = False) -> pygame.Surface:
         """Crée une icône de remplacement avec du texte."""
         icon = pygame.Surface((48, 48), pygame.SRCALPHA)
@@ -289,8 +319,9 @@ class ActionBar:
         self.button_rects.clear()
         self.global_button_rects.clear()
         
-        button_size = 60
-        button_spacing = 5
+        # Taille adaptative selon la résolution
+        button_size = max(40, min(60, self.screen_width // 20))
+        button_spacing = max(3, min(5, button_size // 12))
         start_x = 10
         start_y = self.screen_height - self.bar_height + 10
         
@@ -304,66 +335,88 @@ class ActionBar:
         
         # Boutons globaux (à droite, plus espacés du bord)
         global_buttons = [btn for btn in self.action_buttons if btn.is_global]
-        global_start_x = self.screen_width - 140  # Plus d'espace pour éviter superposition
+        global_start_x = self.screen_width - len(global_buttons) * (button_size + button_spacing) - 10
         for i, button in enumerate(global_buttons):
             x = global_start_x + i * (button_size + button_spacing)
             y = start_y
             rect = pygame.Rect(x, y, button_size, button_size)
             self.global_button_rects.append(rect)
+        
+        # Bouton de changement de camp (en haut à droite de la barre)
+        camp_button_size = max(30, min(40, button_size // 1.5))
+        self.camp_button_rect = pygame.Rect(
+            self.screen_width - camp_button_size - 5,
+            start_y - camp_button_size - 5,
+            camp_button_size,
+            camp_button_size
+        )
     
     def _create_unit_callback(self, unit_type: ActionType):
-        """Crée une fonction de callback pour la création d'unité."""
+        """Crée une fonction de callback pour la création d'unité (placeholder)."""
         def callback():
             config = self.unit_configs[unit_type]
-            if self.player_gold >= config["cost"]:
-                print(f"Création d'une unité {config['name']} (coût: {config['cost']} or)")
-                self.player_gold -= config["cost"]
-                # Animation de succès
-                self._show_feedback("success", f"{config['name']} créé!")
+            print(f"[PLACEHOLDER] Demande création {config['name']} - Camp: {self.current_camp}")
+            print(f"[PLACEHOLDER] Coût: {config['cost']} or - Or actuel: {self.player_gold}")
+            # Effet visuel temporaire (simulation de création réussie)
+            if self.player_gold >= config['cost']:
+                self._show_feedback("success", f"{config['name']} créé (camp {self.current_camp})!")
             else:
                 self._show_feedback("warning", "Or insuffisant!")
         return callback
     
+    def _switch_camp(self):
+        """Bascule entre les camps ally/enemy (placeholder)."""
+        self.current_camp = "enemy" if self.current_camp == "ally" else "ally"
+        camp_name = "Allié" if self.current_camp == "ally" else "Ennemi" 
+        print(f"[PLACEHOLDER] Changement de camp vers: {camp_name}")
+        self._show_feedback("success", f"Camp: {camp_name}")
+    
     def _activate_global_attack(self):
-        """Active le boost d'attaque global."""
-        if self.player_gold >= 50 and not self.global_attack_active:
-            self.player_gold -= 50
+        """Active le boost d'attaque global (placeholder)."""
+        print("[PLACEHOLDER] Demande d'activation du buff d'attaque global")
+        if not self.global_attack_active:
             self.global_attack_active = True
-            self._show_feedback("success", "Attaque globale activée!")
-            print("Boost d'attaque global activé pour 30 secondes")
-        elif self.global_attack_active:
-            self._show_feedback("warning", "Déjà actif!")
+            self.global_attack_timer = 30.0  # 30 secondes
+            self._show_feedback("success", "Attaque globale activée (visuel uniquement)!")
+            print("[PLACEHOLDER] Effet visuel de buff d'attaque pour 30 secondes")
         else:
-            self._show_feedback("warning", "Or insuffisant!")
+            self._show_feedback("warning", "Déjà actif!")
     
     def _activate_global_defense(self):
-        """Active le boost de défense global."""
-        if self.player_gold >= 50 and not self.global_defense_active:
-            self.player_gold -= 50
+        """Active le boost de défense global (placeholder)."""
+        print("[PLACEHOLDER] Demande d'activation du buff de défense global")
+        if not self.global_defense_active:
             self.global_defense_active = True
-            self._show_feedback("success", "Défense globale activée!")
-            print("Boost de défense global activé pour 30 secondes")
-        elif self.global_defense_active:
-            self._show_feedback("warning", "Déjà actif!")
+            self.global_defense_timer = 30.0  # 30 secondes
+            self._show_feedback("success", "Défense globale activée (visuel uniquement)!")
+            print("[PLACEHOLDER] Effet visuel de buff de défense pour 30 secondes")
         else:
-            self._show_feedback("warning", "Or insuffisant!")
+            self._show_feedback("warning", "Déjà actif!")
     
     def _show_feedback(self, type: str, message: str):
         """Affiche un message de feedback."""
         print(f"[{type.upper()}] {message}")
     
     def _use_special_ability(self):
-        """Utilise la capacité spéciale de l'unité sélectionnée."""
-        if self.selected_unit and self.selected_unit.special_cooldown <= 0:
-            print(f"Utilisation de la capacité spéciale de {self.selected_unit.unit_type}")
-            self._show_feedback("success", "Capacité utilisée!")
+        """Utilise la capacité spéciale de l'unité sélectionnée (placeholder)."""
+        if self.selected_unit:
+            print(f"[PLACEHOLDER] Demande d'utilisation de capacité spéciale: {self.selected_unit.unit_type}")
+            if self.selected_unit.special_cooldown <= 0:
+                self._show_feedback("success", f"Capacité {self.selected_unit.unit_type} utilisée (visuel uniquement)!")
+                # Simuler un cooldown
+                self.selected_unit.special_cooldown = 5.0
+            else:
+                self._show_feedback("warning", f"Capacité en cooldown: {self.selected_unit.special_cooldown:.1f}s")
         else:
-            self._show_feedback("warning", "Capacité en cooldown!")
+            self._show_feedback("warning", "Aucune unité sélectionnée!")
     
     def _toggle_attack_mode(self):
-        """Bascule le mode d'attaque."""
+        """Bascule le mode d'attaque (placeholder)."""
+        old_mode = self.current_mode
         self.current_mode = "attack" if self.current_mode != "attack" else "normal"
-        print(f"Mode d'attaque: {'Activé' if self.current_mode == 'attack' else 'Désactivé'}")
+        mode_name = "Attaque" if self.current_mode == "attack" else "Normal"
+        print(f"[PLACEHOLDER] Changement de mode: {old_mode} → {self.current_mode}")
+        self._show_feedback("success", f"Mode: {mode_name}")
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Gère les événements pour la barre d'action."""
@@ -384,7 +437,15 @@ class ActionBar:
         """Gère le survol des boutons."""
         self.hovered_button = -1
         self.hovered_global_button = -1
+        self.hovered_camp_button = False
         self.tooltip_text = ""
+        
+        # Bouton de camp
+        if self.camp_button_rect and self.camp_button_rect.collidepoint(mouse_pos):
+            self.hovered_camp_button = True
+            camp_name = "Allié" if self.current_camp == "ally" else "Ennemi"
+            self.tooltip_text = f"Camp actuel: {camp_name}\nCliquer pour changer\nRaccourci: T"
+            return
         
         # Boutons normaux
         normal_buttons = [btn for btn in self.action_buttons if btn.visible and not btn.is_global]
@@ -404,8 +465,13 @@ class ActionBar:
     
     def _handle_mouse_click(self, mouse_pos: Tuple[int, int]) -> bool:
         """Gère les clics sur les boutons."""
-        if not self.bar_rect.collidepoint(mouse_pos):
+        if not self.bar_rect.collidepoint(mouse_pos) and not (self.camp_button_rect and self.camp_button_rect.collidepoint(mouse_pos)):
             return False
+        
+        # Bouton de camp
+        if self.camp_button_rect and self.camp_button_rect.collidepoint(mouse_pos):
+            self._switch_camp()
+            return True
         
         # Boutons normaux
         normal_buttons = [btn for btn in self.action_buttons if btn.visible and not btn.is_global]
@@ -430,6 +496,11 @@ class ActionBar:
     def _handle_keypress(self, key: int) -> bool:
         """Gère les raccourcis clavier."""
         key_char = pygame.key.name(key)
+        
+        # Raccourci spécial pour changement de camp
+        if key_char == "t":
+            self._switch_camp()
+            return True
         
         for button in self.action_buttons:
             if button.visible and button.enabled and button.hotkey.lower() == key_char:
@@ -469,16 +540,31 @@ class ActionBar:
         if self.selected_unit and self.selected_unit.special_cooldown > 0:
             self.selected_unit.special_cooldown = max(0, self.selected_unit.special_cooldown - dt)
         
-        # Mise à jour de l'état des boutons
+        # Timer des buffs globaux
+        if self.global_attack_active:
+            self.global_attack_timer -= dt
+            if self.global_attack_timer <= 0:
+                self.global_attack_active = False
+                self.global_attack_timer = 0.0
+                print("[PLACEHOLDER] Buff d'attaque global expiré")
+                
+        if self.global_defense_active:
+            self.global_defense_timer -= dt
+            if self.global_defense_timer <= 0:
+                self.global_defense_active = False
+                self.global_defense_timer = 0.0
+                print("[PLACEHOLDER] Buff de défense global expiré")
+        
+        # Mise à jour de l'état des boutons (pas de vérification d'or pour les placeholders)
         for button in self.action_buttons:
             if button.action_type in self.unit_configs:
-                config = self.unit_configs[button.action_type]
-                button.enabled = self.player_gold >= config["cost"]
+                # Toujours actif pour les placeholders (pas de déduction d'or)
+                button.enabled = True
             elif button.is_global:
                 if button.action_type == ActionType.GLOBAL_ATTACK:
-                    button.enabled = self.player_gold >= 50 and not self.global_attack_active
+                    button.enabled = not self.global_attack_active
                 elif button.action_type == ActionType.GLOBAL_DEFENSE:
-                    button.enabled = self.player_gold >= 50 and not self.global_defense_active
+                    button.enabled = not self.global_defense_active
     
     def draw(self, surface: pygame.Surface):
         """Dessine la barre d'action."""
@@ -493,6 +579,9 @@ class ActionBar:
         
         # Boutons globaux
         self._draw_global_buttons(surface)
+        
+        # Bouton de changement de camp
+        self._draw_camp_button(surface)
         
         # Informations du joueur
         self._draw_player_info(surface)
@@ -538,6 +627,32 @@ class ActionBar:
         
         for i, (button, rect) in enumerate(zip(global_buttons, self.global_button_rects)):
             self._draw_button(surface, button, rect, i == self.hovered_global_button, is_global=True)
+    
+    def _draw_camp_button(self, surface: pygame.Surface):
+        """Dessine le bouton de changement de camp."""
+        if not hasattr(self, 'camp_button_rect'):
+            return
+            
+        # Couleur selon le camp actuel
+        camp_color = UIColors.DEFENSE_BUTTON if self.current_camp == "ally" else UIColors.ATTACK_BUTTON
+        border_color = UIColors.SELECTION if self.hovered_camp_button else UIColors.BORDER_LIGHT
+        
+        # Dessiner le bouton
+        pygame.draw.rect(surface, camp_color, self.camp_button_rect)
+        pygame.draw.rect(surface, border_color, self.camp_button_rect, 2)
+        
+        # Texte du camp
+        camp_text = "Allié" if self.current_camp == "ally" else "Ennemi"
+        text_surface = self.font_normal.render(camp_text, True, UIColors.TEXT_NORMAL)
+        text_rect = text_surface.get_rect(center=self.camp_button_rect.center)
+        surface.blit(text_surface, text_rect)
+        
+        # Raccourci clavier en bas du bouton
+        shortcut_surface = self.font_small.render("T", True, UIColors.TEXT_DISABLED)
+        shortcut_rect = shortcut_surface.get_rect()
+        shortcut_rect.centerx = self.camp_button_rect.centerx
+        shortcut_rect.bottom = self.camp_button_rect.bottom - 2
+        surface.blit(shortcut_surface, shortcut_rect)
     
     def _draw_button(self, surface: pygame.Surface, button: ActionButton, rect: pygame.Rect, 
                      is_hovered: bool, is_global: bool = False):
