@@ -13,14 +13,19 @@
 - **T** : Activer la capacité spéciale
 
 ### Joueur 2
-- **↑** : Avancer
-- **↓** : Reculer
-- **←** : Tourner à gauche
-- **→** : Tourner à droite
+- **Haut** : Avancer
+- **Bas** : Reculer
+- **Gauche** : Tourner à gauche
+- **Droite** : Tourner à droite
 - **:** : Sélectionner la troupe précédente
 - **!** : Sélectionner la prochaine troupe
 - **L** : Activer le mode attaque
 - **M** : Activer la capacité spéciale
+
+### Caméra / Carte
+- **Flèches directionnelles** : Déplacer la caméra sur la carte (haut/bas/gauche/droite)
+- **Molette de la souris** : Zoom avant/arrière sur la carte
+- **Échap** : Quitter la vue carte et revenir au menu
 
 ## Guide des Troupes
 
