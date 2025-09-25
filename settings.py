@@ -10,7 +10,7 @@ CONFIG_FILE = "galad_config.json"
 DEFAULT_CONFIG = {
     "screen_width": 1168,
     "screen_height": 629,
-    "window_mode": "windowed",  # "windowed", "fullscreen"
+    "window_mode": "fullscreen",  # "windowed", "fullscreen"
     "volume_master": 0.8,
     "volume_music": 0.5,
     "volume_effects": 0.7,
