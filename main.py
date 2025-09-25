@@ -448,7 +448,11 @@ def main_menu(win=None):
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.NOFRAME)
                 else:
                     SCREEN_WIDTH, SCREEN_HEIGHT = original_size
-                    if sys.platform != "win32":
+                    if sys.platform == "win32":
+                        # Astuce pour Windows : recréer la fenêtre sans bordure avant de la rendre redimensionnable
+                        # pour forcer la réinitialisation de la position et des décorations.
+                        pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.NOFRAME)
+                    else:
                         os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
                 # Marquer le layout comme nécessitant une mise à jour
