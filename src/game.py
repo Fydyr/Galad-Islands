@@ -70,10 +70,8 @@ def game(window=None):
     es.add_component(test_vessel, AttackComponent(10))
     es.add_component(test_vessel, HealthComponent(40))
 
-    # Centrer la caméra sur le vaisseau au démarrage
-    camera.x = center_x - camera.screen_width / (2 * camera.zoom)
-    camera.y = center_y - camera.screen_height / (2 * camera.zoom)
-    camera._constrain_camera()
+    # La caméra est déjà centrée par init_game_map()
+    # Pas besoin de la recentrer ici
 
     while running:
         # Delta time en secondes

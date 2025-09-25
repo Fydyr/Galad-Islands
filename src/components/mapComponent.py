@@ -45,12 +45,23 @@ class Camera:
         
         # Ajuster la position pour zoomer vers le centre de l'écran
         if self.zoom != old_zoom:
-            zoom_ratio = self.zoom / old_zoom
-            center_x = self.x + self.screen_width / (2 * old_zoom)
-            center_y = self.y + self.screen_height / (2 * old_zoom)
+            # Calculer la taille visible avec le nouveau zoom
+            new_visible_width = self.screen_width / self.zoom
+            new_visible_height = self.screen_height / self.zoom
             
-            self.x = center_x - self.screen_width / (2 * self.zoom)
-            self.y = center_y - self.screen_height / (2 * self.zoom)
+            # Si on dézoom et qu'au moins une dimension permet le centrage, utiliser le centrage
+            if (zoom_delta < 0 and 
+                (new_visible_width >= self.world_width or new_visible_height >= self.world_height)):
+                # Laisser _constrain_camera() gérer le centrage
+                pass
+            else:
+                # Zoom normal vers le centre de l'écran
+                zoom_ratio = self.zoom / old_zoom
+                center_x = self.x + self.screen_width / (2 * old_zoom)
+                center_y = self.y + self.screen_height / (2 * old_zoom)
+                
+                self.x = center_x - self.screen_width / (2 * self.zoom)
+                self.y = center_y - self.screen_height / (2 * self.zoom)
             
         self._constrain_camera()
     
@@ -60,12 +71,24 @@ class Camera:
         visible_width = self.screen_width / self.zoom
         visible_height = self.screen_height / self.zoom
         
-        # Contraintes
+        # Contraintes normales
         max_x = max(0, self.world_width - visible_width)
         max_y = max(0, self.world_height - visible_height)
         
-        self.x = max(0, min(max_x, self.x))
-        self.y = max(0, min(max_y, self.y))
+        # Si la carte peut être centrée sur une dimension, la centrer
+        if visible_width >= self.world_width:
+            # Centrer horizontalement
+            self.x = (self.world_width - visible_width) / 2
+        else:
+            # Contrainte normale sur X
+            self.x = max(0, min(max_x, self.x))
+            
+        if visible_height >= self.world_height:
+            # Centrer verticalement
+            self.y = (self.world_height - visible_height) / 2
+        else:
+            # Contrainte normale sur Y
+            self.y = max(0, min(max_y, self.y))
     
     def world_to_screen(self, world_x, world_y):
         """Convertit une position monde en position écran."""
@@ -299,8 +322,11 @@ def init_game_map(screen_width, screen_height):
     placer_elements(grid)
     
     camera = Camera(screen_width, screen_height)
-    camera.x = (MAP_WIDTH * TILE_SIZE - screen_width) // 2
-    camera.y = (MAP_HEIGHT * TILE_SIZE - screen_height) // 2
+    # Centrer la caméra dès l'initialisation
+    visible_width = screen_width / camera.zoom
+    visible_height = screen_height / camera.zoom
+    camera.x = (camera.world_width - visible_width) / 2
+    camera.y = (camera.world_height - visible_height) / 2
     camera._constrain_camera()
     
     return {"grid": grid, "images": images, "camera": camera}
