@@ -450,6 +450,14 @@ def main_menu(win=None):
                     # Passer en fenêtré redimensionnable (avec bordures)
                     is_borderless = False
                     display_dirty = True
+                
+                # Détecter les changements de résolution depuis les options
+                current_settings_resolution = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
+                if not is_fullscreen and current_settings_resolution != (SCREEN_WIDTH, SCREEN_HEIGHT):
+                    # La résolution a changé dans les options, l'appliquer à la fenêtre
+                    SCREEN_WIDTH, SCREEN_HEIGHT = current_settings_resolution
+                    display_dirty = True
+                    print(f"🔄 Résolution détectée depuis options: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
             except Exception:
                 pass
             # Appliquer les changements d'affichage demandés de manière atomique
@@ -461,18 +469,21 @@ def main_menu(win=None):
                     SCREEN_HEIGHT = info.current_h
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
                 else:
-                    # Récupérer la résolution actuelle depuis les settings (au cas où elle aurait changé)
-                    SCREEN_WIDTH = settings.SCREEN_WIDTH
-                    SCREEN_HEIGHT = settings.SCREEN_HEIGHT
-                    # Solution pour Windows : créer d'abord une fenêtre de taille minimale
-                    # puis la redimensionner pour forcer le gestionnaire de fenêtres à recalculer
-                    if sys.platform == "win32":
-                        # Créer une petite fenêtre temporaire
-                        pygame.display.set_mode((100, 100), pygame.RESIZABLE)
-                        # Puis immédiatement la redimensionner à la taille souhaitée
-                        win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
-                    else:
-                        win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                    # Utiliser les dimensions actuelles (peuvent avoir été mises à jour depuis les options)
+                    try:
+                        # Solution pour Windows : créer d'abord une fenêtre de taille minimale
+                        # puis la redimensionner pour forcer le gestionnaire de fenêtres à recalculer
+                        if sys.platform == "win32":
+                            # Créer une petite fenêtre temporaire
+                            pygame.display.set_mode((100, 100), pygame.RESIZABLE)
+                            # Puis immédiatement la redimensionner à la taille souhaitée
+                            win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                        else:
+                            win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                        
+                        print(f"🖼️ Fenêtre redimensionnée à: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+                    except Exception as e:
+                        print(f"⚠️ Erreur lors du redimensionnement de la fenêtre: {e}")
                 
                 # Marquer le layout comme nécessitant une mise à jour
                 layout_dirty = True
