@@ -23,8 +23,8 @@ bg_path = os.path.join("assets/image", "galad_islands_bg2.png")
 bg_original = pygame.image.load(bg_path)
 
 # Utilisation des dimensions de settings (valeurs par défaut)
-SCREEN_WIDTH = settings.SCREEN_WIDTH
-SCREEN_HEIGHT = settings.SCREEN_HEIGHT
+# Note: On n'utilise plus de variables globales SCREEN_WIDTH/SCREEN_HEIGHT
+# car elles ne se mettent pas à jour quand on change la résolution dans les options
 
 # Variables pour gérer le mode plein écran
 # Initialiser depuis la configuration afin que la fenêtre d'options puisse
@@ -34,7 +34,7 @@ is_fullscreen = (wm == "fullscreen")
 # Pour le moment on expose seulement 'windowed' (fenêtré) et 'fullscreen'.
 # 'Fenêtré' doit être redimensionnable (avec bordure), donc is_borderless=False.
 is_borderless = False
-original_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
+# Note: original_size n'est plus nécessaire car on utilise directement settings.SCREEN_WIDTH/HEIGHT
 display_dirty = False
 
 # NOTE: We no longer create a window at import time. main_menu(win) will
@@ -340,17 +340,20 @@ def main_menu(win=None):
     created_local_window = False
     if win is None:
         info = pygame.display.Info()
-        SCREEN_WIDTH = info.current_w
-        SCREEN_HEIGHT = info.current_h
+        screen_w = info.current_w
+        screen_h = info.current_h
         # Créer la fenêtre initiale selon le mode demandé dans la config
         wm = settings.config_manager.get("window_mode", "windowed")
         if wm == "fullscreen":
             win = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
-            SCREEN_WIDTH, SCREEN_HEIGHT = info.current_w, info.current_h
+            screen_w, screen_h = info.current_w, info.current_h
         else:
-            # Fenêtré redimensionnable par défaut
-            os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
-            win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+            # Fenêtré redimensionnable par défaut - utiliser les settings actuels
+            screen_w = settings.SCREEN_WIDTH
+            screen_h = settings.SCREEN_HEIGHT
+            if sys.platform != "win32":
+                os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
+            win = pygame.display.set_mode((screen_w, screen_h), pygame.RESIZABLE)
         pygame.display.set_caption("Galad Islands - Menu Principal")
         created_local_window = True
 
@@ -439,16 +442,20 @@ def main_menu(win=None):
                     SCREEN_WIDTH = info.current_w
                     SCREEN_HEIGHT = info.current_h
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
-                elif is_borderless:
-                    info = pygame.display.Info()
-                    SCREEN_WIDTH = info.current_w
-                    SCREEN_HEIGHT = info.current_h
-                    os.environ['SDL_VIDEO_WINDOW_POS'] = "0,0"
-                    win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.NOFRAME)
                 else:
-                    SCREEN_WIDTH, SCREEN_HEIGHT = original_size
-                    os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
-                    win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                    # Récupérer la résolution actuelle depuis les settings (au cas où elle aurait changé)
+                    SCREEN_WIDTH = settings.SCREEN_WIDTH
+                    SCREEN_HEIGHT = settings.SCREEN_HEIGHT
+                    # Solution pour Windows : créer d'abord une fenêtre de taille minimale
+                    # puis la redimensionner pour forcer le gestionnaire de fenêtres à recalculer
+                    if sys.platform == "win32":
+                        # Créer une petite fenêtre temporaire
+                        pygame.display.set_mode((100, 100), pygame.RESIZABLE)
+                        # Puis immédiatement la redimensionner à la taille souhaitée
+                        win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                    else:
+                        win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                
                 # Marquer le layout comme nécessitant une mise à jour
                 layout_dirty = True
                 display_dirty = False
