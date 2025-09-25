@@ -434,27 +434,27 @@ def main_menu(win=None):
                 pass
             # Appliquer les changements d'affichage demandés de manière atomique
             if display_dirty:
+                pygame.quit()
+                pygame.init()
+                pygame.mixer.init()
+                # Recharger la musique car pygame.quit() l'a arrêtée
+                try:
+                    pygame.mixer.music.load(music_path)
+                    pygame.mixer.music.set_volume(0.5)
+                    pygame.mixer.music.play(-1)
+                except Exception as e:
+                    print(f"Impossible de recharger la musique après le changement de mode: {e}")
+
                 # Recréer la surface d'affichage selon les flags
                 if is_fullscreen:
                     info = pygame.display.Info()
                     SCREEN_WIDTH = info.current_w
                     SCREEN_HEIGHT = info.current_h
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
-                elif is_borderless:
-                    info = pygame.display.Info()
-                    SCREEN_WIDTH = info.current_w
-                    SCREEN_HEIGHT = info.current_h
-                    os.environ['SDL_VIDEO_WINDOW_POS'] = "0,0"
-                    win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.NOFRAME)
                 else:
                     SCREEN_WIDTH, SCREEN_HEIGHT = original_size
-                    if sys.platform == "win32":
-                        # Astuce pour Windows : recréer la fenêtre sans bordure avant de la rendre redimensionnable
-                        # pour forcer la réinitialisation de la position et des décorations.
-                        pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.NOFRAME)
-                    else:
-                        os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                
                 # Marquer le layout comme nécessitant une mise à jour
                 layout_dirty = True
                 display_dirty = False
