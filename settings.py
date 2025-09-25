@@ -71,13 +71,12 @@ class ConfigManager:
 
     def get_all_resolutions(self) -> list:
         return [
-            (800, 600, "SVGA (800x600)"),
-            (1024, 768, "XGA (1024x768)"),
-            (1280, 720, "HD 720p (1280x720)"),
-            (1366, 768, "WXGA (1366x768)"),
-            (1920, 1080, "Full HD (1920x1080)"),
-            (2560, 1440, "QHD (2560x1440)"),
-            (1168, 629, "Personnalisée (1168x629)")
+            (800, 600, "800x600"),
+            (1024, 768, "1024x768"),
+            (1280, 720, "1280x720"),
+            (1366, 768, "1366x768"),
+            (1920, 1080, "1920x1080"),
+            (2560, 1440, "2560x1440"),
         ]
 
     def get_volume(self) -> dict:
@@ -168,16 +167,16 @@ def get_screen_height():
 
 
 # --- Helpers supplémentaires exposés pour menu/options ---
-def get_all_resolutions(): # Ne sert plus à rien, peut être supprimé ?
+# --- C'est vraiment utile ? J'hésite à les supprimer   ---
+def get_all_resolutions():
     """Liste des résolutions prises en charge (width, height, description)."""
     return [
-        (800, 600, "SVGA (800x600)"),
-        (1024, 768, "XGA (1024x768)"),
-        (1280, 720, "HD 720p (1280x720)"),
-        (1366, 768, "WXGA (1366x768)"),
-        (1920, 1080, "Full HD (1920x1080)"),
-        (2560, 1440, "QHD (2560x1440)"),
-        (1168, 629, "Personnalisée (1168x629)")
+        (800, 600, "800x600"),
+        (1024, 768, "1024x768"),
+        (1280, 720, "1280x720"),
+        (1366, 768, "1366x768"),
+        (1920, 1080, "1920x1080"),
+        (2560, 1440, "2560x1440"),
     ]
 
 

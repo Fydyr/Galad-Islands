@@ -65,9 +65,28 @@ def show_options_window():
     dragging_slider = False
     dragging_sensitivity_slider = False
 
+    # Variables pour la résolution personnalisée
+    custom_width_input = str(settings.SCREEN_WIDTH)
+    custom_height_input = str(settings.SCREEN_HEIGHT)
+    editing_width = False
+    editing_height = False
+    selected_resolution = None
+    
+    # Trouver la résolution actuelle dans la liste
+    current_res = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
+    resolutions = settings.config_manager.get_all_resolutions()
+    for res in resolutions:
+        if res[0] == current_res[0] and res[1] == current_res[1]:
+            selected_resolution = res
+            break
+    # Si pas trouvée, c'est une résolution personnalisée
+    if selected_resolution is None:
+        selected_resolution = (current_res[0], current_res[1], f"Personnalisée ({current_res[0]}x{current_res[1]})")
+
     # Zones d'interaction (recalculées à chaque frame)
     buttons = {}
     modes = {}
+    resolution_rects = {}
     slider_rect = None
     sensitivity_slider_rect = None
 
@@ -83,6 +102,21 @@ def show_options_window():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
+                elif editing_width or editing_height:
+                    # Gestion de la saisie de résolution personnalisée
+                    if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                        editing_width = False
+                        editing_height = False
+                    elif event.key == pygame.K_BACKSPACE:
+                        if editing_width and len(custom_width_input) > 0:
+                            custom_width_input = custom_width_input[:-1]
+                        elif editing_height and len(custom_height_input) > 0:
+                            custom_height_input = custom_height_input[:-1]
+                    elif event.unicode.isdigit() and len(event.unicode) > 0:
+                        if editing_width and len(custom_width_input) < 5:
+                            custom_width_input += event.unicode
+                        elif editing_height and len(custom_height_input) < 5:
+                            custom_height_input += event.unicode
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = event.pos
                 if event.button == 4:  # Molette vers le haut
@@ -120,6 +154,40 @@ def show_options_window():
                             new_sensitivity = max(0.1, min(5.0, (relative_x / sensitivity_slider_rect.width) * 4.9 + 0.1))
                             settings.set_camera_sensitivity(new_sensitivity)
 
+                        # Gestion des résolutions
+                        for res_key, rect in resolution_rects.items():
+                            if rect.collidepoint(local_x, local_y):
+                                if res_key == "custom_width":
+                                    editing_width = True
+                                    editing_height = False
+                                elif res_key == "custom_height":
+                                    editing_height = True
+                                    editing_width = False
+                                elif res_key == "apply_custom":
+                                    # Appliquer la résolution personnalisée
+                                    try:
+                                        width = int(custom_width_input)
+                                        height = int(custom_height_input)
+                                        
+                                        # Appliquer la résolution directement
+                                        settings.apply_resolution(width, height)
+                                        selected_resolution = (width, height, f"Personnalisée ({width}x{height})")
+                                        print(f"✅ Résolution personnalisée appliquée: {width}x{height}")
+                                            
+                                    except ValueError:
+                                        print("⚠️ Résolution invalide: valeurs non numériques")
+                                elif isinstance(res_key, tuple):
+                                    # Résolution prédéfinie sélectionnée
+                                    width, height = res_key[0], res_key[1]
+                                    
+                                    # Appliquer la résolution directement
+                                    settings.apply_resolution(width, height)
+                                    selected_resolution = res_key
+                                    custom_width_input = str(width)
+                                    custom_height_input = str(height)
+                                    print(f"✅ Résolution appliquée: {width}x{height}")
+                                break
+
                         # Gestion des boutons
                         for name, rect in buttons.items():
                             if rect.collidepoint(local_x, local_y):
@@ -128,6 +196,11 @@ def show_options_window():
                                     pass
                                 elif name == "reset":
                                     settings.reset_defaults()
+                                    # Réinitialiser aussi les variables de résolution
+                                    new_res = settings.config_manager.get_resolution()
+                                    custom_width_input = str(new_res[0])
+                                    custom_height_input = str(new_res[1])
+                                    selected_resolution = None
                                     # Appliquer le volume par défaut immédiatement
                                     default_volume = settings.config_manager.get("volume_music", 0.5) or 0.5
                                     pygame.mixer.music.set_volume(default_volume)
@@ -163,6 +236,7 @@ def show_options_window():
         # Réinitialiser les zones d'interaction
         buttons.clear()
         modes.clear()
+        resolution_rects.clear()
         slider_rect = None
         sensitivity_slider_rect = None
 
@@ -216,6 +290,94 @@ def show_options_window():
             content_y_pos += line_height
 
         content_y_pos += 20
+
+        # Section Résolution
+        section_surf = font_section.render("Résolution (mode fenêtré uniquement)", True, GOLD)
+        content_surf.blit(section_surf, (0, content_y_pos))
+        content_y_pos += 40
+
+        # Liste des résolutions prédéfinies
+        for res in resolutions:
+            width, height, label = res
+            is_selected = (selected_resolution and selected_resolution[0] == width and selected_resolution[1] == height)
+            color = WHITE if is_selected else LIGHT_GRAY
+            
+            if is_selected:
+                # Indicateur radio sélectionné
+                pygame.draw.circle(content_surf, GREEN, (15, content_y_pos + 10), 8)
+            else:
+                # Indicateur radio non sélectionné
+                pygame.draw.circle(content_surf, GRAY, (15, content_y_pos + 10), 8, 2)
+
+            text_surf = font_normal.render(label, True, color)
+            content_surf.blit(text_surf, (35, content_y_pos))
+
+            # Créer la zone cliquable
+            res_rect = pygame.Rect(0, content_y_pos, modal_width - 60, line_height)
+            modal_local_rect = res_rect.move(content_rect.left, content_rect.top + scroll_y)
+            resolution_rects[res] = modal_local_rect
+
+            content_y_pos += line_height
+
+        content_y_pos += 10
+
+        # Section résolution personnalisée
+        custom_label = font_normal.render("Résolution personnalisée:", True, GOLD)
+        content_surf.blit(custom_label, (0, content_y_pos))
+        content_y_pos += 20
+        
+        # Afficher la résolution maximale de l'écran avec explication
+        info = pygame.display.Info()
+        max_res_text = f"Écran détecté: {info.current_w}x{info.current_h}"
+        max_res_surf = font_small.render(max_res_text, True, LIGHT_GRAY)
+        content_surf.blit(max_res_surf, (0, content_y_pos))
+        content_y_pos += 15
+        
+        advice_text = "(Toutes résolutions acceptées - ajustement automatique si nécessaire)"
+        advice_surf = font_small.render(advice_text, True, LIGHT_GRAY)
+        content_surf.blit(advice_surf, (0, content_y_pos))
+        content_y_pos += 15
+
+        # Champs de saisie pour largeur et hauteur
+        input_width = 80
+        input_height = 25
+        
+        # Largeur
+        width_label = font_small.render("Largeur:", True, WHITE)
+        content_surf.blit(width_label, (20, content_y_pos))
+        
+        width_input_rect = pygame.Rect(80, content_y_pos - 2, input_width, input_height)
+        input_color = WHITE if editing_width else LIGHT_GRAY
+        pygame.draw.rect(content_surf, DARK_GRAY, width_input_rect, border_radius=4)
+        pygame.draw.rect(content_surf, input_color, width_input_rect, 2, border_radius=4)
+        
+        width_text = font_small.render(custom_width_input, True, WHITE)
+        content_surf.blit(width_text, (width_input_rect.x + 5, width_input_rect.y + 5))
+        
+        # Créer la zone cliquable pour le champ largeur
+        resolution_rects["custom_width"] = width_input_rect.move(content_rect.left, content_rect.top + scroll_y)
+
+        # Hauteur
+        height_label = font_small.render("Hauteur:", True, WHITE)
+        content_surf.blit(height_label, (180, content_y_pos))
+        
+        height_input_rect = pygame.Rect(240, content_y_pos - 2, input_width, input_height)
+        input_color = WHITE if editing_height else LIGHT_GRAY
+        pygame.draw.rect(content_surf, DARK_GRAY, height_input_rect, border_radius=4)
+        pygame.draw.rect(content_surf, input_color, height_input_rect, 2, border_radius=4)
+        
+        height_text = font_small.render(custom_height_input, True, WHITE)
+        content_surf.blit(height_text, (height_input_rect.x + 5, height_input_rect.y + 5))
+        
+        # Créer la zone cliquable pour le champ hauteur
+        resolution_rects["custom_height"] = height_input_rect.move(content_rect.left, content_rect.top + scroll_y)
+
+        # Bouton "Appliquer" pour la résolution personnalisée
+        apply_custom_rect = pygame.Rect(340, content_y_pos - 2, 80, input_height)
+        draw_button(content_surf, apply_custom_rect, "Appliquer", font_small, BLUE)
+        resolution_rects["apply_custom"] = apply_custom_rect.move(content_rect.left, content_rect.top + scroll_y)
+
+        content_y_pos += 50
 
         # Section Audio
         section_surf = font_section.render("Audio", True, GOLD)
@@ -284,8 +446,13 @@ def show_options_window():
         content_y_pos += 30
 
         info_lines = [
-            "• Tous les changements s'appliquent immédiatement",
+            "• Tous les changements s'appliquent immédiatement sauf la résolution qui s'applique après avoir fermé le menu",
             "• Le mode fenêtré/plein écran prend effet en fermant le menu",
+            "• Les résolutions personnalisées sont sauvegardées automatiquement",
+            "• Redimensionner la fenêtre sauvegarde la nouvelle résolution",
+            "• Les résolutions plus grandes que l'écran risquent de provoquer des problèmes d'affichage.",
+            "Si cela vous arrive, allez dans le fichier galad_config.json et remettez une résolution plus petite",
+            "en changant les valeurs 'width' et 'height' manuellement.",
         ]
 
         for line in info_lines:
