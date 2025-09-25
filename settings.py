@@ -129,8 +129,9 @@ def calculate_adaptive_tile_size():
     return adaptive_size
 
 TILE_SIZE = calculate_adaptive_tile_size()  # taille d'une case en pixels (adaptative)
-MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.01) # taux de mines (2% de la carte)
-GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.025) # taux d'îles génériques (10% de la carte)
+MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.02) # taux de mines (2% de la carte)
+GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03) # taux d'îles génériques (3% de la carte)
+CLOUD_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03) # taux de nuages (3% de la carte)
 
 # Paramètres de caméra
 CAMERA_SPEED = 200  # pixels par seconde

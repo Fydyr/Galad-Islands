@@ -1,7 +1,7 @@
 # Importation des modules nécessaires
 import pygame
 import sys
-from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED
+from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED, CLOUD_RATE
 from random import randint
 
 class Camera:
@@ -131,15 +131,15 @@ def charger_images():
         dict[str, pygame.Surface]: Dictionnaire des images par type d'élément
     """
     return {
-        'generic_island': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/generic_island.png"), (2*TILE_SIZE, 2*TILE_SIZE)),
+        'generic_island': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/generic_island.png"), (TILE_SIZE, TILE_SIZE)),
         'ally': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/ally_island.png"), (4*TILE_SIZE, 4*TILE_SIZE)),
         'enemy': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/enemy_island.png"), (4*TILE_SIZE, 4*TILE_SIZE)),
-        'mine': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/mine.png"), (2*TILE_SIZE, 2*TILE_SIZE)),
-        'cloud': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/cloud.png"), (2*TILE_SIZE, 2*TILE_SIZE)),
+        'mine': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/mine.png"), (TILE_SIZE, TILE_SIZE)),
+        'cloud': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/cloud.png"), (TILE_SIZE, TILE_SIZE)),
         'sea': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/sea.png"), (TILE_SIZE, TILE_SIZE)),
     }
 
-def bloc_libre(grid, x, y, size=2, avoid_bases=True, avoid_type=None):
+def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
     """
     Vérifie si un bloc de taille size*size peut être placé à partir de (x, y) sur la grille.
     Le bloc ne doit pas chevaucher d'autres éléments, ni être adjacent à une île générique,
@@ -148,7 +148,7 @@ def bloc_libre(grid, x, y, size=2, avoid_bases=True, avoid_type=None):
         grid (list[list[int]]): Grille de la carte
         x (int): Colonne de départ du bloc
         y (int): Ligne de départ du bloc
-        size (int, optional): Taille du bloc (par défaut 2)
+        size (int, optional): Taille du bloc (par défaut 1)
         avoid_bases (bool, optional): Empêche le placement près des bases (par défaut True)
         avoid_type (int, optional): Empêche le placement près d'un type donné (par défaut None)
     Returns:
@@ -170,7 +170,7 @@ def bloc_libre(grid, x, y, size=2, avoid_bases=True, avoid_type=None):
                     if avoid_type is not None and grid[ny][nx] == avoid_type:
                         return False
     if avoid_bases:
-        for bx, by in [(0, 0), (MAP_WIDTH-4, MAP_HEIGHT-4)]:
+        for bx, by in [(1, 1), (MAP_WIDTH-5, MAP_HEIGHT-5)]:
             for dy in range(-2, 6):
                 for dx in range(-2, 6):
                     nx, ny = bx+dx, by+dy
@@ -220,19 +220,20 @@ def placer_elements(grid):
     Args:
         grid (list[list[int]]): Grille de la carte à remplir
     """
+    margin = 1
     # Bases
     for dy in range(4):
         for dx in range(4):
-            grid[dy][dx] = 4
+            grid[margin+dy][margin+dx] = 4
     for dy in range(4):
         for dx in range(4):
-            grid[MAP_HEIGHT-4+dy][MAP_WIDTH-4+dx] = 5
+            grid[MAP_HEIGHT-4-margin+dy][MAP_WIDTH-4-margin+dx] = 5
     # Îles génériques
-    placer_bloc_aleatoire(grid, 2, GENERIC_ISLAND_RATE, size=2, min_dist=2, avoid_bases=True)
+    placer_bloc_aleatoire(grid, 2, GENERIC_ISLAND_RATE, size=1, min_dist=2, avoid_bases=True)
     # Nuages
-    placer_bloc_aleatoire(grid, 1, 10, size=2, min_dist=0, avoid_bases=False)
+    placer_bloc_aleatoire(grid, 1, CLOUD_RATE, size=1, min_dist=0, avoid_bases=False)
     # Mines
-    placer_bloc_aleatoire(grid, 3, MINE_RATE, size=2, min_dist=2, avoid_bases=True)
+    placer_bloc_aleatoire(grid, 3, MINE_RATE, size=1, min_dist=2, avoid_bases=True)
 
 def afficher_grille(window, grid, images, camera):
     """
@@ -270,7 +271,7 @@ def afficher_grille(window, grid, images, camera):
             window.blit(sea_scaled, (screen_x, screen_y))
     
     # Fonction helper pour dessiner un élément avec gestion du zoom
-    def draw_element(element_image, grid_x, grid_y, element_size=2):
+    def draw_element(element_image, grid_x, grid_y, element_size=1):
         world_x = grid_x * TILE_SIZE
         world_y = grid_y * TILE_SIZE
         screen_x, screen_y = camera.world_to_screen(world_x, world_y)
@@ -280,26 +281,17 @@ def afficher_grille(window, grid, images, camera):
         element_scaled = pygame.transform.scale(element_image, (display_size, display_size))
         window.blit(element_scaled, (screen_x, screen_y))
     
-    # Blocs 2x2 (nuages, îles, mines) - optimisé avec camera culling
-    for i in range(max(0, start_y-1), min(MAP_HEIGHT-1, end_y)):
-        for j in range(max(0, start_x-1), min(MAP_WIDTH-1, end_x)):
-            # Vérifier que le bloc 2x2 est dans les limites et entièrement du même type
-            if (i+1 < MAP_HEIGHT and j+1 < MAP_WIDTH):
-                # Nuages
-                if (grid[i][j] == 1 and grid[i][j+1] == 1 and 
-                    grid[i+1][j] == 1 and grid[i+1][j+1] == 1):
-                    draw_element(images['cloud'], j, i, 2)
-                
-                # Îles génériques
-                elif (grid[i][j] == 2 and grid[i][j+1] == 2 and 
-                      grid[i+1][j] == 2 and grid[i+1][j+1] == 2):
-                    draw_element(images['generic_island'], j, i, 2)
-                
-                # Mines
-                elif (grid[i][j] == 3 and grid[i][j+1] == 3 and 
-                      grid[i+1][j] == 3 and grid[i+1][j+1] == 3):
-                    draw_element(images['mine'], j, i, 2)
-    
+    # Éléments (nuages, îles, mines, bases)
+    for i in range(start_y, end_y):
+        for j in range(start_x, end_x):
+            val = grid[i][j]
+            if val == 1: # Nuage
+                draw_element(images['cloud'], j, i)
+            elif val == 2: # Île générique
+                draw_element(images['generic_island'], j, i)
+            elif val == 3: # Mine
+                draw_element(images['mine'], j, i)
+
     # Bases 4x4 - optimisé avec camera culling
     for i in range(max(0, start_y-3), min(MAP_HEIGHT-3, end_y)):
         for j in range(max(0, start_x-3), min(MAP_WIDTH-3, end_x)):
