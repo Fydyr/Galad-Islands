@@ -221,7 +221,7 @@ def jouer():
     # Lance la map dans la même fenêtre que le menu (réutilise la surface courante)
     current_surface = pygame.display.get_surface()
     # Si aucune surface n'est disponible (cas improbable), game() créera une fenêtre
-    game(current_surface)
+    game(current_surface, bg_original=bg_original, select_sound=select_sound)
 
 def options():
     print("Menu des options")
