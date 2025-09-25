@@ -408,6 +408,11 @@ def main_menu(win=None):
     # Variables pour tracker les changements de layout
     layout_dirty = False
     last_screen_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
+    
+    # Variables pour gérer le redimensionnement avec délai
+    resize_timer = 0.0
+    resize_delay = 0.3  # Attendre 300ms après le dernier resize avant de sauvegarder
+    pending_resize = None
 
     try:
         while running:
@@ -419,6 +424,19 @@ def main_menu(win=None):
             if tip_change_timer >= TIP_CHANGE_INTERVAL:
                 current_tip = random.choice(TIPS)
                 tip_change_timer = 0
+            
+            # Gérer le délai de sauvegarde de résolution
+            if pending_resize is not None:
+                resize_timer += dt
+                if resize_timer >= resize_delay:
+                    # Sauvegarder la résolution après le délai
+                    try:
+                        settings.apply_resolution(pending_resize[0], pending_resize[1])
+                        print(f"💾 Résolution sauvegardée: {pending_resize[0]}x{pending_resize[1]}")
+                    except Exception as e:
+                        print(f"⚠️ Impossible de sauvegarder la résolution: {e}")
+                    pending_resize = None
+                    resize_timer = 0.0
             
             # Synchroniser avec la config externe (fenêtre d'options)
             try:
@@ -524,14 +542,12 @@ def main_menu(win=None):
                 if event.type == pygame.VIDEORESIZE:
                     if not is_fullscreen and not is_borderless:
                         SCREEN_WIDTH, SCREEN_HEIGHT = event.w, event.h
-                        pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                        # Ne pas recréer la surface à chaque resize pour éviter les conflits
+                        # pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
                         
-                        # Sauvegarder la nouvelle résolution dans la configuration
-                        try:
-                            settings.apply_resolution(SCREEN_WIDTH, SCREEN_HEIGHT)
-                            print(f"💾 Résolution sauvegardée: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
-                        except Exception as e:
-                            print(f"⚠️ Impossible de sauvegarder la résolution: {e}")
+                        # Programmer la sauvegarde avec délai pour éviter les sauvegardes trop fréquentes
+                        pending_resize = (SCREEN_WIDTH, SCREEN_HEIGHT)
+                        resize_timer = 0.0  # Reset du timer
                         
                         layout_dirty = True
                         for p in particles:
