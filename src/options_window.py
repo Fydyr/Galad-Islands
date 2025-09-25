@@ -164,7 +164,7 @@ def show_options_window():
         line_height = 35
 
         # Section Mode d'affichage
-        section_surf = font_section.render("🖼️ Mode d'affichage", True, GOLD)
+        section_surf = font_section.render("Mode d'affichage", True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 40
 
@@ -195,7 +195,7 @@ def show_options_window():
         content_y_pos += 20
 
         # Section Audio
-        section_surf = font_section.render("🔊 Audio", True, GOLD)
+        section_surf = font_section.render("Audio", True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 40
 
@@ -230,7 +230,7 @@ def show_options_window():
         content_y_pos += 50
 
         # Section informations
-        section_surf = font_section.render("ℹ️ Informations", True, GOLD)
+        section_surf = font_section.render("Informations", True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 30
 
