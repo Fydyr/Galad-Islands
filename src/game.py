@@ -6,6 +6,7 @@ import src.components.mapComponent as game_map
 from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE
 from src.processeurs import movementProcessor, collisionProcessor, renderingProcessor, playerControlProcessor
 from src.fonctions.projectileCreator import create_projectile
+from src.fonctions.handleHealth import entitiesHit
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.spriteComponent import SpriteComponent
@@ -15,6 +16,7 @@ from src.components.properties.playerComponent import PlayerComponent
 from src.components.properties.radiusComponent import RadiusComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.healthComponent import HealthComponent
+from src.components.properties.canCollideComponent import CanCollideComponent
 from src.afficherModale import afficher_modale
 import os
 
@@ -62,6 +64,7 @@ def game(window=None, bg_original=None, select_sound=None):
     es.add_processor(rendering_processor, priority=9)
 
     es.set_handler('attack_event', create_projectile)
+    es.set_handler('entities_hit', entitiesHit)
 
     player = es.create_entity()
     es.add_component(player, PlayerComponent())
@@ -83,6 +86,16 @@ def game(window=None, bg_original=None, select_sound=None):
     es.add_component(test_vessel, TeamComponent(1))
     es.add_component(test_vessel, AttackComponent(10))
     es.add_component(test_vessel, HealthComponent(40))
+    es.add_component(test_vessel, CanCollideComponent())
+
+
+    test_enemy = es.create_entity()
+    es.add_component(test_enemy, PositionComponent(center_x + 200, center_y, 45))
+    es.add_component(test_enemy, SpriteComponent("assets/sprites/units/enemy/Zasper.png", 80, 100))
+    es.add_component(test_enemy, TeamComponent(2))
+    es.add_component(test_enemy, AttackComponent(10))
+    es.add_component(test_enemy, HealthComponent(40))
+    es.add_component(test_enemy, CanCollideComponent())
 
     # Centrer la caméra sur le vaisseau au démarrage
     camera.x = center_x - camera.screen_width / (2 * camera.zoom)
