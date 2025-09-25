@@ -4,14 +4,18 @@ import pygame
 @component
 class SpriteComponent:
     
-    def __init__ ( self, image_path: str = "", width=0.0, height=0.0, surface=None):
+    def __init__ ( self, image_path: str = "", width=0.0, height=0.0, image=None, surface=None):
         self.image_path: str = image_path  # Chemin vers l'image du sprite dans le dossier assets
         self.width: float = width
         self.height: float = height
+        self.image: pygame.Surface|None = image
         self.surface: pygame.Surface|None = surface
         self.load_sprite()
+        self.scale_sprite(self.width, self.height)
 
     def load_sprite(self):
         """Retourne le chemin du sprite (à charger avec pygame ou autre moteur graphique)"""
-        image = pygame.image.load(self.image_path).convert_alpha()
-        self.surface = pygame.transform.scale(image, (self.width, self.height))
+        self.image = pygame.image.load(self.image_path).convert_alpha()
+
+    def scale_sprite(self, width, height):
+        self.surface = pygame.transform.scale(self.image, (width, height))

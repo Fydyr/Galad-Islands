@@ -20,12 +20,12 @@ class PlayerControlProcessor(esper.Processor):
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     if velocity.currentSpeed < velocity.maxUpSpeed:
-                        velocity.currentSpeed += 1
+                        velocity.currentSpeed += 0.2
             if keys[getattr(pygame, f'K_{KEY_DOWN}')]:
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     if velocity.currentSpeed > velocity.maxReverseSpeed:
-                        velocity.currentSpeed -= 1
+                        velocity.currentSpeed -= 0.1
             if keys[getattr(pygame, f'K_{KEY_RIGHT}')]:
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
