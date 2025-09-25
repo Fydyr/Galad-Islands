@@ -2,17 +2,16 @@
 
 # Menu principal en Pygame
 
-from random import random
+import random
 import pygame
 import sys
 import settings
-# import credits
-import random
 import os
 from src.game import game
-import setup.setup_team_hooks as setup_hooks
-import setup.install_commitizen_universal as install_cz
+import setup.install_commitizen_universal as install_cz # Assure que commitizen est installé avant d'importer quoi que ce soit d'autre
+import setup.setup_team_hooks as setup_hooks # Assure que les hooks sont installés avant d'importer quoi que ce soit d'autre
 from src.afficherModale import afficher_modale
+from src.options_window import show_options_window
 
 
 pygame.init()
@@ -28,8 +27,13 @@ SCREEN_WIDTH = settings.SCREEN_WIDTH
 SCREEN_HEIGHT = settings.SCREEN_HEIGHT
 
 # Variables pour gérer le mode plein écran
-is_fullscreen = False
-is_borderless = True  # Démarrer en mode borderless par défaut
+# Initialiser depuis la configuration afin que la fenêtre d'options puisse
+# contrôler cet état.
+wm = settings.config_manager.get("window_mode", "windowed")
+is_fullscreen = (wm == "fullscreen")
+# Pour le moment on expose seulement 'windowed' (fenêtré) et 'fullscreen'.
+# 'Fenêtré' doit être redimensionnable (avec bordure), donc is_borderless=False.
+is_borderless = False
 original_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
 display_dirty = False
 
@@ -92,26 +96,11 @@ TITLE_FONT = None
 
 
 # Liste d'astuces ou citations à afficher en bas du menu
-TIPS = [
-    "Astuce : Contrôler un seul zeppelin peut renverser le cours d'une bataille au bon moment.",
-    "Citation : 'Celui qui maîtrise le vent, maîtrise la guerre.'",
-    "Astuce : Les coffres volants sont une source précieuse d’or, ne les laissez pas filer.",
-    "Citation : 'La stratégie est l’art de transformer le hasard en avantage.'",
-    "Astuce : Les unités légères sont rapides mais fragiles, utilisez-les pour harceler l’ennemi.",
-    "Citation : 'Une flotte unie est plus forte qu’un héros isolé.'",
-    "Astuce : Méfiez-vous des tempêtes, elles frappent sans distinction entre alliés et ennemis.",
-    "Citation : 'Le ciel appartient à ceux qui osent le conquérir.'",
-    "Astuce : Placez vos Architectes sur les îles pour construire des tours et sécuriser vos positions.",
-    "Citation : 'Défendre ses terres, c’est déjà préparer la victoire.'",
-    "Astuce : Les Druids peuvent soigner vos troupes, protégez-les à tout prix.",
-    "Citation : 'Dans la guerre, chaque souffle compte.'",
-    "Astuce : Investir tôt dans un Léviathan peut impressionner, mais attention à ne pas négliger vos défenses.",
-    "Citation : 'Le pouvoir sans prudence mène à la chute.'",
-    "Astuce : Les bandits n’attaquent pas que vos ennemis… parfois, il vaut mieux esquiver que combattre.",
-    "Citation : 'Le chaos des cieux ne pardonne pas l’arrogance.'",
-]
+from src.constants.tipsContact import TIPS
 
 current_tip = random.choice(TIPS)
+tip_change_timer = 0  # Timer pour changer les astuces
+TIP_CHANGE_INTERVAL = 5.0  # Changer d'astuce toutes les 5 secondes
 
 class Button:
     def __init__(self, text, x, y, w, h, callback):
@@ -152,13 +141,17 @@ class Button:
         
         # Texte avec ombre
         use_font = font or FONT
+        # Ensure we always have a valid pygame Font object before rendering
+        if use_font is None:
+            use_font = pygame.font.SysFont("Arial", max(12, int(btn_rect.h * 0.45)), bold=True)
+
+        # Safely render shadow and main text; keep a fallback in case rendering fails
         try:
             txt_shadow = use_font.render(self.text, True, DARK_GOLD)
         except Exception:
-            # fallback in case font is not a pygame Font
             use_font = pygame.font.SysFont("Arial", max(12, int(btn_rect.h * 0.45)), bold=True)
             txt_shadow = use_font.render(self.text, True, DARK_GOLD)
-        
+
         # Ombre de texte adaptative
         text_shadow_offset = max(1, int(btn_rect.h * 0.02))
         txt_shadow_rect = txt_shadow.get_rect(center=(btn_rect.centerx+text_shadow_offset, btn_rect.centery+text_shadow_offset))
@@ -225,13 +218,15 @@ class SmallButton:
 
 # Fonctions des boutons
 def jouer():
-    # Lance la map dans une nouvelle fenêtre
-    game()
+    # Lance la map dans la même fenêtre que le menu (réutilise la surface courante)
+    current_surface = pygame.display.get_surface()
+    # Si aucune surface n'est disponible (cas improbable), game() créera une fenêtre
+    game(current_surface)
 
 def options():
     print("Menu des options")
-    # À compléter : afficher/options
-    settings.afficher_options()
+    # Afficher la modale des options en Pygame (synchrone)
+    show_options_window()
 
 def crédits():
     afficher_modale("Crédits", "assets/docs/credits.md", bg_original=bg_original, select_sound=select_sound)
@@ -253,6 +248,11 @@ def toggle_fullscreen():
     if is_fullscreen:
         global is_borderless
         is_borderless = False
+    # Persister la préférence
+    try:
+        settings.set_window_mode("fullscreen" if is_fullscreen else "windowed")
+    except Exception:
+        pass
     display_dirty = True
 
 def toggle_borderless():
@@ -264,6 +264,9 @@ def toggle_borderless():
     if is_fullscreen:
         return
     is_borderless = not is_borderless
+    # Ne pas écrire la valeur dans la config : ce bouton est purement local
+    # (présentation). La fenêtre d'options garde le contrôle explicite du
+    # mode d'affichage (windowed / fullscreen).
     display_dirty = True
 
 def quitter():
@@ -278,7 +281,9 @@ def quitter():
 num_buttons = 6
 labels = ["Jouer", "Options", "Crédits", "Aide", "Scénario", "Quitter"]
 callbacks = [jouer, options, crédits, aide, scénario, quitter]
-borderless_button = None
+# Le petit bouton 'Windowed' a été retiré ; la gestion du mode d'affichage se fait
+# désormais via la fenêtre d'options (ou via F11). Si besoin on conservera la
+# fonction toggle_borderless() pour usages internes.
 
 
 def update_layout(screen_width, screen_height, buttons, borderless_button):
@@ -306,13 +311,16 @@ def update_layout(screen_width, screen_height, buttons, borderless_button):
         btn.rect.w = btn_w
         btn.rect.h = btn_h
     
-    # Mise à jour du petit bouton borderless (taille et position entièrement responsives)
-    small_btn_w = max(int(screen_width * 0.05), int(screen_width * 0.08))
-    small_btn_h = max(int(screen_height * 0.025), int(screen_height * 0.04))
-    borderless_button.rect.w = small_btn_w
-    borderless_button.rect.h = small_btn_h
-    borderless_button.rect.x = screen_width - small_btn_w - int(screen_width * 0.01)
-    borderless_button.rect.y = int(screen_height * 0.01)
+    # Le petit bouton 'Windowed' a été retiré de l'UI. Si jamais il est présent
+    # (pour compatibilité), on mettra à jour sa taille, mais par défaut on
+    # ignore cette étape pour éviter des accès sur None.
+    if borderless_button is not None:
+        small_btn_w = max(int(screen_width * 0.05), int(screen_width * 0.08))
+        small_btn_h = max(int(screen_height * 0.025), int(screen_height * 0.04))
+        borderless_button.rect.w = small_btn_w
+        borderless_button.rect.h = small_btn_h
+        borderless_button.rect.x = screen_width - small_btn_w - int(screen_width * 0.01)
+        borderless_button.rect.y = int(screen_height * 0.01)
     
     # Retourner les données pour la police des boutons
     return max(12, int(btn_h * 0.45))
@@ -323,7 +331,7 @@ def main_menu(win=None):
     """Affiche le menu. Si `win` est fourni (surface Pygame), le menu s'adapte
     à sa taille. Sinon, crée une fenêtre locale pour compatibilité.
     """
-    global borderless_button
+    global borderless_button, display_dirty, is_fullscreen, is_borderless, current_tip, tip_change_timer
     clock = pygame.time.Clock()
     running = True
     pressed_btn = None
@@ -334,8 +342,15 @@ def main_menu(win=None):
         info = pygame.display.Info()
         SCREEN_WIDTH = info.current_w
         SCREEN_HEIGHT = info.current_h
-        os.environ['SDL_VIDEO_WINDOW_POS'] = "0,0"
-        win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.NOFRAME)
+        # Créer la fenêtre initiale selon le mode demandé dans la config
+        wm = settings.config_manager.get("window_mode", "windowed")
+        if wm == "fullscreen":
+            win = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
+            SCREEN_WIDTH, SCREEN_HEIGHT = info.current_w, info.current_h
+        else:
+            # Fenêtré redimensionnable par défaut
+            os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
+            win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("Galad Islands - Menu Principal")
         created_local_window = True
 
@@ -380,12 +395,8 @@ def main_menu(win=None):
         y = start_y + i * (btn_h_init + btn_gap_init)
         buttons.append(Button(labels[i], x, y, btn_w_init, btn_h_init, callbacks[i]))
 
-    # Créer le petit bouton avec taille responsive - contraintes assouplies
-    small_btn_w_init = max(int(SCREEN_WIDTH * 0.05), int(SCREEN_WIDTH * 0.08))
-    small_btn_h_init = max(int(SCREEN_HEIGHT * 0.025), int(SCREEN_HEIGHT * 0.04))
-    small_btn_x = SCREEN_WIDTH - small_btn_w_init - int(SCREEN_WIDTH * 0.01)
-    small_btn_y = int(SCREEN_HEIGHT * 0.01)
-    borderless_button = SmallButton("Windowed", small_btn_x, small_btn_y, small_btn_w_init, small_btn_h_init, toggle_borderless)
+    # Le petit bouton 'Windowed' a été retiré: ne pas créer de SmallButton ici.
+    borderless_button = None
 
     # Calculer la disposition initiale
     menu_font_size = update_layout(SCREEN_WIDTH, SCREEN_HEIGHT, buttons, borderless_button)
@@ -397,8 +408,30 @@ def main_menu(win=None):
 
     try:
         while running:
+            # Delta time pour les animations
+            dt = clock.tick(60) / 1000.0
+            
+            # Changer d'astuce automatiquement
+            tip_change_timer += dt
+            if tip_change_timer >= TIP_CHANGE_INTERVAL:
+                current_tip = random.choice(TIPS)
+                tip_change_timer = 0
+            
+            # Synchroniser avec la config externe (fenêtre d'options)
+            try:
+                current_mode = settings.config_manager.get("window_mode", "windowed")
+                if current_mode == "fullscreen" and not is_fullscreen:
+                    is_fullscreen = True
+                    is_borderless = False
+                    display_dirty = True
+                elif current_mode == "windowed" and is_fullscreen:
+                    is_fullscreen = False
+                    # Passer en fenêtré redimensionnable (avec bordures)
+                    is_borderless = False
+                    display_dirty = True
+            except Exception:
+                pass
             # Appliquer les changements d'affichage demandés de manière atomique
-            global display_dirty
             if display_dirty:
                 # Recréer la surface d'affichage selon les flags
                 if is_fullscreen:
@@ -457,8 +490,6 @@ def main_menu(win=None):
                 is_pressed = (btn == pressed_btn and pressed_timer > 0)
                 btn.draw(win, mouse_pos, pressed=is_pressed, font=menu_font)
 
-            borderless_button.draw(win, mouse_pos, pressed=(borderless_button == pressed_btn and pressed_timer > 0))
-
             # Astuce en bas (responsive)
             tip_font_size = max(12, int(SCREEN_HEIGHT * 0.025))
             tip_y_pos = SCREEN_HEIGHT - max(20, int(SCREEN_HEIGHT * 0.04))
@@ -492,20 +523,15 @@ def main_menu(win=None):
                             if p['x'] > SCREEN_WIDTH: p['x'] = SCREEN_WIDTH - 10
                             if p['y'] > SCREEN_HEIGHT: p['y'] = SCREEN_HEIGHT - 10
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if borderless_button.rect.collidepoint(mouse_pos):
-                        pressed_btn = borderless_button
-                        pressed_timer = 8
-                    else:
-                        for btn in buttons:
-                            if btn.rect.collidepoint(mouse_pos):
-                                pressed_btn = btn
-                                pressed_timer = 8
-                                break
+                    # Petit bouton 'Windowed' supprimé : ne pas tester sa zone.
+                    for btn in buttons:
+                        if btn.rect.collidepoint(mouse_pos):
+                            pressed_btn = btn
+                            pressed_timer = 8
+                            break
                 if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                     if pressed_btn and pressed_btn.rect.collidepoint(mouse_pos):
-                        if pressed_btn == borderless_button:
-                            borderless_button.click(mouse_pos)
-                        elif pressed_btn.text == "Quitter":
+                        if pressed_btn.text == "Quitter":
                             running = False
                         else:
                             pressed_btn.click(mouse_pos)
@@ -518,7 +544,7 @@ def main_menu(win=None):
                 break
 
             pygame.display.update()
-            clock.tick(60)
+            # clock.tick(60) déjà appelé au début de la boucle pour dt
     except Exception as e:
         print(f"Erreur dans la boucle principale: {e}")
         import traceback
@@ -529,8 +555,9 @@ def main_menu(win=None):
         else:
             return
 
-setup_hooks.main()
 install_cz.main()
+setup_hooks.main()
 
 if __name__ == "__main__":
+    # Lancer le menu principal lorsque ce fichier est exécuté directement
     main_menu()
