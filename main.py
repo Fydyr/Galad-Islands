@@ -2,16 +2,14 @@
 
 # Menu principal en Pygame
 
-from random import random
+import random
 import pygame
 import sys
 import settings
-# import credits
-import random
 import os
 from src.game import game
-import setup.setup_team_hooks as setup_hooks
-import setup.install_commitizen_universal as install_cz
+import setup.install_commitizen_universal as install_cz # Assure que commitizen est installé avant d'importer quoi que ce soit d'autre
+import setup.setup_team_hooks as setup_hooks # Assure que les hooks sont installés avant d'importer quoi que ce soit d'autre
 from src.afficherModale import afficher_modale
 from src.options_window import show_options_window
 
@@ -98,50 +96,7 @@ TITLE_FONT = None
 
 
 # Liste d'astuces ou citations à afficher en bas du menu
-TIPS = [
-    "Astuce : Contrôler un seul zeppelin peut renverser le cours d'une bataille au bon moment.",
-    "Citation : 'Celui qui maîtrise le vent, maîtrise la guerre.'",
-    "Astuce : Les coffres volants sont une source précieuse d’or, ne les laissez pas filer.",
-    "Citation : 'La stratégie est l’art de transformer le hasard en avantage.'",
-    "Astuce : Les unités légères sont rapides mais fragiles, utilisez-les pour harceler l’ennemi.",
-    "Citation : 'Une flotte unie est plus forte qu’un héros isolé.'",
-    "Astuce : Méfiez-vous des tempêtes, elles frappent sans distinction entre alliés et ennemis.",
-    "Citation : 'Le ciel appartient à ceux qui osent le conquérir.'",
-    "Astuce : Placez vos Architectes sur les îles pour construire des tours et sécuriser vos positions.",
-    "Citation : 'Défendre ses terres, c’est déjà préparer la victoire.'",
-    "Astuce : Les Druids peuvent soigner vos troupes, protégez-les à tout prix.",
-    "Citation : 'Dans la guerre, chaque souffle compte.'",
-    "Astuce : Investir tôt dans un Léviathan peut impressionner, mais attention à ne pas négliger vos défenses.",
-    "Citation : 'Le pouvoir sans prudence mène à la chute.'",
-    "Astuce : Les bandits n’attaquent pas que vos ennemis… parfois, il vaut mieux esquiver que combattre.",
-    "Citation : 'Le chaos des cieux ne pardonne pas l’arrogance.'",
-    "Astuce : gardez toujours une armée chez vous. Votre ennemi a peut être envoyé quelqu'un.",
-    "Buvez de l'eau, faites des pauses, et souvenez-vous que vous êtes géniaux !",
-    "Un bon commandant ne prend pas de drogues, sauf du café éventuellement.",
-    "1 + 1 = 1",
-    "Ne jetez pas le cailliou dans la machine à laver, ça abîme les vêtements !",
-    "Méfiez-vous de l'IA, sauf celle de Galad Islands ; elle est sympa !",
-    "A ne pas reproduire chez soi !",
-    "Ne refaisez pas ce jeu chez vous : ceci est réalisé par des professionnels !",
-    "Astuce : Méfiez-vous de votre adversaire. Il est peut-être dans vos murs",
-    "Nous ne sommes pas responsables des brisages d'amitiés.",
-    "Si vous pensez que tout est fini, c'est que ce n'est que le début",
-    "Astuce : Pour gagner, dites que votre adversaire a du pétrole. Les Etats-Unis viendront vous aider.",
-    "Nos vaisseaux sont biodégradables. Pensez à l'environnement !",
-    "Non, ce n'est pas la faute du jeu si vous perdez. Vous êtes juste nul.le.",
-    "Non, ce n'est pas un singe qui joue contre vous.",
-    "Test de filtre de beauté : ... Vous ne dépassez pas le seuil requis pour passer ce test.",
-    "Promis, il n'y a pas de plagiat de Murder Drones dans ce jeu.", # Je me suis permis une ref à une SAE précédente
-    "Attention, il est interdit à une IA d'affronter la notre.",
-    "Tu savais que le jeu n'est pas disponible sur Steam ?",
-    "T'as pas 100 balles pour le mettre sur Steam ?",
-    "Les profesionnels ont des standards.",
-    "Ce jeu a été fait avec amour (et surtout avec de la douleur)",
-    "Enzo, tu peux débloquer le main ?",
-    "All hail the git master",
-    "La d'où on vient, on a un dompteur de goéland qui travaille dans l'armée.",
-    "Comment ça, on vous dit plus de bétises que d'astuces ?"
-]
+from src.constants.tipsContact import TIPS
 
 current_tip = random.choice(TIPS)
 tip_change_timer = 0  # Timer pour changer les astuces
@@ -600,8 +555,8 @@ def main_menu(win=None):
         else:
             return
 
-setup_hooks.main()
 install_cz.main()
+setup_hooks.main()
 
 if __name__ == "__main__":
     # Lancer le menu principal lorsque ce fichier est exécuté directement
