@@ -11,6 +11,7 @@
 - **"** : Sélectionner la prochaine troupe
 - **A** : Activer le mode attaque
 - **E** : Activer la capacité spéciale
+- **CTRL** : Arrêt du vaisseau
 
 ### Caméra / Carte
 - **Flèches directionnelles** : Déplacer la caméra sur la carte (haut/bas/gauche/droite)
