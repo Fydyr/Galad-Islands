@@ -12,6 +12,7 @@ from src.components.properties.spriteComponent import SpriteComponent
 from src.components.properties.playerSelectedComponent import PlayerSelectedComponent
 from src.components.properties.teamComponent import TeamComponent
 from src.components.properties.playerComponent import PlayerComponent
+from src.components.properties.radiusComponent import RadiusComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.healthComponent import HealthComponent
 from src.afficherModale import afficher_modale
@@ -70,8 +71,14 @@ def game(window=None, bg_original=None, select_sound=None):
     center_y = (MAP_HEIGHT * TILE_SIZE) // 2
     test_vessel = es.create_entity()
     es.add_component(test_vessel, PositionComponent(center_x, center_y, 180))
-    es.add_component(test_vessel, VelocityComponent(0, 2, -0.5))
+    es.add_component(test_vessel, VelocityComponent(0, 1, -0.2))
+
     es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Zasper.png", 80, 100))
+    es.add_component(test_vessel, RadiusComponent(bullet_cooldown=4))
+
+    # es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Draupnir.png", 160, 200))
+    # es.add_component(test_vessel, RadiusComponent(bullet_cooldown=10))
+
     es.add_component(test_vessel, PlayerSelectedComponent(player))
     es.add_component(test_vessel, TeamComponent(1))
     es.add_component(test_vessel, AttackComponent(10))
