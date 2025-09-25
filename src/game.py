@@ -80,6 +80,8 @@ def game(window=None):
     camera.y = center_y - camera.screen_height / (2 * camera.zoom)
     camera._constrain_camera()
 
+    show_debug = False
+
     while running:
         # Delta time en secondes
         dt = clock.tick(60) / 1000.0
@@ -97,6 +99,8 @@ def game(window=None):
                     if created_local_window:
                         pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
                         pygame.display.set_caption("Galad Islands - Menu Principal")
+                elif event.key == pygame.K_F3:
+                    show_debug = not show_debug
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # Molette de la souris: 4 = up, 5 = down
                 if event.button == 4:
@@ -109,12 +113,25 @@ def game(window=None):
         camera.update(dt, keys)
 
         # Mettre à jour l'affichage et la logique ECS
-        update_screen(window, grid, images, camera)
+        update_screen(window, grid, images, camera, show_debug, dt)
         es.process()
         pygame.display.flip()
 
-def update_screen(window, grid, images, camera):
+def update_screen(window, grid, images, camera, show_debug, dt):
     # Effacer l'écran (évite les artefacts lors du redimensionnement / zoom)
     window.fill((0, 50, 100))
     # Délègue l'affichage de la grille en fournissant la caméra
     game_map.afficher_grille(window, grid, images, camera)
+
+    if show_debug:
+        font = pygame.font.Font(None, 36)
+        debug_info = [
+            f"Caméra: ({camera.x:.1f}, {camera.y:.1f})",
+            f"Zoom: {camera.zoom:.2f}x",
+            f"Taille tuile: {TILE_SIZE}px",
+            f"Résolution: {window.get_width()}x{window.get_height()}",
+            f"FPS: {1/dt if dt > 0 else 0:.1f}"
+        ]
+        for i, info in enumerate(debug_info):
+            text_surface = font.render(info, True, (255, 255, 255))
+            window.blit(text_surface, (10, 10 + i * 30))

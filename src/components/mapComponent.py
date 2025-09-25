@@ -321,7 +321,7 @@ def init_game_map(screen_width, screen_height):
     camera.y = (camera.world_height - visible_height) / 2
     camera._constrain_camera()
     
-    return {"grid": grid, "images": images, "camera": camera}
+    return {"grid": grid, "images": images, "camera": camera, "show_debug": False}
 
 def run_game_frame(window, game_state, dt):
     """
@@ -362,24 +362,10 @@ def run_game_frame(window, game_state, dt):
     
     # Afficher la grille
     afficher_grille(window, grid, images, camera)
-    
-    # Affichage des informations de debug
-    if keys[pygame.K_F1]:
-        font = pygame.font.Font(None, 36)
-        debug_info = [
-            f"Caméra: ({camera.x:.1f}, {camera.y:.1f})",
-            f"Zoom: {camera.zoom:.2f}x",
-            f"Taille tuile: {TILE_SIZE}px",
-            f"Résolution: {window.get_width()}x{window.get_height()}",
-            f"FPS: {1/dt if dt > 0 else 0:.1f}"
-        ]
-        for i, info in enumerate(debug_info):
-            text_surface = font.render(info, True, (255, 255, 255))
-            window.blit(text_surface, (10, 10 + i * 30))
             
     # Instructions
     font = pygame.font.Font(None, 36)
-    help_text = font.render("Flèches/WASD: Déplacer | Molette: Zoom | F1: Debug | Échap: Quitter", True, (255, 255, 255))
+    help_text = font.render("Flèches/WASD: Déplacer | Molette: Zoom | F3: Debug | Échap: Quitter", True, (255, 255, 255))
     window.blit(help_text, (10, window.get_height() - 30))
     
     return True # Continuer le jeu
