@@ -51,6 +51,7 @@ class PlayerControlProcessor(esper.Processor):
                 if keys[getattr(pygame, f'K_{KEY_ATTACK}')]:
                     # envoie un event sui s'appelle "attack_event" qui crée un projectile
                     esper.dispatch_event("attack_event", entity)
+                    radius.cooldown = radius.bullet_cooldown
                  
                 
 
