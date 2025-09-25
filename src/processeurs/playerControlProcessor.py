@@ -6,7 +6,7 @@ from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.baseComponent import BaseComponent 
 from src.components.properties.radiusComponent import RadiusComponent 
-from src.settings.controls import KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_PREV_TROOP, KEY_NEXT_TROOP, KEY_ATTACK, KEY_SPECIAL_ABILITY
+from src.settings.controls import KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_STOP, KEY_PREV_TROOP, KEY_NEXT_TROOP, KEY_ATTACK, KEY_SPECIAL_ABILITY
 import pygame
 
 class PlayerControlProcessor(esper.Processor):
@@ -37,6 +37,10 @@ class PlayerControlProcessor(esper.Processor):
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
                     position.direction = (position.direction - 1) % 360
+            if keys[pygame.K_LCTRL]:
+                if esper.has_component(entity, VelocityComponent):
+                    velocity = esper.component_for_entity(entity, VelocityComponent)
+                    velocity.currentSpeed = 0.0
             if keys[ord(KEY_PREV_TROOP)]:
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
