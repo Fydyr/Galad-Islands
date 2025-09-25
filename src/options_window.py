@@ -61,10 +61,6 @@ def show_options_window():
     scroll_y = 0
     max_scroll = 0
 
-    # Récupérer les données actuelles
-    window_mode = settings.config_manager.get("window_mode", "windowed")
-    music_volume = settings.config_manager.get("volume_music", 0.5) or 0.5
-
     # Variables pour l'interaction
     dragging_slider = False
 
@@ -74,6 +70,10 @@ def show_options_window():
     slider_rect = None
 
     while running:
+        # Récupérer les données actuelles à chaque frame pour refléter les changements
+        window_mode = settings.config_manager.get("window_mode", "windowed")
+        music_volume = settings.config_manager.get("volume_music", 0.5) or 0.5
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -95,7 +95,8 @@ def show_options_window():
                         # Gestion des clics sur les modes d'affichage
                         for mode, rect in modes.items():
                             if rect.collidepoint(local_x, local_y):
-                                window_mode = mode
+                                # Appliquer immédiatement le changement de mode
+                                settings.set_window_mode(mode)
                                 break
 
                         # Gestion du slider de volume
@@ -103,23 +104,23 @@ def show_options_window():
                             dragging_slider = True
                             # Convertir en coordonnées relatives au slider
                             relative_x = local_x - slider_rect.left
-                            music_volume = max(
+                            new_volume = max(
                             	0.0, min(1.0, relative_x / slider_rect.width))
-                            pygame.mixer.music.set_volume(music_volume)
+                            # Appliquer immédiatement le changement de volume
+                            settings.set_music_volume(new_volume)
+                            pygame.mixer.music.set_volume(new_volume)
 
                         # Gestion des boutons
                         for name, rect in buttons.items():
                             if rect.collidepoint(local_x, local_y):
                                 if name == "apply":
-                                    settings.set_window_mode(window_mode)
-                                    settings.set_music_volume(music_volume)
+                                    # Les changements sont déjà appliqués immédiatement
+                                    pass
                                 elif name == "reset":
                                     settings.reset_defaults()
-                                    window_mode = settings.config_manager.get(
-                                    	"window_mode", "windowed")
-                                    music_volume = settings.config_manager.get(
-                                    	"volume_music", 0.5) or 0.5
-                                    pygame.mixer.music.set_volume(music_volume)
+                                    # Appliquer le volume par défaut immédiatement
+                                    default_volume = settings.config_manager.get("volume_music", 0.5) or 0.5
+                                    pygame.mixer.music.set_volume(default_volume)
                                 elif name == "close":
                                     running = False
                                 break
@@ -134,9 +135,11 @@ def show_options_window():
                         local_x = mx - modal_rect.left
                         # Convertir en coordonnées relatives au slider
                         relative_x = local_x - slider_rect.left
-                        music_volume = max(
+                        new_volume = max(
                             0.0, min(1.0, relative_x / slider_rect.width))
-                        pygame.mixer.music.set_volume(music_volume)
+                        # Appliquer immédiatement le changement de volume
+                        settings.set_music_volume(new_volume)
+                        pygame.mixer.music.set_volume(new_volume)
 
         # Réinitialiser les zones d'interaction
         buttons.clear()
@@ -235,8 +238,8 @@ def show_options_window():
         content_y_pos += 30
 
         info_lines = [
-            "• Le mode fenêtré/plein écran s'applique en fermant le menu",
-            "• Les modifications de volume prennent effet immédiatement",
+            "• Tous les changements s'appliquent immédiatement",
+            "• Le mode fenêtré/plein écran prend effet en fermant le menu",
         ]
 
         for line in info_lines:
@@ -250,17 +253,9 @@ def show_options_window():
         btn_width = 120
         btn_height = 40
 
-        # Bouton Appliquer
-        apply_btn_content = pygame.Rect(
-            0, content_y_pos, btn_width, btn_height)
-        draw_button(content_surf, apply_btn_content,
-                    "Appliquer", font_normal, GREEN)
-        buttons["apply"] = apply_btn_content.move(
-            content_rect.left, content_rect.top + scroll_y)
-
         # Bouton Reset
         reset_btn_content = pygame.Rect(
-            150, content_y_pos, btn_width, btn_height)
+            50, content_y_pos, btn_width, btn_height)
         draw_button(content_surf, reset_btn_content,
                     "Défaut", font_normal, (200, 150, 50))
         buttons["reset"] = reset_btn_content.move(
@@ -268,7 +263,7 @@ def show_options_window():
 
         # Bouton Fermer
         close_btn_content = pygame.Rect(
-            300, content_y_pos, btn_width, btn_height)
+            200, content_y_pos, btn_width, btn_height)
         draw_button(content_surf, close_btn_content,
                     "Fermer", font_normal, RED)
         buttons["close"] = close_btn_content.move(
