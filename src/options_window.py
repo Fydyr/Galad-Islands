@@ -63,16 +63,19 @@ def show_options_window():
 
     # Variables pour l'interaction
     dragging_slider = False
+    dragging_sensitivity_slider = False
 
     # Zones d'interaction (recalculées à chaque frame)
     buttons = {}
     modes = {}
     slider_rect = None
+    sensitivity_slider_rect = None
 
     while running:
         # Récupérer les données actuelles à chaque frame pour refléter les changements
         window_mode = settings.config_manager.get("window_mode", "windowed")
         music_volume = settings.config_manager.get("volume_music", 0.5) or 0.5
+        camera_sensitivity = settings.config_manager.get("camera_sensitivity", 1.0) or 1.0
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -110,6 +113,13 @@ def show_options_window():
                             settings.set_music_volume(new_volume)
                             pygame.mixer.music.set_volume(new_volume)
 
+                        # Gestion du slider de sensibilité
+                        if sensitivity_slider_rect and sensitivity_slider_rect.collidepoint(local_x, local_y):
+                            dragging_sensitivity_slider = True
+                            relative_x = local_x - sensitivity_slider_rect.left
+                            new_sensitivity = max(0.1, min(5.0, (relative_x / sensitivity_slider_rect.width) * 4.9 + 0.1))
+                            settings.set_camera_sensitivity(new_sensitivity)
+
                         # Gestion des boutons
                         for name, rect in buttons.items():
                             if rect.collidepoint(local_x, local_y):
@@ -127,6 +137,7 @@ def show_options_window():
 
             elif event.type == pygame.MOUSEBUTTONUP:
                 dragging_slider = False
+                dragging_sensitivity_slider = False
 
             elif event.type == pygame.MOUSEMOTION:
                 if dragging_slider and slider_rect:
@@ -140,11 +151,20 @@ def show_options_window():
                         # Appliquer immédiatement le changement de volume
                         settings.set_music_volume(new_volume)
                         pygame.mixer.music.set_volume(new_volume)
+                
+                if dragging_sensitivity_slider and sensitivity_slider_rect:
+                    mx, my = event.pos
+                    if modal_rect.collidepoint((mx, my)):
+                        local_x = mx - modal_rect.left
+                        relative_x = local_x - sensitivity_slider_rect.left
+                        new_sensitivity = max(0.1, min(5.0, (relative_x / sensitivity_slider_rect.width) * 4.9 + 0.1))
+                        settings.set_camera_sensitivity(new_sensitivity)
 
         # Réinitialiser les zones d'interaction
         buttons.clear()
         modes.clear()
         slider_rect = None
+        sensitivity_slider_rect = None
 
         # Dessiner l'overlay semi-transparent
         overlay = pygame.Surface((WIDTH, HEIGHT), flags=pygame.SRCALPHA)
@@ -229,6 +249,32 @@ def show_options_window():
         # Créer la zone cliquable du slider en coordonnées modal-local
         slider_rect = slider_content_rect.move(
             content_rect.left, content_rect.top + scroll_y)
+
+        content_y_pos += 50
+
+        # Section Graphismes
+        section_surf = font_section.render("Graphismes", True, GOLD)
+        content_surf.blit(section_surf, (0, content_y_pos))
+        content_y_pos += 40
+
+        # Slider de sensibilité de la caméra
+        sensitivity_text = f"Sensibilité caméra: {camera_sensitivity:.1f}x"
+        sensitivity_surf = font_normal.render(sensitivity_text, True, WHITE)
+        content_surf.blit(sensitivity_surf, (0, content_y_pos))
+        content_y_pos += 25
+
+        sensitivity_slider_content_rect = pygame.Rect(0, content_y_pos, modal_width - 100, 20)
+        pygame.draw.rect(content_surf, DARK_GRAY, sensitivity_slider_content_rect, border_radius=10)
+
+        fill_width_sensitivity = int(sensitivity_slider_content_rect.width * (camera_sensitivity - 0.1) / 4.9)
+        fill_rect_sensitivity = pygame.Rect(sensitivity_slider_content_rect.left, sensitivity_slider_content_rect.top, fill_width_sensitivity, sensitivity_slider_content_rect.height)
+        pygame.draw.rect(content_surf, BLUE, fill_rect_sensitivity, border_radius=10)
+
+        handle_x_sensitivity = sensitivity_slider_content_rect.left + fill_width_sensitivity - 8
+        handle_rect_sensitivity = pygame.Rect(handle_x_sensitivity, sensitivity_slider_content_rect.top - 2, 16, 24)
+        pygame.draw.rect(content_surf, WHITE, handle_rect_sensitivity, border_radius=4)
+
+        sensitivity_slider_rect = sensitivity_slider_content_rect.move(content_rect.left, content_rect.top + scroll_y)
 
         content_y_pos += 50
 

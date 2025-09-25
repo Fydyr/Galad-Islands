@@ -1,7 +1,7 @@
 # Importation des modules nécessaires
 import pygame
 import sys
-from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED, CLOUD_RATE
+from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED, CLOUD_RATE, config_manager
 from random import randint
 
 class Camera:
@@ -22,7 +22,8 @@ class Camera:
         
     def update(self, dt, keys):
         """Met à jour la position de la caméra selon les entrées clavier."""
-        move_speed = CAMERA_SPEED * dt / self.zoom  # Plus on zoome, plus on bouge lentement
+        sensitivity = config_manager.get("camera_sensitivity", 1.0)
+        move_speed = CAMERA_SPEED * sensitivity * dt / self.zoom  # Plus on zoome, plus on bouge lentement
         
         # Déplacement avec les flèches uniquement (ne pas utiliser Z/Q/S/D)
         if keys[pygame.K_LEFT]:
