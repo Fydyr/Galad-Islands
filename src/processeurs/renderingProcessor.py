@@ -26,10 +26,8 @@ class RenderProcessor(esper.Processor):
                 display_height = sprite.height
                 screen_x, screen_y = pos.x, pos.y
             
-            # Scale the sprite to display size
-            scaled_image = pygame.transform.scale(image, (display_width, display_height))
-            # Then rotate the scaled image
-            rotated_image = pygame.transform.rotate(scaled_image, -pos.direction)
+            # Rotate the scaled image from the sprite
+            rotated_image = pygame.transform.rotate(sprite.surface, -pos.direction)
             
             # Get the rect and set its center to the screen position
             rect = rotated_image.get_rect(center=(screen_x, screen_y))
