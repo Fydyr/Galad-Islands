@@ -2,6 +2,7 @@ import esper
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.attackComponent import AttackComponent
+from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.teamComponent import TeamComponent 
 from src.components.properties.spriteComponent import SpriteComponent 
@@ -34,10 +35,14 @@ def create_projectile(entity):
         hitPoints=10
     ))
 
+    esper.add_component(bullet_entity, HealthComponent(
+        currentHealth=1
+    ))
+
     esper.add_component(bullet_entity, CanCollideComponent())
 
     esper.add_component(bullet_entity, SpriteComponent(
         "assets/sprites/projectile/explosion.png",
-        20, 
+        20,
         10
     ))
