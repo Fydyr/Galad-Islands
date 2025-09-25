@@ -9,6 +9,10 @@ from src.settings.controls import KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_PRE
 import pygame
 
 class PlayerControlProcessor(esper.Processor):
+
+    def __init__(self):
+        self.fire_event = False  # Initialisation de l'état de l'événement de tir
+
     def process(self):
         keys = pygame.key.get_pressed()
         for entity, selected in esper.get_component(PlayerSelectedComponent):
@@ -39,33 +43,9 @@ class PlayerControlProcessor(esper.Processor):
                     base = esper.component_for_entity(entity, BaseComponent)
                     base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
             if keys[getattr(pygame, f'K_{KEY_ATTACK}')]:
-                if (esper.has_component(entity, AttackComponent) and
-                    esper.has_component(entity, CanCollideComponent) and
-                    esper.has_component(entity, PositionComponent) and
-                    esper.has_component(entity, VelocityComponent)
-                    ):
-
-                    attack = esper.component_for_entity(entity, AttackComponent)
-                    canCollide = esper.component_for_entity(entity, CanCollideComponent)
-                    position = esper.component_for_entity(entity, PositionComponent)
-                    velocity = esper.component_for_entity(entity, VelocityComponent)
-
-                    bullet_entity = esper.create_entity()
-                    esper.add_component(bullet_entity, PositionComponent(
-                        x=position.x,
-                        y=position.y,
-                        direction=position.direction
-                    ))
-                    bullet_speed = 10.0 
-                    esper.add_component(bullet_entity, VelocityComponent(
-                        currentSpeed= bullet_speed,
-                        maxUpSpeed= bullet_speed,
-                        maxReverseSpeed=0.0,
-                    ))
-                    esper.add_component(bullet_entity, AttackComponent(
-                        hitPoints=attack.hitPoints
-                    ))
-                    esper.add_component(bullet_entity, CanCollideComponent())
+                # envoie un event sui s'appelle "attack_event" qui crée un projectile
+                esper.dispatch_event("attack_event", entity)
+                
                 
                 
 
