@@ -157,4 +157,4 @@ Détruisez la base ennemie tout en protégeant la vôtre!
 - **OS** : Windows/Linux/Mac
 
 ---
-_Bon vol et que les vents vous soient favorables!_
+*Bon vol et que les vents vous soient favorables!*
