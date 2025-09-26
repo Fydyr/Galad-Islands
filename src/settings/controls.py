@@ -3,6 +3,7 @@ KEY_UP = "z"
 KEY_DOWN = "s"
 KEY_LEFT = "q"
 KEY_RIGHT = "d"
+KEY_STOP = "LCRTL"  # Touche pour arrêter le mouvement
 
 KEY_PREV_TROOP = "&"      # Sélectionner la troupe précédente
 KEY_NEXT_TROOP = '"'      # Sélectionner la prochaine troupe

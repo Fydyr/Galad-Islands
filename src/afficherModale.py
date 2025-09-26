@@ -37,18 +37,71 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
         cache_key = (img_path, max_width)
         if cache_key in image_cache:
             return image_cache[cache_key]
-        try:
-            img = pygame.image.load(img_path)
+        
+        # Gestion améliorée des chemins d'images
+        original_path = img_path
+        
+        # Si le chemin commence par '/', le supprimer
+        if img_path.startswith('/'):
+            img_path = img_path[1:]
+        
+        # Si le chemin n'est pas absolu, essayer différentes combinaisons
+        if not os.path.isabs(img_path):
+            # Essayer d'abord le chemin relatif tel quel
+            possible_paths = [img_path]
+            
+            # Essayer en ajoutant 'assets/' au début si ce n'est pas déjà présent
+            if not img_path.startswith('assets/'):
+                possible_paths.append(os.path.join("assets", img_path))
+            
+            # Essayer le chemin depuis le répertoire parent (pour les projets avec structure src/)
+            possible_paths.append(os.path.join("..", img_path))
+            if not img_path.startswith('assets/'):
+                possible_paths.append(os.path.join("..", "assets", img_path))
+        else:
+            possible_paths = [img_path]
+        
+        # Essayer chaque chemin possible
+        img = None
+        working_path = None
+        for path in possible_paths:
+            try:
+                if os.path.exists(path):
+                    img = pygame.image.load(path)
+                    working_path = path
+                    break
+            except (pygame.error, OSError):
+                continue
+        
+        # Si aucun chemin ne fonctionne, créer une image de placeholder
+        if img is None:
+            print(f"Avertissement: Image introuvable pour tous les chemins testés: {possible_paths}")
+            # Créer une image placeholder avec du texte
+            placeholder_width = min(max_width, 200)
+            placeholder_height = 100
+            img = pygame.Surface((placeholder_width, placeholder_height))
+            img.fill((100, 100, 100))  # Gris
+            
+            # Ajouter du texte sur le placeholder
+            font = pygame.font.SysFont("Arial", 16)
+            text_lines = ["Image", "introuvable:", os.path.basename(original_path)]
+            y_offset = 10
+            for line in text_lines:
+                text_surface = font.render(line, True, WHITE)
+                text_rect = text_surface.get_rect(centerx=placeholder_width//2, y=y_offset)
+                img.blit(text_surface, text_rect)
+                y_offset += 20
+        else:
+            # Redimensionner si nécessaire
             if img.get_width() > max_width:
                 ratio = max_width / img.get_width()
                 img = pygame.transform.smoothscale(
                     img,
                     (int(img.get_width() * ratio), int(img.get_height() * ratio))
                 )
-            image_cache[cache_key] = img
-            return img
-        except pygame.error:
-            return None
+        
+        image_cache[cache_key] = img
+        return img
 
     def parse_markdown_line(line, modal_width):
         def get_responsive_font_size(base_size, modal_width):
@@ -66,15 +119,10 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
         img_match = re.match(r'!\[.*?\]\((.*?)\)', line)
         if img_match:
             img_path = img_match.group(1)
-            if not os.path.isabs(img_path):
-                img_path = os.path.join("assets", img_path)
             # Calculer la largeur max en fonction de la largeur du modal
             max_width = int(modal_width * 0.6)  # 60% de la largeur du modal
             img = load_image(img_path, max_width)
-            if img:
-                return ("image", img)
-            else:
-                return ("text", f"Image introuvable: {img_path}", {"bold": False, "italic": False, "size": get_responsive_font_size(28, modal_width), "color": WHITE})
+            return ("image", img)
         
         style = {"bold": False, "italic": False, "size": get_responsive_font_size(28, modal_width), "color": WHITE}
         if line.startswith("#### "):
@@ -188,8 +236,12 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
         return wrapped_elements, elements_height
 
     wrapped_elements, elements_height = prepare_content()
-    total_content_height = sum(elements_height) + 80
-    content_area_height = MODAL_CONFIG['height'] - 80
+    
+    # Calculer la hauteur totale en tenant compte des espaces header/footer
+    header_height = 40
+    footer_height = 60
+    total_content_height = sum(elements_height) + 2 * MODAL_CONFIG['padding']
+    content_area_height = MODAL_CONFIG['height'] - header_height - footer_height
     max_scroll = max(0, total_content_height - content_area_height)
 
     scroll = 0
@@ -198,7 +250,14 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
     dragging_scrollbar = False
 
     scrollbar_x = MODAL_CONFIG['width'] - MODAL_CONFIG['scrollbar_width'] - 5
-    scrollbar_track_rect = pygame.Rect(scrollbar_x, 20, MODAL_CONFIG['scrollbar_width'], content_area_height - 20)
+    header_height = 40
+    footer_height = 60
+    scrollbar_track_rect = pygame.Rect(
+        scrollbar_x, 
+        header_height, 
+        MODAL_CONFIG['scrollbar_width'], 
+        MODAL_CONFIG['height'] - header_height - footer_height
+    )
 
     def calculate_scrollbar_thumb():
         if max_scroll <= 0:
@@ -275,15 +334,22 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
             modal_surface = pygame.Surface((MODAL_CONFIG['width'], MODAL_CONFIG['height']), pygame.SRCALPHA)
             modal_rect = modal_surface.get_rect(center=(current_width//2, current_height//2))
             # Recalculer les éléments qui dépendent des dimensions
-            total_content_height = sum(elements_height) + 80
-            content_area_height = MODAL_CONFIG['height'] - 80
+            header_height = 40
+            footer_height = 60
+            total_content_height = sum(elements_height) + 2 * MODAL_CONFIG['padding']
+            content_area_height = MODAL_CONFIG['height'] - header_height - footer_height
             max_scroll = max(0, total_content_height - content_area_height)
             # Réajuster le scroll si nécessaire
             scroll = max(scroll, -max_scroll)
             scroll = min(scroll, 0)
             # Recalculer les positions de la scrollbar
             scrollbar_x = MODAL_CONFIG['width'] - MODAL_CONFIG['scrollbar_width'] - 5
-            scrollbar_track_rect = pygame.Rect(scrollbar_x, 20, MODAL_CONFIG['scrollbar_width'], content_area_height - 20)
+            scrollbar_track_rect = pygame.Rect(
+                scrollbar_x, 
+                header_height, 
+                MODAL_CONFIG['scrollbar_width'], 
+                MODAL_CONFIG['height'] - header_height - footer_height
+            )
             # Recalculer le bouton fermer
             btn_text_surface, btn_text_pos = update_close_button()
             # Mettre à jour le background si nécessaire
@@ -361,19 +427,33 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
             border_radius=12
         )
         
-        content_clip_rect = pygame.Rect(0, 0,
-                                    MODAL_CONFIG['width'] - MODAL_CONFIG['scrollbar_width'] - 10,
-                                    MODAL_CONFIG['height'] - 60)
+        # Définir une zone de clipping plus précise pour éviter le débordement
+        header_height = 40  # Espace pour le titre en haut
+        footer_height = 60  # Espace pour le bouton en bas
+        content_clip_rect = pygame.Rect(
+            0, header_height,
+            MODAL_CONFIG['width'] - MODAL_CONFIG['scrollbar_width'] - 10,
+            MODAL_CONFIG['height'] - header_height - footer_height
+        )
         modal_surface.set_clip(content_clip_rect)
-        y = MODAL_CONFIG['padding'] + scroll
+        
+        # Position Y de départ ajustée pour tenir compte du header
+        y = header_height + MODAL_CONFIG['padding'] + scroll
         
         for elem in wrapped_elements:
-            if y > MODAL_CONFIG['height'] or (elem[0] == "text" and y + elem[2]["size"] < 0):
-                if elem[0] == "text":
-                    y += elem[2]["size"] + 8
-                else:
-                    y += elem[1].get_height() + 10
+            # Vérifier si l'élément est complètement en dehors de la zone visible
+            elem_height = elem[2]["size"] + 8 if elem[0] == "text" else elem[1].get_height() + 10
+            
+            # Skip si complètement en dessous de la zone visible
+            if y > header_height + content_clip_rect.height:
+                y += elem_height
                 continue
+            
+            # Skip si complètement au dessus de la zone visible
+            if y + elem_height < header_height:
+                y += elem_height
+                continue
+            
             if elem[0] == "text":
                 _, text, style = elem
                 font = get_font(style["size"], style["bold"], style["italic"])

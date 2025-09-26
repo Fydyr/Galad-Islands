@@ -10,13 +10,14 @@ CONFIG_FILE = "galad_config.json"
 DEFAULT_CONFIG = {
     "screen_width": 1168,
     "screen_height": 629,
-    "window_mode": "windowed",  # "windowed", "fullscreen"
+    "window_mode": "fullscreen",  # "windowed", "fullscreen"
     "volume_master": 0.8,
     "volume_music": 0.5,
     "volume_effects": 0.7,
     "vsync": True,
     "show_fps": False,
-    "language": "fr"
+    "language": "fr",
+    "camera_sensitivity": 1.0
 }
 
 
@@ -94,6 +95,10 @@ class ConfigManager:
         if master is not None:
             self.config["volume_master"] = max(0.0, min(1.0, float(master)))
 
+    def set_camera_sensitivity(self, sensitivity: Optional[float] = None):
+        if sensitivity is not None:
+            self.config["camera_sensitivity"] = max(0.1, min(5.0, float(sensitivity)))
+
 
 # Instance globale compatible
 config_manager = ConfigManager()
@@ -129,8 +134,9 @@ def calculate_adaptive_tile_size():
     return adaptive_size
 
 TILE_SIZE = calculate_adaptive_tile_size()  # taille d'une case en pixels (adaptative)
-MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.01) # taux de mines (2% de la carte)
-GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.025) # taux d'îles génériques (10% de la carte)
+MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.02) # taux de mines (2% de la carte)
+GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03) # taux d'îles génériques (3% de la carte)
+CLOUD_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03) # taux de nuages (3% de la carte)
 
 # Paramètres de caméra
 CAMERA_SPEED = 200  # pixels par seconde
@@ -162,7 +168,7 @@ def get_screen_height():
 
 
 # --- Helpers supplémentaires exposés pour menu/options ---
-def get_all_resolutions():
+def get_all_resolutions(): # Ne sert plus à rien, peut être supprimé ?
     """Liste des résolutions prises en charge (width, height, description)."""
     return [
         (800, 600, "SVGA (800x600)"),
@@ -178,6 +184,16 @@ def get_all_resolutions():
 def set_window_mode(mode: str):
     """Met à jour le mode d'affichage et sauvegarde la config."""
     config_manager.set("window_mode", mode)
+    return config_manager.save_config()
+
+
+def set_camera_sensitivity(value: float):
+    """Met à jour la sensibilité de la caméra (persistant)."""
+    try:
+        value = float(value)
+    except (ValueError, TypeError):
+        value = 1.0
+    config_manager.set_camera_sensitivity(sensitivity=value)
     return config_manager.save_config()
 
 

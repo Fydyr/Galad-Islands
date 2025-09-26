@@ -6,6 +6,7 @@ import math
 from typing import Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
+from boutique import Shop
 
 # Couleurs de l'interface améliorées
 class UIColors:
@@ -138,56 +139,14 @@ class ActionBar:
         self.hovered_camp_button = False
         self.pressed_button = -1
         
-        # Configuration des unités
-        self.unit_configs = {
-            ActionType.CREATE_ZASPER: {
-                "name": "Zasper", "cost": 10, "hotkey": "1",
-                "icon": "assets/sprites/units/ally/Zasper.png",
-                "tooltip": "Unité de base polyvalente\nCoût: 10 or\nRaccourci: 1"
-            },
-            ActionType.CREATE_BARHAMUS: {
-                "name": "Barhamus", "cost": 20, "hotkey": "2",
-                "icon": "assets/sprites/units/ally/Barhamus.png",
-                "tooltip": "Guerrier résistant\nCoût: 20 or\nRaccourci: 2"
-            },
-            ActionType.CREATE_DRAUPNIR: {
-                "name": "Draupnir", "cost": 40, "hotkey": "3",
-                "icon": "assets/sprites/units/ally/Draupnir.png",
-                "tooltip": "Unité d'élite puissante\nCoût: 40 or\nRaccourci: 3"
-            },
-            ActionType.CREATE_DRUID: {
-                "name": "Druid", "cost": 30, "hotkey": "4",
-                "icon": "assets/sprites/units/ally/Druid.png",
-                "tooltip": "Soigneur et support\nCoût: 30 or\nRaccourci: 4"
-            },
-            ActionType.CREATE_ARCHITECT: {
-                "name": "Architect", "cost": 30, "hotkey": "5",
-                "icon": "assets/sprites/units/ally/Architect.png",
-                "tooltip": "Constructeur de défenses\nCoût: 30 or\nRaccourci: 5"
-            }
-        }
+        # Boutique intégrée
+        self.shop = Shop(screen_width, screen_height)
         
         self._initialize_buttons()
         self._load_icons()
         
     def _initialize_buttons(self):
         """Initialise les boutons de la barre d'action."""
-        # Boutons de création d'unités
-        for action_type in [ActionType.CREATE_ZASPER, ActionType.CREATE_BARHAMUS,
-                           ActionType.CREATE_DRAUPNIR, ActionType.CREATE_DRUID,
-                           ActionType.CREATE_ARCHITECT]:
-            config = self.unit_configs[action_type]
-            button = ActionButton(
-                action_type=action_type,
-                icon_path=config["icon"],
-                text=config["name"],
-                cost=config["cost"],
-                hotkey=config["hotkey"],
-                tooltip=config["tooltip"],
-                callback=self._create_unit_callback(action_type)
-            )
-            self.action_buttons.append(button)
-        
         # Boutons d'actions spéciales
         special_buttons = [
             ActionButton(
@@ -209,6 +168,15 @@ class ActionBar:
                 visible=False,
                 tooltip="Mode d'attaque\nRaccourci: A",
                 callback=self._toggle_attack_mode
+            ),
+            ActionButton(
+                action_type=ActionType.OPEN_SHOP,
+                icon_path="assets/sprites/ui/shop_icon.png",
+                text="Boutique",
+                cost=0,
+                hotkey="B",
+                tooltip="Ouvrir la boutique\nRaccourci: B",
+                callback=self._open_shop
             )
         ]
         
@@ -420,6 +388,10 @@ class ActionBar:
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Gère les événements pour la barre d'action."""
+        # La boutique a la priorité sur les événements
+        if self.shop.handle_event(event):
+            return True
+            
         if event.type == pygame.MOUSEMOTION:
             self._handle_mouse_motion(event.pos)
             return False
@@ -524,17 +496,23 @@ class ActionBar:
     def update_player_gold(self, gold: int):
         """Met à jour l'or du joueur."""
         self.player_gold = gold
+        # Synchroniser avec la boutique
+        self.shop.set_player_gold(gold)
         
         for button in self.action_buttons:
-            if button.action_type in self.unit_configs:
-                config = self.unit_configs[button.action_type]
-                button.enabled = self.player_gold >= config["cost"]
-            elif button.is_global:
+            if button.is_global:
                 button.enabled = self.player_gold >= button.cost
     
     def update(self, dt: float):
         """Met à jour la barre d'action."""
         self.button_glow_timer += dt
+        
+        # Mettre à jour la boutique
+        self.shop.update(dt)
+        
+        # Synchroniser l'or avec la boutique
+        if self.shop.player_gold != self.player_gold:
+            self.player_gold = self.shop.player_gold
         
         # Cooldown des capacités spéciales
         if self.selected_unit and self.selected_unit.special_cooldown > 0:
@@ -593,6 +571,9 @@ class ActionBar:
         # Tooltip
         if self.tooltip_text:
             self._draw_tooltip(surface)
+        
+        # Dessiner la boutique par-dessus tout
+        self.shop.draw(surface)
     
     def _draw_background(self, surface: pygame.Surface):
         """Dessine le fond avec dégradé."""
@@ -882,12 +863,12 @@ class ActionBar:
 
 # Exemple d'utilisation
 def main():
-    """Exemple d'utilisation de la barre d'action."""
+    """Exemple d'utilisation de la barre d'action avec boutique intégrée."""
     pygame.init()
     
     screen_width, screen_height = 1200, 800
     screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Galad Islands - Action Bar Demo")
+    pygame.display.set_caption("Galad Islands - Action Bar + Boutique Demo")
     
     clock = pygame.time.Clock()
     action_bar = ActionBar(screen_width, screen_height)
@@ -905,6 +886,9 @@ def main():
     )
     action_bar.select_unit(test_unit)
     
+    # Donner plus d'or pour tester la boutique
+    action_bar.update_player_gold(200)
+    
     running = True
     while running:
         dt = clock.tick(60) / 1000.0  # Delta time en secondes
@@ -912,6 +896,11 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    # Ajouter de l'or pour tester
+                    action_bar.update_player_gold(action_bar.player_gold + 50)
+                    print(f"Or ajouté! Total: {action_bar.player_gold}")
             
             # Laisser la barre d'action gérer l'événement
             action_bar.handle_event(event)
@@ -921,6 +910,23 @@ def main():
         
         # Rendu
         screen.fill((50, 50, 50))  # Fond gris foncé
+        
+        # Instructions à l'écran
+        font = pygame.font.Font(None, 24)
+        instructions = [
+            "Barre d'action avec boutique intégrée",
+            "Appuyez sur 'B' pour ouvrir/fermer la boutique",
+            "Appuyez sur 'ESPACE' pour ajouter 50 pièces d'or",
+            f"Or actuel: {action_bar.player_gold}",
+            "Q/E: Buffs globaux | R: Capacité spéciale | A: Mode attaque",
+            "Boutique: 3 onglets (Unités, Bâtiments, Améliorations)",
+            "Toutes les unités s'achètent maintenant dans la boutique!"
+        ]
+        
+        for i, instruction in enumerate(instructions):
+            text = font.render(instruction, True, (255, 255, 255))
+            screen.blit(text, (20, 20 + i * 25))
+        
         action_bar.draw(screen)
         
         pygame.display.flip()
