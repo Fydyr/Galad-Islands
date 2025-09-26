@@ -8,19 +8,6 @@ from src.components.properties.velocityComponent import VelocityComponent as Vel
 from src.components.properties.teamComponent import TeamComponent as Team
 
 class CollisionProcessor(esper.Processor):
-    def check_collision(self, pos1, size1, pos2, size2):
-        left1 = pos1.x
-        right1 = pos1.x + size1[0]
-        top1 = pos1.y
-        bottom1 = pos1.y + size1[1]
-
-        left2 = pos2.x
-        right2 = pos2.x + size2[0]
-        top2 = pos2.y
-        bottom2 = pos2.y + size2[1]
-
-        return not (right1 < left2 or right2 < left1 or bottom1 < top2 or bottom2 < top1)
-
     def process(self):
         entities = esper.get_components(Position, Sprite, CanCollide, Team)
         other_entities = entities.copy()
