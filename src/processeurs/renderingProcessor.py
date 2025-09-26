@@ -32,6 +32,6 @@ class RenderProcessor(esper.Processor):
             
             # Get the rect and set its center to the screen position
             rect = rotated_image.get_rect(center=(screen_x, screen_y))
-            pygame.draw.rect(self.screen, 5, rect, 2)
+            # pygame.draw.rect(self.screen, 5, rect, 2)
             # Blit using the rect's topleft to keep the rotation centered
             self.screen.blit(rotated_image, rect.topleft)
