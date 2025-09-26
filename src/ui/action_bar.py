@@ -6,7 +6,7 @@ import math
 from typing import Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
-from boutique import Shop
+from src.ui.boutique import Shop
 
 # Couleurs de l'interface améliorées
 class UIColors:
