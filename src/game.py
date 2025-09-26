@@ -85,7 +85,7 @@ def game(window=None, bg_original=None, select_sound=None):
     es.add_component(test_vessel, PlayerSelectedComponent(player))
     es.add_component(test_vessel, TeamComponent(1))
     es.add_component(test_vessel, AttackComponent(10))
-    es.add_component(test_vessel, HealthComponent(40))
+    es.add_component(test_vessel, HealthComponent(40, 40))
     es.add_component(test_vessel, CanCollideComponent())
 
 
@@ -94,7 +94,7 @@ def game(window=None, bg_original=None, select_sound=None):
     es.add_component(test_enemy, SpriteComponent("assets/sprites/units/enemy/Zasper.png", 80, 100))
     es.add_component(test_enemy, TeamComponent(2))
     es.add_component(test_enemy, AttackComponent(10))
-    es.add_component(test_enemy, HealthComponent(40))
+    es.add_component(test_enemy, HealthComponent(40, 40))
     es.add_component(test_enemy, CanCollideComponent())
 
     # Centrer la caméra sur le vaisseau au démarrage
