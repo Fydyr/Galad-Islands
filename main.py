@@ -10,8 +10,8 @@ import os
 from src.game import game
 import setup.install_commitizen_universal as install_cz # Assure que commitizen est installé avant d'importer quoi que ce soit d'autre
 import setup.setup_team_hooks as setup_hooks # Assure que les hooks sont installés avant d'importer quoi que ce soit d'autre
-from src.afficherModale import afficher_modale
-from src.options_window import show_options_window
+from src.functions.afficherModale import afficher_modale
+from src.functions.optionsWindow import show_options_window
 
 
 pygame.init()
@@ -408,6 +408,11 @@ def main_menu(win=None):
     # Variables pour tracker les changements de layout
     layout_dirty = False
     last_screen_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
+    
+    # Variables pour gérer le redimensionnement avec délai
+    resize_timer = 0.0
+    resize_delay = 0.3  # Attendre 300ms après le dernier resize avant de sauvegarder
+    pending_resize = None
 
     try:
         while running:
@@ -419,6 +424,19 @@ def main_menu(win=None):
             if tip_change_timer >= TIP_CHANGE_INTERVAL:
                 current_tip = random.choice(TIPS)
                 tip_change_timer = 0
+            
+            # Gérer le délai de sauvegarde de résolution
+            if pending_resize is not None:
+                resize_timer += dt
+                if resize_timer >= resize_delay:
+                    # Sauvegarder la résolution après le délai
+                    try:
+                        settings.apply_resolution(pending_resize[0], pending_resize[1])
+                        print(f"💾 Résolution sauvegardée: {pending_resize[0]}x{pending_resize[1]}")
+                    except Exception as e:
+                        print(f"⚠️ Impossible de sauvegarder la résolution: {e}")
+                    pending_resize = None
+                    resize_timer = 0.0
             
             # Synchroniser avec la config externe (fenêtre d'options)
             try:
@@ -432,6 +450,14 @@ def main_menu(win=None):
                     # Passer en fenêtré redimensionnable (avec bordures)
                     is_borderless = False
                     display_dirty = True
+                
+                # Détecter les changements de résolution depuis les options
+                current_settings_resolution = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
+                if not is_fullscreen and current_settings_resolution != (SCREEN_WIDTH, SCREEN_HEIGHT):
+                    # La résolution a changé dans les options, l'appliquer à la fenêtre
+                    SCREEN_WIDTH, SCREEN_HEIGHT = current_settings_resolution
+                    display_dirty = True
+                    print(f"🔄 Résolution détectée depuis options: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
             except Exception:
                 pass
             # Appliquer les changements d'affichage demandés de manière atomique
@@ -443,18 +469,21 @@ def main_menu(win=None):
                     SCREEN_HEIGHT = info.current_h
                     win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
                 else:
-                    # Récupérer la résolution actuelle depuis les settings (au cas où elle aurait changé)
-                    SCREEN_WIDTH = settings.SCREEN_WIDTH
-                    SCREEN_HEIGHT = settings.SCREEN_HEIGHT
-                    # Solution pour Windows : créer d'abord une fenêtre de taille minimale
-                    # puis la redimensionner pour forcer le gestionnaire de fenêtres à recalculer
-                    if sys.platform == "win32":
-                        # Créer une petite fenêtre temporaire
-                        pygame.display.set_mode((100, 100), pygame.RESIZABLE)
-                        # Puis immédiatement la redimensionner à la taille souhaitée
-                        win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
-                    else:
-                        win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                    # Utiliser les dimensions actuelles (peuvent avoir été mises à jour depuis les options)
+                    try:
+                        # Solution pour Windows : créer d'abord une fenêtre de taille minimale
+                        # puis la redimensionner pour forcer le gestionnaire de fenêtres à recalculer
+                        if sys.platform == "win32":
+                            # Créer une petite fenêtre temporaire
+                            pygame.display.set_mode((100, 100), pygame.RESIZABLE)
+                            # Puis immédiatement la redimensionner à la taille souhaitée
+                            win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                        else:
+                            win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                        
+                        print(f"🖼️ Fenêtre redimensionnée à: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+                    except Exception as e:
+                        print(f"⚠️ Erreur lors du redimensionnement de la fenêtre: {e}")
                 
                 # Marquer le layout comme nécessitant une mise à jour
                 layout_dirty = True
@@ -524,7 +553,13 @@ def main_menu(win=None):
                 if event.type == pygame.VIDEORESIZE:
                     if not is_fullscreen and not is_borderless:
                         SCREEN_WIDTH, SCREEN_HEIGHT = event.w, event.h
-                        pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                        # Ne pas recréer la surface à chaque resize pour éviter les conflits
+                        # pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+                        
+                        # Programmer la sauvegarde avec délai pour éviter les sauvegardes trop fréquentes
+                        pending_resize = (SCREEN_WIDTH, SCREEN_HEIGHT)
+                        resize_timer = 0.0  # Reset du timer
+                        
                         layout_dirty = True
                         for p in particles:
                             if p['x'] > SCREEN_WIDTH: p['x'] = SCREEN_WIDTH - 10

@@ -1,6 +1,11 @@
 import esper
+import numpy as np
+import pygame
 from src.components.properties.positionComponent import PositionComponent as Position
+from src.components.properties.spriteComponent import SpriteComponent as Sprite
 from src.components.properties.canCollideComponent import CanCollideComponent as CanCollide
+from src.components.properties.velocityComponent import VelocityComponent as Velocity
+from src.components.properties.teamComponent import TeamComponent as Team
 
 class CollisionProcessor(esper.Processor):
     def check_collision(self, pos1, size1, pos2, size2):
@@ -17,13 +22,23 @@ class CollisionProcessor(esper.Processor):
         return not (right1 < left2 or right2 < left1 or bottom1 < top2 or bottom2 < top1)
 
     def process(self):
-        entities = list(esper.get_components(Position, CanCollide))
-        n = len(entities)
-        for i in range(n):
-            ent1, (pos1, col1) = entities[i]
-            size1 = (getattr(col1, "width", 1.0), getattr(col1, "height", 1.0))
-            for j in range(i + 1, n):
-                ent2, (pos2, col2) = entities[j]
-                size2 = (getattr(col2, "width", 1.0), getattr(col2, "height", 1.0))
-                if self.check_collision(pos1, size1, pos2, size2):
-                    print(f"Collision détectée entre l'entité {ent1} et l'entité {ent2}")
+        entities = esper.get_components(Position, Sprite, CanCollide, Team)
+        other_entities = entities.copy()
+        already_hit: list = []
+        for ent, (pos, sprite, collide, team) in entities:
+            for other_ent, (other_pos, other_sprite, other_collide, other_team) in other_entities:
+                if (other_ent, ent) in already_hit or (ent, other_ent) in already_hit or ent == other_ent:
+                    continue
+
+                rect1 = sprite.surface.get_rect()
+                rect1.topleft = (pos.x - sprite.width/2, pos.y - sprite.height/2)
+                rect2 = other_sprite.surface.get_rect()
+                rect2.topleft = (other_pos.x - other_sprite.width/2, other_pos.y - other_sprite.height/2)
+                if rect1.colliderect(rect2):
+                    already_hit.append((ent, other_ent))
+                    already_hit.append((other_ent, ent))
+                    if team.team_id == other_team.team_id:
+                        continue
+
+                    else:
+                        esper.dispatch_event('entities_hit', ent, other_ent)
