@@ -5,7 +5,7 @@
 import random
 import pygame
 import sys
-import settings
+import src.settings.settings as settings
 import os
 from src.game import game
 import setup.install_commitizen_universal as install_cz # Assure que commitizen est installé avant d'importer quoi que ce soit d'autre
