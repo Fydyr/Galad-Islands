@@ -70,7 +70,7 @@ class Shop:
         
         # État de la boutique
         self.is_open = False
-        self.current_category = ShopCategory.UNITS
+        self.current_category = ShopCategory.UNITS  # Par défaut sur les unités
         self.selected_item: Optional[ShopItem] = None
         self.hovered_item_index = -1
         self.hovered_tab_index = -1
@@ -107,6 +107,7 @@ class Shop:
         
         # Icônes chargées
         self.icons: Dict[str, pygame.Surface] = {}
+        self.tab_icons: Dict[str, pygame.Surface] = {}  # Icônes pour les onglets
         
         # Animation et feedback
         self.purchase_feedback = ""
@@ -116,6 +117,7 @@ class Shop:
         # Initialisation
         self._initialize_items()
         self._load_icons()
+        self._load_tab_icons()  # Charger les icônes d'onglets
     
     def _initialize_items(self):
         """Initialise tous les items de la boutique."""
@@ -166,12 +168,18 @@ class Shop:
         for building_id, name, description, config in buildings_data:
             short_desc = f"Vie: {config.get('armure_max', 'N/A')} | Portée: {config.get('radius_action', 'N/A')}"
             
+            # Mapping correct des noms de fichiers
+            icon_mapping = {
+                "defense_tower": "ally-defence-tower.png",
+                "heal_tower": "ally-heal-tower.png"
+            }
+            
             item = ShopItem(
                 id=building_id,
                 name=name,
                 description=short_desc,
                 cost=config['cout_gold'],
-                icon_path=f"assets/sprites/buildings/ally/{building_id.replace('_', '-')}.png",
+                icon_path=f"assets/sprites/buildings/ally/{icon_mapping[building_id]}",
                 category=ShopCategory.BUILDINGS,
                 config_data=config,
                 purchase_callback=self._create_building_purchase_callback(building_id)
@@ -179,6 +187,8 @@ class Shop:
             self.shop_items[ShopCategory.BUILDINGS].append(item)
         
         # === AMÉLIORATIONS ===
+        # Temporairement désactivées - fonctionnalité en cours de développement
+        """
         upgrades_data = [
             ("attack_boost", "Boost d'Attaque", "Augmente l'attaque de toutes les unités pendant 30s", 50),
             ("defense_boost", "Boost de Défense", "Augmente la défense de toutes les unités pendant 30s", 50),
@@ -199,6 +209,7 @@ class Shop:
                 max_quantity=1 if upgrade_id != "gold_generator" else -1  # Certaines améliorations sont uniques
             )
             self.shop_items[ShopCategory.UPGRADES].append(item)
+        """
     
     def _load_icons(self):
         """Charge les icônes pour tous les items."""
@@ -215,6 +226,28 @@ class Shop:
                     print(f"Erreur lors du chargement de l'icône {item.icon_path}: {e}")
                     self.icons[item.id] = self._create_placeholder_icon(item.name, category)
     
+    def _load_tab_icons(self):
+        """Charge les icônes pour les onglets."""
+        tab_icon_paths = {
+            "units": "assets/image/TwemojiCrossedSwords.png",
+            "buildings": "assets/image/FluentEmojiFlatBuildingConstruction.png",  # ou une autre icône
+            "gold": "assets/image/StreamlineUltimateColorCryptoCurrencyBitcoinCircle.png"  # Icône de pièce d'or
+        }
+        
+        for tab_name, icon_path in tab_icon_paths.items():
+            try:
+                if os.path.exists(icon_path):
+                    icon = pygame.image.load(icon_path)
+                    icon = pygame.transform.scale(icon, (24, 24))  # Taille pour onglets
+                    self.tab_icons[tab_name] = icon
+                    print(f"Icône d'onglet chargée: {tab_name} depuis {icon_path}")
+                else:
+                    print(f"Fichier non trouvé: {icon_path}")
+                    self.tab_icons[tab_name] = None
+            except Exception as e:
+                print(f"Erreur lors du chargement de l'icône d'onglet {icon_path}: {e}")
+                self.tab_icons[tab_name] = None
+    
     def _create_placeholder_icon(self, name: str, category: ShopCategory) -> pygame.Surface:
         """Crée une icône de remplacement améliorée."""
         icon = pygame.Surface((64, 64), pygame.SRCALPHA)
@@ -223,11 +256,11 @@ class Shop:
         if category == ShopCategory.UNITS:
             color_base = (60, 140, 60)
             color_light = (80, 180, 80)
-            symbol = "⚔️"
+            symbol = "⚔"
         elif category == ShopCategory.BUILDINGS:
             color_base = (140, 60, 60)
             color_light = (180, 80, 80)
-            symbol = "🏗️"
+            symbol = "🏗"
         else:  # UPGRADES
             color_base = (60, 60, 140)
             color_light = (80, 80, 180)
@@ -246,8 +279,8 @@ class Shop:
         pygame.draw.circle(icon, UIColors.BORDER, (center, center), 32, 2)
         
         # Symbole ou texte centré
-        if symbol in ["⚔️", "🏗️", "⚡"]:
-            # Utiliser le symbole
+        if symbol in ["⚔", "🏗", "⚡"]:
+            # Utiliser le symbole emoji simple
             font = pygame.font.Font(None, 36)
             text_surface = font.render(symbol, True, UIColors.TEXT_HIGHLIGHT)
         else:
@@ -279,7 +312,9 @@ class Shop:
         return callback
     
     def _create_upgrade_purchase_callback(self, upgrade_id: str):
-        """Crée le callback d'achat pour une amélioration."""
+        """Crée le callback d'achat pour une amélioration (temporairement désactivé)."""
+        # Fonctionnalité en cours de développement
+        """
         def callback():
             print(f"Activation d'amélioration: {upgrade_id}")
             # Appliquer l'effet selon l'amélioration
@@ -290,6 +325,8 @@ class Shop:
                 self._show_purchase_feedback(f"Amélioration {upgrade_id} activée!", True)
             return True
         return callback
+        """
+        return None
     
     def _show_purchase_feedback(self, message: str, success: bool):
         """Affiche un feedback d'achat."""
@@ -339,9 +376,7 @@ class Shop:
             elif event.key == pygame.K_2:
                 self.current_category = ShopCategory.BUILDINGS
                 return True
-            elif event.key == pygame.K_3:
-                self.current_category = ShopCategory.UPGRADES
-                return True
+            # Raccourci K_3 supprimé (Upgrades désactivées)
         
         return True  # Consomme tous les événements quand la boutique est ouverte
     
@@ -386,7 +421,7 @@ class Shop:
         
         # Onglets
         tab_rects = self._get_tab_rects()
-        categories = list(ShopCategory)
+        categories = [ShopCategory.UNITS, ShopCategory.BUILDINGS]  # Seulement les catégories disponibles
         for i, rect in enumerate(tab_rects):
             if rect.collidepoint(mouse_pos):
                 self.current_category = categories[i]
@@ -415,7 +450,7 @@ class Shop:
         tab_x_start = self.shop_x + 20
         
         rects = []
-        for i in range(3):  # 3 catégories
+        for i in range(2):  # Seulement 2 catégories (Units et Buildings)
             x = tab_x_start + i * (tab_width + 10)
             rect = pygame.Rect(x, tab_y, tab_width, tab_height)
             rects.append(rect)
@@ -582,8 +617,8 @@ class Shop:
         # Sous-titre avec la catégorie actuelle
         category_names = {
             ShopCategory.UNITS: "Recrutement d'Unités",
-            ShopCategory.BUILDINGS: "Construction de Bâtiments", 
-            ShopCategory.UPGRADES: "Améliorations Temporaires"
+            ShopCategory.BUILDINGS: "Construction de Bâtiments"
+            # Améliorations temporairement désactivées
         }
         
         subtitle = category_names[self.current_category]
@@ -627,10 +662,12 @@ class Shop:
     def _draw_tabs(self, surface: pygame.Surface):
         """Dessine les onglets de catégories avec un style moderne."""
         tab_rects = self._get_tab_rects()
-        categories = list(ShopCategory)
-        tab_names = ["🎯 Unités", "🏗️ Bâtiments", "⚡ Améliorations"]
+        # Seulement les catégories disponibles (Units et Buildings)
+        categories = [ShopCategory.UNITS, ShopCategory.BUILDINGS]
+        tab_names = ["Unités", "Bâtiments"]  # Texte simple
+        tab_icon_keys = ["units", "buildings"]  # Clés pour les icônes
         
-        for i, (rect, category, name) in enumerate(zip(tab_rects, categories, tab_names)):
+        for i, (rect, category, name, icon_key) in enumerate(zip(tab_rects, categories, tab_names, tab_icon_keys)):
             is_active = category == self.current_category
             is_hovered = i == self.hovered_tab_index
             
@@ -663,17 +700,32 @@ class Shop:
                 indicator_rect = pygame.Rect(rect.x, rect.bottom - 4, rect.width, 4)
                 pygame.draw.rect(surface, UIColors.SELECTION, indicator_rect, border_radius=2)
             
-            # Texte de l'onglet avec ombre
+            # Icône et texte de l'onglet
             text_color = UIColors.TEXT_HIGHLIGHT if is_active else UIColors.TEXT_NORMAL
+            
+            # Dessiner l'icône si disponible
+            if icon_key in self.tab_icons and self.tab_icons[icon_key] is not None:
+                icon = self.tab_icons[icon_key]
+                # Position de l'icône à gauche du texte
+                icon_x = rect.x + 10
+                icon_y = rect.centery - icon.get_height() // 2
+                surface.blit(icon, (icon_x, icon_y))
+                
+                # Ajuster la position du texte pour laisser place à l'icône
+                text_x = icon_x + icon.get_width() + 8
+                text_center = (text_x + (rect.right - text_x) // 2, rect.centery)
+            else:
+                # Pas d'icône, centrer le texte normalement
+                text_center = rect.center
             
             # Ombre du texte
             shadow_surface = self.font_normal.render(name, True, (0, 0, 0))
-            shadow_rect = shadow_surface.get_rect(center=(rect.centerx + 1, rect.centery + 1))
+            shadow_rect = shadow_surface.get_rect(center=(text_center[0] + 1, text_center[1] + 1))
             surface.blit(shadow_surface, shadow_rect)
             
             # Texte principal
             tab_text = self.font_normal.render(name, True, text_color)
-            tab_text_rect = tab_text.get_rect(center=rect.center)
+            tab_text_rect = tab_text.get_rect(center=text_center)
             surface.blit(tab_text, tab_text_rect)
     
     def _draw_player_info(self, surface: pygame.Surface):
@@ -699,17 +751,32 @@ class Shop:
         pygame.draw.rect(surface, UIColors.GOLD, info_rect, 1, border_radius=8)
         
         # Icône et texte de l'or
-        gold_icon = "💰"
-        gold_text = f"{gold_icon} {self.player_gold} pièces d'or"
+        if "gold" in self.tab_icons and self.tab_icons["gold"] is not None:
+            # Utiliser l'icône personnalisée
+            gold_icon_surface = pygame.transform.scale(self.tab_icons["gold"], (20, 20))
+            icon_x = info_rect.x + 10
+            icon_y = info_rect.centery - 10
+            surface.blit(gold_icon_surface, (icon_x, icon_y))
+            
+            # Texte sans emoji
+            gold_text = f"{self.player_gold} pièces d'or"
+            text_x_offset = 35  # Décalage pour laisser place à l'icône
+        else:
+            # Fallback avec emoji
+            gold_text = f"💰 {self.player_gold} pièces d'or"
+            text_x_offset = 0
+        
+        # Position du texte ajustée
+        text_center_x = info_rect.centerx + text_x_offset // 2
         
         # Ombre du texte
         shadow_surface = self.font_subtitle.render(gold_text, True, (0, 0, 0))
-        shadow_rect = shadow_surface.get_rect(center=(info_rect.centerx + 1, info_rect.centery + 1))
+        shadow_rect = shadow_surface.get_rect(center=(text_center_x + 1, info_rect.centery + 1))
         surface.blit(shadow_surface, shadow_rect)
         
         # Texte principal
         gold_surface = self.font_subtitle.render(gold_text, True, UIColors.GOLD)
-        gold_rect = gold_surface.get_rect(center=info_rect.center)
+        gold_rect = gold_surface.get_rect(center=(text_center_x, info_rect.centery))
         surface.blit(gold_surface, gold_rect)
     
     def _draw_items(self, surface: pygame.Surface):
@@ -793,13 +860,26 @@ class Shop:
         
         # Prix avec style
         cost_color = UIColors.GOLD if can_purchase else UIColors.TEXT_DISABLED
-        cost_text = f"💰 {item.cost}"
+        
+        # Dessiner l'icône de pièce si disponible
+        if "gold" in self.tab_icons and self.tab_icons["gold"] is not None:
+            # Icône personnalisée pour le coût
+            gold_icon_small = pygame.transform.scale(self.tab_icons["gold"], (16, 16))
+            surface.blit(gold_icon_small, (text_x, rect.y + 28))
+            
+            # Texte du coût sans emoji
+            cost_text = str(item.cost)
+            cost_x = text_x + 20  # Décalage pour l'icône
+        else:
+            # Fallback avec emoji
+            cost_text = f"💰 {item.cost}"
+            cost_x = text_x
         
         cost_shadow = self.font_small.render(cost_text, True, (0, 0, 0))
-        surface.blit(cost_shadow, (text_x + 1, rect.y + 31))
+        surface.blit(cost_shadow, (cost_x + 1, rect.y + 31))
         
         cost_surface = self.font_small.render(cost_text, True, cost_color)
-        surface.blit(cost_surface, (text_x, rect.y + 30))
+        surface.blit(cost_surface, (cost_x, rect.y + 30))
         
         # Description sur plusieurs lignes si nécessaire
         desc_color = UIColors.TEXT_NORMAL if can_purchase else UIColors.TEXT_DISABLED
