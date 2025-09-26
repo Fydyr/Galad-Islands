@@ -71,3 +71,6 @@ galad_config.json
 .github/instructions/
 technicalGameDesign.md
 GameDesign.md
+
+# documentation hook
+HOOKS_UNIVERSAL.md
