@@ -2,14 +2,15 @@ import esper
 from math import cos, sin, radians
 from src.components.properties.velocityComponent import VelocityComponent as Velocity
 from src.components.properties.positionComponent import PositionComponent as Position
+from src.components.properties.projectileComponent import ProjectileComponent
 from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 
 class MovementProcessor(esper.Processor):
     """
     Processeur de mouvement avec contraintes de limites de carte.
     
-    Applique les mouvements aux entités et s'assure qu'elles
-    restent dans les limites définies de la carte de jeu.
+    - Les troupes sont bloquées aux limites de la carte
+    - Les projectiles sont supprimés quand ils atteignent les limites
     """
 
     def __init__(self):
@@ -28,16 +29,43 @@ class MovementProcessor(esper.Processor):
                 new_x = pos.x - vel.currentSpeed * cos(radians(pos.direction))
                 new_y = pos.y - vel.currentSpeed * sin(radians(pos.direction))
                 
-                # Application des contraintes de limites
-                constrained_x, constrained_y = self._constrain_position(new_x, new_y)
+                # Vérifier si c'est un projectile
+                is_projectile = esper.has_component(ent, ProjectileComponent)
                 
-                # Si la position a été contrainte, arrêter le mouvement
-                if constrained_x != new_x or constrained_y != new_y:
-                    vel.currentSpeed = 0.0
-                
-                # Appliquer la position contrainte
-                pos.x = constrained_x
-                pos.y = constrained_y
+                if is_projectile:
+                    # Pour les projectiles : vérifier si ils sortent des limites et les supprimer
+                    if self._is_out_of_bounds(new_x, new_y):
+                        esper.delete_entity(ent)
+                        continue
+                    else:
+                        # Projectile encore dans les limites, appliquer le mouvement
+                        pos.x = new_x
+                        pos.y = new_y
+                else:
+                    # Pour les troupes : contraindre la position et arrêter si nécessaire
+                    constrained_x, constrained_y = self._constrain_position(new_x, new_y)
+                    
+                    # Si la position a été contrainte, arrêter le mouvement
+                    if constrained_x != new_x or constrained_y != new_y:
+                        vel.currentSpeed = 0.0
+                    
+                    # Appliquer la position contrainte
+                    pos.x = constrained_x
+                    pos.y = constrained_y
+
+    def _is_out_of_bounds(self, x: float, y: float) -> bool:
+        """
+        Vérifie si une position est en dehors des limites de la carte.
+        
+        Args:
+            x (float): Position X à vérifier
+            y (float): Position Y à vérifier
+            
+        Returns:
+            bool: True si la position est hors limites
+        """
+        return (x < 0 or x > self.world_width or 
+                y < 0 or y > self.world_height)
 
     def _constrain_position(self, x: float, y: float) -> tuple[float, float]:
         """
