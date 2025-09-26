@@ -11,7 +11,7 @@ from src.game import game
 import setup.install_commitizen_universal as install_cz # Assure que commitizen est installé avant d'importer quoi que ce soit d'autre
 import setup.setup_team_hooks as setup_hooks # Assure que les hooks sont installés avant d'importer quoi que ce soit d'autre
 from src.functions.afficherModale import afficher_modale
-from src.functions.options_window import show_options_window
+from src.functions.optionsWindow import show_options_window
 
 
 pygame.init()
