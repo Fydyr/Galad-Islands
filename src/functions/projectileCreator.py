@@ -7,6 +7,7 @@ from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.teamComponent import TeamComponent 
 from src.components.properties.spriteComponent import SpriteComponent 
+from src.components.properties.projectileComponent import ProjectileComponent
 
 def create_projectile(entity):
     pos = esper.component_for_entity(entity, PositionComponent)
@@ -57,3 +58,6 @@ def create_projectile(entity):
             20,
             10
         ))
+    
+    # Identifier cette entité comme un projectile
+    esper.add_component(bullet_entity, ProjectileComponent("bullet"))
