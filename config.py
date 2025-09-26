@@ -323,7 +323,8 @@ class ConfigControles:
     
     # Interface
     TOUCHE_PAUSE = pygame.K_ESCAPE
-    TOUCHE_DEBUG = pygame.K_F1
+    TOUCHE_DEBUG = pygame.K_F3
+    TOUCHE_HELP = pygame.K_F1
     TOUCHE_PLEIN_ECRAN = pygame.K_F11
     
     # Caméra
