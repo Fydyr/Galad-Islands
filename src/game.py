@@ -139,15 +139,19 @@ def game(window=None, bg_original=None, select_sound=None):
         action_bar.update(dt)
 
         # Mettre à jour l'affichage et la logique ECS
-        update_screen(window, grid, images, camera)
+        update_screen(window, grid, images, camera, show_debug, dt, action_bar)
         es.process()
         pygame.display.flip()
 
-def update_screen(window, grid, images, camera, show_debug, dt):
+def update_screen(window, grid, images, camera, show_debug, dt, action_bar=None):
     # Effacer l'écran (évite les artefacts lors du redimensionnement / zoom)
     window.fill((0, 50, 100))
     # Délègue l'affichage de la grille en fournissant la caméra
     game_map.afficher_grille(window, grid, images, camera)
+
+    # Dessiner la barre d'action si elle est fournie
+    if action_bar:
+        action_bar.draw(window)
 
     if show_debug:
         font = pygame.font.Font(None, 36)

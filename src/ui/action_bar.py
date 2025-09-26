@@ -60,6 +60,7 @@ class ActionType(Enum):
     GLOBAL_ATTACK = "global_attack"
     GLOBAL_DEFENSE = "global_defense"
     SWITCH_CAMP = "switch_camp"
+    OPEN_SHOP = "open_shop"
 
 @dataclass
 class ActionButton:
@@ -141,6 +142,15 @@ class ActionBar:
         
         # Boutique intégrée
         self.shop = Shop(screen_width, screen_height)
+        
+        # Configurations des unités (placeholder)
+        self.unit_configs = {
+            ActionType.CREATE_ZASPER: {'name': 'Zasper', 'cost': 10},
+            ActionType.CREATE_BARHAMUS: {'name': 'Barhamus', 'cost': 20},
+            ActionType.CREATE_DRAUPNIR: {'name': 'Draupnir', 'cost': 40},
+            ActionType.CREATE_DRUID: {'name': 'Druid', 'cost': 30},
+            ActionType.CREATE_ARCHITECT: {'name': 'Architect', 'cost': 30},
+        }
         
         self._initialize_buttons()
         self._load_icons()
@@ -377,6 +387,10 @@ class ActionBar:
                 self._show_feedback("warning", f"Capacité en cooldown: {self.selected_unit.special_cooldown:.1f}s")
         else:
             self._show_feedback("warning", "Aucune unité sélectionnée!")
+    
+    def _open_shop(self):
+        """Ouvre ou ferme la boutique."""
+        self.shop.toggle()
     
     def _toggle_attack_mode(self):
         """Bascule le mode d'attaque (placeholder)."""
