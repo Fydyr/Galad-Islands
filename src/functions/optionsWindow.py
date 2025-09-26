@@ -3,7 +3,7 @@
 # Il n'est pas un fichier 'md' car il a besoin d'interactions contrairement aux autres.
 
 import pygame
-import settings
+import src.settings.settings as settings
 import math
 
 # Couleurs

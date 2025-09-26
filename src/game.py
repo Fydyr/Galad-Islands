@@ -1,9 +1,9 @@
 # Importations
 import pygame
-import settings
+import src.settings.settings as settings
 import esper as es
 import src.components.mapComponent as game_map
-from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE
+from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE
 from src.processeurs import movementProcessor, collisionProcessor, renderingProcessor, playerControlProcessor
 from src.functions.projectileCreator import create_projectile
 from src.functions.handleHealth import entitiesHit
