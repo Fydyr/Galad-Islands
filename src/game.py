@@ -5,8 +5,8 @@ import esper as es
 import src.components.mapComponent as game_map
 from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE
 from src.processeurs import movementProcessor, collisionProcessor, renderingProcessor, playerControlProcessor
-from src.fonctions.projectileCreator import create_projectile
-from src.fonctions.handleHealth import entitiesHit
+from src.functions.projectileCreator import create_projectile
+from src.functions.handleHealth import entitiesHit
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.spriteComponent import SpriteComponent
@@ -17,7 +17,7 @@ from src.components.properties.radiusComponent import RadiusComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.canCollideComponent import CanCollideComponent
-from src.afficherModale import afficher_modale
+from src.functions.afficherModale import afficher_modale
 import os
 
 def game(window=None, bg_original=None, select_sound=None):
