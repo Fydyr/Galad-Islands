@@ -8,4 +8,5 @@ KEY_STOP = "LCRTL"  # Touche pour arrêter le mouvement
 KEY_PREV_TROOP = "&"      # Sélectionner la troupe précédente
 KEY_NEXT_TROOP = '"'      # Sélectionner la prochaine troupe
 KEY_ATTACK = "a"     # Activer le mode attaque
+KEY_ATTACK_MODE = "TAB"  # Basculer entre les modes d'attaque
 KEY_SPECIAL_ABILITY = "e" # Activer la capacité spéciale

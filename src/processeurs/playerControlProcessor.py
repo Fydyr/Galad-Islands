@@ -6,7 +6,7 @@ from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.baseComponent import BaseComponent 
 from src.components.properties.radiusComponent import RadiusComponent 
-from src.settings.controls import KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_STOP, KEY_PREV_TROOP, KEY_NEXT_TROOP, KEY_ATTACK, KEY_SPECIAL_ABILITY
+from src.settings.controls import KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_STOP, KEY_PREV_TROOP, KEY_NEXT_TROOP, KEY_ATTACK, KEY_SPECIAL_ABILITY, KEY_ATTACK_MODE
 import pygame
 
 class PlayerControlProcessor(esper.Processor):
@@ -68,6 +68,13 @@ class PlayerControlProcessor(esper.Processor):
                 if keys[getattr(pygame, f'K_{KEY_ATTACK}')]:
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
+            # Changement du mode d'attaque avec Tab
+            if keys[pygame.K_TAB]:
+                if esper.has_component(entity, RadiusComponent):
+                    radius = esper.component_for_entity(entity, RadiusComponent)
+                    radius.can_shoot_from_side = not radius.can_shoot_from_side
+    
+
 
                 
 
