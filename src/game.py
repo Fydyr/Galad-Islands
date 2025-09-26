@@ -19,7 +19,8 @@ from src.components.properties.healthComponent import HealthComponent
 from src.ui.action_bar import ActionBar
 from src.components.properties.canCollideComponent import CanCollideComponent
 from src.functions.afficherModale import afficher_modale
-import os
+from src.factory.unitFactory import UnitFactory
+from src.factory.unitType import UnitType
 
 def game(window=None, bg_original=None, select_sound=None):
     """Gère la logique entre le menu et le jeu.
@@ -77,29 +78,24 @@ def game(window=None, bg_original=None, select_sound=None):
     center_x = (MAP_WIDTH * TILE_SIZE) // 2
     center_y = (MAP_HEIGHT * TILE_SIZE) // 2
     test_vessel = es.create_entity()
+    
     es.add_component(test_vessel, PositionComponent(center_x, center_y, 180))
-    es.add_component(test_vessel, VelocityComponent(0, 1, -0.2))
-
-    es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Zasper.png", 80, 100))
-    es.add_component(test_vessel, RadiusComponent(bullet_cooldown=4))
-
-    # es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Draupnir.png", 160, 200))
-    # es.add_component(test_vessel, RadiusComponent(bullet_cooldown=10))
-
+    es.add_component(test_vessel, VelocityComponent(0, 5, -1))
+    es.add_component(test_vessel, RadiusComponent(bullet_cooldown=2))
     es.add_component(test_vessel, PlayerSelectedComponent(player))
     es.add_component(test_vessel, TeamComponent(1))
     es.add_component(test_vessel, AttackComponent(10))
-    es.add_component(test_vessel, HealthComponent(40, 40))
+    es.add_component(test_vessel, HealthComponent(60, 60))
     es.add_component(test_vessel, CanCollideComponent())
+    es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Scout.png", 80, 100))
 
 
-    test_enemy = es.create_entity()
-    es.add_component(test_enemy, PositionComponent(center_x + 200, center_y, 45))
-    es.add_component(test_enemy, SpriteComponent("assets/sprites/units/enemy/Zasper.png", 80, 100))
-    es.add_component(test_enemy, TeamComponent(2))
-    es.add_component(test_enemy, AttackComponent(10))
-    es.add_component(test_enemy, HealthComponent(40, 40))
-    es.add_component(test_enemy, CanCollideComponent())
+    UnitFactory(UnitType.SCOUT, True, PositionComponent(center_x + 150, center_y-150))
+    UnitFactory(UnitType.MARAUDEUR, True, PositionComponent(center_x + 150, center_y))
+    UnitFactory(UnitType.LEVIATHAN, True, PositionComponent(center_x + 150, center_y+200))
+    UnitFactory(UnitType.DRUID, True, PositionComponent(center_x + 150, center_y+400))
+    UnitFactory(UnitType.ARCHITECT, True, PositionComponent(center_x + 150, center_y+500))
+
 
     # Centrer la caméra sur le vaisseau au démarrage
     camera.x = center_x - camera.screen_width / (2 * camera.zoom)
