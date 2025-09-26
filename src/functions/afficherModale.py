@@ -4,6 +4,7 @@ import re
 import os
 import pygame
 import sys
+from PIL import Image
 
 # Constantes de couleurs
 WHITE = (255, 255, 255)
@@ -12,9 +13,70 @@ GRAY = (128, 128, 128)
 DARK_GRAY = (64, 64, 64)
 LIGHT_GRAY = (192, 192, 192)
 
+class GifAnimation:
+    """Classe pour gérer les GIF animés"""
+    def __init__(self, path, max_width=620):
+        self.frames = []
+        self.durations = []
+        self.current_frame = 0
+        self.last_update = pygame.time.get_ticks()
+        
+        try:
+            gif = Image.open(path)
+            for frame_index in range(gif.n_frames):
+                gif.seek(frame_index)
+                # Convertir en RGBA
+                frame = gif.convert('RGBA')
+                
+                # Redimensionner si nécessaire
+                if frame.width > max_width:
+                    ratio = max_width / frame.width
+                    new_size = (int(frame.width * ratio), int(frame.height * ratio))
+                    frame = frame.resize(new_size, Image.Resampling.LANCZOS)
+                
+                # Convertir en surface pygame
+                mode = frame.mode
+                size = frame.size
+                data = frame.tobytes()
+                pygame_surface = pygame.image.fromstring(data, size, mode)
+                
+                self.frames.append(pygame_surface)
+                # Durée en millisecondes (par défaut 100ms si non spécifié)
+                duration = gif.info.get('duration', 100)
+                self.durations.append(duration)
+        except Exception as e:
+            print(f"Erreur lors du chargement du GIF: {e}")
+            # Créer un frame d'erreur
+            error_surface = pygame.Surface((200, 100))
+            error_surface.fill((100, 100, 100))
+            font = pygame.font.SysFont("Arial", 16)
+            text = font.render("Erreur GIF", True, WHITE)
+            error_surface.blit(text, (50, 40))
+            self.frames = [error_surface]
+            self.durations = [1000]
+    
+    def get_current_frame(self):
+        """Retourne la frame actuelle et met à jour l'animation"""
+        if len(self.frames) == 1:
+            return self.frames[0]
+        
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_update >= self.durations[self.current_frame]:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.last_update = current_time
+        
+        return self.frames[self.current_frame]
+    
+    def get_size(self):
+        """Retourne la taille de l'animation"""
+        if self.frames:
+            return self.frames[0].get_size()
+        return (0, 0)
+
 def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
     """
     Affiche une fenêtre modale avec le contenu d'un fichier Markdown.
+    Supporte les images statiques (PNG, JPG) et les GIF animés.
     
     Args:
         titre (str): Le titre de la modale
@@ -23,9 +85,25 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
         select_sound (pygame.mixer.Sound, optional): Le son de sélection
     """
     
-    # Cache pour les images et polices
-    image_cache = {}
+    # Initialisation de l'écran
+    screen = pygame.display.get_surface()
+    if screen is None:
+        info = pygame.display.Info()
+        WIDTH, HEIGHT = info.current_w, info.current_h
+    else:
+        WIDTH, HEIGHT = screen.get_size()
+    
+    # Configuration du modal (responsive)
+    modal_width = max(400, min(1000, int(WIDTH * 0.7)))
+    modal_height = max(300, min(700, int(HEIGHT * 0.8)))
+    margin = 20
+    padding = 15
+    scroll_speed = 30
+    
+    # Cache pour les ressources
     font_cache = {}
+    image_cache = {}
+    gif_animations = []  # Liste des animations GIF actives
 
     def get_font(size, bold=False, italic=False):
         key = (size, bold, italic)
@@ -33,458 +111,316 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
             font_cache[key] = pygame.font.SysFont("Arial", size, bold=bold, italic=italic)
         return font_cache[key]
 
-    def load_image(img_path, max_width=620):
+    def load_media(img_path, max_width=620):
+        """Charge une image statique ou un GIF animé"""
         cache_key = (img_path, max_width)
         if cache_key in image_cache:
             return image_cache[cache_key]
         
-        # Gestion améliorée des chemins d'images
-        original_path = img_path
-        
-        # Si le chemin commence par '/', le supprimer
+        # Chercher le fichier
         if img_path.startswith('/'):
             img_path = img_path[1:]
         
-        # Si le chemin n'est pas absolu, essayer différentes combinaisons
-        if not os.path.isabs(img_path):
-            # Essayer d'abord le chemin relatif tel quel
-            possible_paths = [img_path]
-            
-            # Essayer en ajoutant 'assets/' au début si ce n'est pas déjà présent
-            if not img_path.startswith('assets/'):
-                possible_paths.append(os.path.join("assets", img_path))
-            
-            # Essayer le chemin depuis le répertoire parent (pour les projets avec structure src/)
-            possible_paths.append(os.path.join("..", img_path))
-            if not img_path.startswith('assets/'):
-                possible_paths.append(os.path.join("..", "assets", img_path))
-        else:
-            possible_paths = [img_path]
+        possible_paths = [
+            img_path,
+            os.path.join("assets", img_path),
+            os.path.join("..", img_path),
+            os.path.join("..", "assets", img_path)
+        ]
         
-        # Essayer chaque chemin possible
-        img = None
         working_path = None
         for path in possible_paths:
-            try:
-                if os.path.exists(path):
-                    img = pygame.image.load(path)
-                    working_path = path
-                    break
-            except (pygame.error, OSError):
-                continue
+            if os.path.exists(path):
+                working_path = path
+                break
         
-        # Si aucun chemin ne fonctionne, créer une image de placeholder
-        if img is None:
-            print(f"Avertissement: Image introuvable pour tous les chemins testés: {possible_paths}")
-            # Créer une image placeholder avec du texte
-            placeholder_width = min(max_width, 200)
-            placeholder_height = 100
-            img = pygame.Surface((placeholder_width, placeholder_height))
-            img.fill((100, 100, 100))  # Gris
-            
-            # Ajouter du texte sur le placeholder
-            font = pygame.font.SysFont("Arial", 16)
-            text_lines = ["Image", "introuvable:", os.path.basename(original_path)]
-            y_offset = 10
-            for line in text_lines:
-                text_surface = font.render(line, True, WHITE)
-                text_rect = text_surface.get_rect(centerx=placeholder_width//2, y=y_offset)
-                img.blit(text_surface, text_rect)
-                y_offset += 20
+        if working_path is None:
+            # Image placeholder
+            placeholder = pygame.Surface((200, 100))
+            placeholder.fill((100, 100, 100))
+            font = get_font(14)
+            text = font.render("Image introuvable", True, WHITE)
+            placeholder.blit(text, (20, 40))
+            image_cache[cache_key] = ("static", placeholder)
+            return image_cache[cache_key]
+        
+        # Vérifier si c'est un GIF
+        if working_path.lower().endswith('.gif'):
+            gif_anim = GifAnimation(working_path, max_width)
+            gif_animations.append(gif_anim)
+            image_cache[cache_key] = ("gif", gif_anim)
+            return image_cache[cache_key]
         else:
-            # Redimensionner si nécessaire
-            if img.get_width() > max_width:
-                ratio = max_width / img.get_width()
-                img = pygame.transform.smoothscale(
-                    img,
-                    (int(img.get_width() * ratio), int(img.get_height() * ratio))
-                )
-        
-        image_cache[cache_key] = img
-        return img
+            # Image statique
+            try:
+                img = pygame.image.load(working_path)
+                if img.get_width() > max_width:
+                    ratio = max_width / img.get_width()
+                    img = pygame.transform.smoothscale(
+                        img,
+                        (int(img.get_width() * ratio), int(img.get_height() * ratio))
+                    )
+                image_cache[cache_key] = ("static", img)
+                return image_cache[cache_key]
+            except Exception as e:
+                print(f"Erreur chargement image: {e}")
+                placeholder = pygame.Surface((200, 100))
+                placeholder.fill((100, 100, 100))
+                image_cache[cache_key] = ("static", placeholder)
+                return image_cache[cache_key]
 
-    def parse_markdown_line(line, modal_width):
-        def get_responsive_font_size(base_size, modal_width):
-            """
-            Calcule une taille de police responsive basée sur la largeur du modal
-            La taille de référence est pour un modal de 720px de large
-            """
-            reference_width = 720
-            scale_factor = modal_width / reference_width
-            # Limite le facteur entre 0.7 et 1.5 pour éviter des tailles extrêmes
-            scale_factor = max(0.7, min(1.5, scale_factor))
-            return int(base_size * scale_factor)
+    def parse_markdown(lines):
+        """Parse le markdown et retourne une liste d'éléments"""
+        elements = []
+        max_content_width = modal_width - 100
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
             
-        line = line.strip()
-        img_match = re.match(r'!\[.*?\]\((.*?)\)', line)
-        if img_match:
-            img_path = img_match.group(1)
-            # Calculer la largeur max en fonction de la largeur du modal
-            max_width = int(modal_width * 0.6)  # 60% de la largeur du modal
-            img = load_image(img_path, max_width)
-            return ("image", img)
+            # Images
+            img_match = re.match(r'!\[.*?\]\((.*?)\)', line)
+            if img_match:
+                img_path = img_match.group(1)
+                media_type, media = load_media(img_path, int(modal_width * 0.6))
+                elements.append(("media", media_type, media))
+                continue
+            
+            # Variables pour le style par défaut des titres
+            default_bold = False
+            default_italic = False
+            text = line
+            
+            # Titres
+            if line.startswith("#### "):
+                text = line[5:]
+                default_bold = True
+                color = (200, 200, 150)
+                size = 22
+            elif line.startswith("### "):
+                text = line[4:]
+                default_bold = True
+                color = GOLD
+                size = 26
+            elif line.startswith("## "):
+                text = line[3:]
+                default_bold = False
+                color = GOLD
+                size = 30
+            elif line.startswith("# "):
+                text = line[2:]
+                default_bold = True
+                color = GOLD
+                size = 36
+            else:
+                default_bold = False
+                color = WHITE
+                size = 20
+            
+            # Détecter si le texte contient du formatage
+            has_bold = "**" in text
+            has_italic = re.search(r'(?<!\*)\*(?!\*).*?(?<!\*)\*(?!\*)', text) is not None
+            
+            # Retirer les marqueurs de formatage
+            # D'abord le gras (**texte**)
+            text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+            # Ensuite l'italique (*texte* mais pas **)
+            text = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'\1', text)
+            
+            # Déterminer le style final
+            is_bold = has_bold or default_bold
+            is_italic = has_italic or default_italic
+            
+            elements.append(("text", text, size, is_bold, is_italic, color))
         
-        style = {"bold": False, "italic": False, "size": get_responsive_font_size(28, modal_width), "color": WHITE}
-        if line.startswith("#### "):
-            style.update({"size": get_responsive_font_size(24, modal_width), "color": (200, 200, 150), "bold": True})
-            line = line[5:]
-        elif line.startswith("### "):
-            style.update({"size": get_responsive_font_size(28, modal_width), "color": GOLD, "bold": True})
-            line = line[4:]
-        elif line.startswith("## "):
-            style.update({"size": get_responsive_font_size(32, modal_width), "color": GOLD})
-            line = line[3:]
-        elif line.startswith("# "):
-            style.update({"size": get_responsive_font_size(40, modal_width), "color": GOLD, "bold": True})
-            line = line[2:]
-        
-        if "**" in line:
-            line = re.sub(r"\*\*(.*?)\*\*", r"\1", line)
-            style["bold"] = True
-        if "_" in line:
-            line = re.sub(r"_(.*?)_", r"\1", line)
-            style["italic"] = True
-        
-        return ("text", line, style)
+        return elements
 
-    def get_modal_config(screen_width, screen_height):
-        """
-        Calcule la configuration du modal en fonction de la taille de l'écran
-        Utilise des pourcentages pour une interface responsive
-        """
-        # Le modal fait 70% de la largeur et 80% de la hauteur de l'écran
-        # avec des contraintes min/max pour éviter les cas extrêmes
-        modal_width = max(400, min(1000, int(screen_width * 0.7)))
-        modal_height = max(300, min(700, int(screen_height * 0.8)))
+    def wrap_elements(elements):
+        """Enveloppe le texte et calcule les hauteurs"""
+        wrapped = []
+        heights = []
         
-        # Scrollbar proportionnelle mais avec une taille minimale utilisable
-        scrollbar_width = max(15, int(modal_width * 0.03))
+        for elem in elements:
+            if elem[0] == "text":
+                _, text, size, bold, italic, color = elem
+                font = get_font(size, bold, italic)
+                
+                # Calculer la largeur disponible
+                char_width = font.size("A")[0]
+                wrap_width = (modal_width - 100) // char_width
+                
+                # Envelopper le texte
+                lines = textwrap.wrap(text, width=wrap_width) if text else [""]
+                for line in lines:
+                    wrapped.append(("text", line, size, bold, italic, color))
+                    heights.append(size + 8)
+            
+            elif elem[0] == "media":
+                media_type, media = elem[1], elem[2]
+                wrapped.append(("media", media_type, media))
+                if media_type == "gif":
+                    heights.append(media.get_size()[1] + 10)
+                else:
+                    heights.append(media.get_height() + 10)
         
-        # Largeur de contenu = largeur totale - scrollbar - marges
-        content_width = modal_width - scrollbar_width - 40
-        
-        # Marges et padding proportionnels
-        margin = max(15, int(modal_width * 0.04))
-        padding = max(10, int(modal_width * 0.03))
-        
-        # Vitesse de scroll proportionnelle
-        scroll_speed = max(15, int(modal_height * 0.04))
-        
-        return {
-            'width': modal_width,
-            'height': modal_height,
-            'scrollbar_width': scrollbar_width,
-            'content_width': content_width,
-            'margin': margin,
-            'padding': padding,
-            'scroll_speed': scroll_speed,
-            'bg_color': (30, 30, 30, 240),
-            'border_color': GOLD,
-            'border_width': max(2, int(modal_width * 0.006))
-        }
+        return wrapped, heights
 
-    # Lecture du fichier avec gestion d'erreurs améliorée
+    # Lecture du fichier markdown
     try:
         with open(md_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
-    except (FileNotFoundError, IOError):
-        lines = [f"# Contenu introuvable : {md_path}\n"]
+    except:
+        lines = [f"# Erreur: fichier {md_path} introuvable"]
 
-    # Obtenir les dimensions de l'écran pour le modal responsive
-    surf = pygame.display.get_surface()
-    if surf is None:
-        info = pygame.display.Info()
-        WIDTH, HEIGHT = info.current_w, info.current_h
-    else:
-        WIDTH, HEIGHT = surf.get_size()
-    
-    MODAL_CONFIG = get_modal_config(WIDTH, HEIGHT)
+    # Parser et envelopper le contenu
+    parsed_elements = parse_markdown(lines)
+    wrapped_elements, heights = wrap_elements(parsed_elements)
 
-    # Parser les éléments maintenant que MODAL_CONFIG est défini
-    parsed_elements = [parse_markdown_line(line, MODAL_CONFIG['width']) for line in lines if line.strip()]
-
-    modal_surface = pygame.Surface((MODAL_CONFIG['width'], MODAL_CONFIG['height']), pygame.SRCALPHA)
-    modal_rect = modal_surface.get_rect(center=(WIDTH//2, HEIGHT//2))
-    
-    # Préparer un fond mis à l'échelle depuis l'image originale
-    bg_scaled = None
-    if bg_original:
-        try:
-            bg_scaled = pygame.transform.scale(bg_original, (WIDTH, HEIGHT))
-        except Exception:
-            bg_scaled = None
-
-    def prepare_content():
-        wrapped_elements = []
-        elements_height = []
-        for elem in parsed_elements:
-            if elem[0] == "text":
-                _, text, style = elem
-                if not text:
-                    continue
-                font = get_font(style["size"], style["bold"], style["italic"])
-                available_width = MODAL_CONFIG['content_width'] - 2 * MODAL_CONFIG['margin']
-                char_width = font.size("A")[0]
-                wrap_width = available_width // char_width
-                wrapped_lines = textwrap.wrap(text, width=wrap_width) if text else [""]
-                for line in wrapped_lines:
-                    wrapped_elements.append(("text", line, style))
-                    elements_height.append(style["size"] + 8)
-            elif elem[0] == "image":
-                wrapped_elements.append(elem)
-                elements_height.append(elem[1].get_height() + 10)
-        return wrapped_elements, elements_height
-
-    wrapped_elements, elements_height = prepare_content()
-    
-    # Calculer la hauteur totale en tenant compte des espaces header/footer
-    header_height = 40
-    footer_height = 60
-    total_content_height = sum(elements_height) + 2 * MODAL_CONFIG['padding']
-    content_area_height = MODAL_CONFIG['height'] - header_height - footer_height
-    max_scroll = max(0, total_content_height - content_area_height)
-
+    # Calculs de scroll
+    header_height = 50
+    footer_height = 70
+    content_height = sum(heights) + 2 * padding
+    viewable_height = modal_height - header_height - footer_height
+    max_scroll = max(0, content_height - viewable_height)
     scroll = 0
+
+    # Création des surfaces
+    modal_surface = pygame.Surface((modal_width, modal_height), pygame.SRCALPHA)
+    modal_rect = modal_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    
+    # Bouton fermer
+    btn_width, btn_height = 120, 40
+    close_btn = pygame.Rect(modal_width - btn_width - 20, modal_height - btn_height - 15, btn_width, btn_height)
+    
+    # Scrollbar
+    scrollbar_width = 15
+    scrollbar_x = modal_width - scrollbar_width - 5
+    scrollbar_track = pygame.Rect(scrollbar_x, header_height, scrollbar_width, modal_height - header_height - footer_height)
+
+    def get_scrollbar_thumb():
+        if max_scroll <= 0:
+            return pygame.Rect(scrollbar_x, header_height, scrollbar_width, scrollbar_track.height)
+        
+        visible_ratio = viewable_height / content_height
+        thumb_height = max(30, int(scrollbar_track.height * visible_ratio))
+        scroll_ratio = abs(scroll) / max_scroll
+        thumb_y = header_height + int((scrollbar_track.height - thumb_height) * scroll_ratio)
+        
+        return pygame.Rect(scrollbar_x, thumb_y, scrollbar_width, thumb_height)
+
+    # Boucle principale
     clock = pygame.time.Clock()
     running = True
-    dragging_scrollbar = False
-
-    scrollbar_x = MODAL_CONFIG['width'] - MODAL_CONFIG['scrollbar_width'] - 5
-    header_height = 40
-    footer_height = 60
-    scrollbar_track_rect = pygame.Rect(
-        scrollbar_x, 
-        header_height, 
-        MODAL_CONFIG['scrollbar_width'], 
-        MODAL_CONFIG['height'] - header_height - footer_height
-    )
-
-    def calculate_scrollbar_thumb():
-        if max_scroll <= 0:
-            thumb_height = scrollbar_track_rect.height
-            thumb_y = scrollbar_track_rect.top
-        else:
-            visible_ratio = content_area_height / total_content_height
-            thumb_height = max(20, int(scrollbar_track_rect.height * visible_ratio))
-            scroll_ratio = abs(scroll) / max_scroll if max_scroll > 0 else 0
-            max_thumb_travel = scrollbar_track_rect.height - thumb_height
-            thumb_y = scrollbar_track_rect.top + int(max_thumb_travel * scroll_ratio)
-        return pygame.Rect(scrollbar_x, thumb_y, MODAL_CONFIG['scrollbar_width'], thumb_height)
-
-    def scroll_from_mouse_y(mouse_y):
-        if max_scroll <= 0:
-            return 0
-        relative_y = mouse_y - scrollbar_track_rect.top
-        track_ratio = relative_y / scrollbar_track_rect.height
-        track_ratio = max(0, min(1, track_ratio))
-        return -int(max_scroll * track_ratio)
-
-    btn_config = {'width': 120, 'height': 40, 'color': (200, 50, 50)}
-    close_btn_rect = pygame.Rect(
-        MODAL_CONFIG['width'] - btn_config['width'] - 20,
-        MODAL_CONFIG['height'] - btn_config['height'] - 20,
-        btn_config['width'], btn_config['height']
-    )
-    
-    # Fonction locale pour calculer les tailles responsives
-    def calc_responsive_font_size(base_size):
-        reference_width = 720
-        scale_factor = MODAL_CONFIG['width'] / reference_width
-        scale_factor = max(0.7, min(1.5, scale_factor))
-        return int(base_size * scale_factor)
-    
-    # Fonction pour recalculer le bouton fermer de manière responsive
-    def update_close_button():
-        # Taille responsive du bouton : entre 80 et 140 pixels de large
-        btn_w = max(80, min(140, int(MODAL_CONFIG['width'] * 0.15)))
-        btn_h = max(30, min(50, int(MODAL_CONFIG['height'] * 0.06)))
-        
-        # Position dans le coin bas-droit avec marge
-        margin = max(15, int(MODAL_CONFIG['width'] * 0.02))
-        btn_x = MODAL_CONFIG['width'] - btn_w - margin
-        btn_y = MODAL_CONFIG['height'] - btn_h - margin
-        
-        close_btn_rect.update(btn_x, btn_y, btn_w, btn_h)
-        
-        # Calculer la taille de police qui rentre dans le bouton
-        # La police ne doit pas dépasser 70% de la hauteur du bouton
-        max_font_height = int(btn_h * 0.7)
-        font_size = max(10, min(max_font_height, calc_responsive_font_size(16)))
-        
-        btn_font = get_font(font_size, bold=True)
-        btn_text_surface = btn_font.render("Fermer", True, WHITE)
-        
-        # Centrer le texte dans le bouton
-        text_x = close_btn_rect.centerx - btn_text_surface.get_width() // 2
-        text_y = close_btn_rect.centery - btn_text_surface.get_height() // 2
-        
-        return btn_text_surface, (text_x, text_y)
-    
-    # Calcul initial du bouton
-    btn_text_surface, btn_text_pos = update_close_button()
+    dragging = False
 
     while running:
-        # Recalculer les dimensions à chaque frame pour la responsivité
-        current_surf = pygame.display.get_surface()
-        if current_surf is not None:
-            current_width, current_height = current_surf.get_size()
-            # Recalculer MODAL_CONFIG pour les nouvelles dimensions
-            MODAL_CONFIG = get_modal_config(current_width, current_height)
-            # Recalculer la surface et la position du modal
-            modal_surface = pygame.Surface((MODAL_CONFIG['width'], MODAL_CONFIG['height']), pygame.SRCALPHA)
-            modal_rect = modal_surface.get_rect(center=(current_width//2, current_height//2))
-            # Recalculer les éléments qui dépendent des dimensions
-            header_height = 40
-            footer_height = 60
-            total_content_height = sum(elements_height) + 2 * MODAL_CONFIG['padding']
-            content_area_height = MODAL_CONFIG['height'] - header_height - footer_height
-            max_scroll = max(0, total_content_height - content_area_height)
-            # Réajuster le scroll si nécessaire
-            scroll = max(scroll, -max_scroll)
-            scroll = min(scroll, 0)
-            # Recalculer les positions de la scrollbar
-            scrollbar_x = MODAL_CONFIG['width'] - MODAL_CONFIG['scrollbar_width'] - 5
-            scrollbar_track_rect = pygame.Rect(
-                scrollbar_x, 
-                header_height, 
-                MODAL_CONFIG['scrollbar_width'], 
-                MODAL_CONFIG['height'] - header_height - footer_height
-            )
-            # Recalculer le bouton fermer
-            btn_text_surface, btn_text_pos = update_close_button()
-            # Mettre à jour le background si nécessaire
-            if bg_original:
-                try:
-                    bg_scaled = pygame.transform.scale(bg_original, (current_width, current_height))
-                except Exception:
-                    bg_scaled = None
-        
-        scrollbar_thumb_rect = calculate_scrollbar_thumb()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
                 elif event.key == pygame.K_DOWN:
-                    scroll = max(scroll - MODAL_CONFIG['scroll_speed'], -max_scroll)
+                    scroll = max(scroll - scroll_speed, -max_scroll)
                 elif event.key == pygame.K_UP:
-                    scroll = min(scroll + MODAL_CONFIG['scroll_speed'], 0)
+                    scroll = min(scroll + scroll_speed, 0)
+            
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:
-                    scroll = min(scroll + MODAL_CONFIG['scroll_speed'], 0)
-                elif event.button == 5:
-                    scroll = max(scroll - MODAL_CONFIG['scroll_speed'], -max_scroll)
-                elif event.button == 1:
-                    mouse_pos = (
-                        event.pos[0] - modal_rect.left,
-                        event.pos[1] - modal_rect.top
-                    )
-                    if close_btn_rect.collidepoint(mouse_pos):
-                        # Jouer le son de sélection si disponible
+                if event.button == 4:  # Molette haut
+                    scroll = min(scroll + scroll_speed, 0)
+                elif event.button == 5:  # Molette bas
+                    scroll = max(scroll - scroll_speed, -max_scroll)
+                elif event.button == 1:  # Clic gauche
+                    mx, my = event.pos[0] - modal_rect.left, event.pos[1] - modal_rect.top
+                    if close_btn.collidepoint(mx, my):
                         if select_sound:
                             select_sound.play()
                         running = False
-                        continue
-                    if scrollbar_track_rect.collidepoint(mouse_pos):
-                        if scrollbar_thumb_rect.collidepoint(mouse_pos):
-                            dragging_scrollbar = True
-                        else:
-                            scroll = scroll_from_mouse_y(mouse_pos[1])
+                    elif get_scrollbar_thumb().collidepoint(mx, my):
+                        dragging = True
+            
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
-                    dragging_scrollbar = False
+                    dragging = False
+            
             elif event.type == pygame.MOUSEMOTION:
-                if dragging_scrollbar:
-                    mouse_pos = (
-                        event.pos[0] - modal_rect.left,
-                        event.pos[1] - modal_rect.top
-                    )
-                    scroll = scroll_from_mouse_y(mouse_pos[1])
+                if dragging:
+                    my = event.pos[1] - modal_rect.top - header_height
+                    scroll_ratio = my / scrollbar_track.height
+                    scroll = -int(max_scroll * max(0, min(1, scroll_ratio)))
 
-        # Déterminer la surface de rendu à utiliser
-        render_surface = pygame.display.get_surface()
+        # Rendu
+        screen.fill((10, 10, 10))
+        if bg_original:
+            bg_scaled = pygame.transform.scale(bg_original, (WIDTH, HEIGHT))
+            screen.blit(bg_scaled, (0, 0))
         
-        # Dessiner le fond actuel (si disponible)
-        if bg_scaled:
-            render_surface.blit(bg_scaled, (0, 0))
-        else:
-            # fallback: remplir en semi-opaque
-            render_surface.fill((10, 10, 10))
-        
+        # Overlay semi-transparent
         overlay = pygame.Surface((WIDTH, HEIGHT))
         overlay.fill((0, 0, 0))
         overlay.set_alpha(150)
-        render_surface.blit(overlay, (0, 0))
-        
-        modal_surface.fill(MODAL_CONFIG['bg_color'])
-        pygame.draw.rect(
-            modal_surface,
-            MODAL_CONFIG['border_color'],
-            modal_surface.get_rect(),
-            MODAL_CONFIG['border_width'],
-            border_radius=12
-        )
-        
-        # Définir une zone de clipping plus précise pour éviter le débordement
-        header_height = 40  # Espace pour le titre en haut
-        footer_height = 60  # Espace pour le bouton en bas
-        content_clip_rect = pygame.Rect(
-            0, header_height,
-            MODAL_CONFIG['width'] - MODAL_CONFIG['scrollbar_width'] - 10,
-            MODAL_CONFIG['height'] - header_height - footer_height
-        )
-        modal_surface.set_clip(content_clip_rect)
-        
-        # Position Y de départ ajustée pour tenir compte du header
-        y = header_height + MODAL_CONFIG['padding'] + scroll
-        
+        screen.blit(overlay, (0, 0))
+
+        # Modal
+        modal_surface.fill((30, 30, 30, 240))
+        pygame.draw.rect(modal_surface, GOLD, modal_surface.get_rect(), 3, border_radius=10)
+
+        # Zone de contenu avec clipping
+        content_area = pygame.Rect(0, header_height, modal_width - 30, viewable_height)
+        modal_surface.set_clip(content_area)
+
+        # Dessiner le contenu
+        y = header_height + padding + scroll
         for elem in wrapped_elements:
-            # Vérifier si l'élément est complètement en dehors de la zone visible
-            elem_height = elem[2]["size"] + 8 if elem[0] == "text" else elem[1].get_height() + 10
-            
-            # Skip si complètement en dessous de la zone visible
-            if y > header_height + content_clip_rect.height:
-                y += elem_height
-                continue
-            
-            # Skip si complètement au dessus de la zone visible
-            if y + elem_height < header_height:
-                y += elem_height
-                continue
-            
             if elem[0] == "text":
-                _, text, style = elem
-                font = get_font(style["size"], style["bold"], style["italic"])
-                rendered = font.render(text, True, style["color"])
-                modal_surface.blit(rendered, (MODAL_CONFIG['margin'], y))
-                y += style["size"] + 8
-            elif elem[0] == "image":
-                img = elem[1]
-                content_width = MODAL_CONFIG['width'] - MODAL_CONFIG['scrollbar_width'] - 10
-                x_pos = (content_width - img.get_width()) // 2
-                modal_surface.blit(img, (x_pos, y))
-                y += img.get_height() + 10
-        
+                _, text, size, bold, italic, color = elem
+                if y + size > header_height and y < header_height + viewable_height:
+                    font = get_font(size, bold, italic)
+                    rendered = font.render(text, True, color)
+                    modal_surface.blit(rendered, (margin, y))
+                y += size + 8
+            
+            elif elem[0] == "media":
+                media_type, media = elem[1], elem[2]
+                if media_type == "gif":
+                    current_frame = media.get_current_frame()
+                    height = current_frame.get_height()
+                    if y + height > header_height and y < header_height + viewable_height:
+                        x = (modal_width - 30 - current_frame.get_width()) // 2
+                        modal_surface.blit(current_frame, (x, y))
+                    y += height + 10
+                else:  # static
+                    height = media.get_height()
+                    if y + height > header_height and y < header_height + viewable_height:
+                        x = (modal_width - 30 - media.get_width()) // 2
+                        modal_surface.blit(media, (x, y))
+                    y += height + 10
+
         modal_surface.set_clip(None)
-        
+
+        # Scrollbar
         if max_scroll > 0:
-            pygame.draw.rect(modal_surface, DARK_GRAY, scrollbar_track_rect, border_radius=10)
-            pygame.draw.rect(modal_surface, GRAY, scrollbar_track_rect, 2, border_radius=10)
-            thumb_color = LIGHT_GRAY if dragging_scrollbar else GRAY
-            pygame.draw.rect(modal_surface, thumb_color, scrollbar_thumb_rect, border_radius=8)
-            pygame.draw.rect(modal_surface, WHITE, scrollbar_thumb_rect, 1, border_radius=8)
-        
-        # Dessiner le bouton fermer avec la couleur rouge correcte
-        pygame.draw.rect(modal_surface, (200, 50, 50), close_btn_rect, border_radius=8)
-        pygame.draw.rect(modal_surface, WHITE, close_btn_rect, 2, border_radius=8)
-        modal_surface.blit(btn_text_surface, btn_text_pos)
-        
-        render_surface.blit(modal_surface, modal_rect.topleft)
+            pygame.draw.rect(modal_surface, DARK_GRAY, scrollbar_track, border_radius=8)
+            thumb = get_scrollbar_thumb()
+            pygame.draw.rect(modal_surface, LIGHT_GRAY if dragging else GRAY, thumb, border_radius=6)
+
+        # Bouton fermer
+        pygame.draw.rect(modal_surface, (200, 50, 50), close_btn, border_radius=8)
+        pygame.draw.rect(modal_surface, WHITE, close_btn, 2, border_radius=8)
+        btn_font = get_font(16, bold=True)
+        btn_text = btn_font.render("Fermer", True, WHITE)
+        btn_text_pos = (close_btn.centerx - btn_text.get_width() // 2, close_btn.centery - btn_text.get_height() // 2)
+        modal_surface.blit(btn_text, btn_text_pos)
+
+        # Afficher le modal
+        screen.blit(modal_surface, modal_rect.topleft)
         pygame.display.flip()
         clock.tick(60)
-    
-    # Nettoyer les caches
-    image_cache.clear()
+
+    # Nettoyage
     font_cache.clear()
+    image_cache.clear()
+    gif_animations.clear()
