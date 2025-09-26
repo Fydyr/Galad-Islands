@@ -3,7 +3,7 @@ from math import cos, sin, radians
 from src.components.properties.velocityComponent import VelocityComponent as Velocity
 from src.components.properties.positionComponent import PositionComponent as Position
 from src.components.properties.projectileComponent import ProjectileComponent
-from settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 
 class MovementProcessor(esper.Processor):
     """
