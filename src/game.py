@@ -62,11 +62,10 @@ def game(window=None, bg_original=None, select_sound=None):
     movement_processor = movementProcessor.MovementProcessor()
     collision_processor = collisionProcessor.CollisionProcessor()
     playerControls = playerControlProcessor.PlayerControlProcessor()
-    rendering_processor = renderingProcessor.RenderProcessor(window, camera)
+    # Le rendu est maintenant géré manuellement dans update_screen
     es.add_processor(collision_processor, priority=2)
     es.add_processor(movement_processor, priority=3)
     es.add_processor(playerControls, priority=4)
-    es.add_processor(rendering_processor, priority=9)
 
     es.set_handler('attack_event', create_projectile)
     es.set_handler('entities_hit', entitiesHit)
@@ -147,21 +146,26 @@ def game(window=None, bg_original=None, select_sound=None):
         # Mettre à jour l'ActionBar
         action_bar.update(dt)
 
-        # Mettre à jour l'affichage et la logique ECS
+        # Mettre à jour l'affichage avec l'ordre correct : grille -> sprites -> UI
         update_screen(window, grid, images, camera, show_debug, dt, action_bar)
-        es.process()
+        es.process()  # Traiter la logique ECS (sans le rendu)
         pygame.display.flip()
 
 def update_screen(window, grid, images, camera, show_debug, dt, action_bar=None):
     # Effacer l'écran (évite les artefacts lors du redimensionnement / zoom)
     window.fill((0, 50, 100))
+    
     # Délègue l'affichage de la grille en fournissant la caméra
     game_map.afficher_grille(window, grid, images, camera)
-
-    # Dessiner la barre d'action si elle est fournie
+    
+    # Dessiner les sprites manuellement (au lieu de passer par es.process())
+    render_sprites(window, camera)
+    
+    # Dessiner l'interface utilisateur par-dessus tout
     if action_bar:
         action_bar.draw(window)
 
+    # Debug info par-dessus tout
     if show_debug:
         font = pygame.font.Font(None, 36)
         debug_info = [
@@ -174,3 +178,82 @@ def update_screen(window, grid, images, camera, show_debug, dt, action_bar=None)
         for i, info in enumerate(debug_info):
             text_surface = font.render(info, True, (255, 255, 255))
             window.blit(text_surface, (10, 10 + i * 30))
+
+def render_sprites(window, camera):
+    """Rendu manuel des sprites pour contrôler l'ordre d'affichage."""
+    import esper
+    from src.components.properties.positionComponent import PositionComponent
+    from src.components.properties.spriteComponent import SpriteComponent
+    from src.components.properties.healthComponent import HealthComponent
+    import pygame
+    
+    for ent, (pos, sprite) in esper.get_components(PositionComponent, SpriteComponent):
+        # Load the sprite
+        image = pygame.image.load(sprite.image_path).convert_alpha()
+        
+        # Calculate sprite size based on camera zoom
+        if camera:
+            # Scale sprite size according to camera zoom to maintain consistent screen size
+            display_width = int(sprite.width * camera.zoom)
+            display_height = int(sprite.height * camera.zoom)
+            screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
+        else:
+            # Fallback if no camera is provided
+            display_width = sprite.width
+            display_height = sprite.height
+            screen_x, screen_y = pos.x, pos.y
+        
+        # Rotate the scaled image from the sprite
+        sprite.scale_sprite(display_width, display_height)
+        rotated_image = pygame.transform.rotate(sprite.surface, -pos.direction)
+        
+        # Get the rect and set its center to the screen position
+        rect = rotated_image.get_rect(center=(screen_x, screen_y))
+        # Blit using the rect's topleft to keep the rotation centered
+        window.blit(rotated_image, rect.topleft)
+        
+        # Afficher la barre de vie si l'entité a un HealthComponent
+        if esper.has_component(ent, HealthComponent):
+            health = esper.component_for_entity(ent, HealthComponent)
+            if health.currentHealth < health.maxHealth:
+                draw_health_bar(window, screen_x, screen_y, health, display_width, display_height)
+
+def draw_health_bar(screen, x, y, health, sprite_width, sprite_height):
+    """Dessine une barre de vie pour une entité."""
+    # Configuration de la barre de vie
+    bar_width = sprite_width
+    bar_height = 6
+    bar_offset_y = sprite_height // 2 + 10  # Position au-dessus du sprite
+    
+    # Position de la barre (centrée au-dessus de l'entité)
+    bar_x = x - bar_width // 2
+    bar_y = y - bar_offset_y
+    
+    # Vérifier que maxHealth n'est pas zéro pour éviter la division par zéro
+    if health.maxHealth <= 0:
+        return
+    
+    # Calculer le pourcentage de vie
+    health_ratio = max(0, min(1, health.currentHealth / health.maxHealth))
+    
+    # Dessiner le fond de la barre (rouge foncé)
+    background_rect = pygame.Rect(bar_x, bar_y, bar_width, bar_height)
+    pygame.draw.rect(screen, (100, 0, 0), background_rect)
+    
+    # Dessiner la barre de vie (couleur selon le pourcentage)
+    if health_ratio > 0:
+        health_bar_width = int(bar_width * health_ratio)
+        health_rect = pygame.Rect(bar_x, bar_y, health_bar_width, bar_height)
+        
+        # Couleur qui change selon la vie restante
+        if health_ratio > 0.6:
+            color = (0, 200, 0)  # Vert
+        elif health_ratio > 0.3:
+            color = (255, 165, 0)  # Orange
+        else:
+            color = (255, 0, 0)  # Rouge
+        
+        pygame.draw.rect(screen, color, health_rect)
+    
+    # Bordure noire autour de la barre
+    pygame.draw.rect(screen, (0, 0, 0), background_rect, 1)
