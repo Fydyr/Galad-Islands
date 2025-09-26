@@ -258,16 +258,24 @@ def afficher_grille(window, grid, images, camera):
             
             # Redimensionner selon le zoom, avec cache pour éviter de rescaler à chaque frame
             tile_size = int(TILE_SIZE * camera.zoom)
+            tile_size = max(1, min(tile_size, 2048))  # Limiter la taille pour éviter les crashes
+            
             if not hasattr(afficher_grille, "_sea_cache"):
                 # Initialize with a valid Surface to avoid type issues
                 initial_tile_size = int(TILE_SIZE * camera.zoom)
+                initial_tile_size = max(1, min(initial_tile_size, 2048))
                 initial_image = pygame.transform.scale(images['sea'], (initial_tile_size, initial_tile_size))
                 afficher_grille._sea_cache = {"zoom": camera.zoom, "image": initial_image, "size": initial_tile_size}
             sea_cache = afficher_grille._sea_cache
             if sea_cache["zoom"] != camera.zoom or sea_cache["size"] != tile_size:
-                sea_cache["image"] = pygame.transform.scale(images['sea'], (tile_size, tile_size))
-                sea_cache["zoom"] = camera.zoom
-                sea_cache["size"] = tile_size
+                try:
+                    sea_cache["image"] = pygame.transform.scale(images['sea'], (tile_size, tile_size))
+                    sea_cache["zoom"] = camera.zoom
+                    sea_cache["size"] = tile_size
+                except Exception:
+                    # En cas d'erreur, utiliser une couleur unie
+                    sea_cache["image"] = pygame.Surface((tile_size, tile_size))
+                    sea_cache["image"].fill((0, 50, 100))  # Bleu mer
             sea_scaled = sea_cache["image"]
             window.blit(sea_scaled, (screen_x, screen_y))
     
@@ -277,10 +285,21 @@ def afficher_grille(window, grid, images, camera):
         world_y = grid_y * TILE_SIZE
         screen_x, screen_y = camera.world_to_screen(world_x, world_y)
         
-        # Redimensionner selon le zoom
+        # Redimensionner selon le zoom avec des limites de sécurité
         display_size = int(element_size * TILE_SIZE * camera.zoom)
-        element_scaled = pygame.transform.scale(element_image, (display_size, display_size))
-        window.blit(element_scaled, (screen_x, screen_y))
+        
+        # Éviter les tailles trop petites ou trop grandes qui peuvent causer des crashes
+        display_size = max(1, min(display_size, 2048))  # Limiter entre 1 et 2048 pixels
+        
+        # Vérifier si l'élément est visible à l'écran avant de le dessiner
+        if (screen_x + display_size >= 0 and screen_x <= window.get_width() and 
+            screen_y + display_size >= 0 and screen_y <= window.get_height()):
+            try:
+                element_scaled = pygame.transform.scale(element_image, (display_size, display_size))
+                window.blit(element_scaled, (screen_x, screen_y))
+            except Exception as e:
+                # En cas d'erreur de redimensionnement, dessiner un carré de couleur
+                pygame.draw.rect(window, (255, 0, 0), (screen_x, screen_y, display_size, display_size))
     
     # Éléments (nuages, îles, mines, bases)
     for i in range(start_y, end_y):

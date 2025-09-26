@@ -140,7 +140,7 @@ CLOUD_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03) # taux de nuages (3% de la
 # Paramètres de caméra
 CAMERA_SPEED = 200  # pixels par seconde
 ZOOM_MIN = 0.5
-ZOOM_MAX = 3.0
+ZOOM_MAX = 2.5  # Réduit légèrement pour éviter des sprites trop grands
 ZOOM_SPEED = 0.1
 
 
