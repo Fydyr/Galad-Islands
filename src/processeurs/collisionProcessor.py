@@ -8,6 +8,11 @@ from src.components.properties.velocityComponent import VelocityComponent as Vel
 from src.components.properties.teamComponent import TeamComponent as Team
 
 class CollisionProcessor(esper.Processor):
+    def __init__(self, graph=None):
+        super().__init__()
+        self.graph = graph
+        
+
     def process(self):
         entities = esper.get_components(Position, Sprite, CanCollide, Team)
         other_entities = entities.copy()
