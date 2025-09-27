@@ -14,6 +14,7 @@ from src.functions.afficherModale import afficher_modale
 from src.functions.optionsWindow import show_options_window
 from src.settings.localization import t, get_random_tip
 from src.settings.localization import t
+from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 
 
 pygame.init()
@@ -229,14 +230,14 @@ def options():
     show_options_window()
 
 def crédits():
-    afficher_modale("Crédits", "assets/docs/credits.md", bg_original=bg_original, select_sound=select_sound)
+    afficher_modale(t("menu.credits"), get_credits_path(), bg_original=bg_original, select_sound=select_sound)
 
 def aide():
-    afficher_modale("Aide", "assets/docs/help.md", bg_original=bg_original, select_sound=select_sound)
+    afficher_modale(t("menu.help"), get_help_path(), bg_original=bg_original, select_sound=select_sound)
 
 
 def scénario():
-    afficher_modale("Scénario", "assets/docs/scenario.md", bg_original=bg_original, select_sound=select_sound)
+    afficher_modale(t("menu.scenario"), get_scenario_path(), bg_original=bg_original, select_sound=select_sound)
 
 def toggle_fullscreen():
     """Basculer le flag fullscreen et marquer qu'il faut appliquer le
