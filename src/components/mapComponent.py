@@ -3,6 +3,7 @@ import pygame
 import sys
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED, CLOUD_RATE, config_manager
 from random import randint
+from src.settings.localization import t
 
 class Camera:
     """
@@ -385,7 +386,7 @@ def run_game_frame(window, game_state, dt):
             
     # Instructions
     font = pygame.font.Font(None, 36)
-    help_text = font.render("Flèches/WASD: Déplacer | Molette: Zoom | F3: Debug | Échap: Quitter", True, (255, 255, 255))
+    help_text = font.render(t("game.instructions"), True, (255, 255, 255))
     window.blit(help_text, (10, window.get_height() - 30))
     
     return True # Continuer le jeu

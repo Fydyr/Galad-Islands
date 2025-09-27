@@ -1,0 +1,108 @@
+# -*- coding: utf-8 -*-
+"""
+Traductions françaises pour Galad Islands
+"""
+
+TRANSLATIONS = {
+    # Menu principal
+    "menu.play": "Jouer",
+    "menu.options": "Options",
+    "menu.credits": "Crédits", 
+    "menu.help": "Aide",
+    "menu.scenario": "Scénario",
+    "menu.quit": "Quitter",
+    
+    # Options
+    "options.title": "Options",
+    "options.display": "Affichage",
+    "options.window_mode": "Mode fenêtre",
+    "options.resolution": "Résolution",
+    "options.custom_resolution": "Résolution personnalisée",
+    "options.width": "Largeur",
+    "options.height": "Hauteur",
+    "options.apply": "Appliquer",
+    "options.audio": "Audio",
+    "options.master_volume": "Volume principal",
+    "options.music_volume": "Volume musique",
+    "options.effects_volume": "Volume effets",
+    "options.controls": "Contrôles",
+    "options.language": "Langue",
+    "options.close": "Fermer",
+    "options.windowed": "Fenêtré",
+    "options.fullscreen": "Plein écran",
+    
+    # Messages système
+    "system.resolution_applied": "Résolution appliquée: {width}x{height}",
+    "system.language_changed": "Langue changée en français",
+    
+    # Contrôles de jeu
+    "controls.player1": "Joueur 1",
+    "controls.forward": "Avancer",
+    "controls.backward": "Reculer", 
+    "controls.turn_left": "Tourner à gauche",
+    "controls.turn_right": "Tourner à droite",
+    "controls.previous_unit": "Unité précédente",
+    "controls.next_unit": "Unité suivante",
+    "controls.attack_mode": "Mode attaque",
+    "controls.special_ability": "Capacité spéciale",
+    "controls.stop_ship": "Arrêt du vaisseau",
+    "controls.camera": "Caméra / Carte",
+    "controls.move_camera": "Déplacer la caméra",
+    "controls.zoom": "Zoom avant/arrière",
+    "controls.escape": "Quitter la vue carte",
+    
+    # Unités
+    "units.zasper": "Zasper (Scout Léger)",
+    "units.barhamus": "Barhamus (Maraudeur Moyen)",
+    "units.draupnir": "Draupnir (Léviathan Lourd)",
+    "units.druid": "Druid",
+    "units.architect": "Architect",
+    
+    # Interface de jeu
+    "game.instructions": "Flèches: Déplacer | Molette: Zoom | F3: Debug | Échap: Quitter",
+    "game.back_to_menu": "Retour au menu",
+    
+    # Conseils
+    "tip.0": "Astuce : Contrôler un seul zeppelin peut renverser le cours d'une bataille au bon moment.",
+    "tip.1": "Citation : 'Celui qui maîtrise le vent, maîtrise la guerre.'",
+    "tip.2": "Astuce : Les coffres volants sont une source précieuse d'or, ne les laissez pas filer.",
+    "tip.3": "Citation : 'La stratégie est l'art de transformer le hasard en avantage.'",
+    "tip.4": "Astuce : Les unités légères sont rapides mais fragiles, utilisez-les pour harceler l'ennemi.",
+    "tip.5": "Citation : 'Une flotte unie est plus forte qu'un héros isolé.'",
+    "tip.6": "Astuce : Méfiez-vous des tempêtes, elles frappent sans distinction entre alliés et ennemis.",
+    "tip.7": "Citation : 'Le ciel appartient à ceux qui osent le conquérir.'",
+    "tip.8": "Astuce : Placez vos Architectes proche des îles pour construire des tours et sécuriser vos positions.",
+    "tip.9": "Citation : 'Défendre ses terres, c'est déjà préparer la victoire.'",
+    "tip.10": "Astuce : Les Druids peuvent soigner vos troupes, protégez-les à tout prix.",
+    "tip.11": "Citation : 'Dans la guerre, chaque souffle compte.'",
+    "tip.12": "Astuce : Investir tôt dans un Léviathan peut impressionner, mais attention à ne pas négliger vos défenses.",
+    "tip.13": "Citation : 'Le pouvoir sans prudence mène à la chute.'",
+    "tip.14": "Astuce : Les bandits n'attaquent pas que vos ennemis… parfois, il vaut mieux esquiver que combattre.",
+    "tip.15": "Citation : 'Le chaos des cieux ne pardonne pas l'arrogance.'",
+    "tip.16": "Astuce : gardez toujours une armée chez vous. Votre ennemi a peut être envoyé quelqu'un.",
+    "tip.17": "Buvez de l'eau, faites des pauses, et souvenez-vous que vous êtes géniaux !",
+    "tip.18": "Un bon commandant ne prend pas de drogues, sauf du café éventuellement.",
+    "tip.19": "1 + 1 = 1",
+    "tip.20": "Ne jetez pas le cailliou dans la machine à laver, ça abîme les vêtements !",
+    "tip.21": "Méfiez-vous de l'IA, sauf celle de Galad Islands ; elle est sympa !",
+    "tip.22": "A ne pas reproduire chez soi !",
+    "tip.23": "Ne refaisez pas ce jeu chez vous : ceci est réalisé par des professionnels !",
+    "tip.24": "Astuce : Méfiez-vous de votre adversaire. Il est peut-être dans vos murs",
+    "tip.25": "Nous ne sommes pas responsables des brisages d'amitiés.",
+    "tip.26": "Si vous pensez que tout est fini, c'est que ce n'est que le début",
+    "tip.27": "Astuce : Pour gagner, dites que votre adversaire a du pétrole. Les Etats-Unis viendront vous aider.",
+    "tip.28": "Nos vaisseaux sont biodégradables. Pensez à l'environnement !",
+    "tip.29": "Non, ce n'est pas la faute du jeu si vous perdez. Vous êtes juste nul.le.",
+    "tip.30": "Non, ce n'est pas un singe qui joue contre vous.",
+    "tip.31": "Test de filtre de beauté : ... Vous ne dépassez pas le seuil requis pour passer ce test.",
+    "tip.32": "Promis, il n'y a pas de plagiat de Murder Drones dans ce jeu.",
+    "tip.33": "Attention, il est interdit à une IA d'affronter la notre.",
+    "tip.34": "Tu savais que le jeu n'est pas disponible sur Steam ?",
+    "tip.35": "T'as pas 100 balles pour le mettre sur Steam ?",
+    "tip.36": "Les profesionnels ont des standards.",
+    "tip.37": "Ce jeu a été fait avec amour (et surtout avec de la douleur)",
+    "tip.38": "Enzo, tu peux débloquer le main ?",
+    "tip.39": "All hail the git master",
+    "tip.40": "La d'où on vient, on a un dompteur de goéland qui travaille dans l'armée.",
+    "tip.41": "Comment ça, on vous dit plus de bétises que d'astuces ?",
+}

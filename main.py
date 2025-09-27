@@ -12,6 +12,8 @@ import setup.install_commitizen_universal as install_cz # Assure que commitizen 
 import setup.setup_team_hooks as setup_hooks # Assure que les hooks sont installés avant d'importer quoi que ce soit d'autre
 from src.functions.afficherModale import afficher_modale
 from src.functions.optionsWindow import show_options_window
+from src.settings.localization import t, get_random_tip
+from src.settings.localization import t
 
 
 pygame.init()
@@ -95,10 +97,8 @@ FONT = None
 TITLE_FONT = None
 
 
-# Liste d'astuces ou citations à afficher en bas du menu
-from src.constants.tipsContact import TIPS
-
-current_tip = random.choice(TIPS)
+# Système de tips traduites
+current_tip = get_random_tip()
 tip_change_timer = 0  # Timer pour changer les astuces
 TIP_CHANGE_INTERVAL = 5.0  # Changer d'astuce toutes les 5 secondes
 
@@ -279,7 +279,7 @@ def quitter():
 # Création des boutons centrés (définitions génériques, instanciés dans main_menu)
 # Variables responsives calculées dans main_menu selon la taille de la fenêtre
 num_buttons = 6
-labels = ["Jouer", "Options", "Crédits", "Aide", "Scénario", "Quitter"]
+# Les labels sont maintenant générés dynamiquement dans main_menu() avec traduction
 callbacks = [jouer, options, crédits, aide, scénario, quitter]
 # Le petit bouton 'Windowed' a été retiré ; la gestion du mode d'affichage se fait
 # désormais via la fenêtre d'options (ou via F11). Si besoin on conservera la
@@ -393,6 +393,17 @@ def main_menu(win=None):
     
     btn_x = int(SCREEN_WIDTH * 0.62)
     buttons = []
+    
+    # Générer les labels traduits
+    labels = [
+        t("menu.play"),
+        t("menu.options"), 
+        t("menu.credits"),
+        t("menu.help"),
+        t("menu.scenario"),
+        t("menu.quit")
+    ]
+    
     for i in range(num_buttons):
         x = btn_x
         y = start_y + i * (btn_h_init + btn_gap_init)
@@ -422,7 +433,7 @@ def main_menu(win=None):
             # Changer d'astuce automatiquement
             tip_change_timer += dt
             if tip_change_timer >= TIP_CHANGE_INTERVAL:
-                current_tip = random.choice(TIPS)
+                current_tip = get_random_tip()
                 tip_change_timer = 0
             
             # Gérer le délai de sauvegarde de résolution
