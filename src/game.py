@@ -60,7 +60,7 @@ def game(window=None, bg_original=None, select_sound=None):
     es._processors.clear()
 
     movement_processor = movementProcessor.MovementProcessor()
-    collision_processor = collisionProcessor.CollisionProcessor()
+    collision_processor = collisionProcessor.CollisionProcessor(graph=grid)
     playerControls = playerControlProcessor.PlayerControlProcessor()
     # Le rendu est maintenant géré manuellement dans update_screen
     es.add_processor(collision_processor, priority=2)
