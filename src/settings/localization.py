@@ -84,7 +84,7 @@ class LocalizationManager:
         """Retourne une tip aléatoire dans la langue actuelle"""
         import random
         tips = self.get_all_tips()
-        return random.choice(tips) if tips else "No tips available"
+        return random.choice(tips) if tips else self.t('system.no_tips_available')
     
     def translate(self, key, **kwargs):
         """Traduit une clé en utilisant les paramètres fournis"""
