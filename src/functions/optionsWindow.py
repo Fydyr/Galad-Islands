@@ -5,6 +5,7 @@
 import pygame
 import src.settings.settings as settings
 import math
+from src.settings.localization import get_current_language, set_language, get_available_languages, t
 
 # Couleurs
 WHITE = (255, 255, 255)
@@ -206,6 +207,11 @@ def show_options_window():
                                     pygame.mixer.music.set_volume(default_volume)
                                 elif name == "close":
                                     running = False
+                                elif name.startswith("lang_"):
+                                    # Changement de langue
+                                    lang_code = name.split("_")[1]
+                                    if set_language(lang_code):
+                                        print(f"✅ Langue changée: {lang_code}")
                                 break
 
             elif event.type == pygame.MOUSEBUTTONUP:
@@ -251,7 +257,7 @@ def show_options_window():
                          modal_surface.get_rect(), 3, border_radius=12)
 
         # Titre
-        title_surf = font_title.render("Options du jeu", True, GOLD)
+        title_surf = font_title.render(t("options.title"), True, GOLD)
         modal_surface.blit(title_surf, (20, 15))
 
         # Calculer le contenu avec défilement
@@ -261,7 +267,7 @@ def show_options_window():
         line_height = 35
 
         # Section Mode d'affichage
-        section_surf = font_section.render("Mode d'affichage", True, GOLD)
+        section_surf = font_section.render(t("options.display"), True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 40
 
@@ -380,7 +386,7 @@ def show_options_window():
         content_y_pos += 50
 
         # Section Audio
-        section_surf = font_section.render("Audio", True, GOLD)
+        section_surf = font_section.render(t("options.audio"), True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 40
 
@@ -414,8 +420,42 @@ def show_options_window():
 
         content_y_pos += 50
 
+        # Section Langue
+        section_surf = font_section.render("Langue / Language", True, GOLD)
+        content_surf.blit(section_surf, (0, content_y_pos))
+        content_y_pos += 40
+
+        # Boutons de sélection de langue
+        available_languages = get_available_languages()
+        current_lang = get_current_language()
+        
+        button_width = 120
+        button_height = 30
+        button_spacing = 10
+        x_offset = 0
+        
+        for lang_code, lang_name in available_languages.items():
+            lang_rect = pygame.Rect(x_offset, content_y_pos, button_width, button_height)
+            
+            # Couleur selon si c'est la langue active
+            if lang_code == current_lang:
+                color = GREEN  # Langue active en vert
+                text_color = WHITE
+            else:
+                color = DARK_GRAY  # Langue inactive en gris
+                text_color = LIGHT_GRAY
+            
+            draw_button(content_surf, lang_rect, lang_name, font_normal, color, text_color)
+            
+            # Créer la zone cliquable
+            buttons[f"lang_{lang_code}"] = lang_rect.move(content_rect.left, content_rect.top + scroll_y)
+            
+            x_offset += button_width + button_spacing
+
+        content_y_pos += 50
+
         # Section Contrôles
-        section_surf = font_section.render("Contrôles", True, GOLD)
+        section_surf = font_section.render(t("options.controls"), True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 40
 

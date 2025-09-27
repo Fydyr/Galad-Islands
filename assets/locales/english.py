@@ -1,0 +1,108 @@
+# -*- coding: utf-8 -*-
+"""
+English translations for Galad Islands
+"""
+
+TRANSLATIONS = {
+    # Main menu
+    "menu.play": "Play",
+    "menu.options": "Options",
+    "menu.credits": "Credits",
+    "menu.help": "Help", 
+    "menu.scenario": "Scenario",
+    "menu.quit": "Quit",
+    
+    # Options
+    "options.title": "Options",
+    "options.display": "Display",
+    "options.window_mode": "Window Mode",
+    "options.resolution": "Resolution",
+    "options.custom_resolution": "Custom Resolution",
+    "options.width": "Width",
+    "options.height": "Height",
+    "options.apply": "Apply",
+    "options.audio": "Audio",
+    "options.master_volume": "Master Volume",
+    "options.music_volume": "Music Volume",
+    "options.effects_volume": "Effects Volume", 
+    "options.controls": "Controls",
+    "options.language": "Language",
+    "options.close": "Close",
+    "options.windowed": "Windowed",
+    "options.fullscreen": "Fullscreen",
+    
+    # System messages
+    "system.resolution_applied": "Resolution applied: {width}x{height}",
+    "system.language_changed": "Language changed to English",
+    
+    # Game controls
+    "controls.player1": "Player 1",
+    "controls.forward": "Move Forward",
+    "controls.backward": "Move Backward",
+    "controls.turn_left": "Turn Left", 
+    "controls.turn_right": "Turn Right",
+    "controls.previous_unit": "Previous Unit",
+    "controls.next_unit": "Next Unit",
+    "controls.attack_mode": "Attack Mode",
+    "controls.special_ability": "Special Ability",
+    "controls.stop_ship": "Stop Ship",
+    "controls.camera": "Camera / Map",
+    "controls.move_camera": "Move Camera",
+    "controls.zoom": "Zoom In/Out",
+    "controls.escape": "Exit Map View",
+    
+    # Units
+    "units.zasper": "Zasper (Light Scout)",
+    "units.barhamus": "Barhamus (Medium Marauder)",
+    "units.draupnir": "Draupnir (Heavy Leviathan)",
+    "units.druid": "Druid",
+    "units.architect": "Architect",
+    
+    # Game interface  
+    "game.instructions": "Arrows: Move | Mouse Wheel: Zoom | F3: Debug | Esc: Quit",
+    "game.back_to_menu": "Back to Menu",
+    
+    # Tips
+    "tip.0": "Tip: Controlling a single zeppelin can turn the tide of battle at the right moment.",
+    "tip.1": "Quote: 'He who masters the wind, masters war.'",
+    "tip.2": "Tip: Flying chests are a precious source of gold, don't let them slip away.",
+    "tip.3": "Quote: 'Strategy is the art of turning chance into advantage.'",
+    "tip.4": "Tip: Light units are fast but fragile, use them to harass the enemy.",
+    "tip.5": "Quote: 'A united fleet is stronger than an isolated hero.'",
+    "tip.6": "Tip: Beware of storms, they strike without distinction between allies and enemies.",
+    "tip.7": "Quote: 'The sky belongs to those who dare to conquer it.'",
+    "tip.8": "Tip: Place your Architects near islands to build towers and secure your positions.",
+    "tip.9": "Quote: 'Defending your land is already preparing for victory.'",
+    "tip.10": "Tip: Druids can heal your troops, protect them at all costs.",
+    "tip.11": "Quote: 'In war, every breath counts.'",
+    "tip.12": "Tip: Investing early in a Leviathan can impress, but be careful not to neglect your defenses.",
+    "tip.13": "Quote: 'Power without prudence leads to downfall.'",
+    "tip.14": "Tip: Bandits don't just attack your enemies... sometimes it's better to dodge than fight.",
+    "tip.15": "Quote: 'The chaos of the skies does not forgive arrogance.'",
+    "tip.16": "Tip: Always keep an army at home. Your enemy may have sent someone.",
+    "tip.17": "Drink water, take breaks, and remember you're awesome!",
+    "tip.18": "A good commander doesn't take drugs, except coffee maybe.",
+    "tip.19": "1 + 1 = 1",
+    "tip.20": "Don't throw the rock in the washing machine, it damages the clothes!",
+    "tip.21": "Beware of AI, except the one in Galad Islands; it's nice!",
+    "tip.22": "Do not try this at home!",
+    "tip.23": "Don't remake this game at home: this is done by professionals!",
+    "tip.24": "Tip: Beware of your opponent. They might be in your walls",
+    "tip.25": "We are not responsible for broken friendships.",
+    "tip.26": "If you think everything is over, it's only the beginning",
+    "tip.27": "Tip: To win, say your opponent has oil. The US will come help you.",
+    "tip.28": "Our ships are biodegradable. Think about the environment!",
+    "tip.29": "No, it's not the game's fault if you lose. You're just bad.",
+    "tip.30": "No, it's not a monkey playing against you.",
+    "tip.31": "Beauty filter test: ... You don't exceed the required threshold to pass this test.",
+    "tip.32": "Promise, there's no plagiarism of Murder Drones in this game.",
+    "tip.33": "Warning, it's forbidden for an AI to face ours.",
+    "tip.34": "Did you know the game isn't available on Steam?",
+    "tip.35": "Don't you have 100 bucks to put it on Steam?",
+    "tip.36": "Professionals have standards.",
+    "tip.37": "This game was made with love (and especially with pain)",
+    "tip.38": "Enzo, can you unlock the main?",
+    "tip.39": "All hail the git master",
+    "tip.40": "Where we come from, we have a seagull tamer who works in the army.",
+    "tip.41": "What do you mean, we tell you more nonsense than tips?",
+}
