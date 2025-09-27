@@ -4,6 +4,7 @@ import os
 from typing import Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
+from src.settings.localization import t
 
 # Import des couleurs pour l'interface ennemie
 class UIColors:
@@ -124,11 +125,11 @@ class Shop:
         
         # === UNITÉS ENNEMIES ===
         units_data = [
-            ("enemy_scout", "Éclaireur Ennemi", "Scout rapide et agressif", {'cout_gold': 12, 'armure_max': 50, 'degats_min': 12, 'degats_max': 18}, "Zasper.png"),
-            ("enemy_warrior", "Guerrier Ennemi", "Combattant robuste et brutal", {'cout_gold': 25, 'armure_max': 120, 'degats_min_salve': 25, 'degats_max_salve': 35}, "Barhamus.png"),
-            ("enemy_brute", "Brute Ennemie", "Unité lourde destructrice", {'cout_gold': 45, 'armure_max': 280, 'degats_min_salve': 45, 'degats_max_salve': 65}, "Draupnir.png"),
-            ("enemy_shaman", "Chaman Ennemi", "Soigneur et soutien maléfique", {'cout_gold': 35, 'armure_max': 90, 'soin': 25}, "Druid.png"),
-            ("enemy_engineer", "Ingénieur Ennemi", "Constructeur de pièges", {'cout_gold': 32, 'armure_max': 95, 'degats': 5}, "Architect.png")
+            ("enemy_scout", t("enemy_shop.scout"), t("enemy_shop.scout_desc"), {'cout_gold': 12, 'armure_max': 50, 'degats_min': 12, 'degats_max': 18}, "Zasper.png"),
+            ("enemy_warrior", t("enemy_shop.warrior"), t("enemy_shop.warrior_desc"), {'cout_gold': 25, 'armure_max': 120, 'degats_min_salve': 25, 'degats_max_salve': 35}, "Barhamus.png"),
+            ("enemy_brute", t("enemy_shop.brute"), t("enemy_shop.brute_desc"), {'cout_gold': 45, 'armure_max': 280, 'degats_min_salve': 45, 'degats_max_salve': 65}, "Draupnir.png"),
+            ("enemy_shaman", t("enemy_shop.shaman"), t("enemy_shop.shaman_desc"), {'cout_gold': 35, 'armure_max': 90, 'soin': 25}, "Druid.png"),
+            ("enemy_engineer", t("enemy_shop.engineer"), t("enemy_shop.engineer_desc"), {'cout_gold': 32, 'armure_max': 95, 'degats': 5}, "Architect.png")
         ]
         
         for unit_id, name, description, config, sprite_file in units_data:
@@ -157,10 +158,10 @@ class Shop:
         
         # === BÂTIMENTS ENNEMIS ===
         buildings_data = [
-            ("enemy_attack_tower", "Tour d'Attaque", "Tour offensive redoutable", {
+            ("enemy_attack_tower", t("enemy_shop.attack_tower"), t("enemy_shop.attack_tower_desc"), {
                 'cout_gold': 30, 'armure_max': 80, 'radius_action': 9
             }),
-            ("enemy_heal_tower", "Tour de Régénération", "Tour de soutien maléfique", {
+            ("enemy_heal_tower", t("enemy_shop.heal_tower"), t("enemy_shop.heal_tower_desc"), {
                 'cout_gold': 25, 'armure_max': 75, 'radius_action': 6
             })
         ]
@@ -602,7 +603,7 @@ class Shop:
     def _draw_title(self, surface: pygame.Surface):
         """Dessine le titre de la boutique avec style."""
         # Titre principal avec effet d'ombre
-        title_text = "💀 BOUTIQUE FORCES ENNEMIES"
+        title_text = t("enemy_shop.title")
         
         # Ombre du texte
         shadow_surface = self.font_title.render(title_text, True, (0, 0, 0))
@@ -616,8 +617,8 @@ class Shop:
         
         # Sous-titre avec la catégorie actuelle
         category_names = {
-            ShopCategory.UNITS: "Recrutement d'Unités Ennemies",
-            ShopCategory.BUILDINGS: "Construction de Défenses Ennemies"
+            ShopCategory.UNITS: t("enemy_shop.subtitle"),
+            ShopCategory.BUILDINGS: t("shop.buildings")
             # Améliorations temporairement désactivées
         }
         

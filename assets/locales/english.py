@@ -105,4 +105,95 @@ TRANSLATIONS = {
     "tip.39": "All hail the git master",
     "tip.40": "Where we come from, we have a seagull tamer who works in the army.",
     "tip.41": "What do you mean, we tell you more nonsense than tips?",
+    
+    # Shop interface
+    "shop.title": "Shop", 
+    "shop.close": "Close",
+    "shop.units": "Units",
+    "shop.buildings": "Buildings",
+    "shop.upgrades": "Upgrades",
+    "shop.gold": "Gold",
+    "shop.purchase": "Purchase",
+    "shop.purchased": "Purchased!",
+    "shop.insufficient_gold": "Insufficient gold!",
+    "shop.max_quantity": "Maximum quantity reached",
+    
+    # Unit descriptions in shop
+    "shop.zasper_desc": "Fast and versatile scout",
+    "shop.barhamus_desc": "Robust warrior with shield",
+    "shop.draupnir_desc": "Heavy destructive leviathan", 
+    "shop.druid_desc": "Healer and magic support",
+    "shop.architect_desc": "Defense builder",
+    
+    # Building descriptions
+    "shop.defense_tower": "Defense Tower",
+    "shop.defense_tower_desc": "Automatic attack tower",
+    "shop.heal_tower": "Healing Tower",
+    "shop.heal_tower_desc": "Allied regeneration tower",
+    
+    # Action bar interface
+    "actionbar.special_ability": "Special Ability",
+    "actionbar.attack_mode": "Attack",
+    "actionbar.shop": "Shop", 
+    "actionbar.global_attack": "Global Attack",
+    "actionbar.global_defense": "Global Defense",
+    "actionbar.ally": "Ally",
+    "actionbar.enemy": "Enemy",
+    "actionbar.gold": "Gold",
+    "actionbar.health": "Health",
+    "actionbar.mana": "Mana", 
+    "actionbar.position": "Position",
+    "actionbar.cooldown": "Cooldown",
+    
+    # Tooltips
+    "tooltip.special_ability": "Unit's special ability\nHotkey: R",
+    "tooltip.attack_mode": "Attack mode\nHotkey: A",
+    "tooltip.shop": "Open shop\nHotkey: B", 
+    "tooltip.global_attack": "Attack boost for all units\nCost: 50 gold\nDuration: 30s\nHotkey: Q",
+    "tooltip.global_defense": "Defense boost for all units\nCost: 50 gold\nDuration: 30s\nHotkey: E",
+    
+    # Feedback messages
+    "feedback.unit_created": "{} created (camp {})!",
+    "feedback.global_attack_activated": "Global attack activated (visual only)!",
+    "feedback.global_defense_activated": "Global defense activated (visual only)!",
+    "feedback.ability_used": "{} ability used (visual only)!",
+    "feedback.ability_cooldown": "Ability on cooldown: {:.1f}s",
+    "feedback.already_active": "Already active!",
+    "feedback.no_unit_selected": "No unit selected!",
+    
+    # Camps
+    "camp.ally": "Ally",
+    "camp.enemy": "Enemy",
+    
+    # Modes
+    "mode.attack": "Attack",
+    "mode.normal": "Normal",
+    
+    # Enemy shop (boutique2.py)
+    "enemy_shop.title": "💀 ENEMY FORCES SHOP",
+    "enemy_shop.subtitle": "Command your evil troops",
+    "enemy_shop.scout": "Enemy Scout",
+    "enemy_shop.scout_desc": "Fast and aggressive scout",
+    "enemy_shop.warrior": "Enemy Warrior",
+    "enemy_shop.warrior_desc": "Robust and brutal fighter", 
+    "enemy_shop.brute": "Enemy Brute",
+    "enemy_shop.brute_desc": "Heavy destructive unit",
+    "enemy_shop.shaman": "Enemy Shaman",
+    "enemy_shop.shaman_desc": "Healer and evil support",
+    "enemy_shop.engineer": "Enemy Engineer",
+    "enemy_shop.engineer_desc": "Trap constructor",
+    "enemy_shop.attack_tower": "Attack Tower",
+    "enemy_shop.attack_tower_desc": "Formidable offensive tower",
+    "enemy_shop.heal_tower": "Regeneration Tower",
+    "enemy_shop.heal_tower_desc": "Evil support tower",
+    "enemy_shop.attack_boost": "Attack Boost",
+    "enemy_shop.attack_boost_desc": "Increases attack of all units for 30s",
+    "enemy_shop.defense_boost": "Defense Boost", 
+    "enemy_shop.defense_boost_desc": "Increases defense of all units for 30s",
+    "enemy_shop.speed_boost": "Speed Boost",
+    "enemy_shop.speed_boost_desc": "Increases speed of all units for 20s",
+    "enemy_shop.heal_wave": "Healing Wave",
+    "enemy_shop.heal_wave_desc": "Instantly heals all units",
+    "enemy_shop.gold_generator": "Gold Generator",
+    "enemy_shop.gold_generator_desc": "Generates 100 gold pieces immediately",
 }

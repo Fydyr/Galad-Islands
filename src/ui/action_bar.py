@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
 from src.ui.boutique import Shop
+from src.settings.localization import t
 
 # Couleurs de l'interface améliorées
 class UIColors:
@@ -162,30 +163,30 @@ class ActionBar:
             ActionButton(
                 action_type=ActionType.SPECIAL_ABILITY,
                 icon_path="assets/sprites/ui/special_ability.png",
-                text="Capacité Spé.",
+                text=t("actionbar.special_ability"),
                 cost=0,
                 hotkey="R",
                 visible=False,
-                tooltip="Capacité spéciale de l'unité\nRaccourci: R",
+                tooltip=t("tooltip.special_ability"),
                 callback=self._use_special_ability
             ),
             ActionButton(
                 action_type=ActionType.ATTACK_MODE,
                 icon_path="assets/sprites/ui/attack_mode.png",
-                text="Attaque",
+                text=t("actionbar.attack_mode"),
                 cost=0,
                 hotkey="A",
                 visible=False,
-                tooltip="Mode d'attaque\nRaccourci: A",
+                tooltip=t("tooltip.attack_mode"),
                 callback=self._toggle_attack_mode
             ),
             ActionButton(
                 action_type=ActionType.OPEN_SHOP,
                 icon_path="assets/sprites/ui/shop_icon.png",
-                text="Boutique",
+                text=t("actionbar.shop"),
                 cost=0,
                 hotkey="B",
-                tooltip="Ouvrir la boutique\nRaccourci: B",
+                tooltip=t("tooltip.shop"),
                 callback=self._open_shop
             )
         ]
@@ -195,20 +196,20 @@ class ActionBar:
             ActionButton(
                 action_type=ActionType.GLOBAL_ATTACK,
                 icon_path="assets/sprites/ui/global_attack.png",
-                text="Attaque Globale",
+                text=t("actionbar.global_attack"),
                 cost=50,
                 hotkey="Q",
-                tooltip="Boost d'attaque pour toutes les unités\nCoût: 50 or\nDurée: 30s\nRaccourci: Q",
+                tooltip=t("tooltip.global_attack"),
                 is_global=True,
                 callback=self._activate_global_attack
             ),
             ActionButton(
                 action_type=ActionType.GLOBAL_DEFENSE,
                 icon_path="assets/sprites/ui/global_defense.png",
-                text="Défense Globale",
+                text=t("actionbar.global_defense"),
                 cost=50,
                 hotkey="E",
-                tooltip="Boost de défense pour toutes les unités\nCoût: 50 or\nDurée: 30s\nRaccourci: E",
+                tooltip=t("tooltip.global_defense"),
                 is_global=True,
                 callback=self._activate_global_defense
             )
@@ -337,15 +338,15 @@ class ActionBar:
             print(f"[PLACEHOLDER] Coût: {config['cost']} or - Or actuel: {self.player_gold}")
             # Effet visuel temporaire (simulation de création réussie)
             if self.player_gold >= config['cost']:
-                self._show_feedback("success", f"{config['name']} créé (camp {self.current_camp})!")
+                self._show_feedback("success", t("feedback.unit_created").format(config['name'], self.current_camp))
             else:
-                self._show_feedback("warning", "Or insuffisant!")
+                self._show_feedback("warning", t("shop.insufficient_gold"))
         return callback
     
     def _switch_camp(self):
         """Bascule entre les camps ally/enemy (placeholder)."""
         self.current_camp = "enemy" if self.current_camp == "ally" else "ally"
-        camp_name = "Allié" if self.current_camp == "ally" else "Ennemi" 
+        camp_name = t("camp.ally") if self.current_camp == "ally" else t("camp.enemy")
         print(f"[PLACEHOLDER] Changement de camp vers: {camp_name}")
         self._show_feedback("success", f"Camp: {camp_name}")
     
@@ -355,10 +356,10 @@ class ActionBar:
         if not self.global_attack_active:
             self.global_attack_active = True
             self.global_attack_timer = 30.0  # 30 secondes
-            self._show_feedback("success", "Attaque globale activée (visuel uniquement)!")
+            self._show_feedback("success", t("feedback.global_attack_activated"))
             print("[PLACEHOLDER] Effet visuel de buff d'attaque pour 30 secondes")
         else:
-            self._show_feedback("warning", "Déjà actif!")
+            self._show_feedback("warning", t("feedback.already_active"))
     
     def _activate_global_defense(self):
         """Active le boost de défense global (placeholder)."""
@@ -366,10 +367,10 @@ class ActionBar:
         if not self.global_defense_active:
             self.global_defense_active = True
             self.global_defense_timer = 30.0  # 30 secondes
-            self._show_feedback("success", "Défense globale activée (visuel uniquement)!")
+            self._show_feedback("success", t("feedback.global_defense_activated"))
             print("[PLACEHOLDER] Effet visuel de buff de défense pour 30 secondes")
         else:
-            self._show_feedback("warning", "Déjà actif!")
+            self._show_feedback("warning", t("feedback.already_active"))
     
     def _show_feedback(self, type: str, message: str):
         """Affiche un message de feedback."""
@@ -380,13 +381,13 @@ class ActionBar:
         if self.selected_unit:
             print(f"[PLACEHOLDER] Demande d'utilisation de capacité spéciale: {self.selected_unit.unit_type}")
             if self.selected_unit.special_cooldown <= 0:
-                self._show_feedback("success", f"Capacité {self.selected_unit.unit_type} utilisée (visuel uniquement)!")
+                self._show_feedback("success", t("feedback.ability_used").format(self.selected_unit.unit_type))
                 # Simuler un cooldown
                 self.selected_unit.special_cooldown = 5.0
             else:
-                self._show_feedback("warning", f"Capacité en cooldown: {self.selected_unit.special_cooldown:.1f}s")
+                self._show_feedback("warning", t("feedback.ability_cooldown").format(self.selected_unit.special_cooldown))
         else:
-            self._show_feedback("warning", "Aucune unité sélectionnée!")
+            self._show_feedback("warning", t("feedback.no_unit_selected"))
     
     def _open_shop(self):
         """Ouvre ou ferme la boutique."""
@@ -396,7 +397,7 @@ class ActionBar:
         """Bascule le mode d'attaque (placeholder)."""
         old_mode = self.current_mode
         self.current_mode = "attack" if self.current_mode != "attack" else "normal"
-        mode_name = "Attaque" if self.current_mode == "attack" else "Normal"
+        mode_name = t("mode.attack") if self.current_mode == "attack" else t("mode.normal")
         print(f"[PLACEHOLDER] Changement de mode: {old_mode} → {self.current_mode}")
         self._show_feedback("success", f"Mode: {mode_name}")
     
