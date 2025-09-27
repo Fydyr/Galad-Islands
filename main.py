@@ -49,8 +49,13 @@ display_dirty = False
 music_path = os.path.join("assets/sounds", "xDeviruchi-TitleTheme.wav")
 try:
     pygame.mixer.music.load(music_path)
-    pygame.mixer.music.set_volume(0.5)  # Volume à 50%
+    # Utiliser le volume de la configuration
+    music_volume = settings.config_manager.get("volume_music", 0.5)
+    master_volume = settings.config_manager.get("volume_master", 0.8)
+    final_volume = music_volume * master_volume
+    pygame.mixer.music.set_volume(final_volume)
     pygame.mixer.music.play(-1)  # Joue en boucle (-1)
+    print(f"🎵 Musique chargée avec volume: {final_volume:.2f} (musique: {music_volume}, maître: {master_volume})")
 except Exception as e:
     print(t("system.music_load_error", error=e))
 
@@ -63,7 +68,12 @@ except Exception:
 # Chargement du son de sélection
 try:
     select_sound = pygame.mixer.Sound(os.path.join("assets/sounds", "select_sound_2.mp3"))
-    select_sound.set_volume(0.7)
+    # Utiliser le volume des effets de la configuration
+    effects_volume = settings.config_manager.get("volume_effects", 0.7)
+    master_volume = settings.config_manager.get("volume_master", 0.8)
+    final_effects_volume = effects_volume * master_volume
+    select_sound.set_volume(final_effects_volume)
+    print(f"🔊 Son de sélection chargé avec volume: {final_effects_volume:.2f} (effets: {effects_volume}, maître: {master_volume})")
 except Exception as e:
     select_sound = None
     print(t("system.sound_load_error", error=e))
@@ -287,6 +297,26 @@ callbacks = [jouer, options, crédits, aide, scénario, quitter]
 # fonction toggle_borderless() pour usages internes.
 
 
+def update_audio_volumes():
+    """Met à jour les volumes de tous les sons selon la configuration actuelle."""
+    try:
+        music_volume = settings.config_manager.get("volume_music", 0.5)
+        effects_volume = settings.config_manager.get("volume_effects", 0.7)
+        master_volume = settings.config_manager.get("volume_master", 0.8)
+        
+        # Mettre à jour le volume de la musique
+        final_music_volume = music_volume * master_volume
+        pygame.mixer.music.set_volume(final_music_volume)
+        
+        # Mettre à jour le volume du son de sélection
+        if 'select_sound' in globals() and select_sound:
+            final_effects_volume = effects_volume * master_volume
+            select_sound.set_volume(final_effects_volume)
+            
+        print(f"🎚️ Volumes mis à jour - Musique: {final_music_volume:.2f}, Effets: {final_effects_volume:.2f}")
+    except Exception as e:
+        print(f"⚠️ Erreur lors de la mise à jour des volumes: {e}")
+
 def update_button_labels(buttons):
     """Met à jour les labels des boutons avec les traductions actuelles."""
     labels = [
@@ -439,6 +469,11 @@ def main_menu(win=None):
     localization_manager = LocalizationManager()
     current_language = localization_manager.get_current_language()
     
+    # Variables pour tracker les changements de volume
+    current_music_volume = settings.config_manager.get("volume_music", 0.5)
+    current_effects_volume = settings.config_manager.get("volume_effects", 0.7)
+    current_master_volume = settings.config_manager.get("volume_master", 0.8)
+    
     # Variables pour gérer le redimensionnement avec délai
     resize_timer = 0.0
     resize_delay = 0.3  # Attendre 300ms après le dernier resize avant de sauvegarder
@@ -497,6 +532,19 @@ def main_menu(win=None):
                     update_button_labels(buttons)  # Mettre à jour les labels des boutons
                     pygame.display.set_caption(t("system.main_window_title"))  # Mettre à jour le titre de la fenêtre
                     print(f"🌐 Langue changée vers: {current_language}")
+                
+                # Détecter les changements de volume depuis les options
+                new_music_volume = settings.config_manager.get("volume_music", 0.5)
+                new_effects_volume = settings.config_manager.get("volume_effects", 0.7)
+                new_master_volume = settings.config_manager.get("volume_master", 0.8)
+                
+                if (new_music_volume != current_music_volume or 
+                    new_effects_volume != current_effects_volume or 
+                    new_master_volume != current_master_volume):
+                    current_music_volume = new_music_volume
+                    current_effects_volume = new_effects_volume
+                    current_master_volume = new_master_volume
+                    update_audio_volumes()
             except Exception:
                 pass
             # Appliquer les changements d'affichage demandés de manière atomique
