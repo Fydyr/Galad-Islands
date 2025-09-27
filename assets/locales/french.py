@@ -105,4 +105,95 @@ TRANSLATIONS = {
     "tip.39": "All hail the git master",
     "tip.40": "La d'où on vient, on a un dompteur de goéland qui travaille dans l'armée.",
     "tip.41": "Comment ça, on vous dit plus de bétises que d'astuces ?",
+    
+    # Interface boutique
+    "shop.title": "Boutique",
+    "shop.close": "Fermer",
+    "shop.units": "Unités",
+    "shop.buildings": "Bâtiments", 
+    "shop.upgrades": "Améliorations",
+    "shop.gold": "Or",
+    "shop.purchase": "Acheter",
+    "shop.purchased": "Acheté !",
+    "shop.insufficient_gold": "Or insuffisant !",
+    "shop.max_quantity": "Quantité maximale atteinte",
+    
+    # Descriptions des unités dans la boutique
+    "shop.zasper_desc": "Scout rapide et polyvalent",
+    "shop.barhamus_desc": "Guerrier robuste avec bouclier", 
+    "shop.draupnir_desc": "Léviathan lourd destructeur",
+    "shop.druid_desc": "Soigneur et support magique",
+    "shop.architect_desc": "Constructeur de défenses",
+    
+    # Descriptions des bâtiments
+    "shop.defense_tower": "Tour de Défense",
+    "shop.defense_tower_desc": "Tour d'attaque automatique",
+    "shop.heal_tower": "Tour de Soin", 
+    "shop.heal_tower_desc": "Tour de régénération alliée",
+    
+    # Interface barre d'action
+    "actionbar.special_ability": "Capacité Spé.",
+    "actionbar.attack_mode": "Attaque", 
+    "actionbar.shop": "Boutique",
+    "actionbar.global_attack": "Attaque Globale",
+    "actionbar.global_defense": "Défense Globale",
+    "actionbar.ally": "Allié",
+    "actionbar.enemy": "Ennemi",
+    "actionbar.gold": "Or",
+    "actionbar.health": "Vie",
+    "actionbar.mana": "Mana",
+    "actionbar.position": "Position",
+    "actionbar.cooldown": "Rechargement",
+    
+    # Tooltips
+    "tooltip.special_ability": "Capacité spéciale de l'unité\nRaccourci: R",
+    "tooltip.attack_mode": "Mode d'attaque\nRaccourci: A", 
+    "tooltip.shop": "Ouvrir la boutique\nRaccourci: B",
+    "tooltip.global_attack": "Boost d'attaque pour toutes les unités\nCoût: 50 or\nDurée: 30s\nRaccourci: Q",
+    "tooltip.global_defense": "Boost de défense pour toutes les unités\nCoût: 50 or\nDurée: 30s\nRaccourci: E",
+    
+    # Messages de feedback
+    "feedback.unit_created": "{} créé (camp {})!",
+    "feedback.global_attack_activated": "Attaque globale activée (visuel uniquement)!",
+    "feedback.global_defense_activated": "Défense globale activée (visuel uniquement)!",
+    "feedback.ability_used": "Capacité {} utilisée (visuel uniquement)!",
+    "feedback.ability_cooldown": "Capacité en cooldown: {:.1f}s",
+    "feedback.already_active": "Déjà actif!",
+    "feedback.no_unit_selected": "Aucune unité sélectionnée!",
+    
+    # Camps
+    "camp.ally": "Allié",
+    "camp.enemy": "Ennemi",
+    
+    # Modes
+    "mode.attack": "Attaque",
+    "mode.normal": "Normal",
+    
+    # Boutique ennemie (boutique2.py)
+    "enemy_shop.title": "💀 BOUTIQUE FORCES ENNEMIES",
+    "enemy_shop.subtitle": "Commandez vos troupes maléfiques",
+    "enemy_shop.scout": "Éclaireur Ennemi",
+    "enemy_shop.scout_desc": "Scout rapide et agressif",
+    "enemy_shop.warrior": "Guerrier Ennemi", 
+    "enemy_shop.warrior_desc": "Combattant robuste et brutal",
+    "enemy_shop.brute": "Brute Ennemie",
+    "enemy_shop.brute_desc": "Unité lourde destructrice",
+    "enemy_shop.shaman": "Chaman Ennemi",
+    "enemy_shop.shaman_desc": "Soigneur et soutien maléfique",
+    "enemy_shop.engineer": "Ingénieur Ennemi",
+    "enemy_shop.engineer_desc": "Constructeur de pièges",
+    "enemy_shop.attack_tower": "Tour d'Attaque",
+    "enemy_shop.attack_tower_desc": "Tour offensive redoutable",
+    "enemy_shop.heal_tower": "Tour de Régénération", 
+    "enemy_shop.heal_tower_desc": "Tour de soutien maléfique",
+    "enemy_shop.attack_boost": "Boost d'Attaque",
+    "enemy_shop.attack_boost_desc": "Augmente l'attaque de toutes les unités pendant 30s",
+    "enemy_shop.defense_boost": "Boost de Défense",
+    "enemy_shop.defense_boost_desc": "Augmente la défense de toutes les unités pendant 30s",
+    "enemy_shop.speed_boost": "Boost de Vitesse",
+    "enemy_shop.speed_boost_desc": "Augmente la vitesse de toutes les unités pendant 20s",
+    "enemy_shop.heal_wave": "Vague de Soin",
+    "enemy_shop.heal_wave_desc": "Soigne instantanément toutes les unités",
+    "enemy_shop.gold_generator": "Générateur d'Or",
+    "enemy_shop.gold_generator_desc": "Génère 100 pièces d'or immédiatement",
 }
