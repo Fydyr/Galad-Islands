@@ -4,6 +4,7 @@ import os
 from typing import Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
+from src.settings.localization import t
 
 # Import des couleurs depuis action-bar.py
 class UIColors:
@@ -124,24 +125,24 @@ class Shop:
         
         # === UNITÉS ===
         units_data = [
-            ("zasper", "Zasper", "Scout rapide et polyvalent", {'cout_gold': 10, 'armure_max': 60, 'degats_min': 10, 'degats_max': 15}),
-            ("barhamus", "Barhamus", "Guerrier robuste avec bouclier", {'cout_gold': 20, 'armure_max': 130, 'degats_min_salve': 20, 'degats_max_salve': 30}),
-            ("draupnir", "Draupnir", "Léviathan lourd destructeur", {'cout_gold': 40, 'armure_max': 300, 'degats_min_salve': 40, 'degats_max_salve': 60}),
-            ("druid", "Druid", "Soigneur et support magique", {'cout_gold': 30, 'armure_max': 100, 'soin': 20}),
-            ("architect", "Architect", "Constructeur de défenses", {'cout_gold': 30, 'armure_max': 100, 'degats': 0})
+            ("zasper", t("units.zasper"), t("shop.zasper_desc"), {'cout_gold': 10, 'armure_max': 60, 'degats_min': 10, 'degats_max': 15}),
+            ("barhamus", t("units.barhamus"), t("shop.barhamus_desc"), {'cout_gold': 20, 'armure_max': 130, 'degats_min_salve': 20, 'degats_max_salve': 30}),
+            ("draupnir", t("units.draupnir"), t("shop.draupnir_desc"), {'cout_gold': 40, 'armure_max': 300, 'degats_min_salve': 40, 'degats_max_salve': 60}),
+            ("druid", t("units.druid"), t("shop.druid_desc"), {'cout_gold': 30, 'armure_max': 100, 'soin': 20}),
+            ("architect", t("units.architect"), t("shop.architect_desc"), {'cout_gold': 30, 'armure_max': 100, 'degats': 0})
         ]
         
         for unit_id, name, description, config in units_data:
             # Description plus courte et formatée
-            short_desc = f"Vie: {config.get('armure_max', 'N/A')}"
+            short_desc = f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')}"
             if config.get('degats_min'):
-                short_desc += f" | ATK: {config.get('degats_min')}-{config.get('degats_max', config.get('degats_min'))}"
+                short_desc += f" | {t('shop.stats.attack')}: {config.get('degats_min')}-{config.get('degats_max', config.get('degats_min'))}"
             elif config.get('degats_min_salve'):
-                short_desc += f" | ATK: {config.get('degats_min_salve')}-{config.get('degats_max_salve')}"
+                short_desc += f" | {t('shop.stats.attack')}: {config.get('degats_min_salve')}-{config.get('degats_max_salve')}"
             elif config.get('soin'):
-                short_desc += f" | SOIN: {config.get('soin')}"
+                short_desc += f" | {t('shop.stats.heal')}: {config.get('soin')}"
             else:
-                short_desc += " | SUPPORT"
+                short_desc += f" | {t('shop.stats.support')}"
             
             item = ShopItem(
                 id=unit_id,
@@ -157,16 +158,16 @@ class Shop:
         
         # === BÂTIMENTS ===
         buildings_data = [
-            ("defense_tower", "Tour de Défense", "Tour d'attaque automatique", {
+            ("defense_tower", t("shop.defense_tower"), t("shop.defense_tower_desc"), {
                 'cout_gold': 25, 'armure_max': 70, 'radius_action': 8
             }),
-            ("heal_tower", "Tour de Soin", "Tour de régénération alliée", {
+            ("heal_tower", t("shop.heal_tower"), t("shop.heal_tower_desc"), {
                 'cout_gold': 20, 'armure_max': 70, 'radius_action': 5
             })
         ]
         
         for building_id, name, description, config in buildings_data:
-            short_desc = f"Vie: {config.get('armure_max', 'N/A')} | Portée: {config.get('radius_action', 'N/A')}"
+            short_desc = f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')} | {t('shop.stats.range')}: {config.get('radius_action', 'N/A')}"
             
             # Mapping correct des noms de fichiers
             icon_mapping = {
@@ -437,7 +438,7 @@ class Shop:
                 if self._can_purchase_item(item):
                     self._purchase_item(item)
                 else:
-                    self._show_purchase_feedback("Impossible d'acheter cet item!", False)
+                    self._show_purchase_feedback(t("shop.cannot_purchase"), False)
                 return True
         
         return True
@@ -601,8 +602,8 @@ class Shop:
     
     def _draw_title(self, surface: pygame.Surface):
         """Dessine le titre de la boutique avec style."""
-        # Titre principal avec effet d'ombre
-        title_text = "🏪 BOUTIQUE GALAD ISLANDS"
+        # Titre principal avec effet d'ombre - traduit
+        title_text = f"🏪 {t('shop.title').upper()} GALAD ISLANDS"
         
         # Ombre du texte
         shadow_surface = self.font_title.render(title_text, True, (0, 0, 0))
@@ -616,8 +617,8 @@ class Shop:
         
         # Sous-titre avec la catégorie actuelle
         category_names = {
-            ShopCategory.UNITS: "Recrutement d'Unités",
-            ShopCategory.BUILDINGS: "Construction de Bâtiments"
+            ShopCategory.UNITS: t("shop.category_units"),
+            ShopCategory.BUILDINGS: t("shop.category_buildings")
             # Améliorations temporairement désactivées
         }
         
@@ -664,7 +665,7 @@ class Shop:
         tab_rects = self._get_tab_rects()
         # Seulement les catégories disponibles (Units et Buildings)
         categories = [ShopCategory.UNITS, ShopCategory.BUILDINGS]
-        tab_names = ["Unités", "Bâtiments"]  # Texte simple
+        tab_names = [t("shop.units"), t("shop.buildings")]  # Texte traduit
         tab_icon_keys = ["units", "buildings"]  # Clés pour les icônes
         
         for i, (rect, category, name, icon_key) in enumerate(zip(tab_rects, categories, tab_names, tab_icon_keys)):
@@ -759,11 +760,11 @@ class Shop:
             surface.blit(gold_icon_surface, (icon_x, icon_y))
             
             # Texte sans emoji
-            gold_text = f"{self.player_gold} pièces d'or"
+            gold_text = f"{self.player_gold} {t('shop.gold_pieces')}"
             text_x_offset = 35  # Décalage pour laisser place à l'icône
         else:
             # Fallback avec emoji
-            gold_text = f"💰 {self.player_gold} pièces d'or"
+            gold_text = f"💰 {self.player_gold} {t('shop.gold_pieces')}"
             text_x_offset = 0
         
         # Position du texte ajustée
@@ -905,13 +906,13 @@ class Shop:
         # Indication si pas achetable (coin inférieur droit)
         if not can_purchase:
             if self.player_gold < item.cost:
-                error_text = "Or insuffisant"
+                error_text = t("shop.insufficient_gold")
                 error_color = UIColors.PURCHASE_ERROR
             elif item.max_quantity > 0 and item.current_quantity >= item.max_quantity:
-                error_text = "Max atteint"
+                error_text = t("shop.max_quantity")
                 error_color = UIColors.PURCHASE_ERROR
             else:
-                error_text = "Indisponible"
+                error_text = t("shop.unavailable")
                 error_color = UIColors.TEXT_DISABLED
             
             error_surface = self.font_tiny.render(error_text, True, error_color)
