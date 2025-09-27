@@ -13,7 +13,7 @@ import setup.setup_team_hooks as setup_hooks # Assure que les hooks sont install
 from src.functions.afficherModale import afficher_modale
 from src.functions.optionsWindow import show_options_window
 from src.settings.localization import t, get_random_tip
-from src.settings.localization import t
+from src.settings.localization import LocalizationManager
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 
 
@@ -287,6 +287,20 @@ callbacks = [jouer, options, crédits, aide, scénario, quitter]
 # fonction toggle_borderless() pour usages internes.
 
 
+def update_button_labels(buttons):
+    """Met à jour les labels des boutons avec les traductions actuelles."""
+    labels = [
+        t("menu.play"),
+        t("menu.options"), 
+        t("menu.credits"),
+        t("menu.help"),
+        t("menu.scenario"),
+        t("menu.quit")
+    ]
+    for i, btn in enumerate(buttons):
+        if i < len(labels):
+            btn.text = labels[i]
+
 def update_layout(screen_width, screen_height, buttons, borderless_button):
     """
     Met à jour les positions et tailles de tous les éléments d'interface.
@@ -421,6 +435,10 @@ def main_menu(win=None):
     layout_dirty = False
     last_screen_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
     
+    # Variable pour tracker les changements de langue
+    localization_manager = LocalizationManager()
+    current_language = localization_manager.get_current_language()
+    
     # Variables pour gérer le redimensionnement avec délai
     resize_timer = 0.0
     resize_delay = 0.3  # Attendre 300ms après le dernier resize avant de sauvegarder
@@ -470,6 +488,15 @@ def main_menu(win=None):
                     SCREEN_WIDTH, SCREEN_HEIGHT = current_settings_resolution
                     display_dirty = True
                     print(f"🔄 Résolution détectée depuis options: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+                
+                # Détecter les changements de langue depuis les options
+                new_language = localization_manager.get_current_language()
+                if new_language != current_language:
+                    current_language = new_language
+                    current_tip = get_random_tip()  # Mettre à jour l'astuce avec la nouvelle langue
+                    update_button_labels(buttons)  # Mettre à jour les labels des boutons
+                    pygame.display.set_caption(t("system.main_window_title"))  # Mettre à jour le titre de la fenêtre
+                    print(f"🌐 Langue changée vers: {current_language}")
             except Exception:
                 pass
             # Appliquer les changements d'affichage demandés de manière atomique
