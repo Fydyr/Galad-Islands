@@ -52,7 +52,7 @@ try:
     pygame.mixer.music.set_volume(0.5)  # Volume à 50%
     pygame.mixer.music.play(-1)  # Joue en boucle (-1)
 except Exception as e:
-    print(f"Impossible de charger la musique: {e}")
+    print(t("system.music_load_error", error=e))
 
 # Chargement du logo (remplacez le chemin par le bon fichier si besoin)
 try:
@@ -66,7 +66,7 @@ try:
     select_sound.set_volume(0.7)
 except Exception as e:
     select_sound = None
-    print(f"Impossible de charger le son de sélection: {e}")
+    print(t("system.sound_load_error", error=e))
 
 
 
@@ -225,7 +225,7 @@ def jouer():
     game(current_surface, bg_original=bg_original, select_sound=select_sound)
 
 def options():
-    print("Menu des options")
+    print(t("system.options_menu"))
     # Afficher la modale des options en Pygame (synchrone)
     show_options_window()
 
@@ -355,7 +355,7 @@ def main_menu(win=None):
             if sys.platform != "win32":
                 os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
             win = pygame.display.set_mode((screen_w, screen_h), pygame.RESIZABLE)
-        pygame.display.set_caption("Galad Islands - Menu Principal")
+        pygame.display.set_caption(t("system.main_window_title"))
         created_local_window = True
 
     # Dimensions initiales
@@ -585,7 +585,7 @@ def main_menu(win=None):
                             break
                 if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                     if pressed_btn and pressed_btn.rect.collidepoint(mouse_pos):
-                        if pressed_btn.text == "Quitter":
+                        if pressed_btn.text == t("menu.quit"):
                             running = False
                         else:
                             pressed_btn.click(mouse_pos)
@@ -600,7 +600,7 @@ def main_menu(win=None):
             pygame.display.update()
             # clock.tick(60) déjà appelé au début de la boucle pour dt
     except Exception as e:
-        print(f"Erreur dans la boucle principale: {e}")
+        print(t("system.main_loop_error", error=e))
         import traceback
         traceback.print_exc()
     finally:

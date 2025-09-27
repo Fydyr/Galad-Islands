@@ -13,6 +13,7 @@ from src.components.properties.spriteComponent import SpriteComponent
 from src.components.properties.playerSelectedComponent import PlayerSelectedComponent
 from src.components.properties.teamComponent import TeamComponent
 from src.components.properties.playerComponent import PlayerComponent
+from src.settings.localization import t
 from src.components.properties.radiusComponent import RadiusComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.healthComponent import HealthComponent
@@ -30,14 +31,14 @@ def game(window=None, bg_original=None, select_sound=None):
     """
     running = True
 
-    print("Lancement du jeu...")
+    print(t("system.game_launched"))
 
     pygame.init()
     created_local_window = False
     # Si aucune surface n'est fournie, créer une nouvelle fenêtre dédiée à la map
     if window is None:
         window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE))
-        pygame.display.set_caption("Galad Islands - Carte")
+        pygame.display.set_caption(t("system.game_window_title"))
         created_local_window = True
 
     clock = pygame.time.Clock()
@@ -113,15 +114,15 @@ def game(window=None, bg_original=None, select_sound=None):
                 # Si on a créé une fenêtre locale pour la map, restaurer une fenêtre menu
                 if created_local_window:
                     pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
-                    pygame.display.set_caption("Galad Islands - Menu Principal")
+                    pygame.display.set_caption(t("system.main_window_title"))
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
                     if created_local_window:
                         pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
-                        pygame.display.set_caption("Galad Islands - Menu Principal")
+                        pygame.display.set_caption(t("system.main_window_title"))
                 elif event.key == pygame.K_F1:
-                    afficher_modale("Aide", "assets/docs/help.md", bg_original=bg_original, select_sound=select_sound)
+                    afficher_modale(t("debug.help_modal_title"), "assets/docs/help.md", bg_original=bg_original, select_sound=select_sound)
                 elif event.key == pygame.K_F3:
                     show_debug = not show_debug
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -169,11 +170,11 @@ def update_screen(window, grid, images, camera, show_debug, dt, action_bar=None)
     if show_debug:
         font = pygame.font.Font(None, 36)
         debug_info = [
-            f"Caméra: ({camera.x:.1f}, {camera.y:.1f})",
-            f"Zoom: {camera.zoom:.2f}x",
-            f"Taille tuile: {TILE_SIZE}px",
-            f"Résolution: {window.get_width()}x{window.get_height()}",
-            f"FPS: {1/dt if dt > 0 else 0:.1f}"
+            t("debug.camera_position", x=camera.x, y=camera.y),
+            t("debug.zoom_level", zoom=camera.zoom),
+            t("debug.tile_size", size=TILE_SIZE),
+            t("debug.resolution", width=window.get_width(), height=window.get_height()),
+            t("debug.fps", fps=1/dt if dt > 0 else 0)
         ]
         for i, info in enumerate(debug_info):
             text_surface = font.render(info, True, (255, 255, 255))
