@@ -11,6 +11,7 @@ class MovementProcessor(esper.Processor):
     
     - Les troupes sont bloquées aux limites de la carte
     - Les projectiles sont supprimés quand ils atteignent les limites
+    - Prend en compte les modificateurs de terrain (nuages, îles, etc.)
     """
 
     def __init__(self):
@@ -24,10 +25,18 @@ class MovementProcessor(esper.Processor):
 
     def process(self):
         for ent, (vel, pos) in esper.get_components(Velocity, Position):
-            if vel.currentSpeed != 0:
-                # Calcul de la nouvelle position
-                new_x = pos.x - vel.currentSpeed * cos(radians(pos.direction))
-                new_y = pos.y - vel.currentSpeed * sin(radians(pos.direction))
+            # Calculer la vitesse effective d'abord
+            effective_speed = 0
+            if vel.currentSpeed > 0:
+                effective_speed = vel.currentSpeed * vel.terrain_modifier
+                print(f"Debug Movement: Speed={vel.currentSpeed}, Modifier={vel.terrain_modifier}, Effective={effective_speed}")
+            
+            # Ne bouger que si la vitesse effective > 0
+            if effective_speed > 0:
+                # Calculer la nouvelle position avec la vitesse effective
+                direction_rad = radians(pos.direction)
+                new_x = pos.x - effective_speed * cos(direction_rad)
+                new_y = pos.y - effective_speed * sin(direction_rad)
                 
                 # Vérifier si c'est un projectile
                 is_projectile = esper.has_component(ent, ProjectileComponent)
@@ -45,13 +54,16 @@ class MovementProcessor(esper.Processor):
                     # Pour les troupes : contraindre la position et arrêter si nécessaire
                     constrained_x, constrained_y = self._constrain_position(new_x, new_y)
                     
-                    # Si la position a été contrainte, arrêter le mouvement
+                    # Si la position a été contrainte par les limites de la carte, arrêter le mouvement
                     if constrained_x != new_x or constrained_y != new_y:
                         vel.currentSpeed = 0.0
+                        # Réinitialiser le modificateur de terrain si arrêté par les limites
+                        vel.terrain_modifier = 1.0
                     
                     # Appliquer la position contrainte
                     pos.x = constrained_x
                     pos.y = constrained_y
+            # Si effective_speed est 0, le vaisseau ne bouge pas
 
     def _is_out_of_bounds(self, x: float, y: float) -> bool:
         """
