@@ -134,15 +134,15 @@ class Shop:
         
         for unit_id, name, description, config in units_data:
             # Description plus courte et formatée
-            short_desc = f"Vie: {config.get('armure_max', 'N/A')}"
+            short_desc = f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')}"
             if config.get('degats_min'):
-                short_desc += f" | ATK: {config.get('degats_min')}-{config.get('degats_max', config.get('degats_min'))}"
+                short_desc += f" | {t('shop.stats.attack')}: {config.get('degats_min')}-{config.get('degats_max', config.get('degats_min'))}"
             elif config.get('degats_min_salve'):
-                short_desc += f" | ATK: {config.get('degats_min_salve')}-{config.get('degats_max_salve')}"
+                short_desc += f" | {t('shop.stats.attack')}: {config.get('degats_min_salve')}-{config.get('degats_max_salve')}"
             elif config.get('soin'):
-                short_desc += f" | SOIN: {config.get('soin')}"
+                short_desc += f" | {t('shop.stats.heal')}: {config.get('soin')}"
             else:
-                short_desc += " | SUPPORT"
+                short_desc += f" | {t('shop.stats.support')}"
             
             item = ShopItem(
                 id=unit_id,
@@ -167,7 +167,7 @@ class Shop:
         ]
         
         for building_id, name, description, config in buildings_data:
-            short_desc = f"Vie: {config.get('armure_max', 'N/A')} | Portée: {config.get('radius_action', 'N/A')}"
+            short_desc = f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')} | {t('shop.stats.range')}: {config.get('radius_action', 'N/A')}"
             
             # Mapping correct des noms de fichiers
             icon_mapping = {
@@ -438,7 +438,7 @@ class Shop:
                 if self._can_purchase_item(item):
                     self._purchase_item(item)
                 else:
-                    self._show_purchase_feedback("Impossible d'acheter cet item!", False)
+                    self._show_purchase_feedback(t("shop.cannot_purchase"), False)
                 return True
         
         return True
@@ -617,8 +617,8 @@ class Shop:
         
         # Sous-titre avec la catégorie actuelle
         category_names = {
-            ShopCategory.UNITS: "Recrutement d'Unités",
-            ShopCategory.BUILDINGS: "Construction de Bâtiments"
+            ShopCategory.UNITS: t("shop.category_units"),
+            ShopCategory.BUILDINGS: t("shop.category_buildings")
             # Améliorations temporairement désactivées
         }
         
@@ -760,11 +760,11 @@ class Shop:
             surface.blit(gold_icon_surface, (icon_x, icon_y))
             
             # Texte sans emoji
-            gold_text = f"{self.player_gold} pièces d'or"
+            gold_text = f"{self.player_gold} {t('shop.gold_pieces')}"
             text_x_offset = 35  # Décalage pour laisser place à l'icône
         else:
             # Fallback avec emoji
-            gold_text = f"💰 {self.player_gold} pièces d'or"
+            gold_text = f"💰 {self.player_gold} {t('shop.gold_pieces')}"
             text_x_offset = 0
         
         # Position du texte ajustée
