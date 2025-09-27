@@ -912,7 +912,7 @@ class Shop:
                 error_text = t("shop.max_quantity")
                 error_color = UIColors.PURCHASE_ERROR
             else:
-                error_text = "Indisponible"
+                error_text = t("shop.unavailable")
                 error_color = UIColors.TEXT_DISABLED
             
             error_surface = self.font_tiny.render(error_text, True, error_color)
