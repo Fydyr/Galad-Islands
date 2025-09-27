@@ -8,7 +8,14 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from src.settings.localization import t, set_language, get_current_language, get_available_languages, get_all_tips, get_random_tip
+from src.settings.localization import (
+    t,
+    set_language,
+    get_current_language,
+    get_available_languages,
+    get_all_tips,
+    get_random_tip,
+)
 
 def test_tips_translation():
     print("=== Test des tips traduites ===")
