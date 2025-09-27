@@ -4,6 +4,7 @@ import os
 from typing import Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
+from src.settings.localization import t
 
 # Import des couleurs pour l'interface ennemie
 class UIColors:
@@ -124,24 +125,24 @@ class Shop:
         
         # === UNITÉS ENNEMIES ===
         units_data = [
-            ("enemy_scout", "Éclaireur Ennemi", "Scout rapide et agressif", {'cout_gold': 12, 'armure_max': 50, 'degats_min': 12, 'degats_max': 18}, "Zasper.png"),
-            ("enemy_warrior", "Guerrier Ennemi", "Combattant robuste et brutal", {'cout_gold': 25, 'armure_max': 120, 'degats_min_salve': 25, 'degats_max_salve': 35}, "Barhamus.png"),
-            ("enemy_brute", "Brute Ennemie", "Unité lourde destructrice", {'cout_gold': 45, 'armure_max': 280, 'degats_min_salve': 45, 'degats_max_salve': 65}, "Draupnir.png"),
-            ("enemy_shaman", "Chaman Ennemi", "Soigneur et soutien maléfique", {'cout_gold': 35, 'armure_max': 90, 'soin': 25}, "Druid.png"),
-            ("enemy_engineer", "Ingénieur Ennemi", "Constructeur de pièges", {'cout_gold': 32, 'armure_max': 95, 'degats': 5}, "Architect.png")
+            ("enemy_scout", t("enemy_shop.scout"), t("enemy_shop.scout_desc"), {'cout_gold': 12, 'armure_max': 50, 'degats_min': 12, 'degats_max': 18}, "Zasper.png"),
+            ("enemy_warrior", t("enemy_shop.warrior"), t("enemy_shop.warrior_desc"), {'cout_gold': 25, 'armure_max': 120, 'degats_min_salve': 25, 'degats_max_salve': 35}, "Barhamus.png"),
+            ("enemy_brute", t("enemy_shop.brute"), t("enemy_shop.brute_desc"), {'cout_gold': 45, 'armure_max': 280, 'degats_min_salve': 45, 'degats_max_salve': 65}, "Draupnir.png"),
+            ("enemy_shaman", t("enemy_shop.shaman"), t("enemy_shop.shaman_desc"), {'cout_gold': 35, 'armure_max': 90, 'soin': 25}, "Druid.png"),
+            ("enemy_engineer", t("enemy_shop.engineer"), t("enemy_shop.engineer_desc"), {'cout_gold': 32, 'armure_max': 95, 'degats': 5}, "Architect.png")
         ]
         
         for unit_id, name, description, config, sprite_file in units_data:
             # Description plus courte et formatée
-            short_desc = f"Vie: {config.get('armure_max', 'N/A')}"
+            short_desc = f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')}"
             if config.get('degats_min'):
-                short_desc += f" | ATK: {config.get('degats_min')}-{config.get('degats_max', config.get('degats_min'))}"
+                short_desc += f" | {t('shop.stats.attack')}: {config.get('degats_min')}-{config.get('degats_max', config.get('degats_min'))}"
             elif config.get('degats_min_salve'):
-                short_desc += f" | ATK: {config.get('degats_min_salve')}-{config.get('degats_max_salve')}"
+                short_desc += f" | {t('shop.stats.attack')}: {config.get('degats_min_salve')}-{config.get('degats_max_salve')}"
             elif config.get('soin'):
-                short_desc += f" | SOIN: {config.get('soin')}"
+                short_desc += f" | {t('shop.stats.heal')}: {config.get('soin')}"
             else:
-                short_desc += " | SUPPORT"
+                short_desc += f" | {t('shop.stats.support')}"
             
             item = ShopItem(
                 id=unit_id,
@@ -157,16 +158,16 @@ class Shop:
         
         # === BÂTIMENTS ENNEMIS ===
         buildings_data = [
-            ("enemy_attack_tower", "Tour d'Attaque", "Tour offensive redoutable", {
+            ("enemy_attack_tower", t("enemy_shop.attack_tower"), t("enemy_shop.attack_tower_desc"), {
                 'cout_gold': 30, 'armure_max': 80, 'radius_action': 9
             }),
-            ("enemy_heal_tower", "Tour de Régénération", "Tour de soutien maléfique", {
+            ("enemy_heal_tower", t("enemy_shop.heal_tower"), t("enemy_shop.heal_tower_desc"), {
                 'cout_gold': 25, 'armure_max': 75, 'radius_action': 6
             })
         ]
         
         for building_id, name, description, config in buildings_data:
-            short_desc = f"Vie: {config.get('armure_max', 'N/A')} | Portée: {config.get('radius_action', 'N/A')}"
+            short_desc = f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')} | {t('shop.stats.range')}: {config.get('radius_action', 'N/A')}"
             
             # Mapping correct des noms de fichiers ennemis
             icon_mapping = {
@@ -437,7 +438,7 @@ class Shop:
                 if self._can_purchase_item(item):
                     self._purchase_item(item)
                 else:
-                    self._show_purchase_feedback("Impossible d'acheter cet item!", False)
+                    self._show_purchase_feedback(t("shop.cannot_purchase"), False)
                 return True
         
         return True
@@ -602,7 +603,7 @@ class Shop:
     def _draw_title(self, surface: pygame.Surface):
         """Dessine le titre de la boutique avec style."""
         # Titre principal avec effet d'ombre
-        title_text = "💀 BOUTIQUE FORCES ENNEMIES"
+        title_text = t("enemy_shop.title")
         
         # Ombre du texte
         shadow_surface = self.font_title.render(title_text, True, (0, 0, 0))
@@ -616,8 +617,8 @@ class Shop:
         
         # Sous-titre avec la catégorie actuelle
         category_names = {
-            ShopCategory.UNITS: "Recrutement d'Unités Ennemies",
-            ShopCategory.BUILDINGS: "Construction de Défenses Ennemies"
+            ShopCategory.UNITS: t("enemy_shop.subtitle"),
+            ShopCategory.BUILDINGS: t("shop.buildings")
             # Améliorations temporairement désactivées
         }
         
@@ -664,7 +665,7 @@ class Shop:
         tab_rects = self._get_tab_rects()
         # Seulement les catégories disponibles (Units et Buildings)
         categories = [ShopCategory.UNITS, ShopCategory.BUILDINGS]
-        tab_names = ["Unités", "Bâtiments"]  # Texte simple
+        tab_names = [t("shop.units"), t("shop.buildings")]  # Texte traduit
         tab_icon_keys = ["units", "buildings"]  # Clés pour les icônes
         
         for i, (rect, category, name, icon_key) in enumerate(zip(tab_rects, categories, tab_names, tab_icon_keys)):
@@ -759,11 +760,11 @@ class Shop:
             surface.blit(gold_icon_surface, (icon_x, icon_y))
             
             # Texte sans emoji
-            gold_text = f"{self.player_gold} pièces d'or"
+            gold_text = f"{self.player_gold} {t('shop.gold_pieces')}"
             text_x_offset = 35  # Décalage pour laisser place à l'icône
         else:
             # Fallback avec emoji
-            gold_text = f"💰 {self.player_gold} pièces d'or"
+            gold_text = f"💰 {self.player_gold} {t('shop.gold_pieces')}"
             text_x_offset = 0
         
         # Position du texte ajustée
@@ -905,13 +906,13 @@ class Shop:
         # Indication si pas achetable (coin inférieur droit)
         if not can_purchase:
             if self.player_gold < item.cost:
-                error_text = "Or insuffisant"
+                error_text = t("shop.insufficient_gold")
                 error_color = UIColors.PURCHASE_ERROR
             elif item.max_quantity > 0 and item.current_quantity >= item.max_quantity:
-                error_text = "Max atteint"
+                error_text = t("shop.max_quantity")
                 error_color = UIColors.PURCHASE_ERROR
             else:
-                error_text = "Indisponible"
+                error_text = t("shop.unavailable")
                 error_color = UIColors.TEXT_DISABLED
             
             error_surface = self.font_tiny.render(error_text, True, error_color)
