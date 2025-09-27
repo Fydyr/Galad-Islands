@@ -165,6 +165,7 @@ TRANSLATIONS = {
     # Camps
     "camp.ally": "Ally",
     "camp.enemy": "Enemy",
+    "camp.tooltip": "Current camp: {camp}\nClick to change\nShortcut: T",
     
     # Modes
     "mode.attack": "Attack",

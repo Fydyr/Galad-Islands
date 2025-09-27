@@ -430,8 +430,8 @@ class ActionBar:
         # Bouton de camp
         if self.camp_button_rect and self.camp_button_rect.collidepoint(mouse_pos):
             self.hovered_camp_button = True
-            camp_name = "Allié" if self.current_camp == "ally" else "Ennemi"
-            self.tooltip_text = f"Camp actuel: {camp_name}\nCliquer pour changer\nRaccourci: T"
+            camp_name = t("camp.ally") if self.current_camp == "ally" else t("camp.enemy")
+            self.tooltip_text = t("camp.tooltip", camp=camp_name)
             return
         
         # Boutons normaux
@@ -638,7 +638,7 @@ class ActionBar:
         pygame.draw.rect(surface, border_color, self.camp_button_rect, 2)
         
         # Texte du camp
-        camp_text = "Allié" if self.current_camp == "ally" else "Ennemi"
+        camp_text = t("camp.ally") if self.current_camp == "ally" else t("camp.enemy")
         text_surface = self.font_normal.render(camp_text, True, UIColors.TEXT_NORMAL)
         text_rect = text_surface.get_rect(center=self.camp_button_rect.center)
         surface.blit(text_surface, text_rect)
