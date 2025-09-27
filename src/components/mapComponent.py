@@ -403,7 +403,7 @@ def map():
     
     # Utiliser la résolution d'écran définie dans settings
     window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Galad Islands - Carte")
+    pygame.display.set_caption(t("game.map_title"))
     
     game_state = init_game_map(SCREEN_WIDTH, SCREEN_HEIGHT)
     

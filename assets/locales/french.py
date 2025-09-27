@@ -61,6 +61,7 @@ TRANSLATIONS = {
     # Interface de jeu
     "game.instructions": "Flèches: Déplacer | Molette: Zoom | F3: Debug | Échap: Quitter",
     "game.back_to_menu": "Retour au menu",
+    "game.map_title": "Galad Islands - Carte",
     
     # Conseils
     "tip.0": "Astuce : Contrôler un seul zeppelin peut renverser le cours d'une bataille au bon moment.",
@@ -196,4 +197,46 @@ TRANSLATIONS = {
     "enemy_shop.heal_wave_desc": "Soigne instantanément toutes les unités",
     "enemy_shop.gold_generator": "Générateur d'Or",
     "enemy_shop.gold_generator_desc": "Génère 100 pièces d'or immédiatement",
+    
+    # Options avancées
+    "options.window_modes.windowed": "Fenêtré",
+    "options.window_modes.fullscreen": "Plein écran",
+    "options.resolution_section": "Résolution (mode fenêtré uniquement)",
+    "options.custom_resolution_label": "Résolution personnalisée:",
+    "options.detected_screen": "Écran détecté: {width}x{height}",
+    "options.resolution_advice": "(Toutes résolutions acceptées - ajustement automatique si nécessaire)",
+    "options.volume_music_label": "Volume musique: {volume}%",
+    "options.language_section": "Langue / Language",
+    "options.camera_sensitivity": "Sensibilité caméra: {sensitivity}x",
+    "options.information_section": "Informations",
+    "options.button_default": "Défaut",
+    "options.button_close": "Fermer",
+    "options.info_changes_immediate": "• Tous les changements s'appliquent immédiatement sauf la résolution qui s'applique après avoir fermé le menu",
+    "options.info_window_mode": "• Le mode fenêtré/plein écran prend effet en fermant le menu",
+    "options.info_custom_resolution": "• Les résolutions personnalisées sont sauvegardées automatiquement",
+    "options.info_resize_window": "• Redimensionner la fenêtre sauvegarde la nouvelle résolution",
+    "options.info_resolution_warning": "• Les résolutions plus grandes que l'écran risquent de provoquer des problèmes d'affichage.",
+    "options.info_manual_fix": "Si cela vous arrive, allez dans le fichier galad_config.json et remettez une résolution plus petite",
+    "options.info_manual_fix2": "en changant les valeurs 'width' et 'height' manuellement.",
+    "options.custom_resolution_format": "Personnalisée ({width}x{height})",
+    "options.custom_resolution_applied": "✅ Résolution personnalisée appliquée: {width}x{height}",
+    "options.custom_resolution_invalid": "⚠️ Résolution invalide: valeurs non numériques",
+    "options.resolution_applied": "✅ Résolution appliquée: {width}x{height}",
+    
+    # Messages système
+    "system.main_window_title": "Galad Islands",
+    "system.music_load_error": "Impossible de charger la musique: {error}",
+    "system.sound_load_error": "Impossible de charger le son de sélection: {error}",
+    "system.options_menu": "Menu des options",
+    "system.main_loop_error": "Erreur dans la boucle principale: {error}",
+    "system.game_launched": "Lancement du jeu...",
+    "system.game_window_title": "Galad Islands - Carte",
+    
+    # Debug/Développement
+    "debug.camera_position": "Caméra: ({x:.1f}, {y:.1f})",
+    "debug.zoom_level": "Zoom: {zoom:.2f}x",
+    "debug.tile_size": "Taille tuile: {size}px",
+    "debug.resolution": "Résolution: {width}x{height}",
+    "debug.fps": "FPS: {fps:.1f}",
+    "debug.help_modal_title": "Aide",
 }
