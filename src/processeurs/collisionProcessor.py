@@ -42,10 +42,12 @@ class CollisionProcessor(esper.Processor):
                 if (other_ent, ent) in already_hit or (ent, other_ent) in already_hit or ent == other_ent:
                     continue
 
-                rect1 = sprite.surface.get_rect()
-                rect1.topleft = (pos.x - sprite.width/2, pos.y - sprite.height/2)
-                rect2 = other_sprite.surface.get_rect()
-                rect2.topleft = (other_pos.x - other_sprite.width/2, other_pos.y - other_sprite.height/2)
+                # Utiliser les dimensions originales pour les collisions, pas les dimensions redimensionnées
+                # Cela évite que le zoom affecte les collisions
+                rect1 = pygame.Rect(0, 0, int(sprite.original_width), int(sprite.original_height))
+                rect1.center = (int(pos.x), int(pos.y))
+                rect2 = pygame.Rect(0, 0, int(other_sprite.original_width), int(other_sprite.original_height))
+                rect2.center = (int(other_pos.x), int(other_pos.y))
                 
                 if rect1.colliderect(rect2):
                     already_hit.append((ent, other_ent))
