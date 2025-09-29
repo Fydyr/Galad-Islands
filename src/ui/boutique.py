@@ -4,10 +4,7 @@ from enum import Enum
 import pygame
 import math
 import os
-from settings.localization import t
 
-
-# Système d'importation des images
 # Obtenir le chemin de base du projet
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -16,6 +13,54 @@ import sys
 if os.path.join(BASE_PATH, 'src') not in sys.path:
     sys.path.append(os.path.join(BASE_PATH, 'src'))
 
+try:
+    from settings.localization import t
+except ImportError:
+    # Fallback si la localisation n'est pas disponible
+    def t(key):
+        translations = {
+            "units.zasper": "Zasper",
+            "units.barhamus": "Barhamus",
+            "units.draupnir": "Draupnir",
+            "units.druid": "Druid", 
+            "units.architect": "Architect",
+            "shop.zasper_desc": "Scout rapide et polyvalent",
+            "shop.barhamus_desc": "Guerrier robuste avec bouclier",
+            "shop.draupnir_desc": "Léviathan lourd destructeur",
+            "shop.druid_desc": "Soigneur et support magique",
+            "shop.architect_desc": "Constructeur de défenses",
+            "shop.defense_tower": "Tour de Défense",
+            "shop.defense_tower_desc": "Tour d'attaque automatique",
+            "shop.heal_tower": "Tour de Soin",
+            "shop.heal_tower_desc": "Tour de régénération alliée",
+            "shop.stats.life": "Vie",
+            "shop.stats.attack": "ATK",
+            "shop.stats.heal": "SOIN",
+            "shop.stats.support": "SUPPORT",
+            "shop.stats.range": "Portée",
+            "shop.title": "Boutique Galad Islands",
+            "shop.category_units": "Recrutement d'Unités",
+            "shop.category_buildings": "Construction de Bâtiments",
+            "shop.units": "Unités",
+            "shop.buildings": "Bâtiments",
+            "enemy_shop.scout": "Éclaireur Ennemi",
+            "enemy_shop.warrior": "Guerrier Ennemi",
+            "enemy_shop.brute": "Brute Ennemie",
+            "enemy_shop.shaman": "Chaman Ennemi",
+            "enemy_shop.engineer": "Ingénieur Ennemi",
+            "enemy_shop.scout_desc": "Éclaireur rapide hostile",
+            "enemy_shop.warrior_desc": "Guerrier lourd ennemi",
+            "enemy_shop.brute_desc": "Destructeur massif",
+            "enemy_shop.shaman_desc": "Soigneur et mage noir",
+            "enemy_shop.engineer_desc": "Constructeur ennemi",
+            "enemy_shop.attack_tower": "Tour d'Attaque",
+            "enemy_shop.attack_tower_desc": "Tour offensive ennemie",
+            "enemy_shop.heal_tower": "Tour de Régénération",
+            "enemy_shop.heal_tower_desc": "Tour de soin ennemie",
+            "enemy_shop.title": "Arsenal Ennemi",
+            "enemy_shop.subtitle": "Recrutement Hostile"
+        }
+        return translations.get(key, key)
 
 # Thèmes de couleur pour les différentes factions
 class AllyTheme:
