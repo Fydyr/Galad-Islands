@@ -71,6 +71,7 @@ class CollisionProcessor(esper.Processor):
                 continue
                 
             # Calculer la position future (où l'entité veut aller)
+            # IMPORTANT : Conserver le signe de currentSpeed pour gérer le recul
             direction_rad = math.radians(pos.direction)
             future_x = pos.x - velocity.currentSpeed * math.cos(direction_rad)
             future_y = pos.y - velocity.currentSpeed * math.sin(direction_rad)
