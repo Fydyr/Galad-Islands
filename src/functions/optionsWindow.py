@@ -23,6 +23,13 @@ from src.settings.localization import (
     t
 )
 
+from src.ui.settings_ui_component import (
+    UIComponent,
+    Button,
+    Slider,
+    RadioButton
+)
+
 
 # =============================================================================
 # CONSTANTES GRAPHIQUES
@@ -54,169 +61,6 @@ class UIConstants:
     INPUT_WIDTH = 80
     INPUT_HEIGHT = 25
     SLIDER_HEIGHT = 20
-
-
-# =============================================================================
-# COMPOSANTS UI RÉUTILISABLES
-# =============================================================================
-
-class UIComponent:
-    """Classe de base pour les composants UI."""
-    
-    def __init__(self, rect: pygame.Rect):
-        self.rect = rect
-        self.visible = True
-        self.enabled = True
-    
-    def draw(self, surface: pygame.Surface) -> None:
-        """Dessine le composant sur la surface."""
-        pass
-    
-    def handle_event(self, event: pygame.event.Event) -> bool:
-        """Gère un événement. Retourne True si l'événement a été consommé."""
-        return False
-
-
-class Button(UIComponent):
-    """Bouton cliquable avec texte."""
-    
-    def __init__(self, rect: pygame.Rect, text: str, font: pygame.font.Font, 
-                 color: Tuple[int, int, int] = Colors.BLUE, 
-                 text_color: Tuple[int, int, int] = Colors.WHITE,
-                 callback: Optional[Callable] = None):
-        super().__init__(rect)
-        self.text = text
-        self.font = font
-        self.color = color
-        self.text_color = text_color
-        self.callback = callback
-        self.pressed = False
-    
-    def draw(self, surface: pygame.Surface) -> None:
-        if not self.visible:
-            return
-            
-        color = self.color if self.enabled else Colors.GRAY
-        pygame.draw.rect(surface, color, self.rect, border_radius=8)
-        pygame.draw.rect(surface, Colors.WHITE, self.rect, 2, border_radius=8)
-        
-        text_surf = self.font.render(self.text, True, self.text_color)
-        text_rect = text_surf.get_rect(center=self.rect.center)
-        surface.blit(text_surf, text_rect)
-    
-    def handle_event(self, event: pygame.event.Event) -> bool:
-        if not self.visible or not self.enabled:
-            return False
-            
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.rect.collidepoint(event.pos):
-                self.pressed = True
-                if self.callback:
-                    self.callback()
-                return True
-        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            self.pressed = False
-        
-        return False
-
-
-class Slider(UIComponent):
-    """Slider pour ajuster des valeurs numériques."""
-    
-    def __init__(self, rect: pygame.Rect, min_value: float = 0.0, 
-                 max_value: float = 1.0, initial_value: float = 0.5,
-                 callback: Optional[Callable] = None):
-        super().__init__(rect)
-        self.min_value = min_value
-        self.max_value = max_value
-        self.value = initial_value
-        self.callback = callback
-        self.dragging = False
-    
-    def draw(self, surface: pygame.Surface) -> None:
-        if not self.visible:
-            return
-        
-        # Fond du slider
-        pygame.draw.rect(surface, Colors.DARK_GRAY, self.rect, border_radius=10)
-        
-        # Barre de progression
-        progress = (self.value - self.min_value) / (self.max_value - self.min_value)
-        fill_width = int(self.rect.width * progress)
-        fill_rect = pygame.Rect(self.rect.left, self.rect.top, fill_width, self.rect.height)
-        pygame.draw.rect(surface, Colors.BLUE, fill_rect, border_radius=10)
-        
-        # Poignée
-        handle_x = self.rect.left + fill_width - 8
-        handle_rect = pygame.Rect(handle_x, self.rect.top - 2, 16, self.rect.height + 4)
-        pygame.draw.rect(surface, Colors.WHITE, handle_rect, border_radius=4)
-    
-    def handle_event(self, event: pygame.event.Event) -> bool:
-        if not self.visible or not self.enabled:
-            return False
-        
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.rect.collidepoint(event.pos):
-                self.dragging = True
-                self._update_value_from_mouse(event.pos)
-                return True
-        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            self.dragging = False
-        elif event.type == pygame.MOUSEMOTION and self.dragging:
-            self._update_value_from_mouse(event.pos)
-            return True
-        
-        return False
-    
-    def _update_value_from_mouse(self, mouse_pos: Tuple[int, int]) -> None:
-        relative_x = mouse_pos[0] - self.rect.left
-        progress = max(0.0, min(1.0, relative_x / self.rect.width))
-        old_value = self.value
-        self.value = self.min_value + progress * (self.max_value - self.min_value)
-        
-        if self.callback and abs(self.value - old_value) > 0.001:
-            self.callback(self.value)
-
-
-class RadioButton(UIComponent):
-    """Bouton radio pour les sélections exclusives."""
-    
-    def __init__(self, rect: pygame.Rect, text: str, font: pygame.font.Font,
-                 value: Any, selected: bool = False, callback: Optional[Callable] = None):
-        super().__init__(rect)
-        self.text = text
-        self.font = font
-        self.value = value
-        self.selected = selected
-        self.callback = callback
-    
-    def draw(self, surface: pygame.Surface) -> None:
-        if not self.visible:
-            return
-        
-        # Cercle radio
-        circle_center = (self.rect.left + 15, self.rect.centery)
-        if self.selected:
-            pygame.draw.circle(surface, Colors.GREEN, circle_center, 8)
-        else:
-            pygame.draw.circle(surface, Colors.GRAY, circle_center, 8, 2)
-        
-        # Texte
-        color = Colors.WHITE if self.selected else Colors.LIGHT_GRAY
-        text_surf = self.font.render(self.text, True, color)
-        surface.blit(text_surf, (self.rect.left + 35, self.rect.top))
-    
-    def handle_event(self, event: pygame.event.Event) -> bool:
-        if not self.visible or not self.enabled:
-            return False
-        
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.rect.collidepoint(event.pos):
-                if self.callback:
-                    self.callback(self.value)
-                return True
-        
-        return False
 
 
 # =============================================================================
@@ -556,6 +400,7 @@ class OptionsWindow:
             t("options.button_default"),
             self.font_normal,
             color=(200, 150, 50),
+            text_color=Colors.WHITE,
             callback=self._on_reset
         )
         self.components.append(reset_button)
@@ -567,6 +412,7 @@ class OptionsWindow:
             t("options.button_close"),
             self.font_normal,
             color=Colors.RED,
+            text_color=Colors.WHITE,
             callback=self._on_close
         )
         self.components.append(close_button)
