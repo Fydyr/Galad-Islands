@@ -61,6 +61,7 @@ class MainMenu:
     def _initialize_ui(self):
         """Initializes all UI components."""
         width, height = self.display_manager.get_size()
+        pygame.display.set_caption(t("system.main_window_title"))
 
         # Particles
         self.particles = ParticleSystem(width, height)
