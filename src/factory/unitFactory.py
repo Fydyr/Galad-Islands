@@ -79,3 +79,5 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             pass
         case _:
             pass
+
+    return entity if entity != None else None
