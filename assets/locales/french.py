@@ -241,7 +241,6 @@ TRANSLATIONS = {
     "system.options_menu": "Menu des options",
     "system.main_loop_error": "Erreur dans la boucle principale: {error}",
     "system.game_launched": "Lancement du jeu...",
-    "system.game_window_title": "Galad Islands - Carte",
     
     # Debug/Développement
     "debug.camera_position": "Caméra: ({x:.1f}, {y:.1f})",
