@@ -6,6 +6,8 @@ from src.components.properties.spriteComponent import SpriteComponent as Sprite
 from src.components.properties.canCollideComponent import CanCollideComponent as CanCollide
 from src.components.properties.velocityComponent import VelocityComponent as Velocity
 from src.components.properties.teamComponent import TeamComponent as Team
+from src.components.properties.healthComponent import HealthComponent
+from src.components.properties.attackComponent import AttackComponent
 from src.settings.settings import TILE_SIZE
 import math
 
@@ -13,23 +15,84 @@ class CollisionProcessor(esper.Processor):
     def __init__(self, graph=None):
         super().__init__()
         self.graph = graph
+        self.mines_initialized = False
         # Définir les types de terrain et leurs effets selon votre système
         self.terrain_effects = {
             'water': {'can_pass': True, 'speed_modifier': 1.0},      # 0 - Eau normale
             'cloud': {'can_pass': True, 'speed_modifier': 0.5},      # 1 - Nuage ralentit
             'island': {'can_pass': False, 'speed_modifier': 0.0},    # 2 - Île générique bloque
-            'mine': {'can_pass': True, 'speed_modifier': 1.0},       # 3 - Mine (dégâts ailleurs)
+            'mine': {'can_pass': True, 'speed_modifier': 1.0},       # 3 - Mine (entité créée)
             'ally_base': {'can_pass': False, 'speed_modifier': 0.0}, # 4 - Base alliée bloque
             'enemy_base': {'can_pass': False, 'speed_modifier': 0.0} # 5 - Base ennemie bloque
         }
-        
 
     def process(self):
+        # Initialiser les entités mines une seule fois
+        if not self.mines_initialized and self.graph:
+            self._initialize_mine_entities()
+            self.mines_initialized = True
+
         # Collision avec le terrain d'abord (avant le mouvement)
         self._process_terrain_collisions()
         
         # Collision entre entités
         self._process_entity_collisions()
+
+    def _initialize_mine_entities(self):
+        """Crée une entité pour chaque mine sur la carte"""
+        if not self.graph:
+            return
+        
+        print("Debug: Initialisation des entités mines...")
+        mine_count = 0
+        
+        for y in range(len(self.graph)):
+            for x in range(len(self.graph[0])):
+                if self.graph[y][x] == 3:  # Mine
+                    # Calculer la position au centre de la tuile
+                    world_x = (x + 0.5) * TILE_SIZE
+                    world_y = (y + 0.5) * TILE_SIZE
+                    
+                    # Créer l'entité mine
+                    mine_entity = esper.create_entity()
+                    
+                    # Position
+                    esper.add_component(mine_entity, Position(
+                        x=world_x,
+                        y=world_y,
+                        direction=0
+                    ))
+                    
+                    # Sprite invisible (surface transparente)
+                    invisible_surface = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
+                    invisible_surface.fill((0, 0, 0, 0))  # Complètement transparent
+                    
+                    esper.add_component(mine_entity, Sprite(
+                        image=invisible_surface,
+                        width=TILE_SIZE,
+                        height=TILE_SIZE
+                    ))
+                    
+                    # Health (1 HP - détruit en une collision)
+                    esper.add_component(mine_entity, HealthComponent(
+                        currentHealth=1,
+                        maxHealth=1
+                    ))
+                    
+                    # Attack (40 dégâts)
+                    esper.add_component(mine_entity, AttackComponent(
+                        hitPoints=40
+                    ))
+                    
+                    # Peut entrer en collision
+                    esper.add_component(mine_entity, CanCollide())
+                    
+                    # Team neutre (pour qu'elle touche tout le monde)
+                    esper.add_component(mine_entity, Team(team_id=2))
+                    
+                    mine_count += 1
+        
+        print(f"Debug: {mine_count} entités mines créées")
 
     def _process_entity_collisions(self):
         """Gère les collisions entre entités (logique existante)"""
@@ -52,10 +115,74 @@ class CollisionProcessor(esper.Processor):
                 if rect1.colliderect(rect2):
                     already_hit.append((ent, other_ent))
                     already_hit.append((other_ent, ent))
+                    
+                    # Si c'est la même équipe, ignorer
                     if team.team_id == other_team.team_id:
                         continue
-                    else:
-                        esper.dispatch_event('entities_hit', ent, other_ent)
+                    
+                    # Gérer la collision entre les deux entités
+                    self._handle_entity_hit(ent, other_ent)
+
+    def _handle_entity_hit(self, entity1, entity2):
+        """Gère les dégâts entre deux entités qui se percutent"""
+        # Obtenir les composants d'attaque et de santé
+        attack1 = esper.component_for_entity(entity1, AttackComponent) if esper.has_component(entity1, AttackComponent) else None
+        health1 = esper.component_for_entity(entity1, HealthComponent) if esper.has_component(entity1, HealthComponent) else None
+        
+        attack2 = esper.component_for_entity(entity2, AttackComponent) if esper.has_component(entity2, AttackComponent) else None
+        health2 = esper.component_for_entity(entity2, HealthComponent) if esper.has_component(entity2, HealthComponent) else None
+        
+        # Entity1 inflige des dégâts à Entity2
+        if attack1 and health2:
+            damage = attack1.hitPoints
+            health2.currentHealth -= damage
+            print(f"Debug: Entité {entity1} inflige {damage} dégâts à {entity2} (HP: {health2.currentHealth}/{health2.maxHealth})")
+            
+            # Détruire entity2 si mort
+            if health2.currentHealth <= 0:
+                print(f"Debug: Entité {entity2} détruite")
+                self._destroy_mine_on_grid(entity2)
+                esper.delete_entity(entity2)
+        
+        # Entity2 inflige des dégâts à Entity1
+        if attack2 and health1:
+            damage = attack2.hitPoints
+            health1.currentHealth -= damage
+            print(f"Debug: Entité {entity2} inflige {damage} dégâts à {entity1} (HP: {health1.currentHealth}/{health1.maxHealth})")
+            
+            # Détruire entity1 si mort
+            if health1.currentHealth <= 0:
+                print(f"Debug: Entité {entity1} détruite")
+                self._destroy_mine_on_grid(entity1)
+                esper.delete_entity(entity1)
+        
+        # Dispatcher l'événement original pour compatibilité
+        esper.dispatch_event('entities_hit', entity1, entity2)
+
+    def _destroy_mine_on_grid(self, entity):
+        """Détruit la mine sur la grille si l'entité est une mine"""
+        if not self.graph:
+            return
+        
+        # Vérifier si c'est une mine (health max = 1)
+        if esper.has_component(entity, HealthComponent):
+            health = esper.component_for_entity(entity, HealthComponent)
+            if health.maxHealth == 1:  # C'est une mine
+                # Obtenir la position
+                if esper.has_component(entity, Position):
+                    pos = esper.component_for_entity(entity, Position)
+                    grid_x = int(pos.x // TILE_SIZE)
+                    grid_y = int(pos.y // TILE_SIZE)
+                    
+                    # Vérifier les limites et détruire sur la grille
+                    if (0 <= grid_y < len(self.graph) and 
+                        0 <= grid_x < len(self.graph[0]) and
+                        self.graph[grid_y][grid_x] == 3):
+                        self.graph[grid_y][grid_x] = 0  # Remplacer par de l'eau
+                        print(f"Debug: Mine détruite sur la grille en ({grid_x}, {grid_y})")
+                        
+                        # Dispatcher événement d'explosion
+                        esper.dispatch_event('mine_explosion', pos.x, pos.y)
 
     def _process_terrain_collisions(self):
         """Gère les collisions avec le terrain - AVANT le mouvement"""

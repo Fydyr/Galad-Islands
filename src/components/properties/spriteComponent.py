@@ -13,12 +13,20 @@ class SpriteComponent:
         self.original_height: float = height
         self.image: pygame.Surface|None = image
         self.surface: pygame.Surface|None = surface
-        self.load_sprite()
-        self.scale_sprite(self.width, self.height)
+        
+        # Ne charger l'image que si elle n'est pas déjà fournie et qu'un chemin existe
+        if self.image is None and self.image_path:
+            self.load_sprite()
+        
+        # Redimensionner seulement si on a une image
+        if self.image is not None:
+            self.scale_sprite(self.width, self.height)
 
     def load_sprite(self):
         """Retourne le chemin du sprite (à charger avec pygame ou autre moteur graphique)"""
-        self.image = pygame.image.load(self.image_path).convert_alpha()
+        if self.image_path:
+            self.image = pygame.image.load(self.image_path).convert_alpha()
 
     def scale_sprite(self, width, height):
-        self.surface = pygame.transform.scale(self.image, (width, height))
+        if self.image is not None:
+            self.surface = pygame.transform.scale(self.image, (width, height))
