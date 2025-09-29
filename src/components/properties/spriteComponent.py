@@ -8,6 +8,9 @@ class SpriteComponent:
         self.image_path: str = image_path  # Chemin vers l'image du sprite dans le dossier assets
         self.width: float = width
         self.height: float = height
+        # Conserver les dimensions originales pour les collisions
+        self.original_width: float = width
+        self.original_height: float = height
         self.image: pygame.Surface|None = image
         self.surface: pygame.Surface|None = surface
         self.load_sprite()
