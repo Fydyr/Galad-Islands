@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from enum import Enum
 from src.ui.boutique import Shop, ShopFaction
 from src.settings.localization import t
+from src.constants.team import Team
+
 
 # Couleurs de l'interface améliorées
 class UIColors:
@@ -124,7 +126,7 @@ class ActionBar:
         self.global_defense_active = False
         self.global_attack_timer = 0.0
         self.global_defense_timer = 0.0
-        self.current_camp = "ally"  # ally ou enemy pour le spawn
+        self.current_camp = Team.ALLY  # Team.ALLY ou Team.ENEMY pour le spawn
         
         # Animation et effets
         self.button_glow_timer = 0
@@ -345,14 +347,14 @@ class ActionBar:
     
     def _switch_camp(self):
         """Bascule entre les camps ally/enemy (placeholder)."""
-        self.current_camp = "enemy" if self.current_camp == "ally" else "ally"
-        camp_name = t("camp.ally") if self.current_camp == "ally" else t("camp.enemy")
+        self.current_camp = Team.ENEMY if self.current_camp == Team.ALLY else Team.ALLY
+        camp_name = t("camp.ally") if self.current_camp == Team.ALLY else t("camp.enemy")
         
         # Changer la faction de la boutique en conséquence
-        new_faction = ShopFaction.ALLY if self.current_camp == "ally" else ShopFaction.ENEMY
+        new_faction = ShopFaction.ALLY if self.current_camp == Team.ALLY else ShopFaction.ENEMY
         self.shop.switch_faction(new_faction)
         
-        print(f"[PLACEHOLDER] Changement de camp vers: {camp_name}")
+        print(f"[PLACEHOLDER] Changement de camp vers: {camp_name} (Team: {self.current_camp})")
         self._show_feedback("success", f"Camp: {camp_name}")
         print(f"Boutique changée vers la faction: {new_faction.value}")
     
@@ -436,7 +438,7 @@ class ActionBar:
         # Bouton de camp
         if self.camp_button_rect and self.camp_button_rect.collidepoint(mouse_pos):
             self.hovered_camp_button = True
-            camp_name = t("camp.ally") if self.current_camp == "ally" else t("camp.enemy")
+            camp_name = t("camp.ally") if self.current_camp == Team.ALLY else t("camp.enemy")
             self.tooltip_text = t("camp.tooltip", camp=camp_name)
             return
         
@@ -636,7 +638,7 @@ class ActionBar:
             return
             
         # Couleur selon le camp actuel
-        camp_color = UIColors.DEFENSE_BUTTON if self.current_camp == "ally" else UIColors.ATTACK_BUTTON
+        camp_color = UIColors.DEFENSE_BUTTON if self.current_camp == Team.ALLY else UIColors.ATTACK_BUTTON
         border_color = UIColors.SELECTION if self.hovered_camp_button else UIColors.BORDER_LIGHT
         
         # Dessiner le bouton
@@ -644,7 +646,8 @@ class ActionBar:
         pygame.draw.rect(surface, border_color, self.camp_button_rect, 2)
         
         # Texte du camp
-        camp_text = t("camp.ally") if self.current_camp == "ally" else t("camp.enemy")
+        camp_text = t("camp.ally") if self.current_camp == Team.ALLY else t("camp.enemy")
+        text_surface = self.font_normal.render(camp_text, True, UIColors.TEXT_NORMAL)
         text_surface = self.font_normal.render(camp_text, True, UIColors.TEXT_NORMAL)
         text_rect = text_surface.get_rect(center=self.camp_button_rect.center)
         surface.blit(text_surface, text_rect)
