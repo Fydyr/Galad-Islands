@@ -1,10 +1,18 @@
-import math
-import json
-import os
-import pygame
-from typing import Any, Optional
+"""
+Module de configuration et paramètres du jeu Galad Islands.
+Centralise la gestion des paramètres utilisateur et des constantes de jeu.
+"""
 
-# --- Configuration embarquée (migrée depuis config_manager.py) ---
+import json
+import math
+import os
+from typing import Any, Dict, List, Optional, Tuple
+
+
+# =============================================================================
+# CONFIGURATION UTILISATEUR
+# =============================================================================
+
 CONFIG_FILE = "galad_config.json"
 
 DEFAULT_CONFIG = {
@@ -20,19 +28,31 @@ DEFAULT_CONFIG = {
     "camera_sensitivity": 1.0
 }
 
+AVAILABLE_RESOLUTIONS = [
+    (800, 600, "800x600"),
+    (1024, 768, "1024x768"),
+    (1280, 720, "1280x720"),
+    (1366, 768, "1366x768"),
+    (1920, 1080, "1920x1080"),
+    (2560, 1440, "2560x1440"),
+]
+
 
 class ConfigManager:
-    """Gestionnaire de configuration pour les paramètres du jeu."""
-    def __init__(self, path: str = CONFIG_FILE):
-        self.path = path
+    """Gestionnaire centralisé de la configuration du jeu."""
+    
+    def __init__(self, config_path: str = CONFIG_FILE):
+        self.path = config_path
         self.config = DEFAULT_CONFIG.copy()
         self.load_config()
 
     def load_config(self) -> None:
+        """Charge la configuration depuis le fichier JSON."""
         try:
             if os.path.exists(self.path):
                 with open(self.path, 'r', encoding='utf-8') as f:
                     saved_config = json.load(f)
+                    # Validation et fusion avec la config par défaut
                     for key, value in saved_config.items():
                         if key in self.config:
                             self.config[key] = value
@@ -44,6 +64,7 @@ class ConfigManager:
             print("Utilisation des valeurs par défaut")
 
     def save_config(self) -> bool:
+        """Sauvegarde la configuration dans le fichier JSON."""
         try:
             with open(self.path, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, indent=4, ensure_ascii=False)
@@ -53,207 +74,191 @@ class ConfigManager:
             print(f"Erreur lors de la sauvegarde de la configuration: {e}")
             return False
 
-    def get(self, key: str, default=None) -> Any:
+    def get(self, key: str, default: Any = None) -> Any:
+        """Récupère une valeur de configuration."""
         return self.config.get(key, default)
 
     def set(self, key: str, value: Any) -> None:
-        self.config[key] = value
-
-    def get_resolution(self) -> tuple:
-        return (self.config.get("screen_width"), self.config.get("screen_height"))
-
-    def set_resolution(self, width: int, height: int) -> None:
-        self.config["screen_width"] = int(width)
-        self.config["screen_height"] = int(height)
+        """Définit une valeur de configuration."""
+        if key in self.config:
+            self.config[key] = value
+        else:
+            print(f"Avertissement: Clé de configuration inconnue: {key}")
 
     def reset_to_defaults(self) -> None:
+        """Remet la configuration aux valeurs par défaut."""
         self.config = DEFAULT_CONFIG.copy()
 
-    def get_all_resolutions(self) -> list:
-        return [
-            (800, 600, "800x600"),
-            (1024, 768, "1024x768"),
-            (1280, 720, "1280x720"),
-            (1366, 768, "1366x768"),
-            (1920, 1080, "1920x1080"),
-            (2560, 1440, "2560x1440"),
-        ]
+    # Méthodes spécifiques pour les paramètres fréquemment utilisés
+    def get_resolution(self) -> Tuple[int, int]:
+        """Retourne la résolution (largeur, hauteur)."""
+        return (self.config["screen_width"], self.config["screen_height"])
 
-    def get_volume(self) -> dict:
+    def set_resolution(self, width: int, height: int) -> None:
+        """Définit la résolution d'écran."""
+        self.config["screen_width"] = max(200, min(10000, int(width)))
+        self.config["screen_height"] = max(200, min(10000, int(height)))
+
+    def get_volumes(self) -> Dict[str, float]:
+        """Retourne les volumes audio."""
         return {
-            "master": self.config.get("volume_master", 1.0),
-            "music": self.config.get("volume_music", 1.0),
-            "effects": self.config.get("volume_effects", 1.0),
+            "master": self.config["volume_master"],
+            "music": self.config["volume_music"],
+            "effects": self.config["volume_effects"],
         }
 
-    def set_volume(self, music: Optional[float] = None, effects: Optional[float] = None, master: Optional[float] = None):
-        if music is not None:
-            self.config["volume_music"] = max(0.0, min(1.0, float(music)))
-        if effects is not None:
-            self.config["volume_effects"] = max(0.0, min(1.0, float(effects)))
-        if master is not None:
-            self.config["volume_master"] = max(0.0, min(1.0, float(master)))
+    def set_volume(self, volume_type: str, value: float) -> None:
+        """Définit un volume audio (0.0 à 1.0)."""
+        key = f"volume_{volume_type}"
+        if key in self.config:
+            self.config[key] = max(0.0, min(1.0, float(value)))
 
-    def set_camera_sensitivity(self, sensitivity: Optional[float] = None):
-        if sensitivity is not None:
-            self.config["camera_sensitivity"] = max(0.1, min(5.0, float(sensitivity)))
+    def set_camera_sensitivity(self, sensitivity: float) -> None:
+        """Définit la sensibilité de la caméra (0.1 à 5.0)."""
+        self.config["camera_sensitivity"] = max(0.1, min(5.0, float(sensitivity)))
 
 
-# Instance globale compatible
+# Instance globale du gestionnaire de configuration
 config_manager = ConfigManager()
 
-# Fenêtre
-SCREEN_WIDTH, SCREEN_HEIGHT = config_manager.get_resolution()
-FPS = 30
+
+# =============================================================================
+# CONSTANTES DE JEU
+# =============================================================================
+
+# Paramètres d'affichage
 GAME_TITLE = "Galad Islands"
+FPS = 30
 
-# Carte
-MAP_WIDTH = 30  # nombre de cases en largeur (modifiable)
-MAP_HEIGHT = 30 # nombre de cases en hauteur (modifiable)
+# Dimensions de la carte de jeu
+MAP_WIDTH = 30   # nombre de cases en largeur
+MAP_HEIGHT = 30  # nombre de cases en hauteur
 
-# Calcul adaptatif de la taille des tuiles selon l'écran
-def calculate_adaptive_tile_size():
-    """
-    Calcule la taille optimale des tuiles selon la résolution d'écran.
-    Assure qu'au moins 15x10 cases sont visibles à l'écran.
-    """
-    min_visible_width = 15
-    min_visible_height = 10
-    
-    # Calcul basé sur la contrainte la plus restrictive
-    max_tile_width = SCREEN_WIDTH // min_visible_width
-    max_tile_height = SCREEN_HEIGHT // min_visible_height
-    
-    # Prendre la plus petite valeur pour garantir la visibilité
-    adaptive_size = min(max_tile_width, max_tile_height)
-    
-    # Limites raisonnables pour l'affichage
-    adaptive_size = max(16, min(64, adaptive_size))  # Entre 16 et 64 pixels
-    
-    return adaptive_size
+# Paramètres de génération de la carte
+MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.02)        # 2% de mines
+GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03)  # 3% d'îles
+CLOUD_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03)       # 3% de nuages
 
-TILE_SIZE = calculate_adaptive_tile_size()  # taille d'une case en pixels (adaptative)
-MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.02) # taux de mines (2% de la carte)
-GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03) # taux d'îles génériques (3% de la carte)
-CLOUD_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03) # taux de nuages (3% de la carte)
-
-# Paramètres de caméra
+# Paramètres de contrôle de la caméra
 CAMERA_SPEED = 200  # pixels par seconde
 ZOOM_MIN = 0.5
-ZOOM_MAX = 2.5  # Réduit légèrement pour éviter des sprites trop grands
+ZOOM_MAX = 2.5
 ZOOM_SPEED = 0.1
 
+# Contraintes d'affichage pour le calcul adaptatif des tuiles
+MIN_VISIBLE_TILES_WIDTH = 15   # minimum de cases visibles en largeur
+MIN_VISIBLE_TILES_HEIGHT = 10  # minimum de cases visibles en hauteur
+MIN_TILE_SIZE = 16  # taille minimale d'une tuile en pixels
+MAX_TILE_SIZE = 64  # taille maximale d'une tuile en pixels
 
-def calculate_adaptive_tile_size_for_resolution(width, height):
-    """
-    Calcule la taille des tuiles pour une résolution donnée.
-    """
-    min_visible_width = 15
-    min_visible_height = 10
-    
-    max_tile_width = width // min_visible_width
-    max_tile_height = height // min_visible_height
-    
-    adaptive_size = min(max_tile_width, max_tile_height)
-    adaptive_size = max(16, min(64, adaptive_size))
-    
-    return adaptive_size
 
-def get_screen_width():
+# =============================================================================
+# PROPRIÉTÉS DYNAMIQUES
+# =============================================================================
+
+def get_screen_dimensions() -> Tuple[int, int]:
+    """Retourne les dimensions actuelles de l'écran."""
+    return config_manager.get_resolution()
+
+def get_screen_width() -> int:
+    """Retourne la largeur actuelle de l'écran."""
     return config_manager.get("screen_width")
 
-def get_screen_height():
+def get_screen_height() -> int:
+    """Retourne la hauteur actuelle de l'écran."""
     return config_manager.get("screen_height")
 
+def calculate_tile_size(screen_width: Optional[int] = None, screen_height: Optional[int] = None) -> int:
+    """
+    Calcule la taille optimale des tuiles selon la résolution d'écran.
+    Assure qu'au moins MIN_VISIBLE_TILES_WIDTH x MIN_VISIBLE_TILES_HEIGHT cases sont visibles.
+    """
+    if screen_width is None or screen_height is None:
+        screen_width, screen_height = get_screen_dimensions()
+    
+    # Calcul basé sur la contrainte la plus restrictive
+    max_tile_width = screen_width // MIN_VISIBLE_TILES_WIDTH
+    max_tile_height = screen_height // MIN_VISIBLE_TILES_HEIGHT
+    
+    # Prendre la plus petite valeur pour garantir la visibilité
+    tile_size = min(max_tile_width, max_tile_height)
+    
+    # Appliquer les limites min/max
+    return max(MIN_TILE_SIZE, min(MAX_TILE_SIZE, tile_size))
 
-# --- Helpers supplémentaires exposés pour menu/options ---
-# --- C'est vraiment utile ? J'hésite à les supprimer   ---
-def get_all_resolutions():
-    """Liste des résolutions prises en charge (width, height, description)."""
-    return [
-        (800, 600, "800x600"),
-        (1024, 768, "1024x768"),
-        (1280, 720, "1280x720"),
-        (1366, 768, "1366x768"),
-        (1920, 1080, "1920x1080"),
-        (2560, 1440, "2560x1440"),
-    ]
-
-
-def set_window_mode(mode: str):
-    """Met à jour le mode d'affichage et sauvegarde la config."""
-    config_manager.set("window_mode", mode)
-    return config_manager.save_config()
-
-
-def set_camera_sensitivity(value: float):
-    """Met à jour la sensibilité de la caméra (persistant)."""
-    try:
-        value = float(value)
-    except (ValueError, TypeError):
-        value = 1.0
-    config_manager.set_camera_sensitivity(sensitivity=value)
-    return config_manager.save_config()
+def get_tile_size() -> int:
+    """Retourne la taille actuelle des tuiles."""
+    return calculate_tile_size()
 
 
-def set_music_volume(value: float):
-    """Met à jour le volume musique (persistant)."""
-    try:
-        value = float(value)
-    except Exception:
-        value = 0.5
-    config_manager.set('volume_music', value)
-    return config_manager.save_config()
+# =============================================================================
+# FONCTIONS UTILITAIRES
+# =============================================================================
 
+def get_available_resolutions() -> List[Tuple[int, int, str]]:
+    """Retourne la liste des résolutions disponibles."""
+    return AVAILABLE_RESOLUTIONS.copy()
 
-def apply_resolution(width: int, height: int):
-    """Applique et sauvegarde une nouvelle résolution.
-
-    Met à jour également les valeurs en mémoire (SCREEN_WIDTH/HEIGHT/TILE_SIZE).
+def apply_resolution(width: int, height: int) -> bool:
+    """
+    Applique et sauvegarde une nouvelle résolution.
     Retourne True si la sauvegarde a réussi.
     """
     config_manager.set_resolution(width, height)
-    ok = config_manager.save_config()
-    # Mettre à jour en mémoire
-    global SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE
-    # Validation explicite des valeurs fournies
-    try:
-        nw = int(width)
-        nh = int(height)
-    except (TypeError, ValueError) as e:
-        print(f"⚠️ Résolution invalide fournie: {width}x{height} — {e}. Valeurs précédentes conservées.")
-    else:
-        # Limites raisonnables pour éviter des résolutions absurdes
-        MIN_W, MIN_H = 200, 200
-        MAX_W, MAX_H = 10000, 10000
-        if not (MIN_W <= nw <= MAX_W and MIN_H <= nh <= MAX_H):
-            print(f"⚠️ Résolution hors limites: {nw}x{nh} — Valeurs précédentes conservées.")
-        else:
-            SCREEN_WIDTH = nw
-            SCREEN_HEIGHT = nh
-    TILE_SIZE = calculate_adaptive_tile_size()
-    return ok
+    return config_manager.save_config()
 
+def set_window_mode(mode: str) -> bool:
+    """Met à jour le mode d'affichage et sauvegarde la config."""
+    if mode in ["windowed", "fullscreen"]:
+        config_manager.set("window_mode", mode)
+        return config_manager.save_config()
+    return False
+
+def set_camera_sensitivity(value: float) -> bool:
+    """Met à jour la sensibilité de la caméra et sauvegarde."""
+    config_manager.set_camera_sensitivity(value)
+    return config_manager.save_config()
+
+def set_audio_volume(volume_type: str, value: float) -> bool:
+    """Met à jour un volume audio et sauvegarde."""
+    if volume_type in ["master", "music", "effects"]:
+        config_manager.set_volume(volume_type, value)
+        return config_manager.save_config()
+    return False
+
+def reset_to_defaults() -> bool:
+    """Réinitialise tous les paramètres aux valeurs par défaut et sauvegarde."""
+    config_manager.reset_to_defaults()
+    return config_manager.save_config()
+
+
+# =============================================================================
+# COMPATIBILITÉ (DEPRECATED)
+# =============================================================================
+
+# Propriétés pour la compatibilité avec l'ancien code
+# À terme, il faudrait migrer vers les fonctions get_screen_*() et get_tile_size()
+SCREEN_WIDTH = get_screen_width()
+SCREEN_HEIGHT = get_screen_height()
+TILE_SIZE = get_tile_size()
+
+# Fonctions dépréciées - utiliser les nouvelles fonctions à la place
+def calculate_adaptive_tile_size():
+    """DEPRECATED: Utiliser get_tile_size() à la place."""
+    return get_tile_size()
+
+def calculate_adaptive_tile_size_for_resolution(width, height):
+    """DEPRECATED: Utiliser calculate_tile_size(width, height) à la place."""
+    return calculate_tile_size(width, height)
+
+def get_all_resolutions():
+    """DEPRECATED: Utiliser get_available_resolutions() à la place."""
+    return get_available_resolutions()
+
+def set_music_volume(value: float):
+    """DEPRECATED: Utiliser set_audio_volume('music', value) à la place."""
+    return set_audio_volume("music", value)
 
 def reset_defaults():
-    """Réinitialise la configuration aux valeurs par défaut et sauvegarde."""
-    config_manager.reset_to_defaults()
-    ok = config_manager.save_config()
-    # Recharger les valeurs en mémoire
-    w, h = config_manager.get_resolution()
-    global SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE
-    try:
-        nw = int(w)
-        nh = int(h)
-    except (TypeError, ValueError) as e:
-        print(f"⚠️ Ne peut pas recharger les valeurs par défaut en mémoire: {w}x{h} — {e}")
-    else:
-        MIN_W, MIN_H = 200, 200
-        MAX_W, MAX_H = 10000, 10000
-        if not (MIN_W <= nw <= MAX_W and MIN_H <= nh <= MAX_H):
-            print(f"⚠️ Valeurs par défaut hors limites: {nw}x{nh} — valeurs précédentes conservées.")
-        else:
-            SCREEN_WIDTH = nw
-            SCREEN_HEIGHT = nh
-    TILE_SIZE = calculate_adaptive_tile_size()
-    return ok
+    """DEPRECATED: Utiliser reset_to_defaults() à la place."""
+    return reset_to_defaults()
