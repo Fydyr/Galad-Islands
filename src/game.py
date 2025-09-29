@@ -190,8 +190,19 @@ def render_sprites(window, camera):
     import pygame
     
     for ent, (pos, sprite) in esper.get_components(PositionComponent, SpriteComponent):
-        # Load the sprite
-        image = pygame.image.load(sprite.image_path).convert_alpha()
+        # Vérifier si le sprite a une surface déjà chargée
+        if sprite.surface is not None:
+            # Utiliser la surface existante
+            image = sprite.surface
+        elif sprite.image is not None:
+            # Utiliser l'image existante
+            image = sprite.image
+        elif sprite.image_path:
+            # Charger depuis le fichier seulement si un chemin existe
+            image = pygame.image.load(sprite.image_path).convert_alpha()
+        else:
+            # Pas d'image disponible, passer cette entité (mines invisibles par exemple)
+            continue
         
         # Calculate sprite size based on camera zoom
         if camera:
@@ -205,9 +216,18 @@ def render_sprites(window, camera):
             display_height = sprite.height
             screen_x, screen_y = pos.x, pos.y
         
+        # Éviter les dimensions invalides
+        if display_width <= 0 or display_height <= 0:
+            continue
+        
         # Rotate the scaled image from the sprite
         sprite.scale_sprite(display_width, display_height)
-        rotated_image = pygame.transform.rotate(sprite.surface, -pos.direction)
+        if sprite.surface is not None:
+            rotated_image = pygame.transform.rotate(sprite.surface, -pos.direction)
+        else:
+            # Si scale_sprite n'a pas créé de surface, scaler l'image directement
+            scaled_image = pygame.transform.scale(image, (display_width, display_height))
+            rotated_image = pygame.transform.rotate(scaled_image, -pos.direction)
         
         # Get the rect and set its center to the screen position
         rect = rotated_image.get_rect(center=(screen_x, screen_y))
