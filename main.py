@@ -12,6 +12,9 @@ import setup.install_commitizen_universal as install_cz # Assure que commitizen 
 import setup.setup_team_hooks as setup_hooks # Assure que les hooks sont installés avant d'importer quoi que ce soit d'autre
 from src.functions.afficherModale import afficher_modale
 from src.functions.optionsWindow import show_options_window
+from src.settings.localization import t, get_random_tip
+from src.settings.localization import LocalizationManager
+from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 
 
 pygame.init()
@@ -46,10 +49,15 @@ display_dirty = False
 music_path = os.path.join("assets/sounds", "xDeviruchi-TitleTheme.wav")
 try:
     pygame.mixer.music.load(music_path)
-    pygame.mixer.music.set_volume(0.5)  # Volume à 50%
+    # Utiliser le volume de la configuration
+    music_volume = settings.config_manager.get("volume_music", 0.5)
+    master_volume = settings.config_manager.get("volume_master", 0.8)
+    final_volume = music_volume * master_volume
+    pygame.mixer.music.set_volume(final_volume)
     pygame.mixer.music.play(-1)  # Joue en boucle (-1)
+    print(f"🎵 Musique chargée avec volume: {final_volume:.2f} (musique: {music_volume}, maître: {master_volume})")
 except Exception as e:
-    print(f"Impossible de charger la musique: {e}")
+    print(t("system.music_load_error", error=e))
 
 # Chargement du logo (remplacez le chemin par le bon fichier si besoin)
 try:
@@ -60,10 +68,15 @@ except Exception:
 # Chargement du son de sélection
 try:
     select_sound = pygame.mixer.Sound(os.path.join("assets/sounds", "select_sound_2.mp3"))
-    select_sound.set_volume(0.7)
+    # Utiliser le volume des effets de la configuration
+    effects_volume = settings.config_manager.get("volume_effects", 0.7)
+    master_volume = settings.config_manager.get("volume_master", 0.8)
+    final_effects_volume = effects_volume * master_volume
+    select_sound.set_volume(final_effects_volume)
+    print(f"🔊 Son de sélection chargé avec volume: {final_effects_volume:.2f} (effets: {effects_volume}, maître: {master_volume})")
 except Exception as e:
     select_sound = None
-    print(f"Impossible de charger le son de sélection: {e}")
+    print(t("system.sound_load_error", error=e))
 
 
 
@@ -95,10 +108,8 @@ FONT = None
 TITLE_FONT = None
 
 
-# Liste d'astuces ou citations à afficher en bas du menu
-from src.constants.tipsContact import TIPS
-
-current_tip = random.choice(TIPS)
+# Système de tips traduites
+current_tip = get_random_tip()
 tip_change_timer = 0  # Timer pour changer les astuces
 TIP_CHANGE_INTERVAL = 5.0  # Changer d'astuce toutes les 5 secondes
 
@@ -224,19 +235,19 @@ def jouer():
     game(current_surface, bg_original=bg_original, select_sound=select_sound)
 
 def options():
-    print("Menu des options")
+    print(t("system.options_menu"))
     # Afficher la modale des options en Pygame (synchrone)
     show_options_window()
 
 def crédits():
-    afficher_modale("Crédits", "assets/docs/credits.md", bg_original=bg_original, select_sound=select_sound)
+    afficher_modale(t("menu.credits"), get_credits_path(), bg_original=bg_original, select_sound=select_sound)
 
 def aide():
-    afficher_modale("Aide", "assets/docs/help.md", bg_original=bg_original, select_sound=select_sound)
+    afficher_modale(t("menu.help"), get_help_path(), bg_original=bg_original, select_sound=select_sound)
 
 
 def scénario():
-    afficher_modale("Scénario", "assets/docs/scenario.md", bg_original=bg_original, select_sound=select_sound)
+    afficher_modale(t("menu.scenario"), get_scenario_path(), bg_original=bg_original, select_sound=select_sound)
 
 def toggle_fullscreen():
     """Basculer le flag fullscreen et marquer qu'il faut appliquer le
@@ -279,12 +290,46 @@ def quitter():
 # Création des boutons centrés (définitions génériques, instanciés dans main_menu)
 # Variables responsives calculées dans main_menu selon la taille de la fenêtre
 num_buttons = 6
-labels = ["Jouer", "Options", "Crédits", "Aide", "Scénario", "Quitter"]
+# Les labels sont maintenant générés dynamiquement dans main_menu() avec traduction
 callbacks = [jouer, options, crédits, aide, scénario, quitter]
 # Le petit bouton 'Windowed' a été retiré ; la gestion du mode d'affichage se fait
 # désormais via la fenêtre d'options (ou via F11). Si besoin on conservera la
 # fonction toggle_borderless() pour usages internes.
 
+
+def update_audio_volumes():
+    """Met à jour les volumes de tous les sons selon la configuration actuelle."""
+    try:
+        music_volume = settings.config_manager.get("volume_music", 0.5)
+        effects_volume = settings.config_manager.get("volume_effects", 0.7)
+        master_volume = settings.config_manager.get("volume_master", 0.8)
+        
+        # Mettre à jour le volume de la musique
+        final_music_volume = music_volume * master_volume
+        pygame.mixer.music.set_volume(final_music_volume)
+        
+        # Mettre à jour le volume du son de sélection
+        if 'select_sound' in globals() and select_sound:
+            final_effects_volume = effects_volume * master_volume
+            select_sound.set_volume(final_effects_volume)
+            
+        print(f"🎚️ Volumes mis à jour - Musique: {final_music_volume:.2f}, Effets: {final_effects_volume:.2f}")
+    except Exception as e:
+        print(f"⚠️ Erreur lors de la mise à jour des volumes: {e}")
+
+def update_button_labels(buttons):
+    """Met à jour les labels des boutons avec les traductions actuelles."""
+    labels = [
+        t("menu.play"),
+        t("menu.options"), 
+        t("menu.credits"),
+        t("menu.help"),
+        t("menu.scenario"),
+        t("menu.quit")
+    ]
+    for i, btn in enumerate(buttons):
+        if i < len(labels):
+            btn.text = labels[i]
 
 def update_layout(screen_width, screen_height, buttons, borderless_button):
     """
@@ -354,7 +399,7 @@ def main_menu(win=None):
             if sys.platform != "win32":
                 os.environ['SDL_VIDEO_WINDOW_POS'] = "centered"
             win = pygame.display.set_mode((screen_w, screen_h), pygame.RESIZABLE)
-        pygame.display.set_caption("Galad Islands - Menu Principal")
+        pygame.display.set_caption(t("system.main_window_title"))
         created_local_window = True
 
     # Dimensions initiales
@@ -393,6 +438,17 @@ def main_menu(win=None):
     
     btn_x = int(SCREEN_WIDTH * 0.62)
     buttons = []
+    
+    # Générer les labels traduits
+    labels = [
+        t("menu.play"),
+        t("menu.options"), 
+        t("menu.credits"),
+        t("menu.help"),
+        t("menu.scenario"),
+        t("menu.quit")
+    ]
+    
     for i in range(num_buttons):
         x = btn_x
         y = start_y + i * (btn_h_init + btn_gap_init)
@@ -409,6 +465,15 @@ def main_menu(win=None):
     layout_dirty = False
     last_screen_size = (SCREEN_WIDTH, SCREEN_HEIGHT)
     
+    # Variable pour tracker les changements de langue
+    localization_manager = LocalizationManager()
+    current_language = localization_manager.get_current_language()
+    
+    # Variables pour tracker les changements de volume
+    current_music_volume = settings.config_manager.get("volume_music", 0.5)
+    current_effects_volume = settings.config_manager.get("volume_effects", 0.7)
+    current_master_volume = settings.config_manager.get("volume_master", 0.8)
+    
     # Variables pour gérer le redimensionnement avec délai
     resize_timer = 0.0
     resize_delay = 0.3  # Attendre 300ms après le dernier resize avant de sauvegarder
@@ -422,7 +487,7 @@ def main_menu(win=None):
             # Changer d'astuce automatiquement
             tip_change_timer += dt
             if tip_change_timer >= TIP_CHANGE_INTERVAL:
-                current_tip = random.choice(TIPS)
+                current_tip = get_random_tip()
                 tip_change_timer = 0
             
             # Gérer le délai de sauvegarde de résolution
@@ -458,6 +523,28 @@ def main_menu(win=None):
                     SCREEN_WIDTH, SCREEN_HEIGHT = current_settings_resolution
                     display_dirty = True
                     print(f"🔄 Résolution détectée depuis options: {SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+                
+                # Détecter les changements de langue depuis les options
+                new_language = localization_manager.get_current_language()
+                if new_language != current_language:
+                    current_language = new_language
+                    current_tip = get_random_tip()  # Mettre à jour l'astuce avec la nouvelle langue
+                    update_button_labels(buttons)  # Mettre à jour les labels des boutons
+                    pygame.display.set_caption(t("system.main_window_title"))  # Mettre à jour le titre de la fenêtre
+                    print(f"🌐 Langue changée vers: {current_language}")
+                
+                # Détecter les changements de volume depuis les options
+                new_music_volume = settings.config_manager.get("volume_music", 0.5)
+                new_effects_volume = settings.config_manager.get("volume_effects", 0.7)
+                new_master_volume = settings.config_manager.get("volume_master", 0.8)
+                
+                if (new_music_volume != current_music_volume or 
+                    new_effects_volume != current_effects_volume or 
+                    new_master_volume != current_master_volume):
+                    current_music_volume = new_music_volume
+                    current_effects_volume = new_effects_volume
+                    current_master_volume = new_master_volume
+                    update_audio_volumes()
             except Exception:
                 pass
             # Appliquer les changements d'affichage demandés de manière atomique
@@ -573,7 +660,7 @@ def main_menu(win=None):
                             break
                 if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                     if pressed_btn and pressed_btn.rect.collidepoint(mouse_pos):
-                        if pressed_btn.text == "Quitter":
+                        if pressed_btn.text == t("menu.quit"):
                             running = False
                         else:
                             pressed_btn.click(mouse_pos)
@@ -588,7 +675,7 @@ def main_menu(win=None):
             pygame.display.update()
             # clock.tick(60) déjà appelé au début de la boucle pour dt
     except Exception as e:
-        print(f"Erreur dans la boucle principale: {e}")
+        print(t("system.main_loop_error", error=e))
         import traceback
         traceback.print_exc()
     finally:

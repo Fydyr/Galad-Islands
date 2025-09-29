@@ -23,8 +23,8 @@
 ### Unités de Combat
 
 #### **Zasper** (Scout Léger) - 10 Gold
-![Zasper allié](/assets/docs/units/ally/Zasper.png)
-![Zasper ennemi](/assets/docs/units/enemy/Zasper.png)
+![Zasper allié](/assets/docs/units/ally/Scout.png)
+![Zasper ennemi](/assets/docs/units/enemy/Scout.png)
 - **Vitesse** : 5/s (Le plus rapide!)
 - **Dégâts** : 10-15
 - **Armure** : 60 PV
@@ -34,8 +34,8 @@
 - **Stratégie** : Idéal pour la reconnaissance et les frappes rapides. Ne tire que vers l'avant.
 
 #### **Barhamus** (Maraudeur Moyen) - 20 Gold
-![Barhamus allié](/assets/docs/units/ally/Barhamus.png)
-![Barhamus ennemie](/assets/docs/units/enemy/Barhamus.png)
+![Barhamus allié](/assets/docs/units/ally/Maraudeur.png)
+![Barhamus ennemie](/assets/docs/units/enemy/Maraudeur.png)
 - **Vitesse** : 3.5/s
 - **Dégâts** : 20-30 (salve) / 10-15 (boulet)
 - **Armure** : 130 PV
@@ -45,8 +45,8 @@
 - **Stratégie** : Équilibré, peut tirer depuis l'avant et les côtés.
 
 #### **Draupnir** (Léviathan Lourd) - 40 Gold
-![Draupnir allié](/assets/docs/units/ally/Draupnir.png)
-![Draupnir ennemie](/assets/docs/units/enemy/Draupnir.png)
+![Draupnir allié](/assets/docs/units/ally/Leviathan.png)
+![Draupnir ennemie](/assets/docs/units/enemy/Leviathan.png)
 - **Vitesse** : 2/s (Le plus lent)
 - **Dégâts** : 40-60 (salve) / 15-20 (boulet)
 - **Armure** : 300 PV (Le plus résistant!)

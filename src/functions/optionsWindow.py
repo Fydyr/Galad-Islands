@@ -5,6 +5,7 @@
 import pygame
 import src.settings.settings as settings
 import math
+from src.settings.localization import get_current_language, set_language, get_available_languages, t
 
 # Couleurs
 WHITE = (255, 255, 255)
@@ -81,7 +82,7 @@ def show_options_window():
             break
     # Si pas trouvée, c'est une résolution personnalisée
     if selected_resolution is None:
-        selected_resolution = (current_res[0], current_res[1], f"Personnalisée ({current_res[0]}x{current_res[1]})")
+        selected_resolution = (current_res[0], current_res[1], t("options.custom_resolution_format", width=current_res[0], height=current_res[1]))
 
     # Zones d'interaction (recalculées à chaque frame)
     buttons = {}
@@ -171,11 +172,11 @@ def show_options_window():
                                         
                                         # Appliquer la résolution directement
                                         settings.apply_resolution(width, height)
-                                        selected_resolution = (width, height, f"Personnalisée ({width}x{height})")
-                                        print(f"✅ Résolution personnalisée appliquée: {width}x{height}")
+                                        selected_resolution = (width, height, t("options.custom_resolution_format", width=width, height=height))
+                                        print(t("options.custom_resolution_applied", width=width, height=height))
                                             
                                     except ValueError:
-                                        print("⚠️ Résolution invalide: valeurs non numériques")
+                                        print(t("options.custom_resolution_invalid"))
                                 elif isinstance(res_key, tuple):
                                     # Résolution prédéfinie sélectionnée
                                     width, height = res_key[0], res_key[1]
@@ -185,7 +186,7 @@ def show_options_window():
                                     selected_resolution = res_key
                                     custom_width_input = str(width)
                                     custom_height_input = str(height)
-                                    print(f"✅ Résolution appliquée: {width}x{height}")
+                                    print(t("options.resolution_applied", width=width, height=height))
                                 break
 
                         # Gestion des boutons
@@ -206,6 +207,11 @@ def show_options_window():
                                     pygame.mixer.music.set_volume(default_volume)
                                 elif name == "close":
                                     running = False
+                                elif name.startswith("lang_"):
+                                    # Changement de langue
+                                    lang_code = name.split("_")[1]
+                                    if set_language(lang_code):
+                                        print(f"✅ Langue changée: {lang_code}")
                                 break
 
             elif event.type == pygame.MOUSEBUTTONUP:
@@ -251,7 +257,7 @@ def show_options_window():
                          modal_surface.get_rect(), 3, border_radius=12)
 
         # Titre
-        title_surf = font_title.render("Options du jeu", True, GOLD)
+        title_surf = font_title.render(t("options.title"), True, GOLD)
         modal_surface.blit(title_surf, (20, 15))
 
         # Calculer le contenu avec défilement
@@ -261,12 +267,12 @@ def show_options_window():
         line_height = 35
 
         # Section Mode d'affichage
-        section_surf = font_section.render("Mode d'affichage", True, GOLD)
+        section_surf = font_section.render(t("options.display"), True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 40
 
         # Options de mode
-        for mode, label in [("windowed", "Fenêtré"), ("fullscreen", "Plein écran")]:
+        for mode, label_key in [("windowed", "options.window_modes.windowed"), ("fullscreen", "options.window_modes.fullscreen")]:
             color = WHITE if window_mode == mode else LIGHT_GRAY
             if window_mode == mode:
                 # Indicateur radio sélectionné
@@ -277,7 +283,7 @@ def show_options_window():
                 pygame.draw.circle(content_surf, GRAY,
                                    (15, content_y_pos + 10), 8, 2)
 
-            text_surf = font_normal.render(label, True, color)
+            text_surf = font_normal.render(t(label_key), True, color)
             content_surf.blit(text_surf, (35, content_y_pos))
 
             # Créer la zone cliquable en coordonnées modal-local
@@ -292,7 +298,7 @@ def show_options_window():
         content_y_pos += 20
 
         # Section Résolution
-        section_surf = font_section.render("Résolution (mode fenêtré uniquement)", True, GOLD)
+        section_surf = font_section.render(t("options.resolution_section"), True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 40
 
@@ -322,18 +328,18 @@ def show_options_window():
         content_y_pos += 10
 
         # Section résolution personnalisée
-        custom_label = font_normal.render("Résolution personnalisée:", True, GOLD)
+        custom_label = font_normal.render(t("options.custom_resolution_label"), True, GOLD)
         content_surf.blit(custom_label, (0, content_y_pos))
         content_y_pos += 20
         
         # Afficher la résolution maximale de l'écran avec explication
         info = pygame.display.Info()
-        max_res_text = f"Écran détecté: {info.current_w}x{info.current_h}"
+        max_res_text = t("options.detected_screen", width=info.current_w, height=info.current_h)
         max_res_surf = font_small.render(max_res_text, True, LIGHT_GRAY)
         content_surf.blit(max_res_surf, (0, content_y_pos))
         content_y_pos += 15
         
-        advice_text = "(Toutes résolutions acceptées - ajustement automatique si nécessaire)"
+        advice_text = t("options.resolution_advice")
         advice_surf = font_small.render(advice_text, True, LIGHT_GRAY)
         content_surf.blit(advice_surf, (0, content_y_pos))
         content_y_pos += 15
@@ -343,7 +349,7 @@ def show_options_window():
         input_height = 25
         
         # Largeur
-        width_label = font_small.render("Largeur:", True, WHITE)
+        width_label = font_small.render(t("options.width"), True, WHITE)
         content_surf.blit(width_label, (20, content_y_pos))
         
         width_input_rect = pygame.Rect(80, content_y_pos - 2, input_width, input_height)
@@ -358,7 +364,7 @@ def show_options_window():
         resolution_rects["custom_width"] = width_input_rect.move(content_rect.left, content_rect.top + scroll_y)
 
         # Hauteur
-        height_label = font_small.render("Hauteur:", True, WHITE)
+        height_label = font_small.render(t("options.height"), True, WHITE)
         content_surf.blit(height_label, (180, content_y_pos))
         
         height_input_rect = pygame.Rect(240, content_y_pos - 2, input_width, input_height)
@@ -374,18 +380,18 @@ def show_options_window():
 
         # Bouton "Appliquer" pour la résolution personnalisée
         apply_custom_rect = pygame.Rect(340, content_y_pos - 2, 80, input_height)
-        draw_button(content_surf, apply_custom_rect, "Appliquer", font_small, BLUE)
+        draw_button(content_surf, apply_custom_rect, t("options.apply"), font_small, BLUE)
         resolution_rects["apply_custom"] = apply_custom_rect.move(content_rect.left, content_rect.top + scroll_y)
 
         content_y_pos += 50
 
         # Section Audio
-        section_surf = font_section.render("Audio", True, GOLD)
+        section_surf = font_section.render(t("options.audio"), True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 40
 
         # Slider de volume
-        volume_text = f"Volume musique: {int(music_volume * 100)}%"
+        volume_text = t("options.volume_music_label", volume=int(music_volume * 100))
         volume_surf = font_normal.render(volume_text, True, WHITE)
         content_surf.blit(volume_surf, (0, content_y_pos))
         content_y_pos += 25
@@ -414,13 +420,47 @@ def show_options_window():
 
         content_y_pos += 50
 
+        # Section Langue
+        section_surf = font_section.render(t("options.language_section"), True, GOLD)
+        content_surf.blit(section_surf, (0, content_y_pos))
+        content_y_pos += 40
+
+        # Boutons de sélection de langue
+        available_languages = get_available_languages()
+        current_lang = get_current_language()
+        
+        button_width = 120
+        button_height = 30
+        button_spacing = 10
+        x_offset = 0
+        
+        for lang_code, lang_name in available_languages.items():
+            lang_rect = pygame.Rect(x_offset, content_y_pos, button_width, button_height)
+            
+            # Couleur selon si c'est la langue active
+            if lang_code == current_lang:
+                color = GREEN  # Langue active en vert
+                text_color = WHITE
+            else:
+                color = DARK_GRAY  # Langue inactive en gris
+                text_color = LIGHT_GRAY
+            
+            draw_button(content_surf, lang_rect, lang_name, font_normal, color, text_color)
+            
+            # Créer la zone cliquable
+            buttons[f"lang_{lang_code}"] = lang_rect.move(content_rect.left, content_rect.top + scroll_y)
+            
+            x_offset += button_width + button_spacing
+
+        content_y_pos += 50
+
         # Section Contrôles
-        section_surf = font_section.render("Contrôles", True, GOLD)
+        section_surf = font_section.render(t("options.controls"), True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 40
 
         # Slider de sensibilité de la caméra
-        sensitivity_text = f"Sensibilité caméra: {camera_sensitivity:.1f}x"
+        sensitivity_text = t("options.camera_sensitivity", sensitivity=camera_sensitivity)
         sensitivity_surf = font_normal.render(sensitivity_text, True, WHITE)
         content_surf.blit(sensitivity_surf, (0, content_y_pos))
         content_y_pos += 25
@@ -441,18 +481,18 @@ def show_options_window():
         content_y_pos += 50
 
         # Section informations
-        section_surf = font_section.render("Informations", True, GOLD)
+        section_surf = font_section.render(t("options.information_section"), True, GOLD)
         content_surf.blit(section_surf, (0, content_y_pos))
         content_y_pos += 30
 
         info_lines = [
-            "• Tous les changements s'appliquent immédiatement sauf la résolution qui s'applique après avoir fermé le menu",
-            "• Le mode fenêtré/plein écran prend effet en fermant le menu",
-            "• Les résolutions personnalisées sont sauvegardées automatiquement",
-            "• Redimensionner la fenêtre sauvegarde la nouvelle résolution",
-            "• Les résolutions plus grandes que l'écran risquent de provoquer des problèmes d'affichage.",
-            "Si cela vous arrive, allez dans le fichier galad_config.json et remettez une résolution plus petite",
-            "en changant les valeurs 'width' et 'height' manuellement.",
+            t("options.info_changes_immediate"),
+            t("options.info_window_mode"),
+            t("options.info_custom_resolution"),
+            t("options.info_resize_window"),
+            t("options.info_resolution_warning"),
+            t("options.info_manual_fix"),
+            t("options.info_manual_fix2"),
         ]
 
         for line in info_lines:
@@ -470,7 +510,7 @@ def show_options_window():
         reset_btn_content = pygame.Rect(
             50, content_y_pos, btn_width, btn_height)
         draw_button(content_surf, reset_btn_content,
-                    "Défaut", font_normal, (200, 150, 50))
+                    t("options.button_default"), font_normal, (200, 150, 50))
         buttons["reset"] = reset_btn_content.move(
             content_rect.left, content_rect.top + scroll_y)
 
@@ -478,7 +518,7 @@ def show_options_window():
         close_btn_content = pygame.Rect(
             200, content_y_pos, btn_width, btn_height)
         draw_button(content_surf, close_btn_content,
-                    "Fermer", font_normal, RED)
+                    t("options.button_close"), font_normal, RED)
         buttons["close"] = close_btn_content.move(
             content_rect.left, content_rect.top + scroll_y)
 
