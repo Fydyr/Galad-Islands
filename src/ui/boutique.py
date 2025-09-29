@@ -1,8 +1,66 @@
 from typing import Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
-from src.settings.localization import t
 import pygame
+import math
+import os
+
+# Obtenir le chemin de base du projet
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Ajouter le chemin src au PYTHONPATH pour les imports
+import sys
+if os.path.join(BASE_PATH, 'src') not in sys.path:
+    sys.path.append(os.path.join(BASE_PATH, 'src'))
+
+try:
+    from settings.localization import t
+except ImportError:
+    # Fallback si la localisation n'est pas disponible
+    def t(key):
+        translations = {
+            "units.zasper": "Zasper",
+            "units.barhamus": "Barhamus",
+            "units.draupnir": "Draupnir",
+            "units.druid": "Druid", 
+            "units.architect": "Architect",
+            "shop.zasper_desc": "Scout rapide et polyvalent",
+            "shop.barhamus_desc": "Guerrier robuste avec bouclier",
+            "shop.draupnir_desc": "Léviathan lourd destructeur",
+            "shop.druid_desc": "Soigneur et support magique",
+            "shop.architect_desc": "Constructeur de défenses",
+            "shop.defense_tower": "Tour de Défense",
+            "shop.defense_tower_desc": "Tour d'attaque automatique",
+            "shop.heal_tower": "Tour de Soin",
+            "shop.heal_tower_desc": "Tour de régénération alliée",
+            "shop.stats.life": "Vie",
+            "shop.stats.attack": "ATK",
+            "shop.stats.heal": "SOIN",
+            "shop.stats.support": "SUPPORT",
+            "shop.stats.range": "Portée",
+            "shop.title": "Boutique Galad Islands",
+            "shop.category_units": "Recrutement d'Unités",
+            "shop.category_buildings": "Construction de Bâtiments",
+            "shop.units": "Unités",
+            "shop.buildings": "Bâtiments",
+            "enemy_shop.scout": "Éclaireur Ennemi",
+            "enemy_shop.warrior": "Guerrier Ennemi",
+            "enemy_shop.brute": "Brute Ennemie",
+            "enemy_shop.shaman": "Chaman Ennemi",
+            "enemy_shop.engineer": "Ingénieur Ennemi",
+            "enemy_shop.scout_desc": "Éclaireur rapide hostile",
+            "enemy_shop.warrior_desc": "Guerrier lourd ennemi",
+            "enemy_shop.brute_desc": "Destructeur massif",
+            "enemy_shop.shaman_desc": "Soigneur et mage noir",
+            "enemy_shop.engineer_desc": "Constructeur ennemi",
+            "enemy_shop.attack_tower": "Tour d'Attaque",
+            "enemy_shop.attack_tower_desc": "Tour offensive ennemie",
+            "enemy_shop.heal_tower": "Tour de Régénération",
+            "enemy_shop.heal_tower_desc": "Tour de soin ennemie",
+            "enemy_shop.title": "Arsenal Ennemi",
+            "enemy_shop.subtitle": "Recrutement Hostile"
+        }
+        return translations.get(key, key)
 
 # Thèmes de couleur pour les différentes factions
 class AllyTheme:
@@ -180,6 +238,15 @@ class UnifiedShop:
              {'cout_gold': 30, 'armure_max': 100, 'degats': 0})
         ]
         
+        # Mapping entre les IDs d'unités et les noms de fichiers PNG
+        unit_icon_mapping = {
+            "zasper": "Scout.png",
+            "barhamus": "Maraudeur.png", 
+            "draupnir": "Leviathan.png",
+            "druid": "Druid.png",
+            "architect": "Architect.png"
+        }
+
         for unit_id, name, description, config in units_data:
             short_desc = self._create_stats_description(config)
             
@@ -188,7 +255,7 @@ class UnifiedShop:
                 name=name,
                 description=short_desc,
                 cost=config['cout_gold'],
-                icon_path=f"assets/sprites/units/ally/{unit_id}.png",
+                icon_path=os.path.join(BASE_PATH, "assets", "sprites", "units", "ally", unit_icon_mapping[unit_id]),
                 category=ShopCategory.UNITS,
                 config_data=config,
                 purchase_callback=self._create_unit_purchase_callback(unit_id)
@@ -203,6 +270,12 @@ class UnifiedShop:
              {'cout_gold': 20, 'armure_max': 70, 'radius_action': 5})
         ]
         
+        # Mapping correct des noms de fichiers de bâtiments
+        building_icon_mapping = {
+            "defense_tower": "ally-defence-tower.png",
+            "heal_tower": "ally-heal-tower.png"
+        }
+
         for building_id, name, description, config in buildings_data:
             short_desc = self._create_building_description(config)
             
@@ -211,7 +284,7 @@ class UnifiedShop:
                 name=name,
                 description=short_desc,
                 cost=config['cout_gold'],
-                icon_path=f"assets/sprites/buildings/ally/{building_id}.png",
+                icon_path=os.path.join(BASE_PATH, "assets", "sprites", "buildings", "ally", building_icon_mapping[building_id]),
                 category=ShopCategory.BUILDINGS,
                 config_data=config,
                 purchase_callback=self._create_building_purchase_callback(building_id)
@@ -224,11 +297,11 @@ class UnifiedShop:
         # === UNITÉS ENNEMIES ===
         units_data = [
             ("enemy_scout", t("enemy_shop.scout"), t("enemy_shop.scout_desc"), 
-             {'cout_gold': 12, 'armure_max': 50, 'degats_min': 12, 'degats_max': 18}, "Zasper.png"),
+             {'cout_gold': 12, 'armure_max': 50, 'degats_min': 12, 'degats_max': 18}, "Scout.png"),
             ("enemy_warrior", t("enemy_shop.warrior"), t("enemy_shop.warrior_desc"), 
-             {'cout_gold': 25, 'armure_max': 120, 'degats_min_salve': 25, 'degats_max_salve': 35}, "Barhamus.png"),
+             {'cout_gold': 25, 'armure_max': 120, 'degats_min_salve': 25, 'degats_max_salve': 35}, "Maraudeur.png"),
             ("enemy_brute", t("enemy_shop.brute"), t("enemy_shop.brute_desc"), 
-             {'cout_gold': 45, 'armure_max': 280, 'degats_min_salve': 45, 'degats_max_salve': 65}, "Draupnir.png"),
+             {'cout_gold': 45, 'armure_max': 280, 'degats_min_salve': 45, 'degats_max_salve': 65}, "Leviathan.png"),
             ("enemy_shaman", t("enemy_shop.shaman"), t("enemy_shop.shaman_desc"), 
              {'cout_gold': 35, 'armure_max': 90, 'soin': 25}, "Druid.png"),
             ("enemy_engineer", t("enemy_shop.engineer"), t("enemy_shop.engineer_desc"), 
@@ -237,6 +310,46 @@ class UnifiedShop:
         
         for unit_id, name, description, config, sprite_file in units_data:
             short_desc = self._create_stats_description(config)
+            
+            item = ShopItem(
+                id=unit_id,
+                name=name,
+                description=short_desc,
+                cost=config['cout_gold'],
+                icon_path=os.path.join(BASE_PATH, "assets", "sprites", "units", "enemy", sprite_file),
+                category=ShopCategory.UNITS,
+                config_data=config,
+                purchase_callback=self._create_unit_purchase_callback(unit_id)
+            )
+            self.shop_items[ShopCategory.UNITS].append(item)
+        
+        # === BÂTIMENTS ENNEMIS ===
+        buildings_data = [
+            ("enemy_attack_tower", t("enemy_shop.attack_tower"), t("enemy_shop.attack_tower_desc"), 
+             {'cout_gold': 30, 'armure_max': 80, 'radius_action': 9}),
+            ("enemy_heal_tower", t("enemy_shop.heal_tower"), t("enemy_shop.heal_tower_desc"), 
+             {'cout_gold': 25, 'armure_max': 75, 'radius_action': 6})
+        ]
+        
+        icon_mapping = {
+            "enemy_attack_tower": "enemy-attack-tower.png",
+            "enemy_heal_tower": "enemy-heal-tower.png"
+        }
+        
+        for building_id, name, description, config in buildings_data:
+            short_desc = self._create_building_description(config)
+            
+            item = ShopItem(
+                id=building_id,
+                name=name,
+                description=short_desc,
+                cost=config['cout_gold'],
+                icon_path=os.path.join(BASE_PATH, "assets", "sprites", "buildings", "enemy", icon_mapping[building_id]),
+                category=ShopCategory.BUILDINGS,
+                config_data=config,
+                purchase_callback=self._create_building_purchase_callback(building_id)
+            )
+            self.shop_items[ShopCategory.BUILDINGS].append(item)
             
             item = ShopItem(
                 id=unit_id,
@@ -311,16 +424,18 @@ class UnifiedShop:
     def _load_tab_icons(self):
         """Charge les icônes pour les onglets."""
         tab_icon_paths = {
-            "units": "assets/image/TwemojiCrossedSwords.png",
-            "buildings": "assets/image/FluentEmojiFlatBuildingConstruction.png",
-            "gold": "assets/image/StreamlineUltimateColorCryptoCurrencyBitcoinCircle.png"
+            "units": os.path.join(BASE_PATH, "assets", "image", "TwemojiCrossedSwords.png"),
+            "buildings": os.path.join(BASE_PATH, "assets", "image", "FluentEmojiFlatBuildingConstruction.png"),
+            "gold": os.path.join(BASE_PATH, "assets", "image", "StreamlineUltimateColorCryptoCurrencyBitcoinCircle.png")
         }
         
         for tab_name, icon_path in tab_icon_paths.items():
             try:
                 icon = pygame.image.load(icon_path).convert_alpha()
                 self.tab_icons[tab_name] = pygame.transform.scale(icon, (24, 24))
-            except Exception:
+                print(f"Icône d'onglet chargée: {tab_name} depuis {icon_path}")
+            except Exception as e:
+                print(f"Impossible de charger l'icône d'onglet {tab_name}: {e}")
                 self.tab_icons[tab_name] = None
     
     def _create_placeholder_icon(self, name: str, category: ShopCategory) -> pygame.Surface:
