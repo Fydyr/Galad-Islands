@@ -6,7 +6,7 @@ import math
 from typing import Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
-from src.ui.boutique import Shop
+from src.ui.boutique import Shop, ShopFaction
 from src.settings.localization import t
 
 # Couleurs de l'interface améliorées
@@ -347,8 +347,14 @@ class ActionBar:
         """Bascule entre les camps ally/enemy (placeholder)."""
         self.current_camp = "enemy" if self.current_camp == "ally" else "ally"
         camp_name = t("camp.ally") if self.current_camp == "ally" else t("camp.enemy")
+        
+        # Changer la faction de la boutique en conséquence
+        new_faction = ShopFaction.ALLY if self.current_camp == "ally" else ShopFaction.ENEMY
+        self.shop.switch_faction(new_faction)
+        
         print(f"[PLACEHOLDER] Changement de camp vers: {camp_name}")
         self._show_feedback("success", f"Camp: {camp_name}")
+        print(f"Boutique changée vers la faction: {new_faction.value}")
     
     def _activate_global_attack(self):
         """Active le boost d'attaque global (placeholder)."""
