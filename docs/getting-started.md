@@ -3,7 +3,7 @@
 ## 📋 Prérequis système
 
 ### Configuration minimale
-- **Système d'exploitation** : Windows 10, macOS 10.14, ou Linux Ubuntu 18.04+
+- **Système d'exploitation** : Windows 10, macOS 10.14, ou Linux
 - **Python** : Version 3.8 ou supérieure
 - **RAM** : 4 GB minimum
 - **Espace disque** : 500 MB d'espace libre
@@ -11,7 +11,7 @@
 
 ### Dépendances Python
 - pygame >= 2.0.0
-- Les autres dépendances sont listées dans `requirements.txt`
+- Les autres dépendances sont listées dans `requirements.txt`.
 
 ## 🔧 Installation
 
@@ -22,6 +22,9 @@ cd Galad-Islands
 ```
 
 ### 2. Créer un environnement virtuel
+
+L'environnement virtuel permet d'isoler les dépendances du projet du reste de votre ordinateur.
+
 ```bash
 python -m venv venv
 
@@ -81,9 +84,9 @@ Au lancement, vous arrivez sur le menu principal avec les options :
 
 ### 3. Premiers objectifs
 1. **Explorez** la carte avec les flèches directionnelles
-2. **Repérez** les îles, mines, et coffres d'or
+2. **Repérez** les îles et coffres d'or
 3. **Sélectionnez** vos unités avec les touches numériques
-4. **Collectez** de l'or en vous déplaçant dessus
+4. **Collectez** de l'or en tirant sur les coffres
 5. **Achetez** de nouvelles unités dans la boutique (`B`)
 
 ### 4. Combat de base
@@ -106,7 +109,7 @@ Au lancement, vous arrivez sur le menu principal avec les options :
     **À éviter :**
     
     - Attaquer sans reconnaissance
-    - Négliger l'économie
+    - Dépenser sans réfléchir
     - Oublier les capacités spéciales
     - Disperser ses forces
 
@@ -121,6 +124,13 @@ Au lancement, vous arrivez sur le menu principal avec les options :
 1. Ajustez la résolution dans **Options**
 2. Testez le mode fenêtré vs plein écran
 3. Vérifiez les pilotes graphiques
+
+### La fenetre du jeu apparait avant de disparaitre en boucle
+1. Trouver le fichier 'galad_config.json' dans le dossier du jeu.
+2. Ouvrez-le avec un éditeur de texte.
+3. Cherchez les lignes `screen_width` et `screen_height`.
+4. Modifiez les valeurs pour qu'elles correspondent à une résolution plus petite que celle de votre écran.
+5. Sauvegardez le fichier et relancez le jeu.
 
 ### Performance lente
 1. Fermez les autres applications
