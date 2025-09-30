@@ -29,7 +29,7 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Passer au mode clair
-  
+
 nav:
   - Accueil: index.md
   - 📖 Documentation Utilisateur:
@@ -56,6 +56,7 @@ nav:
       - Gestionnaires: dev/modules/managers.md
       - Composants: dev/modules/components.md
     - Configuration: dev/configuration.md
+    - Maintenance: dev/maintenance.md
     - Contribution: dev/contributing.md
 
 plugins:
