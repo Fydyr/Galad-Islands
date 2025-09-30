@@ -18,18 +18,18 @@ theme:
     - search.share
   palette:
     - scheme: default
-      primary: amber
-      accent: deep orange
+      primary: blue
+      accent: light blue
       toggle:
         icon: material/brightness-7
         name: Passer au mode sombre
     - scheme: slate
-      primary: amber
-      accent: deep orange
+      primary: blue
+      accent: light blue
       toggle:
         icon: material/brightness-4
         name: Passer au mode clair
-
+  
 nav:
   - Accueil: index.md
   - 📖 Documentation Utilisateur:
