@@ -26,6 +26,7 @@ pip install -r requirements.txt
 - [markdown](https://python-markdown.github.io/)
 - [tkhtmlview](https://pypi.org/project/tkhtmlview/)
 - [commitizen](https://commitizen-tools.github.io/commitizen/)
+- [mkdocs](https://www.mkdocs.org/)
 
 Make sure to list all libraries used in your `requirements.txt`.
 
