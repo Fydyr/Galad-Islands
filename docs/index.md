@@ -1,8 +1,6 @@
-# Galad Islands - Guide du Joueur
+# Galad Islands - Documentation
 
 ![Logo Galad Islands](assets/logo.png)
-
-# Galad Islands - Documentation
 
 Bienvenue dans la documentation complète de **Galad Islands** ! 🏝️
 
