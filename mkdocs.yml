@@ -1,5 +1,5 @@
-site_name: Galad Islands - Guide du Joueur
-site_description: Guide complet pour jouer à Galad Islands, le jeu de stratégie aérienne
+site_name: Galad Islands - Documentation
+site_description: Documentation complète de Galad Islands - Guide utilisateur et documentation technique
 site_author: Équipe Galad Islands
 site_url: https://fydyr.github.io/Galad-Islands/
 
@@ -32,19 +32,31 @@ theme:
 
 nav:
   - Accueil: index.md
-  - Guide de démarrage: getting-started.md
-  - Gameplay:
-    - Contrôles: controls.md
-    - Unités: units.md
-    - Bâtiments: buildings.md
-    - Boutique: shop.md
-  - Interface:
-    - Menu principal: main-menu.md
-    - Options: options.md
-    - Barre d'action: action-bar.md
-  - Stratégie: strategy.md
-  - FAQ: faq.md
-  - Crédits: credits.md
+  - 📖 Documentation Utilisateur:
+    - Guide de démarrage: user/getting-started.md
+    - Gameplay:
+      - Contrôles: user/controls.md
+      - Unités: user/units.md
+      - Bâtiments: user/buildings.md
+      - Boutique: user/shop.md
+    - Interface:
+      - Barre d'action: user/action-bar.md
+    - Stratégie: user/strategy.md
+    - FAQ: user/faq.md
+    - Crédits: user/credits.md
+  - 🛠️ Documentation Technique:
+    - Vue d'ensemble: dev/overview.md
+    - Architecture: dev/architecture.md
+    - API:
+      - Moteur de jeu: dev/api/game-engine.md
+      - Interface utilisateur: dev/api/ui-system.md
+      - Système d'unités: dev/api/unit-system.md
+    - Modules:
+      - Processeurs: dev/modules/processors.md
+      - Gestionnaires: dev/modules/managers.md
+      - Composants: dev/modules/components.md
+    - Configuration: dev/configuration.md
+    - Contribution: dev/contributing.md
 
 plugins:
   - search:
