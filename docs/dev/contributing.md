@@ -10,13 +10,15 @@
 
 ---
 
+# Guide de contribution
+
 ## Conventions de commit
 
 Le projet utilise la spécification [Conventional Commits 1.0.0](https://www.conventionalcommits.org/) pour garantir un historique de commits lisible et exploitable par des outils automatisés.
 
 ### Structure du message de commit
 
-```
+```text
 <type>(<scope>): <subject>
 
 <body>
@@ -25,10 +27,12 @@ Le projet utilise la spécification [Conventional Commits 1.0.0](https://www.con
 ```
 
 **Composants obligatoires :**
+
 - `type` : Type de modification
 - `subject` : Description courte (72 caractères maximum)
 
 **Composants optionnels :**
+
 - `scope` : Portée de la modification (composant, module, fichier)
 - `body` : Description détaillée de la modification
 - `footer` : Métadonnées (références d'issues, breaking changes)
@@ -51,49 +55,52 @@ Le projet utilise la spécification [Conventional Commits 1.0.0](https://www.con
 
 ### Règles de rédaction
 
-**Subject :**
-- Utiliser l'impératif présent ("add" et non "added" ou "adds")
-- Ne pas commencer par une majuscule
-- Ne pas terminer par un point
-- Maximum 72 caractères
+!!! info Subject
+    - Utiliser l'impératif présent ("add" et non "added" ou "adds")
+    - Ne pas commencer par une majuscule
+    - Ne pas terminer par un point
+    - Maximum 72 caractères
 
-**Body :**
-- Séparer du subject par une ligne vide
-- Expliquer le "quoi" et le "pourquoi", pas le "comment"
-- Maximum 100 caractères par ligne
+!!! info Body
+    - Séparer du subject par une ligne vide
+    - Expliquer le "quoi" et le "pourquoi", pas le "comment"
+    - Maximum 100 caractères par ligne
 
-**Footer :**
-- Références aux issues : `Refs: #123, #456`
-- Fermeture d'issues : `Closes: #123`
-- Breaking changes : `BREAKING CHANGE: description`
+!!! info Footer
+    - Références aux issues : `Refs: #123, #456`
+    - Fermeture d'issues : `Closes: #123`
+    - Breaking changes : `BREAKING CHANGE: description`
 
 ### Exemples
 
-**Commit simple :**
-```
-feat(auth): add OAuth2 authentication support
-```
+=== "Commit simple"
 
-**Commit avec scope et body :**
-```
-fix(api): handle null response in user endpoint
+    ```bash
+    feat(auth): add OAuth2 authentication support
+    ```
 
-The user endpoint was throwing an error when the database
-returned null. Added proper null checking and error handling.
+=== "Avec scope et body"
 
-Closes: #142
-```
+    ```bash
+    fix(api): handle null response in user endpoint
 
-**Breaking change :**
-```
-refactor(api)!: change authentication token format
+    The user endpoint was throwing an error when the database
+    returned null. Added proper null checking and error handling.
 
-BREAKING CHANGE: The authentication token format has changed
-from JWT to custom format. Clients must update their token
-parsing logic.
+    Closes: #142
+    ```
 
-Refs: #234
-```
+=== "Breaking change"
+
+    ```bash
+    refactor(api)!: change authentication token format
+
+    BREAKING CHANGE: The authentication token format has changed
+    from JWT to custom format. Clients must update their token
+    parsing logic.
+
+    Refs: #234
+    ```
 
 ---
 
@@ -113,7 +120,7 @@ Refs: #234
 # Fork le dépôt via l'interface GitHub
 
 # Clone le fork
-git clone (https://github.com/Fydyr/Galad-Islands.git)
+git clone https://github.com/Fydyr/Galad-Islands.git
 cd <repository>
 
 # Configure le dépôt upstream
@@ -127,12 +134,13 @@ git merge upstream/main
 
 #### 2. Création d'une branche
 
-**Convention de nommage :**
-```
-<type>/<issue-number>-<short-description>
-```
+!!! tip Convention de nommage
+    ```text
+    <type>/<issue-number>-<short-description>
+    ```
 
 **Exemples :**
+
 ```bash
 git checkout -b feat/123-oauth-integration
 git checkout -b fix/456-null-pointer-exception
@@ -140,6 +148,7 @@ git checkout -b docs/789-api-documentation
 ```
 
 **Types de branches :**
+
 - `feat/` : Nouvelle fonctionnalité
 - `fix/` : Correction de bug
 - `docs/` : Documentation
@@ -182,15 +191,14 @@ git push origin <branch-name>
 git push --force-with-lease origin <branch-name>
 ```
 
-**Création de la Pull Request :**
-
-1. Ouvrir l'interface GitHub
-2. Créer une Pull Request depuis la branche du fork vers `main` d'upstream
-3. Remplir le template de PR avec :
-   - **Titre** : Résumé clair de la modification
-   - **Description** : Contexte et détails techniques
-   - **Type de changement** : Feature, Bug fix, etc.
-   - **Issues liées** : Références (#123)
+!!! note Création de la Pull Request
+    1. Ouvrir l'interface GitHub
+    2. Créer une Pull Request depuis la branche du fork vers `main` d'upstream
+    3. Remplir le template de PR avec :
+        - **Titre** : Résumé clair de la modification
+        - **Description** : Contexte et détails techniques
+        - **Type de changement** : Feature, Bug fix, etc.
+        - **Issues liées** : Références (#123)
 
 ---
 
@@ -198,49 +206,55 @@ git push --force-with-lease origin <branch-name>
 
 ### Principes généraux
 
-**SOLID :**
-- Single Responsibility Principle
-- Open/Closed Principle
-- Liskov Substitution Principle
-- Interface Segregation Principle
-- Dependency Inversion Principle
+!!! abstract SOLID
+    - Single Responsibility Principle
+    - Open/Closed Principle
+    - Liskov Substitution Principle
+    - Interface Segregation Principle
+    - Dependency Inversion Principle
 
-**Clean Code :**
-- Noms explicites et significatifs
-- Fonctions courtes (< 20 lignes)
-- Commentaires uniquement si nécessaire
-- Pas de code dupliqué (DRY)
-- Gestion appropriée des erreurs
+!!! abstract Clean Code
+    - Noms explicites et significatifs
+    - Fonctions courtes (< 20 lignes)
+    - Commentaires uniquement si nécessaire
+    - Pas de code dupliqué (DRY)
+    - Gestion appropriée des erreurs
 
 ### Conventions de nommage
 
-**Variables et fonctions :**
-```javascript
-// camelCase pour variables et fonctions
-const userName = 'John';
-function getUserData() { }
-```
+=== "Variables et fonctions"
 
-**Classes et composants :**
-```javascript
-// PascalCase pour classes et composants
-class UserService { }
-function UserProfile() { }
-```
+    ```javascript
+    // camelCase pour variables et fonctions
+    const userName = 'John';
+    function getUserData() { }
+    ```
 
-**Constantes :**
-```javascript
-// UPPER_SNAKE_CASE pour constantes
-const MAX_RETRY_COUNT = 3;
-const API_BASE_URL = 'https://api.example.com';
-```
+=== "Classes et composants"
 
-**Fichiers :**
-- Utilitaires : `camelCase.py`
+    ```javascript
+    // PascalCase pour classes et composants
+    class UserService { }
+    function UserProfile() { }
+    ```
 
-**Couverture de code :**
-- Minimum requis : 80%
-- Objectif : 90%+
+=== "Constantes"
+
+    ```javascript
+    // UPPER_SNAKE_CASE pour constantes
+    const MAX_RETRY_COUNT = 3;
+    const API_BASE_URL = 'https://api.example.com';
+    ```
+
+=== "Fichiers"
+
+    - Utilitaires : `camelCase.py`
+
+### Tests
+
+!!! success Couverture de code
+    - **Minimum requis** : 80%
+    - **Objectif** : 90%+
 
 ---
 
@@ -248,20 +262,21 @@ const API_BASE_URL = 'https://api.example.com';
 
 ### Critères d'acceptation
 
-**Obligatoires :**
-- [ ] Au moins une revue approuvée d'un mainteneur
-- [ ] Aucun conflit avec la branche cible
-- [ ] Documentation à jour
-- [ ] Couverture de tests satisfaisante
+!!! warning Obligatoires
+    - [ ] Au moins une revue approuvée d'un mainteneur
+    - [ ] Aucun conflit avec la branche cible
+    - [ ] Documentation à jour
+    - [ ] Couverture de tests satisfaisante
 
-**Recommandés :**
-- [ ] Performance évaluée pour les modifications critiques
-- [ ] Accessibilité vérifiée pour les modifications UI
-- [ ] Sécurité analysée pour les modifications sensibles
+!!! tip Recommandés
+    - [ ] Performance évaluée pour les modifications critiques
+    - [ ] Accessibilité vérifiée pour les modifications UI
+    - [ ] Sécurité analysée pour les modifications sensibles
 
 ### Traitement des retours
 
 **Résolution des commentaires :**
+
 1. Lire et comprendre tous les commentaires
 2. Appliquer les modifications demandées
 3. Répondre aux commentaires pour expliquer les choix
@@ -269,6 +284,7 @@ const API_BASE_URL = 'https://api.example.com';
 5. Demander une nouvelle revue
 
 **Modifications après revue :**
+
 ```bash
 # Modifier le code
 git add <files>
@@ -284,10 +300,11 @@ git push origin <branch-name>
 
 ## Contact
 
-**Pour toute question :**
-- Ouvrir une issue avec le label `question`
+!!! question Pour toute question
+    Ouvrir une issue avec le label `question`
 
-**Mainteneurs :**
+### Mainteneurs
+
 - [Enzo Fournier](https://github.com/fydyr)
 - [Edouard Alluin](https://github.com/AlluinEdouard)
 - [Julien Behani](https://github.com/kinator)
@@ -297,4 +314,5 @@ git push origin <branch-name>
 
 ---
 
-**Version du document :** 1.0.0
+!!! info Version du document
+    **Version** : 1.0.0
