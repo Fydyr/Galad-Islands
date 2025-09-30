@@ -7,3 +7,4 @@ markdown==3.9.0
 tkhtmlview==0.3.1
 commitizen==4.9.1
 mkdocs==1.5.2
+mkdocs-material==9.1.15
