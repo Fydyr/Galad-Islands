@@ -21,29 +21,13 @@ try:
     from components.properties.positionComponent import PositionComponent
     from settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
     SPAWN_SYSTEM_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     # Fallback si les imports ne sont pas disponibles
-    print("Warning: Système de spawn non disponible - mode boutique visuelle seulement")
+    print(f"Warning: Système de spawn non disponible - {e}")
     SPAWN_SYSTEM_AVAILABLE = False
     
-    # Valeurs par défaut pour les constantes
+    # Valeurs par défaut pour les constantes seulement
     MAP_WIDTH, MAP_HEIGHT, TILE_SIZE = 30, 30, 32
-    
-    # Mock classes pour éviter les erreurs
-    class UnitType:
-        SCOUT = "scout"
-        MARAUDEUR = "maraudeur"  
-        LEVIATHAN = "leviathan"
-        DRUID = "druid"
-        ARCHITECT = "architect"
-    
-    class PositionComponent:
-        def __init__(self, x, y):
-            self.x, self.y = x, y
-            
-    def UnitFactory(unit_type, is_enemy, position):
-        print(f"Mock: Création {unit_type} ({'ennemi' if is_enemy else 'allié'}) en ({position.x}, {position.y})")
-        return True  # Simulation de succès
     
     # Fallback de localisation
     def t(key):
@@ -422,6 +406,10 @@ class UnifiedShop:
     
     def _get_ally_base_spawn_position(self):
         """Calcule une position de spawn près de la base alliée."""
+        if not SPAWN_SYSTEM_AVAILABLE:
+            # Position par défaut si le système n'est pas disponible
+            return type('PositionComponent', (), {'x': 100, 'y': 100})()
+        
         # Base alliée : grille (1,1) à (4,4)
         # Convertir en coordonnées monde (pixels)
         base_center_x = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en X
@@ -436,8 +424,11 @@ class UnifiedShop:
         
         return PositionComponent(spawn_x, spawn_y)
     
-    def _map_boutique_id_to_unit_type(self, unit_id: str) -> Optional[UnitType]:
-        """Mappe un ID de la boutique vers un UnitType de la factory."""
+    def _map_boutique_id_to_unit_type(self, unit_id: str):
+        """Mappe un ID de la boutique vers un UnitType de ta factory."""
+        if not SPAWN_SYSTEM_AVAILABLE:
+            return unit_id  # Retourne juste l'ID si le système n'est pas disponible
+        
         unit_mapping = {
             "zasper": UnitType.SCOUT,
             "barhamus": UnitType.MARAUDEUR,
