@@ -1,0 +1,68 @@
+site_name: Galad Islands - Guide du Joueur
+site_description: Guide complet pour jouer à Galad Islands, le jeu de stratégie aérienne
+site_author: Équipe Galad Islands
+site_url: https://fydyr.github.io/Galad-Islands/
+
+repo_name: Fydyr/Galad-Islands
+repo_url: https://github.com/Fydyr/Galad-Islands
+
+theme:
+  name: material
+  language: fr
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+  palette:
+    - scheme: default
+      primary: amber
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Passer au mode sombre
+    - scheme: slate
+      primary: amber
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Passer au mode clair
+
+nav:
+  - Accueil: index.md
+  - Guide de démarrage: getting-started.md
+  - Gameplay:
+    - Contrôles: controls.md
+    - Unités: units.md
+    - Bâtiments: buildings.md
+    - Boutique: shop.md
+  - Interface:
+    - Menu principal: main-menu.md
+    - Options: options.md
+    - Barre d'action: action-bar.md
+  - Stratégie: strategy.md
+  - FAQ: faq.md
+  - Crédits: credits.md
+
+plugins:
+  - search:
+      lang: fr
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Fydyr/Galad-Islands
