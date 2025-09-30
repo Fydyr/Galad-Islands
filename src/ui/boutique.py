@@ -4,6 +4,7 @@ from enum import Enum
 import pygame
 import math
 import os
+import random
 
 # Obtenir le chemin de base du projet
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,8 +16,36 @@ if os.path.join(BASE_PATH, 'src') not in sys.path:
 
 try:
     from settings.localization import t
+    from factory.unitFactory import UnitFactory
+    from factory.unitType import UnitType
+    from components.properties.positionComponent import PositionComponent
+    from settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+    SPAWN_SYSTEM_AVAILABLE = True
 except ImportError:
-    # Fallback si la localisation n'est pas disponible
+    # Fallback si les imports ne sont pas disponibles
+    print("Warning: Système de spawn non disponible - mode boutique visuelle seulement")
+    SPAWN_SYSTEM_AVAILABLE = False
+    
+    # Valeurs par défaut pour les constantes
+    MAP_WIDTH, MAP_HEIGHT, TILE_SIZE = 30, 30, 32
+    
+    # Mock classes pour éviter les erreurs
+    class UnitType:
+        SCOUT = "scout"
+        MARAUDEUR = "maraudeur"  
+        LEVIATHAN = "leviathan"
+        DRUID = "druid"
+        ARCHITECT = "architect"
+    
+    class PositionComponent:
+        def __init__(self, x, y):
+            self.x, self.y = x, y
+            
+    def UnitFactory(unit_type, is_enemy, position):
+        print(f"Mock: Création {unit_type} ({'ennemi' if is_enemy else 'allié'}) en ({position.x}, {position.y})")
+        return True  # Simulation de succès
+    
+    # Fallback de localisation
     def t(key):
         translations = {
             "units.zasper": "Zasper",
@@ -391,6 +420,33 @@ class UnifiedShop:
             )
             self.shop_items[ShopCategory.BUILDINGS].append(item)
     
+    def _get_ally_base_spawn_position(self):
+        """Calcule une position de spawn près de la base alliée."""
+        # Base alliée : grille (1,1) à (4,4)
+        # Convertir en coordonnées monde (pixels)
+        base_center_x = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en X
+        base_center_y = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en Y
+        
+        # Ajouter un décalage aléatoire pour éviter que toutes les unités apparaissent au même endroit
+        offset_x = random.randint(-100, 100)
+        offset_y = random.randint(-100, 100)
+        
+        spawn_x = base_center_x + offset_x
+        spawn_y = base_center_y + offset_y
+        
+        return PositionComponent(spawn_x, spawn_y)
+    
+    def _map_boutique_id_to_unit_type(self, unit_id: str) -> Optional[UnitType]:
+        """Mappe un ID de la boutique vers un UnitType de la factory."""
+        unit_mapping = {
+            "zasper": UnitType.SCOUT,
+            "barhamus": UnitType.MARAUDEUR,
+            "draupnir": UnitType.LEVIATHAN,
+            "druid": UnitType.DRUID,
+            "architect": UnitType.ARCHITECT
+        }
+        return unit_mapping.get(unit_id)
+    
     def _create_stats_description(self, config: Dict) -> str:
         """Crée une description formatée pour les statistiques d'une unité."""
         short_desc = f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')}"
@@ -477,11 +533,51 @@ class UnifiedShop:
         return icon
     
     def _create_unit_purchase_callback(self, unit_id: str):
-        """Crée le callback d'achat pour une unité."""
+        """Crée le callback d'achat pour une unité avec spawn réel."""
         def callback():
-            print(f"Achat d'unité: {unit_id}")
-            self._show_purchase_feedback(f"Unité {unit_id} achetée!", True)
-            return True
+            if not SPAWN_SYSTEM_AVAILABLE:
+                print(f"Mode visuel: Achat d'unité {unit_id}")
+                self._show_purchase_feedback(f"Unité {unit_id} achetée (mode visuel)!", True)
+                return True
+                
+            try:
+                # Mapper l'ID de la boutique vers le type d'unité
+                unit_type = self._map_boutique_id_to_unit_type(unit_id)
+                if not unit_type:
+                    print(f"Erreur: Type d'unité inconnu pour {unit_id}")
+                    self._show_purchase_feedback(f"Erreur: Type d'unité inconnu!", False)
+                    return False
+                
+                # Calculer la position de spawn près de la base alliée
+                spawn_position = self._get_ally_base_spawn_position()
+                
+                # Déterminer si c'est un ennemi selon la faction de la boutique
+                is_enemy = (self.faction == ShopFaction.ENEMY)
+                
+                # Créer l'unité avec la factory
+                entity = UnitFactory(unit_type, is_enemy, spawn_position)
+                
+                if entity:
+                    faction_name = "ennemie" if is_enemy else "alliée"
+                    unit_name = unit_id  # Par défaut
+                    # Trouver le bon nom traduit
+                    for item in self.shop_items[ShopCategory.UNITS]:
+                        if item.id == unit_id:
+                            unit_name = item.name
+                            break
+                    
+                    print(f"Unité {unit_name} ({faction_name}) créée en ({spawn_position.x:.1f}, {spawn_position.y:.1f})")
+                    self._show_purchase_feedback(f"Unité {unit_name} recrutée!", True)
+                    return True
+                else:
+                    print(f"Erreur lors de la création de l'unité {unit_id}")
+                    self._show_purchase_feedback(f"Erreur lors du recrutement!", False)
+                    return False
+                    
+            except Exception as e:
+                print(f"Erreur dans le callback d'achat d'unité: {e}")
+                self._show_purchase_feedback(f"Erreur: {str(e)}", False)
+                return False
         return callback
     
     def _create_building_purchase_callback(self, building_id: str):
