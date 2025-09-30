@@ -2,16 +2,33 @@
 
 ![Logo Galad Islands](assets/logo.png)
 
-Bienvenue dans **Galad Islands**, un jeu de stratégie en temps réel où vous commandez une flotte aérienne dans un archipel mystérieux ! 
+# Galad Islands - Documentation
+
+Bienvenue dans la documentation complète de **Galad Islands** ! 🏝️
 
 ## 🎮 Qu'est-ce que Galad Islands ?
 
-Galad Islands est un jeu de stratégie tactique où vous :
-- **Commandez des flottes aériennes** composées de zeppelins et vaisseaux volants
-- **Explorez un archipel** rempli d'îles, de mines et de trésors
-- **Affrontez des ennemis** dans des batailles aériennes épiques
-- **Gérez vos ressources** pour construire et améliorer votre armée
-- **Maîtrisez la stratégie** pour dominer les cieux
+Galad Islands est un jeu de stratégie en temps réel qui vous plonge dans un archipel mystérieux où vous devez conquérir des îles, gérer vos ressources et mener vos armées à la victoire. Combinez tactique, économie et action dans des batailles épiques au-dessus des nuages !
+
+## 📚 Navigation de la documentation
+
+Cette documentation est organisée en deux sections principales :
+
+### 📖 Documentation Utilisateur
+*Pour les joueurs qui veulent maîtriser le jeu*
+
+- **[Guide de démarrage](user/getting-started.md)** - Installation et premiers pas
+- **[Gameplay](user/controls.md)** - Mécaniques de jeu, unités, bâtiments
+- **[Stratégie](user/strategy.md)** - Tactiques avancées et conseils
+- **[FAQ](user/faq.md)** - Questions fréquentes et dépannage
+
+### 🛠️ Documentation Technique  
+*Pour les développeurs et contributeurs*
+
+- **[Vue d'ensemble](dev/overview.md)** - Architecture générale du projet
+- **[API](dev/api/game-engine.md)** - Documentation des interfaces de programmation
+- **[Modules](dev/modules/processors.md)** - Structure interne du code
+- **[Contribution](dev/contributing.md)** - Guide pour contribuer au projet
 
 ## ✨ Caractéristiques principales
 
