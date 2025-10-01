@@ -46,7 +46,6 @@ nav:
     - Crédits: user/credits.md
   - 🛠️ Documentation Technique:
     - Vue d'ensemble: dev/overview.md
-    - Architecture: dev/architecture.md
     - API:
       - Moteur de jeu: dev/api/game-engine.md
       - Interface utilisateur: dev/api/ui-system.md
