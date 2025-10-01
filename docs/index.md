@@ -74,7 +74,8 @@ Cette documentation est organisée en deux sections principales :
 
 ## 📚 Navigation de ce guide
 
-- **[Guide de démarrage](getting-started.md)** : Installation et premiers pas
+- **[Guide de démarrage](getting-started.md)** : Premiers pas
+- **[Installation et Configuration](installation.md)** : Comment installer et configurer le jeu
 - **[Contrôles](controls.md)** : Toutes les commandes du jeu
 - **[Unités](units.md)** : Guide détaillé de chaque type d'unité
 - **[Stratégie](strategy.md)** : Conseils tactiques avancés
