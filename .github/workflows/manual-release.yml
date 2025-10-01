@@ -3,6 +3,10 @@ description: For trigger a manual release build if needed
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag à builder (ex: v1.0.0)'
+        required: true
 
 permissions:
   contents: write
@@ -18,7 +22,7 @@ jobs:
       - name: Checkout code at tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.version.outputs.new_tag }}
+          ref: ${{ github.event.inputs.tag }}
           fetch-depth: 0
 
       - name: Set up Python
