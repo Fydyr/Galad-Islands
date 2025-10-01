@@ -215,7 +215,7 @@ TRANSLATIONS = {
     "options.resolution_section": "Résolution (mode fenêtré uniquement)",
     "options.custom_resolution_label": "Résolution personnalisée:",
     "options.detected_screen": "Écran détecté: {width}x{height}",
-    "options.resolution_advice": "(Toutes résolutions acceptées - ajustement automatique si nécessaire)",
+    "options.resolution_advice": "(Conseil: Choisissez une résolution inférieure à celle de votre écran pour éviter les problèmes d'affichage)",
     "options.volume_music_label": "Volume musique: {volume}%",
     "options.language_section": "Langue / Language",
     "options.camera_sensitivity": "Sensibilité caméra: {sensitivity}x",
