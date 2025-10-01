@@ -1,3 +1,11 @@
+## v0.2.2 (2025-10-01)
+
+### Fix
+
+- **ci**: add fallback when changelog generation fails
+- **ci**: improve asset bundling and add fallback resource loading
+- add PyInstaller resource path handling for Windows builds
+
 ## v0.2.1 (2025-10-01)
 
 ### Fix
