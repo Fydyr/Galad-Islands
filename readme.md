@@ -13,7 +13,7 @@ Clone the repository and install the dependencies:
 ```bash
 git clone https://github.com/Fydyr/Galad-Islands.git
 cd Galad-Islands
-pip install -r requirements.txt
+python setup_dev.py # ou python3 setup_dev.py -- Ce script crée un environnement virtuel et installe les dépendances
 ```
 
 ## Dependencies
@@ -38,6 +38,15 @@ To start the game, run the main file:
 ```bash
 python main.py
 ```
+
+## How to Build
+
+To create a standalone executable, use PyInstaller:
+
+```bash
+pyinstaller --onefile main.py --name galad-islands --add-data "assets:assets"
+```
+
 
 ## Features
 
