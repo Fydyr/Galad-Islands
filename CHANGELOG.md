@@ -3,41 +3,23 @@
 ### Feat
 
 - implement base management system and integrate into game mechanics
-- **ci**: improve release descriptions and version handling
-
-### Fix
-
-- synchronize version in pyproject.toml with latest Git tag
 
 ### Refactor
 
 - restructure game.py into modular classes
 - **audio**: replace WAV files with OGG format for improved audio quality and space
 
-## v0.2.2 (2025-10-01)
-
-### Fix
-
-- **ci**: add fallback when changelog generation fails
-
 ## v0.2.1 (2025-10-01)
 
 ### Fix
 
-- **ci**: improve asset bundling and add fallback resource loading
 - add PyInstaller resource path handling for Windows builds
-- **ci**: remove invalid --increment AUTO flag from cz bump
 
 ## v0.2.0 (2025-10-01)
 
 ### Feat
 
 - added retrun entity on unitFactory
-
-### Fix
-
-- **ci**: improve version bump workflow tag detection
-- mettre à jour la version du projet à 0.2.0
 
 ### Refactor
 
@@ -50,7 +32,6 @@
 
 - **logo**: ajout du logo sur le haut de l'app
 - **documentation**: ajout de nouveaux sprites et logo pour la documentation utilisateur
-- **documentation**: génération du GitHub Page par Mkdocs
 - **documentation**: création et début de la documentation technique
 - **documentation**: Début de documentation utilisateur (généré par Copilot, à revoir évidamment)
 - **boutique**: add spawn system and unit type mapping for unit purchases
@@ -94,7 +75,6 @@
 - Sprite display on screen
 - **scénario & help**: ajout de l'intégration de .md pour afficher le contenu via une modale
 - Update game.py to start a game loop
-- **requirement**: add dependencies
 - Modify troopsComponent, main and game
 - **Vine**: add processor and component for vines for the druid
 - add movementProcessor
@@ -107,15 +87,8 @@
 
 ### Fix
 
-- supprimer le commentaire sur l'adaptation du chemin d'entrée dans le build PyInstaller
-- ajuster le workflow de publication pour déclencher sur la branche principale et gérer les versions
-- ajouter la configuration de l'utilisateur git dans le workflow de publication
-- corriger le chemin d'entrée pour PyInstaller et ajouter des métadonnées du projet dans pyproject.toml
 - **documentation**: mise à jour des prérequis système et clarification des instructions d'installation
-- **readme**: ajout de mkdocs-material à la liste des dépendances
 - **boutique**: improve fallback handling for spawn system and unit type mapping
-- **readme**: ajout de mkdocs à la liste des dépendances
-- **requirements**: ajout de mkdocs à la liste des dépendances
 - game.py, spriteComponent.py, collisionProcessor.py
 - **menu**: ajouter un titre à la fenêtre principale
 - collisionProcessor.py, movementProcessor.py
