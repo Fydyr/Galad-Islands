@@ -33,6 +33,7 @@ jobs:
         run: |
           cz bump --yes --changelog
           git push --follow-tags
+          git push origin --tags
           echo "new_tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
