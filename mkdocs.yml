@@ -58,6 +58,9 @@ nav:
     - Configuration: dev/configuration.md
     - Maintenance: dev/maintenance.md
     - Contribution: dev/contributing.md
+  - 💬 Support et Contact:
+    - Support: support.md
+    - Contact: contact.md
 
 plugins:
   - search:
