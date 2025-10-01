@@ -4,8 +4,8 @@ description: For trigger a manual release build if needed
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Tag à builder (ex: v1.0.0)'
+      version:
+        description: 'Numéro de version à publier (ex: 1.0.0)'
         required: true
 
 permissions:
@@ -19,11 +19,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - name: Checkout code at tag
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag }}
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -49,9 +46,11 @@ jobs:
         if: runner.os != 'Windows'
         run: zip galad-islands-${{ runner.os }}.zip dist/galad-islands
 
-      - name: Upload Release Asset
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: Galad Islands ${{ github.event.inputs.version }}
           files: |
             galad-islands-*.zip
         env:
