@@ -78,18 +78,9 @@ def game(window=None, bg_original=None, select_sound=None):
     # Placer le vaisseau au centre de la carte (en coordonnées monde/pixels)
     center_x = (MAP_WIDTH * TILE_SIZE) // 2
     center_y = (MAP_HEIGHT * TILE_SIZE) // 2
-    test_vessel = es.create_entity()
-    
-    es.add_component(test_vessel, PositionComponent(center_x, center_y, 180))
-    es.add_component(test_vessel, VelocityComponent(0, 5, -1))
-    es.add_component(test_vessel, RadiusComponent(bullet_cooldown=2))
-    es.add_component(test_vessel, PlayerSelectedComponent(player))
-    es.add_component(test_vessel, TeamComponent(1))
-    es.add_component(test_vessel, AttackComponent(10))
-    es.add_component(test_vessel, HealthComponent(60, 60))
-    es.add_component(test_vessel, CanCollideComponent())
-    es.add_component(test_vessel, SpriteComponent("assets/sprites/units/ally/Scout.png", 80, 100))
 
+    player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(center_x, center_y))
+    es.add_component(player_unit, PlayerSelectedComponent(player))
 
     UnitFactory(UnitType.SCOUT, True, PositionComponent(center_x + 150, center_y-150))
     UnitFactory(UnitType.MARAUDEUR, True, PositionComponent(center_x + 150, center_y))
