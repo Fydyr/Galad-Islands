@@ -1,3 +1,14 @@
+## v0.2.0 (2025-10-01)
+
+### Feat
+
+- added return entity on unitFactory
+
+### Fix
+
+- mettre à jour la version du projet à 0.2.0
+- improve version bump workflow tag detection
+
 ## v0.1.1 (2025-10-01)
 
 ### Fix
