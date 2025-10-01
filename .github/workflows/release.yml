@@ -63,7 +63,6 @@ jobs:
       - name: Build with PyInstaller
         run: |
           pyinstaller --onefile main.py --name galad-islands
-        # Adapte le chemin d'entrée si besoin
 
       - name: Archive build
         if: runner.os == 'Windows'
