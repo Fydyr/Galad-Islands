@@ -34,6 +34,7 @@ jobs:
           pip install pyinstaller
 
       - name: Build with PyInstaller
+        shell: bash
         run: |
           # Détection du séparateur selon l'OS
           if [ "$RUNNER_OS" = "Windows" ]; then SEP=';'; else SEP=':'; fi
