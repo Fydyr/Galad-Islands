@@ -21,6 +21,24 @@ tag_format = "v$version"
 update_changelog_on_bump = true
 bump_message = "chore: bump version $current_version → $new_version"
 
+# Types de commits à inclure dans le changelog (pour les utilisateurs)
+changelog_incremental = true
+changelog_start_rev = "v0.1.0"
+
+# Configuration du changelog
+[tool.commitizen.changelog]
+# Exclure les types de commits non pertinents pour les utilisateurs
+exclude_commit_patterns = [
+    "^ci:",
+    "^build:",  
+    "^chore:",
+    "^docs:",
+    "^style:",
+    "^test:",
+    "^.*(workflow|pipeline|github|actions).*",
+    "^.*(requirements|dependencies).*"
+]
+
 [tool.commitizen.settings]
 # Types de commits autorisés
 allowed_types = [
