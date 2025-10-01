@@ -5,6 +5,8 @@ from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, G
 from random import randint
 from src.settings.localization import t
 from src.components.cameraComponent import Camera
+from src.functions.resource_path import get_resource_path
+import os
 
 
 def creer_grille():
@@ -22,12 +24,12 @@ def charger_images():
         dict[str, pygame.Surface]: Dictionnaire des images par type d'élément
     """
     return {
-        'generic_island': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/generic_island.png"), (TILE_SIZE, TILE_SIZE)),
-        'ally': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/ally_island.png"), (4*TILE_SIZE, 4*TILE_SIZE)),
-        'enemy': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/enemy_island.png"), (4*TILE_SIZE, 4*TILE_SIZE)),
-        'mine': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/mine.png"), (TILE_SIZE, TILE_SIZE)),
-        'cloud': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/cloud.png"), (TILE_SIZE, TILE_SIZE)),
-        'sea': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/sea.png"), (TILE_SIZE, TILE_SIZE)),
+        'generic_island': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "terrain", "generic_island.png"))), (TILE_SIZE, TILE_SIZE)),
+        'ally': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "terrain", "ally_island.png"))), (4*TILE_SIZE, 4*TILE_SIZE)),
+        'enemy': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "terrain", "enemy_island.png"))), (4*TILE_SIZE, 4*TILE_SIZE)),
+        'mine': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "terrain", "mine.png"))), (TILE_SIZE, TILE_SIZE)),
+        'cloud': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "terrain", "cloud.png"))), (TILE_SIZE, TILE_SIZE)),
+        'sea': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "terrain", "sea.png"))), (TILE_SIZE, TILE_SIZE)),
     }
 
 def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
