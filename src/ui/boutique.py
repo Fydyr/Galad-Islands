@@ -20,6 +20,7 @@ try:
     from factory.unitType import UnitType
     from components.properties.positionComponent import PositionComponent
     from settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+    from functions.baseManager import get_base_manager
     SPAWN_SYSTEM_AVAILABLE = True
 except ImportError as e:
     # Fallback si les imports ne sont pas disponibles
@@ -404,16 +405,20 @@ class UnifiedShop:
             )
             self.shop_items[ShopCategory.BUILDINGS].append(item)
     
-    def _get_ally_base_spawn_position(self):
-        """Calcule une position de spawn près de la base alliée."""
+    def _get_base_spawn_position(self, is_enemy=False):
+        """Calcule une position de spawn près de la base appropriée selon la faction."""
         if not SPAWN_SYSTEM_AVAILABLE:
             # Position par défaut si le système n'est pas disponible
             return type('PositionComponent', (), {'x': 100, 'y': 100})()
         
-        # Base alliée : grille (1,1) à (4,4)
-        # Convertir en coordonnées monde (pixels)
-        base_center_x = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en X
-        base_center_y = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en Y
+        if is_enemy:
+            # Base ennemie : grille (MAP_WIDTH-4, MAP_HEIGHT-4) à (MAP_WIDTH, MAP_HEIGHT)
+            base_center_x = (MAP_WIDTH - 4 + 1 + MAP_WIDTH - 1 + 1) / 2 * TILE_SIZE
+            base_center_y = (MAP_HEIGHT - 4 + 1 + MAP_HEIGHT - 1 + 1) / 2 * TILE_SIZE
+        else:
+            # Base alliée : grille (1,1) à (4,4)
+            base_center_x = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en X
+            base_center_y = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en Y
         
         # Ajouter un décalage aléatoire pour éviter que toutes les unités apparaissent au même endroit
         offset_x = random.randint(-100, 100)
@@ -430,11 +435,18 @@ class UnifiedShop:
             return unit_id  # Retourne juste l'ID si le système n'est pas disponible
         
         unit_mapping = {
+            # Unités alliées
             "zasper": UnitType.SCOUT,
             "barhamus": UnitType.MARAUDEUR,
             "draupnir": UnitType.LEVIATHAN,
             "druid": UnitType.DRUID,
-            "architect": UnitType.ARCHITECT
+            "architect": UnitType.ARCHITECT,
+            # Unités ennemies (même type d'unité, faction différente)
+            "enemy_scout": UnitType.SCOUT,
+            "enemy_warrior": UnitType.MARAUDEUR,
+            "enemy_brute": UnitType.LEVIATHAN,
+            "enemy_shaman": UnitType.DRUID,
+            "enemy_engineer": UnitType.ARCHITECT
         }
         return unit_mapping.get(unit_id)
     
@@ -539,16 +551,20 @@ class UnifiedShop:
                     self._show_purchase_feedback(f"Erreur: Type d'unité inconnu!", False)
                     return False
                 
-                # Calculer la position de spawn près de la base alliée
-                spawn_position = self._get_ally_base_spawn_position()
-                
                 # Déterminer si c'est un ennemi selon la faction de la boutique
                 is_enemy = (self.faction == ShopFaction.ENEMY)
+                
+                # Calculer la position de spawn près de la base appropriée
+                spawn_position = self._get_base_spawn_position(is_enemy)
                 
                 # Créer l'unité avec la factory
                 entity = UnitFactory(unit_type, is_enemy, spawn_position)
                 
                 if entity:
+                    # Ajouter l'unité à la liste des troupes de la base appropriée
+                    base_manager = get_base_manager()
+                    base_manager.add_unit_to_base(entity, is_enemy)
+                    
                     faction_name = "ennemie" if is_enemy else "alliée"
                     unit_name = unit_id  # Par défaut
                     # Trouver le bon nom traduit
@@ -557,7 +573,12 @@ class UnifiedShop:
                             unit_name = item.name
                             break
                     
+                    # Afficher le statut des bases pour debug
+                    ally_units = len(base_manager.get_base_units(is_enemy=False))
+                    enemy_units = len(base_manager.get_base_units(is_enemy=True))
                     print(f"Unité {unit_name} ({faction_name}) créée en ({spawn_position.x:.1f}, {spawn_position.y:.1f})")
+                    print(f"Status bases: Alliés={ally_units} unités, Ennemis={enemy_units} unités")
+                    
                     self._show_purchase_feedback(f"Unité {unit_name} recrutée!", True)
                     return True
                 else:
