@@ -3,9 +3,7 @@ from src.factory.unitType import UnitType
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.spriteComponent import SpriteComponent
-from src.components.properties.playerSelectedComponent import PlayerSelectedComponent
 from src.components.properties.teamComponent import TeamComponent
-from src.components.properties.playerComponent import PlayerComponent
 from src.components.properties.radiusComponent import RadiusComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.healthComponent import HealthComponent
