@@ -14,9 +14,6 @@ from src.functions.optionsWindow import show_options_window
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 
-# Setup hooks
-import setup.install_commitizen_universal as install_cz
-import setup.setup_team_hooks as setup_hooks
 
 
 class MainMenu:
@@ -330,9 +327,6 @@ def main_menu(win=None):
 
 # Program entry point
 if __name__ == "__main__":
-    # Initialize hooks
-    install_cz.main()
-    setup_hooks.main()
 
     # Launch menu
     main_menu()
