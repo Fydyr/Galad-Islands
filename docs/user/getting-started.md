@@ -61,7 +61,7 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
     2. **Localisez vos unités** (votre éclaireur au centre)
     3. **Repérez les îles** et points d'intérêt
     4. **Identifiez les ennemis** (unités rouges)
-    5. **Trouvez les ressources** (coffres, mines, etc.)
+    5. **Trouvez les ressources** (coffres sur les îles)
 
 ### Phase 2 : Premiers combats (5 minutes)
 
@@ -76,13 +76,21 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 ### Phase 3 : Gestion des ressources
 
-!!! info "Économie de base"
-    **💰 Système de ressources :**
+!!! info "Sources d'or"
+    **💰 Comment collecter de l'or :**
     
-    - **Or** : Collecté en détruisant des coffres ou mines
-    - **Boutique** : Accessible via la barre d'actions
-    - **Unités** : Différents types avec prix variés
-    - **Stratégie** : Équilibrez attaque et défense
+    - **🎁 Coffres** : Détruisez les coffres dispersés sur les îles
+    - **🏝️ Ressources d'îles** : Explorez et récoltez sur les différentes îles
+    - **⚔️ Combat** : Éliminez des unités ennemies pour gagner de l'or
+    - **🚨 Attention** : Évitez les mines explosives (objets dangereux) !
+
+!!! tip "Économie intelligente"
+    **🛒 Conseils d'achat :**
+    
+    - **Boutique** : Accessible via la barre d'actions en bas d'écran
+    - **Prix variables** : Chaque type d'unité a un coût différent
+    - **Investissement** : Commencez par des unités polyvalentes
+    - **Équilibre** : Alternez entre attaque et défense
 
 ## 🎯 Objectifs de votre première partie
 
