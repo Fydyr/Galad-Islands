@@ -26,7 +26,7 @@ class AudioManager:
 
     def _load_music(self):
         """Loads and starts ambient music."""
-        music_path = get_resource_path(os.path.join("assets", "sounds", "xDeviruchi-TitleTheme.wav"))
+        music_path = get_resource_path(os.path.join("assets", "sounds", "xDeviruchi-TitleTheme.ogg"))
         try:
             pygame.mixer.music.load(music_path)
             self.update_music_volume()
