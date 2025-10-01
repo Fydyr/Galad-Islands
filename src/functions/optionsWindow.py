@@ -253,26 +253,19 @@ class OptionsWindow:
         
         y_pos += 10
         
-        # Section résolution personnalisée
-        custom_label = self.font_normal.render(t("options.custom_resolution_label"), True, Colors.GOLD)
-        surface.blit(custom_label, (0, y_pos))
-        y_pos += 20
+        # # Section résolution personnalisée
+        # custom_label = self.font_normal.render(t("options.custom_resolution_label"), True, Colors.GOLD)
+        # surface.blit(custom_label, (0, y_pos))
+        # y_pos += 20
         
-        # Informations sur l'écran détecté
-        info = pygame.display.Info()
-        max_res_text = t("options.detected_screen", width=info.current_w, height=info.current_h)
-        max_res_surf = self.font_small.render(max_res_text, True, Colors.LIGHT_GRAY)
-        surface.blit(max_res_surf, (0, y_pos))
-        y_pos += 15
+        # advice_text = t("options.resolution_advice")
+        # advice_surf = self.font_small.render(advice_text, True, Colors.LIGHT_GRAY)
+        # surface.blit(advice_surf, (0, y_pos))
+        # y_pos += 20
         
-        advice_text = t("options.resolution_advice")
-        advice_surf = self.font_small.render(advice_text, True, Colors.LIGHT_GRAY)
-        surface.blit(advice_surf, (0, y_pos))
-        y_pos += 20
-        
-        # Champs de saisie personnalisée (simplifiés pour l'instant)
-        # TODO: Implémenter les champs de saisie personnalisés
-        y_pos += 50
+        # # Champs de saisie personnalisée (simplifiés pour l'instant)
+        # # TODO: Implémenter les champs de saisie personnalisés
+        # y_pos += 50
         
         return y_pos
     
