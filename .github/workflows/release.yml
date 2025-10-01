@@ -2,14 +2,15 @@ name: Build and Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'  # Déclenche sur chaque tag de version (ex: v1.0.0)
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   version:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    outputs:
+      new_tag: ${{ steps.bump.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -27,20 +28,25 @@ jobs:
           git config --global user.name "GitHub Actions"
 
       - name: Bump version and changelog
+        id: bump
         run: |
           cz bump --yes --changelog
           git push --follow-tags
+          echo "new_tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: version
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-
     steps:
-      - name: Checkout code
+      - name: Checkout code at tag
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.new_tag }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
