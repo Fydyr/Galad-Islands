@@ -34,11 +34,16 @@ jobs:
       - name: Check if bump is needed
         id: check
         run: |
-          # Vérifier s'il y a des commits depuis le dernier tag
-          if git describe --tags --abbrev=0 2>/dev/null; then
-            LAST_TAG=$(git describe --tags --abbrev=0)
-            if git log $LAST_TAG..HEAD --oneline | grep -E "^[a-f0-9]+ (feat|fix|perf|refactor)"; then
+          # Trouver le dernier tag par date de création
+          LAST_TAG=$(git tag --sort=-creatordate | head -1)
+          
+          if [ -n "$LAST_TAG" ]; then
+            echo "Dernier tag trouvé: $LAST_TAG"
+            # Chercher les commits feat/fix/perf/refactor depuis le dernier tag
+            # On utilise --first-parent pour suivre la branche main
+            if git log $LAST_TAG..HEAD --first-parent --oneline | grep -E "^[a-f0-9]+ (feat|fix|perf|refactor)"; then
               echo "bump_needed=true" >> $GITHUB_OUTPUT
+              echo "Commits nécessitant un bump trouvés"
             else
               echo "bump_needed=false" >> $GITHUB_OUTPUT
               echo "Aucun commit nécessitant un bump trouvé"
@@ -51,7 +56,17 @@ jobs:
       - name: Bump version and changelog
         if: steps.check.outputs.bump_needed == 'true'
         run: |
-          cz bump --yes --changelog || echo "Aucun bump nécessaire"
+          # Récupérer le dernier tag pour le changelog
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            echo "Aucun tag précédent trouvé, création du changelog initial"
+            cz bump --yes --changelog
+          else
+            echo "Dernier tag trouvé: $LAST_TAG"
+            # Bump avec changelog incrémental
+            cz bump --yes --changelog --increment AUTO
+          fi
           
       - name: Push changes
         if: steps.check.outputs.bump_needed == 'true'
