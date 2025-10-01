@@ -50,7 +50,7 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --onefile src/main.py --name galad-islands
+          pyinstaller --onefile main.py --name galad-islands
         # Adapte le chemin d'entrée si besoin
 
       - name: Archive build
