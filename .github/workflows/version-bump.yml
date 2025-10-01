@@ -17,6 +17,11 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Fetch all tags and refs
+        run: |
+          git fetch --all --tags --force
+          git tag --sort=-version:refname
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -30,6 +35,17 @@ jobs:
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
+      
+      - name: Debug information
+        run: |
+          echo "=== État Git ==="
+          git log --oneline -5
+          echo -e "\n=== Tags disponibles ==="
+          git tag --sort=-version:refname
+          echo -e "\n=== Version dans pyproject.toml ==="
+          grep "version = " pyproject.toml
+          echo -e "\n=== Version commitizen ==="
+          cz version --project
 
       - name: Check if bump is needed
         id: check
@@ -56,18 +72,20 @@ jobs:
       - name: Bump version and changelog
         if: steps.check.outputs.bump_needed == 'true'
         run: |
-          # Récupérer le dernier tag pour le changelog
-          LAST_TAG=$(git tag --sort=-creatordate | head -1)
+          # Laisser commitizen détecter automatiquement la version et les tags
+          echo "Bump automatique avec commitizen..."
           
-          if [ -z "$LAST_TAG" ]; then
-            echo "Aucun tag précédent trouvé, création du changelog initial"
-            cz bump --yes --changelog || cz bump --yes
+          # Méthode 1: Essayer le bump automatique avec changelog
+          if cz bump --yes --changelog; then
+            echo "✅ Bump avec changelog réussi"
           else
-            echo "Dernier tag trouvé: $LAST_TAG"
-            # Bump avec changelog - si ça échoue, on fait le bump sans changelog
-            if ! cz bump --yes --changelog; then
-              echo "⚠️ Échec du changelog incrémental, bump sans changelog"
-              cz bump --yes
+            echo "⚠️ Échec du changelog, tentative de régénération complète..."
+            # Méthode 2: Régénérer le changelog complet puis bump
+            if cz changelog && cz bump --yes --no-verify; then
+              echo "✅ Bump avec changelog régénéré réussi"
+            else
+              echo "⚠️ Fallback: bump sans changelog"
+              cz bump --yes --no-verify
             fi
           fi
           
