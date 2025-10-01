@@ -1,13 +1,10 @@
 # Maintenance du projet
 
-> 🚧 **Section en cours de rédaction**
-
-
 ## Stratégie de maintenance
 
 - Les mises à jours sont effectués à chaque nouvelle fonctionnalité ou correction de bug. Il est conseillé de réaliser des petits commits fréquents pour faciliter le suivi des modifications et la restauration en cas de problème.
 - En cas de fonctionnalité majeure, une branche dédiée est créée pour permettre un développement isolé avant la fusion dans la branche principale.
-- Les commits doivent être clairs et descriptifs pour faciliter la compréhension des modifications apportées. Pour en savoir plus, consultez la section [Conventions de commit](contributing.md).
+- Les commits doivent être clairs et descriptifs pour faciliter la compréhension des modifications apportées. Pour en savoir plus, consultez la section [Conventions de commit](contributing.md#conventions-de-commit).
 
 ## Gestion des dépendances
 
@@ -36,14 +33,18 @@
 - La configuration du jeu est stockée dans un fichier JSON (`galad_config.json`). Assurez-vous de sauvegarder ce fichier ou de le supprimer avant de faire des modifications majeures.
 - Pour restaurer une version précédente du code, utilisez les commandes Git appropriées, telles que `git checkout <commit_id>` ou `git revert <commit_id>`.
 
+## Surveillance et optimisation
 
-## À venir
+- Surveillez régulièrement les performances de l'application à l'aide d'outils de profiling et de monitoring comme cProfile, Py-Spy ou d'autres outils adaptés à votre environnement.
+- Identifiez les goulets d'étranglement et optimisez le code en conséquence.
+- Mettez en place des tests de performance pour détecter les régressions.
+- Pensez à refactoriser le code pour améliorer la lisibilité et la maintenabilité.
 
-- Surveillance des performances
-- Bonnes pratiques générales
+## Bonnes pratiques de maintenance
 
----
-
-*Cette documentation sera complétée prochainement.*
-
+- Documentez toutes les modifications apportées au code et aux dépendances dans le fichier `CHANGELOG.md`.
+- Communiquez avec l'équipe de développement pour coordonner les efforts de maintenance et éviter les conflits.
+- Automatisez les tâches de maintenance répétitives à l'aide de scripts ou d'outils d'automatisation.
+- Utilisez des outils d'intégration continue (CI) pour automatiser les tests et les déploiements.
+- Assurez-vous que la documentation du projet est à jour et reflète les modifications apportées.
 
