@@ -21,6 +21,9 @@ from src.components.properties.healthComponent import HealthComponent
 from src.ui.action_bar import ActionBar
 from src.components.properties.canCollideComponent import CanCollideComponent
 from src.functions.afficherModale import afficher_modale
+from src.functions.baseManager import get_base_manager
+from src.factory.unitFactory import UnitFactory
+from src.factory.unitType import UnitType
 from src.factory.unitFactory import UnitFactory
 from src.factory.unitType import UnitType
 
@@ -74,6 +77,11 @@ def game(window=None, bg_original=None, select_sound=None):
 
     player = es.create_entity()
     es.add_component(player, PlayerComponent())
+    
+    # Initialiser le gestionnaire de bases
+    base_manager = get_base_manager()
+    base_manager.initialize_bases()
+    print("Debug: Gestionnaire de bases initialisé")
 
     # Placer le vaisseau au centre de la carte (en coordonnées monde/pixels)
     center_x = (MAP_WIDTH * TILE_SIZE) // 2
