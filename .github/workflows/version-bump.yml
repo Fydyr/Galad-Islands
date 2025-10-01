@@ -57,15 +57,15 @@ jobs:
         if: steps.check.outputs.bump_needed == 'true'
         run: |
           # Récupérer le dernier tag pour le changelog
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          LAST_TAG=$(git tag --sort=-creatordate | head -1)
           
           if [ -z "$LAST_TAG" ]; then
             echo "Aucun tag précédent trouvé, création du changelog initial"
             cz bump --yes --changelog
           else
             echo "Dernier tag trouvé: $LAST_TAG"
-            # Bump avec changelog incrémental
-            cz bump --yes --changelog --increment AUTO
+            # Bump avec changelog (commitizen détecte automatiquement l'incrément)
+            cz bump --yes --changelog
           fi
           
       - name: Push changes
