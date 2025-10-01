@@ -14,6 +14,9 @@ jobs:
       new_tag: ${{ steps.bump.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -50,6 +53,7 @@ jobs:
         with:
           ref: ${{ needs.version.outputs.new_tag }}
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -64,7 +68,11 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --onefile main.py --name galad-islands
+          # Détection du séparateur selon l'OS
+          if [ "$RUNNER_OS" = "Windows" ]; then SEP=';'; else SEP=':'; fi
+          pyinstaller --onefile main.py --name galad-islands \
+            --add-data "assets${SEP}assets" \
+            --add-data "src${SEP}src"
 
       - name: Archive build
         if: runner.os == 'Windows'
