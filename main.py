@@ -20,6 +20,15 @@ class MainMenu:
     """Main menu class."""
 
     def __init__(self, surface=None):
+        # Logo pygame
+        base_path = os.path.abspath(os.path.dirname(__file__))
+        logo_path = os.path.join(base_path, "assets", "logo.png")
+        print(logo_path)  # vérification
+
+        if os.path.isfile(logo_path):
+            logo = pygame.image.load(logo_path)
+            pygame.display.set_icon(logo)
+
         # Pygame initialization
         pygame.init()
 
