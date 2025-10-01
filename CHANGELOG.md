@@ -1,3 +1,9 @@
+## v0.3.0 (2025-10-01)
+
+### Feat
+
+- **ci**: improve release descriptions and version handling
+
 ## v0.2.2 (2025-10-01)
 
 ### Fix

@@ -61,6 +61,18 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
+          name: "Galad Islands ${{ github.ref_name }}"
+          body: |
+            🎮 **Galad Islands - Version ${{ github.ref_name }}**
+            
+            Téléchargez le jeu pour votre plateforme :
+            - **Windows** : `galad-islands-windows.zip`
+            - **Linux** : `galad-islands-Linux.zip` 
+            - **macOS** : `galad-islands-macOS.zip`
+            
+            📖 Consultez le fichier `README.md` inclus dans l'archive pour les instructions d'installation.
+            
+            🔗 [Documentation complète](https://fydyr.github.io/Galad-Islands/)
           files: |
             galad-islands-*.zip
         env:
