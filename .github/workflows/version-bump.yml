@@ -1,16 +1,43 @@
-name: Automatic Version Bump
+# ⚠️  WORKFLOW DÉPRÉCIÉ - Utilisation manuelle uniquement
+# 
+# Ce workflow est conservé pour les cas exceptionnels où un bump manuel
+# est nécessaire depuis GitHub Actions. 
+#
+# ✅ MÉTHODE RECOMMANDÉE : Hooks pre-commit locaux
+# Les bumps de version se font automatiquement via les hooks pre-commit
+# lors des commits feat/fix/perf/refactor.
+#
+# 📖 Documentation : docs/dev/version-management.md
+
+name: Manual Version Bump (Legacy)
 
 on:
-  push:
-    branches:
-      - main
+  # Déclenchement automatique désactivé - utiliser les hooks pre-commit locaux
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Type de bump à effectuer'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+      force_changelog:
+        description: 'Forcer la régénération du changelog complet'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   bump:
     runs-on: ubuntu-latest
-    # Empêcher le workflow de tourner si le commit vient de GitHub Actions
-    if: "!contains(github.event.head_commit.message, 'bump:')"
+    # Workflow manuel uniquement - les bumps automatiques se font via hooks pre-commit
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,6 +63,16 @@ jobs:
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
       
+      - name: Display workflow inputs
+        run: |
+          echo "=== Paramètres du workflow manuel ==="
+          echo "Type de bump: ${{ github.event.inputs.bump_type || 'auto' }}"
+          echo "Forcer changelog: ${{ github.event.inputs.force_changelog || 'false' }}"
+          echo ""
+          echo "⚠️  ATTENTION: Ce workflow est déprécié"
+          echo "✅ Utilisez plutôt les hooks pre-commit locaux pour les bumps automatiques"
+          echo "📖 Voir docs/dev/version-management.md pour plus d'informations"
+
       - name: Debug information
         run: |
           echo "=== État Git ==="
@@ -47,49 +84,67 @@ jobs:
           echo -e "\n=== Version commitizen ==="
           cz version --project
 
-      - name: Check if bump is needed
-        id: check
+      - name: Prepare manual bump
+        id: prepare
         run: |
-          # Trouver le dernier tag par date de création
-          LAST_TAG=$(git tag --sort=-creatordate | head -1)
+          echo "=== Préparation du bump manuel ==="
           
+          # Utiliser le type de bump spécifié ou auto
+          BUMP_TYPE="${{ github.event.inputs.bump_type || 'auto' }}"
+          FORCE_CHANGELOG="${{ github.event.inputs.force_changelog || 'false' }}"
+          
+          echo "Type de bump demandé: $BUMP_TYPE"
+          echo "Force changelog: $FORCE_CHANGELOG"
+          
+          # Toujours procéder au bump en mode manuel
+          echo "bump_needed=true" >> $GITHUB_OUTPUT
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "force_changelog=$FORCE_CHANGELOG" >> $GITHUB_OUTPUT
+          
+          # Afficher les commits récents pour information
+          LAST_TAG=$(git tag --sort=-creatordate | head -1)
           if [ -n "$LAST_TAG" ]; then
-            echo "Dernier tag trouvé: $LAST_TAG"
-            # Chercher les commits feat/fix/perf/refactor depuis le dernier tag
-            # On utilise --first-parent pour suivre la branche main
-            if git log $LAST_TAG..HEAD --first-parent --oneline | grep -E "^[a-f0-9]+ (feat|fix|perf|refactor)"; then
-              echo "bump_needed=true" >> $GITHUB_OUTPUT
-              echo "Commits nécessitant un bump trouvés"
-            else
-              echo "bump_needed=false" >> $GITHUB_OUTPUT
-              echo "Aucun commit nécessitant un bump trouvé"
-            fi
+            echo ""
+            echo "Commits depuis le dernier tag ($LAST_TAG):"
+            git log $LAST_TAG..HEAD --oneline --color=always || echo "Aucun commit depuis le dernier tag"
           else
-            echo "bump_needed=true" >> $GITHUB_OUTPUT
-            echo "Aucun tag trouvé, bump initial nécessaire"
+            echo "Aucun tag trouvé - bump initial"
           fi
 
-      - name: Bump version and changelog
-        if: steps.check.outputs.bump_needed == 'true'
+      - name: Manual version bump
+        if: steps.prepare.outputs.bump_needed == 'true'
         run: |
-          # Laisser commitizen détecter automatiquement la version et les tags
-          echo "Bump automatique avec commitizen..."
+          echo "=== Bump manuel de version ==="
           
-          # Méthode 1: Essayer le bump automatique avec changelog
-          if cz bump --yes --changelog; then
-            echo "✅ Bump avec changelog réussi"
-          else
-            echo "⚠️ Échec du changelog, tentative de régénération complète..."
-            # Méthode 2: Régénérer le changelog complet puis bump
-            if cz changelog && cz bump --yes --no-verify; then
-              echo "✅ Bump avec changelog régénéré réussi"
+          BUMP_TYPE="${{ steps.prepare.outputs.bump_type }}"
+          FORCE_CHANGELOG="${{ steps.prepare.outputs.force_changelog }}"
+          
+          # Forcer la régénération du changelog si demandé
+          if [ "$FORCE_CHANGELOG" = "true" ]; then
+            echo "🔄 Régénération forcée du changelog complet..."
+            cz changelog
+          fi
+          
+          # Effectuer le bump selon le type demandé
+          if [ "$BUMP_TYPE" = "auto" ]; then
+            echo "🤖 Bump automatique basé sur les commits..."
+            if cz bump --yes --changelog; then
+              echo "✅ Bump automatique réussi"
             else
-              echo "⚠️ Fallback: bump sans changelog"
-              cz bump --yes --no-verify
+              echo "⚠️ Bump automatique échoué, fallback vers patch"
+              cz bump --increment patch --yes --changelog
             fi
+          else
+            echo "🎯 Bump manuel de type: $BUMP_TYPE"
+            cz bump --increment "$BUMP_TYPE" --yes --changelog
           fi
           
       - name: Push changes
-        if: steps.check.outputs.bump_needed == 'true'
+        if: steps.prepare.outputs.bump_needed == 'true'
         run: |
+          echo "📤 Push des changements et tags..."
           git push --follow-tags origin main
+          
+          NEW_TAG=$(git tag --sort=-version:refname | head -1)
+          echo "🎉 Version $NEW_TAG publiée avec succès !"
+          echo "🚀 La release automatique devrait se déclencher maintenant"

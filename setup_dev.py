@@ -83,17 +83,28 @@ except ImportError:
     print("✔️  Environnement de développement prêt !")
 
 
-# Installer les hooks commitizen universels (si les modules existent)
+# Installer les hooks avec bump automatique
 try:
-    import setup.install_commitizen_universal as install_cz
-    import setup.setup_team_hooks as setup_hooks
-    print("\nInstallation des hooks commitizen universels...")
-    install_cz.main()
-    setup_hooks.main()
+    # Nouveau système de hooks avec bump automatique
+    import setup.install_hooks_with_bump as install_hooks_bump
+    print("\nInstallation des hooks avec bump automatique...")
+    install_hooks_bump.install_hooks_with_bump()
 except ImportError as e:
-    print(f"Avertissement : {e}. Hooks non installés.")
+    # Fallback sur l'ancien système
+    try:
+        import setup.install_commitizen_universal as install_cz
+        import setup.setup_team_hooks as setup_hooks
+        print("\nInstallation des hooks commitizen universels (fallback)...")
+        install_cz.main()
+        setup_hooks.main()
+    except ImportError as e2:
+        print(f"Avertissement : {e2}. Hooks non installés.")
 
-print("- Commitizen installé (commande : cz)")
-print("- Dépendances Python installées")
-print("- Hooks commitizen installés (si setup_team_hooks.py présent)")
-print("- Tu peux maintenant utiliser les hooks et le versionning conventionnel !")
+print("\n" + "="*50)
+print("✨ ENVIRONNEMENT DE DÉVELOPPEMENT PRÊT !")
+print("="*50)
+print("✅ Commitizen installé (commande : cz)")
+print("✅ Dépendances Python installées")
+print("✅ Hooks avec bump automatique installés")
+print("✅ Versionning conventionnel configuré")
+print("\n🚀 Tu peux maintenant développer avec bump automatique de version !")
