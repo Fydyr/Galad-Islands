@@ -33,6 +33,7 @@ theme:
 nav:
   - Accueil: index.md
   - 📖 Documentation Utilisateur:
+    - Installation et Configuration: user/installation.md
     - Guide de démarrage: user/getting-started.md
     - Gameplay:
       - Contrôles: user/controls.md
