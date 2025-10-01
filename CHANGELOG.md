@@ -1,3 +1,9 @@
+## v0.2.1 (2025-10-01)
+
+### Fix
+
+- **ci**: remove invalid --increment AUTO flag from cz bump
+
 ## v0.2.0 (2025-10-01)
 
 ### Feat
