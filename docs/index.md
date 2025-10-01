@@ -6,7 +6,7 @@ Bienvenue dans la documentation complète de **Galad Islands** ! 🏝️
 
 ## 🎮 Qu'est-ce que Galad Islands ?
 
-Galad Islands est un jeu de stratégie en temps réel qui vous plonge dans un archipel mystérieux où vous devez conquérir des îles, gérer vos ressources et mener vos armées à la victoire. Combinez tactique, économie et action dans des batailles épiques au-dessus des nuages !
+Galad Islands est un jeu de stratégie en temps réel qui vous plonge dans une guerre entre deux factions dans un archipel aérien. Gérez vos ressources, construisez des unités variées et menez vos armées à la victoire dans des batailles aériennes épiques !
 
 ## 📚 Navigation de la documentation
 
@@ -31,11 +31,19 @@ Cette documentation est organisée en deux sections principales :
 ## ✨ Caractéristiques principales
 
 ### 🚁 Unités diversifiées
+**Alliés :**
 - **Zasper** : Scout léger et rapide
 - **Barhamus** : Maraudeur moyen robuste  
 - **Draupnir** : Léviathan lourd destructeur
 - **Druid** : Soigneur et support magique
 - **Architect** : Constructeur de défenses
+
+**Ennemis :**
+- **Valkar** : Intercepteur rapide et agressif
+- **Goliath** : Blindé lourd à grande puissance de feu
+- **Spectre** : Unité furtive spécialisée dans le sabotage
+- **Nécroprêtre** : Soutien qui affaiblit vos troupes
+- **Bastion** : Plateforme défensive mobile
 
 ### 🏰 Construction et défense
 - Tours de défense automatiques
@@ -43,7 +51,7 @@ Cette documentation est organisée en deux sections principales :
 - Système de construction stratégique
 
 ### 💰 Système économique
-- Collectez de l'or sur la carte
+- Collectez de l'or naturellement ou dans les coffres sur la carte
 - Achetez des unités dans la boutique
 - Améliorez vos capacités
 
@@ -62,7 +70,7 @@ Cette documentation est organisée en deux sections principales :
 6. **Dominez l'archipel** !
 
 !!! tip "Conseil de départ"
-    Commencez par explorer la carte pour trouver des ressources avant d'engager le combat !
+    Commencez par explorer la carte pour trouver les coffres et cartographier les zones avant d'engager le combat !
 
 ## 📚 Navigation de ce guide
 
