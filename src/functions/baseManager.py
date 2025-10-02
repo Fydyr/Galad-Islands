@@ -12,6 +12,7 @@ from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.canCollideComponent import CanCollideComponent
 from src.settings.settings import TILE_SIZE
+from src.constants.gameplay import BASE_HEALTH, BASE_MAX_HEALTH
 import pygame
 import os
 
@@ -55,8 +56,8 @@ class BaseManager:
         esper.add_component(self.ally_base_entity,
                             TeamComponent(team=Team.ALLY))  # Team alliée
         esper.add_component(self.ally_base_entity, HealthComponent(
-            current_health=1000,
-            max_health=1000
+            current_health=BASE_HEALTH,
+            max_health=BASE_MAX_HEALTH
         ))
         esper.add_component(self.ally_base_entity, AttackComponent(
             damage=0))  # Base ne tire pas
@@ -86,8 +87,8 @@ class BaseManager:
         esper.add_component(self.enemy_base_entity,
                             TeamComponent(team=Team.ENEMY))  # Team ennemie
         esper.add_component(self.enemy_base_entity, HealthComponent(
-            current_health=1000,
-            max_health=1000
+            current_health=BASE_HEALTH,
+            max_health=BASE_MAX_HEALTH
         ))
         esper.add_component(self.enemy_base_entity, AttackComponent(
             damage=0))  # Base ne tire pas
