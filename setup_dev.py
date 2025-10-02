@@ -76,6 +76,15 @@ if os.path.exists(req_path):
 else:
     print("Avertissement : requirements.txt introuvable.")
 
+# Installer les requirements de développement
+req_dev_path = os.path.join(os.path.dirname(__file__), "requirements-dev.txt")
+if not os.path.exists(req_dev_path):
+    req_dev_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "requirements-dev.txt"))
+if os.path.exists(req_dev_path):
+    run(f"{sys.executable} -m pip install -r {req_dev_path}", check=True)
+else:
+    print("Avertissement : requirements-dev.txt introuvable.")
+
 try:
     from colorama import Fore, Style
     print(Fore.GREEN + Style.BRIGHT + "✔️  Environnement de développement prêt !" + Style.RESET_ALL)

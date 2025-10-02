@@ -20,7 +20,7 @@ Le système de bump automatique via hook pre-commit est maintenant la méthode r
 # Installation automatique (recommandé)
 python setup/install_hooks_with_bump.py
 
-# Ou via setup_dev.py (installation complète)
+# Ou via setup_dev.py (installation complète, y compris les dépendances de développement)
 python setup_dev.py
 
 # Ou installation manuelle

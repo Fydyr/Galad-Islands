@@ -23,6 +23,8 @@ Le projet Galad Islands a migré d'un système de bump de version **centralisé*
 # Installation complète de l'environnement de développement
 python setup_dev.py
 
+# Installe également les dépendances de développement (requirements-dev.txt)
+
 # Ou installation des hooks uniquement
 python setup/install_hooks_with_bump.py
 ```
