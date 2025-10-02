@@ -9,4 +9,5 @@ class ProjectileComponent(GameplayComponent):
     Used to apply specific rules to projectiles like automatic
     removal at map boundaries.
     """
-    projectile_type: str = "bullet"  # Type: "bullet", "missile", "magic", etc.
+    def __init__(self, projectile_type: str = "bullet" ):
+        self.projectile_type = projectile_type  # Type: "bullet", "missile", "magic", etc.
