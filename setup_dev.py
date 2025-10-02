@@ -92,28 +92,42 @@ except ImportError:
     print("✔️  Environnement de développement prêt !")
 
 
-# Installer les hooks avec bump automatique
-try:
-    # Nouveau système de hooks avec bump automatique
-    import setup.install_hooks_with_bump as install_hooks_bump
-    print("\nInstallation des hooks avec bump automatique...")
-    install_hooks_bump.install_hooks_with_bump()
-except ImportError as e:
-    # Fallback sur l'ancien système
+# Option pour nettoyer l'ancienne installation des hooks avec bump automatique
+def clean_old_bump_hooks():
+    print("\nNettoyage des anciennes installations de hooks avec bump automatique...")
     try:
-        import setup.install_commitizen_universal as install_cz
-        import setup.setup_team_hooks as setup_hooks
-        print("\nInstallation des hooks commitizen universels (fallback)...")
-        install_cz.main()
-        setup_hooks.main()
-    except ImportError as e2:
-        print(f"Avertissement : {e2}. Hooks non installés.")
+        import setup.install_hooks_with_bump as old_hooks
+        # Suppression des fichiers de hooks manuellement si la méthode n'existe pas
+        hooks_path = os.path.join(os.getcwd(), ".git", "hooks")
+        pre_commit_hook = os.path.join(hooks_path, "pre-commit")
+        if os.path.exists(pre_commit_hook):
+            os.remove(pre_commit_hook)
+            print("✔️  Ancien hook pre-commit supprimé.")
+        else:
+            print("Aucun ancien hook pre-commit détecté.")
+    except ImportError:
+        print("Aucune ancienne installation de hooks détectée.")
+
+if __name__ == "__main__":
+    print("Voulez-vous nettoyer les anciennes installations de hooks avec bump automatique ? [O/n]")
+    response = input().strip().lower()
+    if response in ("o", "oui", "y", "yes", ""):
+        clean_old_bump_hooks()
+        
+# Installer les hooks Commitizen universels
+try:
+    import setup.install_commitizen_universal as install_cz
+    import setup.setup_team_hooks as setup_hooks
+    print("\nInstallation des hooks Commitizen universels...")
+    install_cz.main()
+    setup_hooks.main()
+except ImportError as e:
+    print(f"Avertissement : {e}. Hooks non installés.")
 
 print("\n" + "="*50)
 print("✨ ENVIRONNEMENT DE DÉVELOPPEMENT PRÊT !")
 print("="*50)
 print("✅ Commitizen installé (commande : cz)")
 print("✅ Dépendances Python installées")
-print("✅ Hooks avec bump automatique installés")
 print("✅ Versionning conventionnel configuré")
-print("\n🚀 Tu peux maintenant développer avec bump automatique de version !")
+print("\n🚀 Tu peux maintenant développer avec Commitizen pour des commits conventionnels !")
