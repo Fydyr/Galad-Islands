@@ -4,6 +4,7 @@ Centralized audio manager for music and sound effects.
 
 import pygame
 import os
+import json
 from typing import Optional
 from src.settings import settings
 from src.settings.localization import t
@@ -99,6 +100,9 @@ class VolumeWatcher:
         self.last_music_volume = settings.config_manager.get("volume_music", 0.5)
         self.last_effects_volume = settings.config_manager.get("volume_effects", 0.7)
         self.last_master_volume = settings.config_manager.get("volume_master", 0.8)
+        
+        # HACK: Read config directly at startup to force volume
+        self._force_volume_from_config()
 
     def check_for_changes(self) -> bool:
         """
@@ -126,3 +130,32 @@ class VolumeWatcher:
             print(f"🎚️ Volumes updated")
 
         return changed
+    
+    def _force_volume_from_config(self):
+        """HACK: Force le volume en lisant directement galad_config.json au démarrage."""
+        try:
+            with open("galad_config.json", "r") as f:
+                config = json.load(f)
+
+            # Récupérer les volumes
+            volume_master = config.get("volume_master", 0.8)
+            volume_music = config.get("volume_music", 0.5)
+            volume_effects = config.get("volume_effects", 0.7)
+
+            # Calculer et appliquer le volume final pour la musique
+            final_music_volume = volume_music * volume_master
+            pygame.mixer.music.set_volume(final_music_volume)
+
+            # Appliquer le volume aux effets sonores si disponible
+            if self.audio_manager.select_sound:
+                final_effects_volume = volume_effects * volume_master
+                self.audio_manager.select_sound.set_volume(
+                    final_effects_volume)
+
+            print(
+                f"🎚️ Volume forcé au démarrage: musique={final_music_volume:.3f}, effets={final_effects_volume:.3f}")
+
+        except Exception as e:
+            print(f"⚠️ Erreur lors du chargement du volume: {e}")
+            # Fallback: utiliser les valeurs par défaut
+            pygame.mixer.music.set_volume(0.4)  # 0.5 * 0.8
