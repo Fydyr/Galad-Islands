@@ -17,8 +17,8 @@ class ArchitectAbilityComponent(GameplayComponent):
     
 
     def __post_init__(self):
-        if self.affected_units is None:
-            self.affected_units = []
+        if self.affected_unit_ids is None:
+            self.affected_unit_ids = []
 
     
     def activate(self, affected_units: List[int], duration: float = 0.0):
