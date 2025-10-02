@@ -8,6 +8,11 @@ from src.components.properties.radiusComponent import RadiusComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.canCollideComponent import CanCollideComponent
+from src.components.properties.ability.speZasperComponent import ZasperAbilityComponent
+from src.components.properties.ability.speBarhamusComponent import BarhamusAbilityComponent
+from src.components.properties.ability.speDraupnirComponent import DraupnirAbilityComponent
+from src.components.properties.ability.speDruidComponent import DruidAbilityComponent
+from src.components.properties.ability.speArchitectComponent import ArchitectAbilityComponent
 from src.utils.sprite_utils import create_unit_sprite_component
 from src.components.properties.team_enum import Team
 from src.constants.gameplay import (
@@ -30,6 +35,7 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, AttackComponent(10))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_SCOUT, UNIT_HEALTH_SCOUT))
             es.add_component(entity, CanCollideComponent())
+            es.add_component(entity, ZasperAbilityComponent(is_active=False))
             # Utiliser le nouveau système de sprites
             sprite_component = create_unit_sprite_component(unit, enemy)
             if sprite_component:

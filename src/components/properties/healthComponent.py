@@ -2,9 +2,10 @@ from dataclasses import dataclass
 
 @dataclass
 class HealthComponent:
-    """Component representing the health state of an entity."""
-    current_health: int = 0
-    max_health: int = 0
+    def __init__(self, current_health: int = 0, max_health: int = 0):
+        self.current_health = current_health
+        self.max_health = max_health
+        
     
     @property
     def is_alive(self) -> bool:
