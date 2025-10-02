@@ -14,6 +14,7 @@ class PlayerControlProcessor(esper.Processor):
     def __init__(self):
         self.fire_event = False  # Initialisation de l'état de l'événement de tir
         self.slowing_down = False  # Indique si le frein est activé
+        self.tab_pressed = False  # Pour gérer l'état de la touche Tab
 
     def process(self):
         keys = pygame.key.get_pressed()
@@ -70,10 +71,15 @@ class PlayerControlProcessor(esper.Processor):
                     radius.cooldown = radius.bullet_cooldown
             # Changement du mode d'attaque avec Tab
             if keys[pygame.K_TAB]:
-                if esper.has_component(entity, RadiusComponent):
+                if not self.tab_pressed and esper.has_component(entity, RadiusComponent):
                     radius = esper.component_for_entity(entity, RadiusComponent)
-                    radius.can_shoot_from_side = not radius.can_shoot_from_side
-    
+                    # Ne changer le mode que si l'unité peut tirer sur les côtés
+                    if radius.bullets_side > 0:
+                        radius.can_shoot_from_side = not radius.can_shoot_from_side
+                        print(f"Mode de tir {'latéral activé' if radius.can_shoot_from_side else 'frontal uniquement'}")
+                    self.tab_pressed = True
+            else:
+                self.tab_pressed = False
 
 
                 
