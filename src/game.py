@@ -368,9 +368,12 @@ class GameEngine:
         
     def _create_initial_entities(self):
         """Crée les entités initiales du jeu."""
-        # Créer le joueur
+        # Créer le joueur avec or initial
         self.player = es.create_entity()
-        es.add_component(self.player, PlayerComponent())
+        es.add_component(self.player, PlayerComponent(stored_gold=100))
+        
+        # Les entités joueur spécifiques aux factions seront créées 
+        # à la demande par les fonctions utilitaires
         
         # Initialiser le gestionnaire de bases
         base_manager = get_base_manager()
