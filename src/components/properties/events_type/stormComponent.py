@@ -1,7 +1,8 @@
-from dataclasses import dataclass as component
+from dataclasses import dataclass
+from ...base_component import GameplayComponent
 
-@component
-class Storm:
-    def __init__(self, tempete_duree=0, tempete_cooldown=0):
-        self.tempete_duree: float = tempete_duree
-        self.tempete_cooldown: float = tempete_cooldown
+@dataclass
+class StormEventComponent(GameplayComponent):
+    """Component for Storm event configuration."""
+    duration: float = 10.0  # Storm duration in seconds
+    cooldown: float = 30.0  # Cooldown between storms

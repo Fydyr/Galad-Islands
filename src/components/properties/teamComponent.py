@@ -1,6 +1,7 @@
-from dataclasses import dataclass as component
+from dataclasses import dataclass
+from .team_enum import Team
 
-@component
+@dataclass
 class TeamComponent:
-    def __init__(self, team_id=0):
-        self.team_id: int = team_id
+    """Component representing the team/faction of an entity."""
+    team: Team = Team.NEUTRAL

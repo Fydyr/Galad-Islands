@@ -1,6 +1,7 @@
-from dataclasses import dataclass as component
+from dataclasses import dataclass
+from ..base_component import GameplayComponent
 
-@component
-class RessourcesComponent:
-    def __init__(self, gold=0):
-        self.gold: int = gold
+@dataclass
+class ResourcesComponent(GameplayComponent):
+    """Component representing entity's resources (gold, etc.)."""
+    gold: int = 0

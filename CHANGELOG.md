@@ -1,3 +1,35 @@
+## v0.4.5 (2025-10-02)
+
+### Fix
+
+- corriger l'initialisation de affected_unit_ids dans le constructeur
+
+## v0.4.4 (2025-10-02)
+
+### Fix
+
+- les projectiles ne disparaissent pas quand ils "cognent" une ile
+
+## v0.4.3 (2025-10-02)
+
+### Fix
+
+- les mines sont pas censés être détruites par les projectiles
+
+### Refactor
+
+- intégrer le gestionnaire de sprites pour le chargement des images de terrain et ajouter de nouvelles constantes de sprite
+
+## v0.4.2 (2025-10-02)
+
+### Refactor
+
+- ajouter des constantes pour la boutique et connection avec le nouveau gestionnaire de sprites afin d'améliorer la maintenance et l'interface
+- centraliser les constantes de modales et de santé des bases pour une meilleure maintenance
+- ajout de constantes de gameplay pour améliorer la maintenance et l'équilibrage
+- ajouter un système de gestion des sprites avec initialisation et préchargement
+- refactorisation complète de l'architecture ECS
+
 ## v0.4.1 (2025-10-01)
 
 ### Fix

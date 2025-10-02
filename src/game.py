@@ -27,6 +27,16 @@ from src.functions.handleHealth import entitiesHit
 from src.functions.afficherModale import afficher_modale
 from src.functions.baseManager import get_base_manager
 
+# Importations du système de sprites
+from src.initialization.sprite_init import initialize_sprite_system
+
+# Importations des constantes
+from src.constants.gameplay import (
+    TARGET_FPS, COLOR_OCEAN_BLUE, HEALTH_BAR_HEIGHT, HEALTH_HIGH_THRESHOLD, HEALTH_MEDIUM_THRESHOLD,
+    COLOR_HEALTH_BACKGROUND, COLOR_HEALTH_HIGH, COLOR_HEALTH_MEDIUM, COLOR_HEALTH_LOW,
+    DEBUG_FONT_SIZE, ENEMY_SPAWN_OFFSET_X, ENEMY_SPAWN_OFFSETS_Y
+)
+
 # Importations UI
 from src.ui.action_bar import ActionBar
 
@@ -146,7 +156,7 @@ class GameRenderer:
         
     def _clear_screen(self, window):
         """Efface l'écran avec une couleur de fond."""
-        window.fill((0, 50, 100))  # Bleu océan
+        window.fill(COLOR_OCEAN_BLUE)  # Bleu océan
         
     def _render_game_world(self, window, grid, images, camera):
         """Rend la grille de jeu et les éléments du monde."""
@@ -179,8 +189,11 @@ class GameRenderer:
             
         # Redimensionner et faire la rotation du sprite
         sprite.scale_sprite(display_width, display_height)
-        if sprite.surface is not None:
-            rotated_image = pygame.transform.rotate(sprite.surface, -pos.direction)
+        # Utiliser la surface redimensionnée si disponible
+        if sprite.scaled_surface is not None:
+            rotated_image = pygame.transform.rotate(sprite.scaled_surface, -pos.direction)
+        elif sprite.image is not None:
+            rotated_image = pygame.transform.rotate(sprite.image, -pos.direction)
         else:
             scaled_image = pygame.transform.scale(image, (display_width, display_height))
             rotated_image = pygame.transform.rotate(scaled_image, -pos.direction)
@@ -192,41 +205,51 @@ class GameRenderer:
         # Dessiner la barre de vie si nécessaire
         if es.has_component(entity, HealthComponent):
             health = es.component_for_entity(entity, HealthComponent)
-            if health.currentHealth < health.maxHealth:
+            if health.current_health < health.max_health:
                 self._draw_health_bar(window, screen_x, screen_y, health, display_width, display_height)
                 
     def _get_sprite_image(self, sprite):
         """Obtient l'image d'un sprite selon les données disponibles."""
-        if sprite.surface is not None:
-            return sprite.surface
-        elif sprite.image is not None:
+        # Utiliser le système de sprite pour charger l'image
+        from src.systems.sprite_system import sprite_system
+        surface = sprite_system.get_render_surface(sprite)
+        if surface is not None:
+            return surface
+        
+        # Fallback - essayer de charger l'image directement
+        if sprite.image is not None:
             return sprite.image
-        elif sprite.image_path:
-            return pygame.image.load(sprite.image_path).convert_alpha()
-        else:
-            return None
+        if sprite.image_path and isinstance(sprite.image_path, str):
+            try:
+                from src.functions.resource_path import get_resource_path
+                full_path = get_resource_path(sprite.image_path)
+                return pygame.image.load(full_path).convert_alpha()
+            except pygame.error as e:
+                print(f"Error loading image: {sprite.image_path}, {e}")
+                return None
+        return None
             
     def _draw_health_bar(self, screen, x, y, health, sprite_width, sprite_height):
         """Dessine une barre de vie pour une entité."""
         # Configuration de la barre de vie
         bar_width = sprite_width
-        bar_height = 6
+        bar_height = HEALTH_BAR_HEIGHT
         bar_offset_y = sprite_height // 2 + 10  # Position au-dessus du sprite
         
         # Position de la barre (centrée au-dessus de l'entité)
         bar_x = x - bar_width // 2
         bar_y = y - bar_offset_y
         
-        # Vérifier que maxHealth n'est pas zéro pour éviter la division par zéro
-        if health.maxHealth <= 0:
+        # Vérifier que max_health n'est pas zéro pour éviter la division par zéro
+        if health.max_health <= 0:
             return
             
         # Calculer le pourcentage de vie
-        health_ratio = max(0, min(1, health.currentHealth / health.maxHealth))
+        health_ratio = max(0, min(1, health.current_health / health.max_health))
         
         # Dessiner le fond de la barre (rouge foncé)
         background_rect = pygame.Rect(bar_x, bar_y, bar_width, bar_height)
-        pygame.draw.rect(screen, (100, 0, 0), background_rect)
+        pygame.draw.rect(screen, COLOR_HEALTH_BACKGROUND, background_rect)
         
         # Dessiner la barre de vie (couleur selon le pourcentage)
         if health_ratio > 0:
@@ -234,12 +257,12 @@ class GameRenderer:
             health_rect = pygame.Rect(bar_x, bar_y, health_bar_width, bar_height)
             
             # Couleur qui change selon la vie restante
-            if health_ratio > 0.6:
-                color = (0, 200, 0)  # Vert
-            elif health_ratio > 0.3:
-                color = (255, 165, 0)  # Orange
+            if health_ratio > HEALTH_HIGH_THRESHOLD:
+                color = COLOR_HEALTH_HIGH    # Vert
+            elif health_ratio > HEALTH_MEDIUM_THRESHOLD:
+                color = COLOR_HEALTH_MEDIUM  # Orange
             else:
-                color = (255, 0, 0)  # Rouge
+                color = COLOR_HEALTH_LOW     # Rouge
                 
             pygame.draw.rect(screen, color, health_rect)
             
@@ -256,7 +279,7 @@ class GameRenderer:
         if camera is None:
             return
             
-        font = pygame.font.Font(None, 36)
+        font = pygame.font.Font(None, DEBUG_FONT_SIZE)
         debug_info = [
             t("debug.camera_position", x=camera.x, y=camera.y),
             t("debug.zoom_level", zoom=camera.zoom),
@@ -317,7 +340,7 @@ class GameEngine:
             self.created_local_window = True
         
         self.clock = pygame.time.Clock()
-        self.clock.tick(60)
+        self.clock.tick(TARGET_FPS)
         
         # Initialiser l'ActionBar
         self.action_bar = ActionBar(self.window.get_width(), self.window.get_height())
@@ -343,6 +366,10 @@ class GameEngine:
         self.grid = game_state["grid"]
         self.images = game_state["images"]
         self.camera = game_state["camera"]
+        
+        # Initialiser le système de sprites
+        initialize_sprite_system()
+        print("Debug: Système de sprites initialisé")
         
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
@@ -386,11 +413,11 @@ class GameEngine:
             es.add_component(player_unit, PlayerSelectedComponent(self.player))
         
         # Créer des unités ennemies pour les tests
-        UnitFactory(UnitType.SCOUT, True, PositionComponent(center_x + 150, center_y - 150))
-        UnitFactory(UnitType.MARAUDEUR, True, PositionComponent(center_x + 150, center_y))
-        UnitFactory(UnitType.LEVIATHAN, True, PositionComponent(center_x + 150, center_y + 200))
-        UnitFactory(UnitType.DRUID, True, PositionComponent(center_x + 150, center_y + 400))
-        UnitFactory(UnitType.ARCHITECT, True, PositionComponent(center_x + 150, center_y + 500))
+        UnitFactory(UnitType.SCOUT, True, PositionComponent(center_x + ENEMY_SPAWN_OFFSET_X, center_y + ENEMY_SPAWN_OFFSETS_Y['scout']))
+        UnitFactory(UnitType.MARAUDEUR, True, PositionComponent(center_x + ENEMY_SPAWN_OFFSET_X, center_y + ENEMY_SPAWN_OFFSETS_Y['maraudeur']))
+        UnitFactory(UnitType.LEVIATHAN, True, PositionComponent(center_x + ENEMY_SPAWN_OFFSET_X, center_y + ENEMY_SPAWN_OFFSETS_Y['leviathan']))
+        UnitFactory(UnitType.DRUID, True, PositionComponent(center_x + ENEMY_SPAWN_OFFSET_X, center_y + ENEMY_SPAWN_OFFSETS_Y['druid']))
+        UnitFactory(UnitType.ARCHITECT, True, PositionComponent(center_x + ENEMY_SPAWN_OFFSET_X, center_y + ENEMY_SPAWN_OFFSETS_Y['architect']))
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
@@ -412,7 +439,7 @@ class GameEngine:
             raise RuntimeError("L'horloge doit être initialisée")
         
         while self.running:
-            dt = self.clock.tick(60) / 1000.0
+            dt = self.clock.tick(TARGET_FPS) / 1000.0
             
             self.event_handler.handle_events()
             self._update_game(dt)
