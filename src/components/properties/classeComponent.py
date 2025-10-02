@@ -5,4 +5,5 @@ from .unit_class_enum import UnitClass
 @dataclass
 class ClassComponent(GameplayComponent):
     """Component representing the class/type of a unit."""
-    unit_class: UnitClass = UnitClass.ZASPER
+    def __init__(self, unit_class: UnitClass = UnitClass.ZASPER):
+        self.unit_class = unit_class

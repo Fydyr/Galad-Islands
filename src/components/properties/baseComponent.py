@@ -4,8 +4,10 @@ from typing import List
 @dataclass
 class BaseComponent:
     """Component representing a base with available troops."""
-    available_troops: List[str] = field(default_factory=list)
-    current_troop_index: int = 0
+    def __init__(self, available_troops: List[str] = field(default_factory=list) , current_troop_index: int = 0):
+        self.available_troops = available_troops
+        self.current_troop_index = current_troop_index
+    
     
     @property
     def current_troop(self) -> str | None:
