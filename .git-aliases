@@ -1,0 +1,18 @@
+# Alias Git pour Galad Islands
+# Ajoutez ces lignes à votre ~/.gitconfig global ou .git/config local
+
+[alias]
+    # Bump de version avec commitizen
+    bump-patch = "!f() { source venv/bin/activate 2>/dev/null || true; python -m commitizen bump --increment patch --yes --changelog; }; f"
+    bump-minor = "!f() { source venv/bin/activate 2>/dev/null || true; python -m commitizen bump --increment minor --yes --changelog; }; f"
+    bump-major = "!f() { source venv/bin/activate 2>/dev/null || true; python -m commitizen bump --increment major --yes --changelog; }; f"
+    bump-auto = "!f() { source venv/bin/activate 2>/dev/null || true; python -m commitizen bump --yes --changelog; }; f"
+    
+    # Push avec tags
+    push-release = "!f() { git push origin main && git push origin --tags; }; f"
+    
+    # Combo bump + push
+    release-patch = "!f() { git bump-patch && git push-release; }; f"
+    release-minor = "!f() { git bump-minor && git push-release; }; f"
+    release-major = "!f() { git bump-major && git push-release; }; f"
+    release-auto = "!f() { git bump-auto && git push-release; }; f"

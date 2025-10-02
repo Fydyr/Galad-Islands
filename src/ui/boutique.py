@@ -5,75 +5,28 @@ import pygame
 import math
 import os
 import random
+from src.settings.localization import t
+from src.factory.unitFactory import UnitFactory
+from src.factory.unitType import UnitType
+from src.components.properties.positionComponent import PositionComponent
+from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.functions.baseManager import get_base_manager
+from src.managers.sprite_manager import sprite_manager, SpriteID
+from src.constants.gameplay import (
+        COLOR_WHITE, COLOR_GOLD, COLOR_BLACK, COLOR_GREEN_SUCCESS, COLOR_RED_ERROR,
+        COLOR_PLACEHOLDER_UNIT, COLOR_PLACEHOLDER_BUILDING, COLOR_PLACEHOLDER_UPGRADE,
+        SHOP_WIDTH, SHOP_HEIGHT, SHOP_TAB_WIDTH, SHOP_TAB_HEIGHT, SHOP_TAB_SPACING,
+        SHOP_ITEM_WIDTH, SHOP_ITEM_HEIGHT, SHOP_ITEMS_PER_ROW, SHOP_ITEM_SPACING_X,
+        SHOP_ITEM_SPACING_Y, SHOP_ICON_SIZE_LARGE, SHOP_ICON_SIZE_MEDIUM,
+        SHOP_ICON_SIZE_SMALL, SHOP_ICON_SIZE_TINY, SHOP_MARGIN, SHOP_PADDING,
+        SHOP_TAB_Y_OFFSET, SHOP_ITEMS_START_Y, SHOP_CLOSE_BUTTON_SIZE,
+        SHOP_CLOSE_BUTTON_MARGIN, SHOP_CLOSE_X_SIZE, SHOP_CLOSE_X_THICKNESS,
+        SHOP_SHADOW_OFFSET, SHOP_SHADOW_LAYERS, SHOP_FEEDBACK_DURATION,
+        SHOP_TEXT_X_OFFSET, SHOP_DEFAULT_PLAYER_GOLD, SHOP_FONT_SIZE_TITLE,
+        SHOP_FONT_SIZE_SUBTITLE, SHOP_FONT_SIZE_NORMAL, SHOP_FONT_SIZE_SMALL,
+        SHOP_FONT_SIZE_TINY
+    )
 
-# Obtenir le chemin de base du projet
-BASE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Ajouter le chemin src au PYTHONPATH pour les imports
-import sys
-if os.path.join(BASE_PATH, 'src') not in sys.path:
-    sys.path.append(os.path.join(BASE_PATH, 'src'))
-
-try:
-    from settings.localization import t
-    from factory.unitFactory import UnitFactory
-    from factory.unitType import UnitType
-    from components.properties.positionComponent import PositionComponent
-    from settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
-    SPAWN_SYSTEM_AVAILABLE = True
-except ImportError as e:
-    # Fallback si les imports ne sont pas disponibles
-    print(f"Warning: Système de spawn non disponible - {e}")
-    SPAWN_SYSTEM_AVAILABLE = False
-    
-    # Valeurs par défaut pour les constantes seulement
-    MAP_WIDTH, MAP_HEIGHT, TILE_SIZE = 30, 30, 32
-    
-    # Fallback de localisation
-    def t(key):
-        translations = {
-            "units.zasper": "Zasper",
-            "units.barhamus": "Barhamus",
-            "units.draupnir": "Draupnir",
-            "units.druid": "Druid", 
-            "units.architect": "Architect",
-            "shop.zasper_desc": "Scout rapide et polyvalent",
-            "shop.barhamus_desc": "Guerrier robuste avec bouclier",
-            "shop.draupnir_desc": "Léviathan lourd destructeur",
-            "shop.druid_desc": "Soigneur et support magique",
-            "shop.architect_desc": "Constructeur de défenses",
-            "shop.defense_tower": "Tour de Défense",
-            "shop.defense_tower_desc": "Tour d'attaque automatique",
-            "shop.heal_tower": "Tour de Soin",
-            "shop.heal_tower_desc": "Tour de régénération alliée",
-            "shop.stats.life": "Vie",
-            "shop.stats.attack": "ATK",
-            "shop.stats.heal": "SOIN",
-            "shop.stats.support": "SUPPORT",
-            "shop.stats.range": "Portée",
-            "shop.title": "Boutique Galad Islands",
-            "shop.category_units": "Recrutement d'Unités",
-            "shop.category_buildings": "Construction de Bâtiments",
-            "shop.units": "Unités",
-            "shop.buildings": "Bâtiments",
-            "enemy_shop.scout": "Éclaireur Ennemi",
-            "enemy_shop.warrior": "Guerrier Ennemi",
-            "enemy_shop.brute": "Brute Ennemie",
-            "enemy_shop.shaman": "Chaman Ennemi",
-            "enemy_shop.engineer": "Ingénieur Ennemi",
-            "enemy_shop.scout_desc": "Éclaireur rapide hostile",
-            "enemy_shop.warrior_desc": "Guerrier lourd ennemi",
-            "enemy_shop.brute_desc": "Destructeur massif",
-            "enemy_shop.shaman_desc": "Soigneur et mage noir",
-            "enemy_shop.engineer_desc": "Constructeur ennemi",
-            "enemy_shop.attack_tower": "Tour d'Attaque",
-            "enemy_shop.attack_tower_desc": "Tour offensive ennemie",
-            "enemy_shop.heal_tower": "Tour de Régénération",
-            "enemy_shop.heal_tower_desc": "Tour de soin ennemie",
-            "enemy_shop.title": "Arsenal Ennemi",
-            "enemy_shop.subtitle": "Recrutement Hostile"
-        }
-        return translations.get(key, key)
 
 # Thèmes de couleur pour les différentes factions
 class AllyTheme:
@@ -165,27 +118,27 @@ class UnifiedShop:
         self.hovered_tab_index = -1
         
         # Configuration de l'interface
-        self.shop_width = 900
-        self.shop_height = 650
+        self.shop_width = SHOP_WIDTH
+        self.shop_height = SHOP_HEIGHT
         self.shop_x = (screen_width - self.shop_width) // 2
         self.shop_y = (screen_height - self.shop_height) // 2
         
         # Polices
         try:
-            self.font_title = pygame.font.Font(None, 32)
-            self.font_subtitle = pygame.font.Font(None, 26)
-            self.font_normal = pygame.font.Font(None, 20)
-            self.font_small = pygame.font.Font(None, 16)
-            self.font_tiny = pygame.font.Font(None, 14)
+            self.font_title = pygame.font.Font(None, SHOP_FONT_SIZE_TITLE)
+            self.font_subtitle = pygame.font.Font(None, SHOP_FONT_SIZE_SUBTITLE)
+            self.font_normal = pygame.font.Font(None, SHOP_FONT_SIZE_NORMAL)
+            self.font_small = pygame.font.Font(None, SHOP_FONT_SIZE_SMALL)
+            self.font_tiny = pygame.font.Font(None, SHOP_FONT_SIZE_TINY)
         except:
-            self.font_title = pygame.font.SysFont("Arial", 32, bold=True)
-            self.font_subtitle = pygame.font.SysFont("Arial", 26, bold=True)
-            self.font_normal = pygame.font.SysFont("Arial", 20)
-            self.font_small = pygame.font.SysFont("Arial", 16)
-            self.font_tiny = pygame.font.SysFont("Arial", 14)
+            self.font_title = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_TITLE, bold=True)
+            self.font_subtitle = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_SUBTITLE, bold=True)
+            self.font_normal = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_NORMAL)
+            self.font_small = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_SMALL)
+            self.font_tiny = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_TINY)
         
         # Ressources du joueur
-        self.player_gold = 100
+        self.player_gold = SHOP_DEFAULT_PLAYER_GOLD
         
         # Items de la boutique
         self.shop_items: Dict[ShopCategory, List[ShopItem]] = {
@@ -200,7 +153,7 @@ class UnifiedShop:
         
         # Animation et feedback
         self.purchase_feedback = ""
-        self.feedback_timer = 0
+        self.feedback_timer = 0.0
         self.feedback_color = self.theme.PURCHASE_SUCCESS
         
         # Initialisation
@@ -250,15 +203,6 @@ class UnifiedShop:
             ("architect", t("units.architect"), t("shop.architect_desc"), 
              {'cout_gold': 30, 'armure_max': 100, 'degats': 0})
         ]
-        
-        # Mapping entre les IDs d'unités et les noms de fichiers PNG
-        unit_icon_mapping = {
-            "zasper": "Scout.png",
-            "barhamus": "Maraudeur.png", 
-            "draupnir": "Leviathan.png",
-            "druid": "Druid.png",
-            "architect": "Architect.png"
-        }
 
         for unit_id, name, description, config in units_data:
             short_desc = self._create_stats_description(config)
@@ -268,7 +212,7 @@ class UnifiedShop:
                 name=name,
                 description=short_desc,
                 cost=config['cout_gold'],
-                icon_path=os.path.join(BASE_PATH, "assets", "sprites", "units", "ally", unit_icon_mapping[unit_id]),
+                icon_path="",  # Plus utilisé avec le sprite manager
                 category=ShopCategory.UNITS,
                 config_data=config,
                 purchase_callback=self._create_unit_purchase_callback(unit_id)
@@ -282,12 +226,6 @@ class UnifiedShop:
             ("heal_tower", t("shop.heal_tower"), t("shop.heal_tower_desc"), 
              {'cout_gold': 20, 'armure_max': 70, 'radius_action': 5})
         ]
-        
-        # Mapping correct des noms de fichiers de bâtiments
-        building_icon_mapping = {
-            "defense_tower": "ally-defence-tower.png",
-            "heal_tower": "ally-heal-tower.png"
-        }
 
         for building_id, name, description, config in buildings_data:
             short_desc = self._create_building_description(config)
@@ -297,7 +235,7 @@ class UnifiedShop:
                 name=name,
                 description=short_desc,
                 cost=config['cout_gold'],
-                icon_path=os.path.join(BASE_PATH, "assets", "sprites", "buildings", "ally", building_icon_mapping[building_id]),
+                icon_path="",  # Plus utilisé avec le sprite manager
                 category=ShopCategory.BUILDINGS,
                 config_data=config,
                 purchase_callback=self._create_building_purchase_callback(building_id)
@@ -310,18 +248,18 @@ class UnifiedShop:
         # === UNITÉS ENNEMIES ===
         units_data = [
             ("enemy_scout", t("enemy_shop.scout"), t("enemy_shop.scout_desc"), 
-             {'cout_gold': 12, 'armure_max': 50, 'degats_min': 12, 'degats_max': 18}, "Scout.png"),
+             {'cout_gold': 12, 'armure_max': 50, 'degats_min': 12, 'degats_max': 18}),
             ("enemy_warrior", t("enemy_shop.warrior"), t("enemy_shop.warrior_desc"), 
-             {'cout_gold': 25, 'armure_max': 120, 'degats_min_salve': 25, 'degats_max_salve': 35}, "Maraudeur.png"),
+             {'cout_gold': 25, 'armure_max': 120, 'degats_min_salve': 25, 'degats_max_salve': 35}),
             ("enemy_brute", t("enemy_shop.brute"), t("enemy_shop.brute_desc"), 
-             {'cout_gold': 45, 'armure_max': 280, 'degats_min_salve': 45, 'degats_max_salve': 65}, "Leviathan.png"),
+             {'cout_gold': 45, 'armure_max': 280, 'degats_min_salve': 45, 'degats_max_salve': 65}),
             ("enemy_shaman", t("enemy_shop.shaman"), t("enemy_shop.shaman_desc"), 
-             {'cout_gold': 35, 'armure_max': 90, 'soin': 25}, "Druid.png"),
+             {'cout_gold': 35, 'armure_max': 90, 'soin': 25}),
             ("enemy_engineer", t("enemy_shop.engineer"), t("enemy_shop.engineer_desc"), 
-             {'cout_gold': 32, 'armure_max': 95, 'degats': 5}, "Architect.png")
+             {'cout_gold': 32, 'armure_max': 95, 'degats': 5})
         ]
         
-        for unit_id, name, description, config, sprite_file in units_data:
+        for unit_id, name, description, config in units_data:
             short_desc = self._create_stats_description(config)
             
             item = ShopItem(
@@ -329,7 +267,7 @@ class UnifiedShop:
                 name=name,
                 description=short_desc,
                 cost=config['cout_gold'],
-                icon_path=os.path.join(BASE_PATH, "assets", "sprites", "units", "enemy", sprite_file),
+                icon_path="",  # Plus utilisé avec le sprite manager
                 category=ShopCategory.UNITS,
                 config_data=config,
                 purchase_callback=self._create_unit_purchase_callback(unit_id)
@@ -344,11 +282,6 @@ class UnifiedShop:
              {'cout_gold': 25, 'armure_max': 75, 'radius_action': 6})
         ]
         
-        icon_mapping = {
-            "enemy_attack_tower": "enemy-attack-tower.png",
-            "enemy_heal_tower": "enemy-heal-tower.png"
-        }
-        
         for building_id, name, description, config in buildings_data:
             short_desc = self._create_building_description(config)
             
@@ -357,63 +290,23 @@ class UnifiedShop:
                 name=name,
                 description=short_desc,
                 cost=config['cout_gold'],
-                icon_path=os.path.join(BASE_PATH, "assets", "sprites", "buildings", "enemy", icon_mapping[building_id]),
-                category=ShopCategory.BUILDINGS,
-                config_data=config,
-                purchase_callback=self._create_building_purchase_callback(building_id)
-            )
-            self.shop_items[ShopCategory.BUILDINGS].append(item)
-            
-            item = ShopItem(
-                id=unit_id,
-                name=name,
-                description=short_desc,
-                cost=config['cout_gold'],
-                icon_path=f"assets/sprites/units/enemy/{sprite_file}",
-                category=ShopCategory.UNITS,
-                config_data=config,
-                purchase_callback=self._create_unit_purchase_callback(unit_id)
-            )
-            self.shop_items[ShopCategory.UNITS].append(item)
-        
-        # === BÂTIMENTS ENNEMIS ===
-        buildings_data = [
-            ("enemy_attack_tower", t("enemy_shop.attack_tower"), t("enemy_shop.attack_tower_desc"), 
-             {'cout_gold': 30, 'armure_max': 80, 'radius_action': 9}),
-            ("enemy_heal_tower", t("enemy_shop.heal_tower"), t("enemy_shop.heal_tower_desc"), 
-             {'cout_gold': 25, 'armure_max': 75, 'radius_action': 6})
-        ]
-        
-        icon_mapping = {
-            "enemy_attack_tower": "enemy-attack-tower.png",
-            "enemy_heal_tower": "enemy-heal-tower.png"
-        }
-        
-        for building_id, name, description, config in buildings_data:
-            short_desc = self._create_building_description(config)
-            
-            item = ShopItem(
-                id=building_id,
-                name=name,
-                description=short_desc,
-                cost=config['cout_gold'],
-                icon_path=f"assets/sprites/buildings/enemy/{icon_mapping[building_id]}",
+                icon_path="",  # Plus utilisé avec le sprite manager
                 category=ShopCategory.BUILDINGS,
                 config_data=config,
                 purchase_callback=self._create_building_purchase_callback(building_id)
             )
             self.shop_items[ShopCategory.BUILDINGS].append(item)
     
-    def _get_ally_base_spawn_position(self):
-        """Calcule une position de spawn près de la base alliée."""
-        if not SPAWN_SYSTEM_AVAILABLE:
-            # Position par défaut si le système n'est pas disponible
-            return type('PositionComponent', (), {'x': 100, 'y': 100})()
-        
-        # Base alliée : grille (1,1) à (4,4)
-        # Convertir en coordonnées monde (pixels)
-        base_center_x = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en X
-        base_center_y = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en Y
+    def _get_base_spawn_position(self, is_enemy=False):
+        """Calcule une position de spawn près de la base appropriée selon la faction."""
+        if is_enemy:
+            # Base ennemie : grille (MAP_WIDTH-4, MAP_HEIGHT-4) à (MAP_WIDTH, MAP_HEIGHT)
+            base_center_x = (MAP_WIDTH - 4 + 1 + MAP_WIDTH - 1 + 1) / 2 * TILE_SIZE
+            base_center_y = (MAP_HEIGHT - 4 + 1 + MAP_HEIGHT - 1 + 1) / 2 * TILE_SIZE
+        else:
+            # Base alliée : grille (1,1) à (4,4)
+            base_center_x = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en X
+            base_center_y = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en Y
         
         # Ajouter un décalage aléatoire pour éviter que toutes les unités apparaissent au même endroit
         offset_x = random.randint(-100, 100)
@@ -426,15 +319,19 @@ class UnifiedShop:
     
     def _map_boutique_id_to_unit_type(self, unit_id: str):
         """Mappe un ID de la boutique vers un UnitType de ta factory."""
-        if not SPAWN_SYSTEM_AVAILABLE:
-            return unit_id  # Retourne juste l'ID si le système n'est pas disponible
-        
         unit_mapping = {
+            # Unités alliées
             "zasper": UnitType.SCOUT,
             "barhamus": UnitType.MARAUDEUR,
             "draupnir": UnitType.LEVIATHAN,
             "druid": UnitType.DRUID,
-            "architect": UnitType.ARCHITECT
+            "architect": UnitType.ARCHITECT,
+            # Unités ennemies (même type d'unité, faction différente)
+            "enemy_scout": UnitType.SCOUT,
+            "enemy_warrior": UnitType.MARAUDEUR,
+            "enemy_brute": UnitType.LEVIATHAN,
+            "enemy_shaman": UnitType.DRUID,
+            "enemy_engineer": UnitType.ARCHITECT
         }
         return unit_mapping.get(unit_id)
     
@@ -457,32 +354,95 @@ class UnifiedShop:
         """Crée une description formatée pour les statistiques d'un bâtiment."""
         return f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')} | {t('shop.stats.range')}: {config.get('radius_action', 'N/A')}"
     
+    def _get_sprite_id_for_unit(self, unit_id: str, is_enemy: bool = False) -> Optional[SpriteID]:
+        """Mappe un ID d'unité de la boutique vers un SpriteID."""
+        # Mapping des unités alliées
+        ally_mapping = {
+            "zasper": SpriteID.ALLY_SCOUT,
+            "barhamus": SpriteID.ALLY_MARAUDEUR,
+            "draupnir": SpriteID.ALLY_LEVIATHAN,
+            "druid": SpriteID.ALLY_DRUID,
+            "architect": SpriteID.ALLY_ARCHITECT
+        }
+        
+        # Mapping des unités ennemies
+        enemy_mapping = {
+            "enemy_scout": SpriteID.ENEMY_SCOUT,
+            "enemy_warrior": SpriteID.ENEMY_MARAUDEUR,
+            "enemy_brute": SpriteID.ENEMY_LEVIATHAN,
+            "enemy_shaman": SpriteID.ENEMY_DRUID,
+            "enemy_engineer": SpriteID.ENEMY_ARCHITECT
+        }
+        
+        if is_enemy or unit_id.startswith("enemy_"):
+            return enemy_mapping.get(unit_id)
+        else:
+            return ally_mapping.get(unit_id)
+    
+    def _get_sprite_id_for_building(self, building_id: str) -> Optional[SpriteID]:
+        """Mappe un ID de bâtiment de la boutique vers un SpriteID."""
+        building_mapping = {
+            "defense_tower": SpriteID.ATTACK_TOWER,
+            "heal_tower": SpriteID.HEAL_TOWER,
+            "enemy_attack_tower": SpriteID.ATTACK_TOWER,
+            "enemy_heal_tower": SpriteID.HEAL_TOWER
+        }
+        return building_mapping.get(building_id)
+    
+    def _get_sprite_id_for_ui(self, ui_element: str) -> Optional[SpriteID]:
+        """Mappe un élément UI vers un SpriteID."""
+        ui_mapping = {
+            "units": SpriteID.UI_SWORDS,
+            "buildings": SpriteID.BUILDING_CONSTRUCTION,
+            "gold": SpriteID.UI_BITCOIN
+        }
+        return ui_mapping.get(ui_element)
+    
     def _load_icons(self):
-        """Charge les icônes pour tous les items."""
+        """Charge les icônes pour tous les items via le gestionnaire de sprites."""
         for category in self.shop_items:
             for item in self.shop_items[category]:
-                try:
-                    icon = pygame.image.load(item.icon_path).convert_alpha()
-                    icon = pygame.transform.scale(icon, (64, 64))
-                    self.icons[item.id] = icon
-                except Exception:
+                sprite_id = None
+                
+                # Déterminer le SpriteID approprié selon la catégorie
+                if category == ShopCategory.UNITS:
+                    sprite_id = self._get_sprite_id_for_unit(item.id, self.faction == ShopFaction.ENEMY)
+                elif category == ShopCategory.BUILDINGS:
+                    sprite_id = self._get_sprite_id_for_building(item.id)
+                
+                if sprite_id:
+                    # Charger via le gestionnaire de sprites
+                    sprite_surface = sprite_manager.load_sprite(sprite_id)
+                    if sprite_surface:
+                        # Redimensionner à la taille souhaitée
+                        icon = pygame.transform.scale(sprite_surface, (64, 64))
+                        self.icons[item.id] = icon
+                        print(f"Icône chargée via sprite manager: {item.id} -> {sprite_id.value}")
+                    else:
+                        print(f"Impossible de charger le sprite: {sprite_id.value}")
+                        self.icons[item.id] = self._create_placeholder_icon(item.name, item.category)
+                else:
+                    print(f"Aucun SpriteID trouvé pour: {item.id}")
                     self.icons[item.id] = self._create_placeholder_icon(item.name, item.category)
     
     def _load_tab_icons(self):
-        """Charge les icônes pour les onglets."""
-        tab_icon_paths = {
-            "units": os.path.join(BASE_PATH, "assets", "image", "TwemojiCrossedSwords.png"),
-            "buildings": os.path.join(BASE_PATH, "assets", "image", "FluentEmojiFlatBuildingConstruction.png"),
-            "gold": os.path.join(BASE_PATH, "assets", "image", "StreamlineUltimateColorCryptoCurrencyBitcoinCircle.png")
-        }
+        """Charge les icônes pour les onglets via le gestionnaire de sprites."""
+        tab_elements = ["units", "buildings", "gold"]
         
-        for tab_name, icon_path in tab_icon_paths.items():
-            try:
-                icon = pygame.image.load(icon_path).convert_alpha()
-                self.tab_icons[tab_name] = pygame.transform.scale(icon, (24, 24))
-                print(f"Icône d'onglet chargée: {tab_name} depuis {icon_path}")
-            except Exception as e:
-                print(f"Impossible de charger l'icône d'onglet {tab_name}: {e}")
+        for tab_name in tab_elements:
+            sprite_id = self._get_sprite_id_for_ui(tab_name)
+            
+            if sprite_id:
+                sprite_surface = sprite_manager.load_sprite(sprite_id)
+                if sprite_surface:
+                    # Redimensionner à la taille souhaitée pour les onglets
+                    self.tab_icons[tab_name] = pygame.transform.scale(sprite_surface, (24, 24))
+                    print(f"Icône d'onglet chargée via sprite manager: {tab_name} -> {sprite_id.value}")
+                else:
+                    print(f"Impossible de charger le sprite pour l'onglet: {sprite_id.value}")
+                    self.tab_icons[tab_name] = None
+            else:
+                print(f"Aucun SpriteID trouvé pour l'onglet: {tab_name}")
                 self.tab_icons[tab_name] = None
     
     def _create_placeholder_icon(self, name: str, category: ShopCategory) -> pygame.Surface:
@@ -491,25 +451,25 @@ class UnifiedShop:
         
         # Couleur selon la catégorie
         if category == ShopCategory.UNITS:
-            base_color = (100, 150, 200)
+            base_color = COLOR_PLACEHOLDER_UNIT
             symbol = "⚔"
         elif category == ShopCategory.BUILDINGS:
-            base_color = (150, 120, 80)
+            base_color = COLOR_PLACEHOLDER_BUILDING
             symbol = "🏗"
         else:
-            base_color = (200, 150, 100)
+            base_color = COLOR_PLACEHOLDER_UPGRADE
             symbol = "⚡"
         
         # Dégradé radial
-        center = 32
-        for radius in range(32, 0, -1):
-            brightness = radius / 32.0
+        center = SHOP_ICON_SIZE_LARGE // 2
+        for radius in range(center, 0, -1):
+            brightness = radius / center
             color = tuple(int(c * brightness) for c in base_color)
             pygame.draw.circle(icon, color, (center, center), radius)
         
         # Bordure
-        pygame.draw.circle(icon, self.theme.BORDER_LIGHT, (center, center), 30, 3)
-        pygame.draw.circle(icon, self.theme.BORDER, (center, center), 32, 2)
+        pygame.draw.circle(icon, self.theme.BORDER_LIGHT, (center, center), center - 2, 3)
+        pygame.draw.circle(icon, self.theme.BORDER, (center, center), center, 2)
         
         # Texte centré
         font = pygame.font.SysFont("Arial", 24, bold=True)
@@ -526,11 +486,6 @@ class UnifiedShop:
     def _create_unit_purchase_callback(self, unit_id: str):
         """Crée le callback d'achat pour une unité avec spawn réel."""
         def callback():
-            if not SPAWN_SYSTEM_AVAILABLE:
-                print(f"Mode visuel: Achat d'unité {unit_id}")
-                self._show_purchase_feedback(f"Unité {unit_id} achetée (mode visuel)!", True)
-                return True
-                
             try:
                 # Mapper l'ID de la boutique vers le type d'unité
                 unit_type = self._map_boutique_id_to_unit_type(unit_id)
@@ -539,16 +494,20 @@ class UnifiedShop:
                     self._show_purchase_feedback(f"Erreur: Type d'unité inconnu!", False)
                     return False
                 
-                # Calculer la position de spawn près de la base alliée
-                spawn_position = self._get_ally_base_spawn_position()
-                
                 # Déterminer si c'est un ennemi selon la faction de la boutique
                 is_enemy = (self.faction == ShopFaction.ENEMY)
+                
+                # Calculer la position de spawn près de la base appropriée
+                spawn_position = self._get_base_spawn_position(is_enemy)
                 
                 # Créer l'unité avec la factory
                 entity = UnitFactory(unit_type, is_enemy, spawn_position)
                 
                 if entity:
+                    # Ajouter l'unité à la liste des troupes de la base appropriée
+                    base_manager = get_base_manager()
+                    base_manager.add_unit_to_base(entity, is_enemy)
+                    
                     faction_name = "ennemie" if is_enemy else "alliée"
                     unit_name = unit_id  # Par défaut
                     # Trouver le bon nom traduit
@@ -557,7 +516,12 @@ class UnifiedShop:
                             unit_name = item.name
                             break
                     
+                    # Afficher le statut des bases pour debug
+                    ally_units = len(base_manager.get_base_units(is_enemy=False))
+                    enemy_units = len(base_manager.get_base_units(is_enemy=True))
                     print(f"Unité {unit_name} ({faction_name}) créée en ({spawn_position.x:.1f}, {spawn_position.y:.1f})")
+                    print(f"Status bases: Alliés={ally_units} unités, Ennemis={enemy_units} unités")
+                    
                     self._show_purchase_feedback(f"Unité {unit_name} recrutée!", True)
                     return True
                 else:
@@ -582,7 +546,7 @@ class UnifiedShop:
     def _show_purchase_feedback(self, message: str, success: bool):
         """Affiche un feedback d'achat."""
         self.purchase_feedback = message
-        self.feedback_timer = 3.0
+        self.feedback_timer = SHOP_FEEDBACK_DURATION
         self.feedback_color = self.theme.PURCHASE_SUCCESS if success else self.theme.PURCHASE_ERROR
     
     def open(self):
@@ -651,7 +615,12 @@ class UnifiedShop:
             return False
         
         # Bouton fermeture
-        close_button_rect = pygame.Rect(self.shop_x + self.shop_width - 40, self.shop_y + 10, 30, 30)
+        close_button_rect = pygame.Rect(
+            self.shop_x + self.shop_width - SHOP_CLOSE_BUTTON_SIZE - SHOP_CLOSE_BUTTON_MARGIN, 
+            self.shop_y + SHOP_CLOSE_BUTTON_MARGIN, 
+            SHOP_CLOSE_BUTTON_SIZE, 
+            SHOP_CLOSE_BUTTON_SIZE
+        )
         if close_button_rect.collidepoint(mouse_pos):
             self.close()
             return True
@@ -679,27 +648,27 @@ class UnifiedShop:
     
     def _get_tab_rects(self) -> List[pygame.Rect]:
         """Retourne les rectangles des onglets."""
-        tab_width = 160
-        tab_height = 40
-        tab_y = self.shop_y + 80
-        tab_x_start = self.shop_x + 20
+        tab_width = SHOP_TAB_WIDTH
+        tab_height = SHOP_TAB_HEIGHT
+        tab_y = self.shop_y + SHOP_TAB_Y_OFFSET
+        tab_x_start = self.shop_x + SHOP_MARGIN
         
         rects = []
         for i in range(2):  # Seulement Units et Buildings
-            x = tab_x_start + i * (tab_width + 10)
+            x = tab_x_start + i * (tab_width + SHOP_TAB_SPACING)
             rects.append(pygame.Rect(x, tab_y, tab_width, tab_height))
         
         return rects
     
     def _get_item_rects(self) -> List[pygame.Rect]:
         """Retourne les rectangles des items."""
-        item_width = 200
-        item_height = 100
-        items_per_row = 4
-        start_x = self.shop_x + 30
-        start_y = self.shop_y + 140
-        spacing_x = 15
-        spacing_y = 15
+        item_width = SHOP_ITEM_WIDTH
+        item_height = SHOP_ITEM_HEIGHT
+        items_per_row = SHOP_ITEMS_PER_ROW
+        start_x = self.shop_x + SHOP_PADDING
+        start_y = self.shop_y + SHOP_ITEMS_START_Y
+        spacing_x = SHOP_ITEM_SPACING_X
+        spacing_y = SHOP_ITEM_SPACING_Y
         
         current_items = self.shop_items[self.current_category]
         rects = []
@@ -797,10 +766,10 @@ class UnifiedShop:
         shop_rect = pygame.Rect(self.shop_x, self.shop_y, self.shop_width, self.shop_height)
         
         # Ombre portée
-        shadow_offset = 5
+        shadow_offset = SHOP_SHADOW_OFFSET
         shadow_rect = shop_rect.move(shadow_offset, shadow_offset)
         shadow_surface = pygame.Surface((self.shop_width, self.shop_height), pygame.SRCALPHA)
-        for i in range(10):
+        for i in range(SHOP_SHADOW_LAYERS):
             alpha = 50 - i * 5
             color = (0, 0, 0, alpha)
             pygame.draw.rect(shadow_surface, color, (i, i, self.shop_width - i*2, self.shop_height - i*2))
@@ -824,7 +793,7 @@ class UnifiedShop:
         # Ligne de séparation
         line_y = self.shop_y + 75
         pygame.draw.line(surface, self.theme.BORDER_LIGHT, 
-                        (self.shop_x + 20, line_y), (self.shop_x + self.shop_width - 20, line_y), 2)
+                        (self.shop_x + SHOP_MARGIN, line_y), (self.shop_x + self.shop_width - SHOP_MARGIN, line_y), 2)
     
     def _draw_title(self, surface: pygame.Surface):
         """Dessine le titre de la boutique."""
@@ -858,7 +827,12 @@ class UnifiedShop:
     
     def _draw_close_button(self, surface: pygame.Surface):
         """Dessine le bouton de fermeture."""
-        close_rect = pygame.Rect(self.shop_x + self.shop_width - 45, self.shop_y + 15, 35, 35)
+        close_rect = pygame.Rect(
+            self.shop_x + self.shop_width - SHOP_CLOSE_BUTTON_SIZE - SHOP_CLOSE_BUTTON_MARGIN, 
+            self.shop_y + SHOP_CLOSE_BUTTON_MARGIN, 
+            SHOP_CLOSE_BUTTON_SIZE, 
+            SHOP_CLOSE_BUTTON_SIZE
+        )
         
         # Effet de hover
         mouse_pos = pygame.mouse.get_pos()
@@ -878,8 +852,8 @@ class UnifiedShop:
         pygame.draw.circle(surface, self.theme.BORDER_LIGHT, close_rect.center, 17, 2)
         
         # X de fermeture
-        x_size = 8
-        x_thickness = 3
+        x_size = SHOP_CLOSE_X_SIZE
+        x_thickness = SHOP_CLOSE_X_THICKNESS
         center_x, center_y = close_rect.center
         
         pygame.draw.line(surface, self.theme.TEXT_HIGHLIGHT, 
@@ -960,9 +934,9 @@ class UnifiedShop:
         if "gold" in self.tab_icons and self.tab_icons["gold"]:
             icon = self.tab_icons["gold"]
             icon_x = info_rect.x + 10
-            icon_y = info_rect.centery - 12
+            icon_y = info_rect.centery - SHOP_ICON_SIZE_SMALL // 2
             surface.blit(icon, (icon_x, icon_y))
-            text_x_offset = 30
+            text_x_offset = SHOP_TEXT_X_OFFSET
         else:
             gold_text = f"💰 {self.player_gold}"
         
@@ -1021,7 +995,7 @@ class UnifiedShop:
         pygame.draw.rect(surface, border_color, rect, 3, border_radius=12)
         
         # Icône
-        icon_size = 56
+        icon_size = SHOP_ICON_SIZE_MEDIUM
         icon_rect = pygame.Rect(rect.x + 8, rect.y + 8, icon_size, icon_size)
         
         if item.id in self.icons and self.icons[item.id]:
@@ -1047,9 +1021,9 @@ class UnifiedShop:
         
         if "gold" in self.tab_icons and self.tab_icons["gold"]:
             icon = self.tab_icons["gold"]
-            small_icon = pygame.transform.scale(icon, (16, 16))
+            small_icon = pygame.transform.scale(icon, (SHOP_ICON_SIZE_TINY, SHOP_ICON_SIZE_TINY))
             surface.blit(small_icon, (cost_x, rect.y + 28))
-            cost_x += 20
+            cost_x += SHOP_ICON_SIZE_TINY + 4
             cost_text = str(item.cost)
         else:
             cost_text = f"💰 {item.cost}"

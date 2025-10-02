@@ -13,6 +13,7 @@ from src.functions.afficherModale import afficher_modale
 from src.functions.optionsWindow import show_options_window
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
+from src.functions.resource_path import get_resource_path
 
 
 
@@ -21,8 +22,7 @@ class MainMenu:
 
     def __init__(self, surface=None):
         # Logo pygame
-        base_path = os.path.abspath(os.path.dirname(__file__))
-        logo_path = os.path.join(base_path, "assets", "logo.png")
+        logo_path = get_resource_path(os.path.join("assets", "logo.png"))
         print(logo_path)  # vérification
 
         if os.path.isfile(logo_path):
@@ -61,7 +61,7 @@ class MainMenu:
 
     def _load_background(self):
         """Loads the background image."""
-        bg_path = os.path.join("assets/image", "galad_islands_bg2.png")
+        bg_path = get_resource_path(os.path.join("assets", "image", "galad_islands_bg2.png"))
         return pygame.image.load(bg_path)
 
     def _initialize_ui(self):

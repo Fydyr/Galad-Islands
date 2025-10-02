@@ -31,7 +31,9 @@ Cette documentation est organisée en deux sections principales :
 ## ✨ Caractéristiques principales
 
 ### 🚁 Unités diversifiées
+
 **Alliés :**
+
 - **Zasper** : Scout léger et rapide
 - **Barhamus** : Maraudeur moyen robuste  
 - **Draupnir** : Léviathan lourd destructeur
@@ -39,6 +41,7 @@ Cette documentation est organisée en deux sections principales :
 - **Architect** : Constructeur de défenses
 
 **Ennemis :**
+
 - **Valkar** : Intercepteur rapide et agressif
 - **Goliath** : Blindé lourd à grande puissance de feu
 - **Spectre** : Unité furtive spécialisée dans le sabotage
@@ -46,16 +49,19 @@ Cette documentation est organisée en deux sections principales :
 - **Bastion** : Plateforme défensive mobile
 
 ### 🏰 Construction et défense
+
 - Tours de défense automatiques
 - Tours de soin pour vos alliés
 - Système de construction stratégique
 
 ### 💰 Système économique
+
 - Collectez de l'or naturellement ou dans les coffres sur la carte
 - Achetez des unités dans la boutique
 - Améliorez vos capacités
 
 ### 🎯 Gameplay tactique
+
 - Contrôles intuitifs au clavier
 - Caméra libre avec zoom
 - Interface claire et ergonomique
@@ -74,7 +80,8 @@ Cette documentation est organisée en deux sections principales :
 
 ## 📚 Navigation de ce guide
 
-- **[Guide de démarrage](getting-started.md)** : Installation et premiers pas
+- **[Guide de démarrage](getting-started.md)** : Premiers pas
+- **[Installation et Configuration](installation.md)** : Comment installer et configurer le jeu
 - **[Contrôles](controls.md)** : Toutes les commandes du jeu
 - **[Unités](units.md)** : Guide détaillé de chaque type d'unité
 - **[Stratégie](strategy.md)** : Conseils tactiques avancés
@@ -82,6 +89,7 @@ Cette documentation est organisée en deux sections principales :
 ## 🎵 Ambiance
 
 Galad Islands vous plonge dans un univers steampunk avec :
+
 - Musique épique et immersive
 - Graphismes détaillés en pixel art
 - Effets sonores authentiques

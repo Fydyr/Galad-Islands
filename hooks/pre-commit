@@ -1,0 +1,168 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Hook pre-commit avec bump automatique de version
+Installation: cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+"""
+
+import sys
+import os
+import subprocess
+import re
+from pathlib import Path
+
+def is_windows():
+    """Détecte Windows"""
+    return os.name == 'nt'
+
+def run_command(cmd, capture_output=True):
+    """Exécute une commande shell"""
+    try:
+        if isinstance(cmd, str):
+            cmd = cmd.split()
+        result = subprocess.run(cmd, capture_output=capture_output, text=True, cwd=Path.cwd())
+        return result.returncode == 0, result.stdout.strip(), result.stderr.strip()
+    except Exception as e:
+        return False, "", str(e)
+
+def get_last_tag():
+    """Récupère le dernier tag"""
+    success, stdout, _ = run_command("git tag --sort=-version:refname")
+    if success and stdout:
+        return stdout.split('\n')[0]
+    return None
+
+def get_commits_since_tag(tag):
+    """Récupère les commits depuis un tag"""
+    if not tag:
+        # Premier commit - vérifier les fichiers stagés
+        success, stdout, _ = run_command("git diff --cached --name-only")
+        return ["initial commit"] if success and stdout else []
+    
+    success, stdout, _ = run_command(f"git log {tag}..HEAD --oneline")
+    return stdout.split('\n') if success and stdout else []
+
+def needs_version_bump(commits):
+    """Détermine si un bump de version est nécessaire"""
+    bump_types = ['feat', 'fix', 'perf', 'refactor']
+    found_types = []
+    
+    for commit in commits:
+        if not commit.strip():
+            continue
+        # Format: hash type(scope): message ou juste type(scope): message
+        match = re.match(r'^(?:[a-f0-9]+ )?(\w+)(\(.+\))?: .+', commit)
+        if match:
+            commit_type = match.group(1)
+            if commit_type in bump_types:
+                found_types.append(commit_type)
+                
+    return len(found_types) > 0, found_types
+
+def get_bump_type(commit_types):
+    """Détermine le type de bump basé sur les types de commits"""
+    if 'feat' in commit_types:
+        return 'minor'
+    elif any(t in commit_types for t in ['fix', 'perf']):
+        return 'patch'
+    elif 'refactor' in commit_types:
+        return 'patch'
+    return 'patch'
+
+def is_venv_active():
+    """Vérifie si l'environnement virtuel est actif"""
+    return os.environ.get('VIRTUAL_ENV') is not None
+
+def activate_venv():
+    """Active l'environnement virtuel si disponible"""
+    venv_paths = ['venv/bin/activate', 'venv/Scripts/activate', '.venv/bin/activate', '.venv/Scripts/activate']
+    
+    for venv_path in venv_paths:
+        if Path(venv_path).exists():
+            if is_windows():
+                return f"call {venv_path} && "
+            else:
+                return f"source {venv_path} && "
+    return ""
+
+def is_staged_commit_eligible():
+    """Vérifie si le commit staging contient des changements éligibles pour un bump"""
+    # Vérifier le message de commit proposé
+    commit_msg_file = Path('.git/COMMIT_EDITMSG')
+    if commit_msg_file.exists():
+        try:
+            msg = commit_msg_file.read_text(encoding='utf-8').strip()
+            first_line = msg.split('\n')[0].strip()
+            
+            # Vérifier si c'est un type de commit qui nécessite un bump
+            match = re.match(r'^(feat|fix|perf|refactor)(\(.+\))?: .+', first_line)
+            return match is not None
+        except:
+            pass
+    
+    return False
+
+def bump_version():
+    """Effectue le bump de version avec commitizen"""
+    print("🔄 Bump de version automatique...")
+    
+    # Activer l'environnement virtuel si nécessaire
+    venv_cmd = ""
+    if not is_venv_active():
+        venv_cmd = activate_venv()
+    
+    # Vérifier que commitizen est disponible
+    test_cmd = f"{venv_cmd}python -m commitizen version"
+    success, _, _ = run_command(test_cmd)
+    if not success:
+        print("⚠️  Commitizen non disponible, bump ignoré")
+        return True
+    
+    # Effectuer le bump automatique
+    bump_cmd = f"{venv_cmd}python -m commitizen bump --yes --no-verify"
+    success, stdout, stderr = run_command(bump_cmd)
+    
+    if success:
+        print("✅ Bump de version automatique réussi")
+        return True
+    else:
+        # Si le bump échoue, analyser la raison
+        if "NO_COMMITS_TO_BUMP" in stderr or "No commits found" in stderr:
+            print("ℹ️  Aucun commit précédent nécessitant un bump")
+            return True
+        
+        print(f"⚠️  Échec du bump automatique: {stderr}")
+        return True  # Ne pas bloquer le commit
+
+def main():
+    """Fonction principale du hook pre-commit"""
+    try:
+        # Vérifier qu'on est dans un repo git
+        if not Path('.git').exists():
+            return True
+        
+        # Vérifier si c'est un commit de bump pour éviter la récursion
+        commit_msg_file = Path('.git/COMMIT_EDITMSG')
+        if commit_msg_file.exists():
+            try:
+                msg = commit_msg_file.read_text(encoding='utf-8').strip()
+                if 'bump version' in msg.lower() or 'chore: bump' in msg:
+                    print("⏸️  Commit de bump détecté, pas de bump automatique")
+                    return True
+            except:
+                pass
+        
+        # Vérifier si le commit staging est éligible pour un bump
+        if is_staged_commit_eligible():
+            print("🎯 Commit éligible pour bump détecté")
+            return bump_version()
+        else:
+            print("ℹ️  Commit non éligible pour bump (docs, style, etc.)")
+            return True
+            
+    except Exception as e:
+        print(f"Erreur dans le hook pre-commit: {e}")
+        return True  # Ne pas bloquer le commit en cas d'erreur
+
+if __name__ == "__main__":
+    sys.exit(0 if main() else 1)
