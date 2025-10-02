@@ -226,16 +226,16 @@ class CollisionProcessor(esper.Processor):
         
         for ent, (pos, velocity, collide) in entities:
             # Ignorer les entités qui ne bougent pas
-            if velocity.currentSpeed == 0:
+            if velocity.current_speed == 0:
                 # Réinitialiser le modificateur si on ne bouge pas
                 velocity.terrain_modifier = 1.0
                 continue
                 
             # Calculer la position future (où l'entité veut aller)
-            # IMPORTANT : Conserver le signe de currentSpeed pour gérer le recul
+            # IMPORTANT : Conserver le signe de current_speed pour gérer le recul
             direction_rad = math.radians(pos.direction)
-            future_x = pos.x - velocity.currentSpeed * math.cos(direction_rad)
-            future_y = pos.y - velocity.currentSpeed * math.sin(direction_rad)
+            future_x = pos.x - velocity.current_speed * math.cos(direction_rad)
+            future_y = pos.y - velocity.current_speed * math.sin(direction_rad)
             
             # Convertir les positions en coordonnées de grille
             future_grid_x = int(future_x // TILE_SIZE)
@@ -245,7 +245,7 @@ class CollisionProcessor(esper.Processor):
             if (future_grid_x < 0 or future_grid_x >= len(self.graph[0]) or 
                 future_grid_y < 0 or future_grid_y >= len(self.graph)):
                 # Hors limites - bloquer le mouvement
-                velocity.currentSpeed = 0
+                velocity.current_speed = 0
                 velocity.terrain_modifier = 1.0
                 continue
             
