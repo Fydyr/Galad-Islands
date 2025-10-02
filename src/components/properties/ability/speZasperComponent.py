@@ -5,7 +5,7 @@ from ...base_component import GameplayComponent
 class ZasperAbilityComponent(GameplayComponent):
     """Component for Zasper's evasion ability (invincibility)."""
     is_active: bool = False
-    base_duration: float = 3.0  # Base invincibility duration
-    remaining_time: float = 0.0  # Time left of invincibility
-    cooldown: float = 10.0  # Cooldown between uses
+    base_duration: float = 0.0  
+    remaining_time: float = 0.0  
+    cooldown: float = 0.0  
     cooldown_remaining: float = 0.0
