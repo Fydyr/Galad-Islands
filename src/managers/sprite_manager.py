@@ -1,13 +1,11 @@
 """
-Sprite Manager - Centralized management of all game sprites.
-This manager handles sprite registration, loading, and prov            # Événements
-            SpriteData(SpriteID.CHEST_CLOSE, "assets/event/chest_close.png", 50, 40, "Coffre fermé"),
-            SpriteData(SpriteID.CHEST_OPEN, "assets/event/chest_open.png", 50, 40, "Coffre ouvert"),
-            SpriteData(SpriteID.KRAKEN, "assets/event/kraken.png", 200, 200, "Kraken"),
-            SpriteData(SpriteID.TENTACULE_KRAKEN, "assets/event/tentacule_kraken.png", 60, 150, "Tentacule de Kraken"),
-            SpriteData(SpriteID.PIRATE_SHIP, "assets/event/pirate_ship.png", 120, 80, "Navire pirate"),
-            SpriteData(SpriteID.TEMPETE, "assets/event/tempete.png", 100, 100, "Tempête"),clean API
-for accessing sprites by ID rather than file paths.
+Sprite Manager
+
+This module provides centralized management of all game sprites. It handles
+sprite registration, loading, caching, and provides a clean API for accessing
+sprites by ID rather than file paths. The SpriteManager supports preloading,
+cache management, and retrieval of sprite metadata such as default size and
+description.
 """
 import pygame
 from typing import Dict, Optional, Tuple
