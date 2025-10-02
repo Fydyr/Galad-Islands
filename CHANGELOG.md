@@ -1,3 +1,9 @@
+## v0.4.4 (2025-10-02)
+
+### Fix
+
+- les projectiles ne disparaissent pas quand ils "cognent" une ile
+
 ## v0.4.3 (2025-10-02)
 
 ### Fix
