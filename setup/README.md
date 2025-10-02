@@ -15,6 +15,7 @@ python setup_dev.py
 - Environnement virtuel Python (si nécessaire)
 - Commitizen pour la gestion des versions
 - Dépendances du projet (requirements.txt)
+- Dépendances de développement (requirements-dev.txt)
 - Hooks Git avec bump automatique de version
 
 ### `install_hooks_with_bump.py` - Installation des hooks
