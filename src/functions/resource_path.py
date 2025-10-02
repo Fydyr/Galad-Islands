@@ -20,6 +20,16 @@ def get_resource_path(relative_path):
     Returns:
         Absolute path to the resource
     """
+    # Debug: vérifier le type du paramètre
+    if not isinstance(relative_path, (str, bytes, os.PathLike)):
+        print(f"ERREUR: get_resource_path appelé avec un type invalide: {type(relative_path)}, valeur: {relative_path}")
+        raise TypeError(f"relative_path doit être str, bytes ou os.PathLike, reçu: {type(relative_path)}")
+    
+    # Convertir en chaîne si nécessaire
+    relative_path = str(relative_path)
+    
+    if not relative_path:
+        raise ValueError("relative_path ne peut pas être vide")
     # Try next to executable first (for releases with assets folder)
     if getattr(sys, 'frozen', False):
         # Running in PyInstaller bundle

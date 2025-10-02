@@ -1,17 +1,19 @@
-from dataclasses import dataclass as component
-from typing import List, Dict, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import List, Optional
+from ...base_component import GameplayComponent
 
-@component
-class SpeArchitect:
-    
-    def __init__(self, is_active: bool = False, available: bool = False, radius: float = 0.0, reload_factor: float = 0.0, affected_units: Optional[List[int]] = None, duration: float = 0.0, timer: float = 0.0):
-        self.is_active: bool = False
-        self.available: bool = False
-        self.radius: float = 0.0 #Rayon d'effet de la capacité
-        self.reload_factor: float = 0.0 # Divise la durée  de rechargement par 2
-        self.affected_units: List[int] = None # IDs des unités affectées
-        self.duration: float = 0.0 # Durée de l'effet
-        self.timer: float = 0.0 # Temps restant 
+@dataclass
+class ArchitectAbilityComponent(GameplayComponent):
+    """Component for Architect's reload boost ability."""
+    is_active: bool = False
+    available: bool = True
+    effect_radius: float = 150.0  # Effect radius
+    reload_speed_multiplier: float = 2.0  # Multiply reload speed by this factor
+    affected_unit_ids: List[int] = field(default_factory=list)  # IDs of affected units
+    base_duration: float = 8.0  # Effect duration
+    remaining_time: float = 0.0  # Time left of effect
+    cooldown: float = 12.0  # Cooldown between uses
+    cooldown_remaining: float = 0.0 
     
 
     def __post_init__(self):

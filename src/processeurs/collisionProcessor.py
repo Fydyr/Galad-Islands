@@ -75,20 +75,21 @@ class CollisionProcessor(esper.Processor):
                     
                     # Health (1 HP - détruit en une collision)
                     esper.add_component(mine_entity, HealthComponent(
-                        currentHealth=1,
-                        maxHealth=1
+                        current_health=1,
+                        max_health=1
                     ))
                     
                     # Attack (40 dégâts)
                     esper.add_component(mine_entity, AttackComponent(
-                        hitPoints=40
+                        damage=40
                     ))
                     
                     # Peut entrer en collision
                     esper.add_component(mine_entity, CanCollide())
                     
                     # Team neutre (pour qu'elle touche tout le monde)
-                    esper.add_component(mine_entity, Team(team_id=2))
+                    from src.components.properties.team_enum import Team as TeamEnum
+                    esper.add_component(mine_entity, Team(team=TeamEnum.NEUTRAL))
                     
                     mine_count += 1
         
@@ -117,7 +118,7 @@ class CollisionProcessor(esper.Processor):
                     already_hit.append((other_ent, ent))
                     
                     # Si c'est la même équipe, ignorer
-                    if team.team_id == other_team.team_id:
+                    if team.team == other_team.team:
                         continue
                     
                     # Gérer la collision entre les deux entités
@@ -134,24 +135,24 @@ class CollisionProcessor(esper.Processor):
         
         # Entity1 inflige des dégâts à Entity2
         if attack1 and health2:
-            damage = attack1.hitPoints
-            health2.currentHealth -= damage
-            print(f"Debug: Entité {entity1} inflige {damage} dégâts à {entity2} (HP: {health2.currentHealth}/{health2.maxHealth})")
+            damage = attack1.damage
+            health2.current_health -= damage
+            print(f"Debug: Entité {entity1} inflige {damage} dégâts à {entity2} (HP: {health2.current_health}/{health2.max_health})")
             
-            # Détruire entity2 si mort
-            if health2.currentHealth <= 0:
+            # Vérifier si l'entité2 est détruite
+            if health2.current_health <= 0:
                 print(f"Debug: Entité {entity2} détruite")
                 self._destroy_mine_on_grid(entity2)
                 esper.delete_entity(entity2)
         
         # Entity2 inflige des dégâts à Entity1
         if attack2 and health1:
-            damage = attack2.hitPoints
-            health1.currentHealth -= damage
-            print(f"Debug: Entité {entity2} inflige {damage} dégâts à {entity1} (HP: {health1.currentHealth}/{health1.maxHealth})")
+            damage = attack2.damage
+            health1.current_health -= damage
+            print(f"Debug: Entité {entity2} inflige {damage} dégâts à {entity1} (HP: {health1.current_health}/{health1.max_health})")
             
             # Détruire entity1 si mort
-            if health1.currentHealth <= 0:
+            if health1.current_health <= 0:
                 print(f"Debug: Entité {entity1} détruite")
                 self._destroy_mine_on_grid(entity1)
                 esper.delete_entity(entity1)
@@ -167,7 +168,7 @@ class CollisionProcessor(esper.Processor):
         # Vérifier si c'est une mine (health max = 1)
         if esper.has_component(entity, HealthComponent):
             health = esper.component_for_entity(entity, HealthComponent)
-            if health.maxHealth == 1:  # C'est une mine
+            if health.max_health == 1:  # C'est une mine
                 # Obtenir la position
                 if esper.has_component(entity, Position):
                     pos = esper.component_for_entity(entity, Position)
@@ -194,7 +195,7 @@ class CollisionProcessor(esper.Processor):
         
         for ent, (pos, velocity, collide) in entities:
             # Ignorer les entités qui ne bougent pas
-            if velocity.currentSpeed == 0:
+            if velocity.current_speed == 0:
                 # Réinitialiser le modificateur si on ne bouge pas
                 velocity.terrain_modifier = 1.0
                 continue
@@ -202,8 +203,8 @@ class CollisionProcessor(esper.Processor):
             # Calculer la position future (où l'entité veut aller)
             # IMPORTANT : Conserver le signe de currentSpeed pour gérer le recul
             direction_rad = math.radians(pos.direction)
-            future_x = pos.x - velocity.currentSpeed * math.cos(direction_rad)
-            future_y = pos.y - velocity.currentSpeed * math.sin(direction_rad)
+            future_x = pos.x - velocity.current_speed * math.cos(direction_rad)
+            future_y = pos.y - velocity.current_speed * math.sin(direction_rad)
             
             # Convertir les positions en coordonnées de grille
             future_grid_x = int(future_x // TILE_SIZE)
@@ -213,7 +214,7 @@ class CollisionProcessor(esper.Processor):
             if (future_grid_x < 0 or future_grid_x >= len(self.graph[0]) or 
                 future_grid_y < 0 or future_grid_y >= len(self.graph)):
                 # Hors limites - bloquer le mouvement
-                velocity.currentSpeed = 0
+                velocity.current_speed = 0
                 velocity.terrain_modifier = 1.0
                 continue
             
@@ -270,13 +271,13 @@ class CollisionProcessor(esper.Processor):
         # Si le terrain ne permet pas le passage (îles, bases)
         if not effect['can_pass']:
             # BLOQUER complètement le mouvement - ne pas changer la position
-            velocity.currentSpeed = 0
+            velocity.current_speed = 0
             velocity.terrain_modifier = 0.0  # Force l'arrêt complet
-            print(f"Debug: Mouvement bloqué par {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
+            print(f"Debug: Mouvement bloqué par {terrain_type} - Speed={velocity.current_speed}, Modifier={velocity.terrain_modifier}")
         else:
             # Le terrain permet le passage, appliquer le modificateur de vitesse
             velocity.terrain_modifier = effect['speed_modifier']
-            print(f"Debug: Terrain {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
+            print(f"Debug: Terrain {terrain_type} - Speed={velocity.current_speed}, Modifier={velocity.terrain_modifier}")
             
             # Debug optionnel pour les nuages
             if terrain_type == 'cloud':

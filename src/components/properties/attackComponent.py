@@ -1,7 +1,10 @@
-from dataclasses import dataclass as component
+from dataclasses import dataclass
 
-@component
+@dataclass
 class AttackComponent:
-    def __init__(self, hitPoints=0):
-        self.hitPoints: int = hitPoints
+    """Component representing the attack capabilities of an entity."""
+    damage: int = 0
+    attack_range: float = 0.0
+    attack_cooldown: float = 0.0
+    last_attack_time: float = 0.0
     
