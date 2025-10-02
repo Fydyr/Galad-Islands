@@ -9,6 +9,7 @@ from enum import Enum
 from src.ui.boutique import Shop, ShopFaction
 from src.settings.localization import t
 from src.constants.team import Team
+from src.functions.player_utils import get_player_gold, set_player_gold
 
 
 # Couleurs de l'interface améliorées
@@ -119,7 +120,6 @@ class ActionBar:
             self.font_title = pygame.font.SysFont("Arial", 28, bold=True)
         
         # État du jeu
-        self.player_gold = 100
         self.selected_unit: Optional[UnitInfo] = None
         self.current_mode = "normal"  # normal, attack, move, build
         self.global_attack_active = False
@@ -143,8 +143,10 @@ class ActionBar:
         self.hovered_camp_button = False
         self.pressed_button = -1
         
-        # Boutique intégrée
-        self.shop = Shop(screen_width, screen_height)
+        # Boutique intégrée avec fonctions utilitaires
+        self.shop = Shop(screen_width, screen_height, 
+                        get_player_gold=lambda: get_player_gold(self.current_camp == Team.ENEMY),
+                        set_player_gold=lambda gold: set_player_gold(gold, self.current_camp == Team.ENEMY))
         
         # Configurations des unités (placeholder)
         self.unit_configs = {
@@ -337,9 +339,10 @@ class ActionBar:
         def callback():
             config = self.unit_configs[unit_type]
             print(f"[PLACEHOLDER] Demande création {config['name']} - Camp: {self.current_camp}")
-            print(f"[PLACEHOLDER] Coût: {config['cost']} or - Or actuel: {self.player_gold}")
+            current_gold = get_player_gold(self.current_camp == Team.ENEMY)
+            print(f"[PLACEHOLDER] Coût: {config['cost']} or - Or actuel: {current_gold}")
             # Effet visuel temporaire (simulation de création réussie)
-            if self.player_gold >= config['cost']:
+            if current_gold >= config['cost']:
                 self._show_feedback("success", t("feedback.unit_created").format(config['name'], self.current_camp))
             else:
                 self._show_feedback("warning", t("shop.insufficient_gold"))
@@ -518,13 +521,13 @@ class ActionBar:
     
     def update_player_gold(self, gold: int):
         """Met à jour l'or du joueur."""
-        self.player_gold = gold
-        # Synchroniser avec la boutique
-        self.shop.set_player_gold(gold)
+        is_enemy = (self.current_camp == Team.ENEMY)
+        set_player_gold(gold, is_enemy)
         
+        current_gold = get_player_gold(is_enemy)
         for button in self.action_buttons:
             if button.is_global:
-                button.enabled = self.player_gold >= button.cost
+                button.enabled = current_gold >= button.cost
     
     def update(self, dt: float):
         """Met à jour la barre d'action."""
@@ -533,9 +536,7 @@ class ActionBar:
         # Mettre à jour la boutique
         self.shop.update(dt)
         
-        # Synchroniser l'or avec la boutique
-        if self.shop.player_gold != self.player_gold:
-            self.player_gold = self.shop.player_gold
+        # Plus besoin de synchronisation - la boutique utilise directement le gestionnaire
         
         # Cooldown des capacités spéciales
         if self.selected_unit and self.selected_unit.special_cooldown > 0:
@@ -746,7 +747,9 @@ class ActionBar:
         info_y = self.screen_height - self.bar_height + 10
         
         # Calculer la largeur nécessaire pour centrer proprement
-        gold_text = self.font_title.render(f"💰 {self.player_gold}", True, UIColors.GOLD)
+        # Or du joueur (centré)
+        current_gold = get_player_gold(self.current_camp == Team.ENEMY)
+        gold_text = self.font_title.render(f"💰 {current_gold}", True, UIColors.GOLD)
         mode_text = self.font_small.render(f"Mode: {self.current_mode.title()}", True, UIColors.TEXT_NORMAL)
         
         info_width = max(gold_text.get_width(), mode_text.get_width()) + 40
@@ -923,8 +926,9 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     # Ajouter de l'or pour tester
-                    action_bar.update_player_gold(action_bar.player_gold + 50)
-                    print(f"Or ajouté! Total: {action_bar.player_gold}")
+                    current_gold = get_player_gold(action_bar.current_camp == Team.ENEMY)
+                    action_bar.update_player_gold(current_gold + 50)
+                    print(f"Or ajouté! Total: {current_gold + 50}")
             
             # Laisser la barre d'action gérer l'événement
             action_bar.handle_event(event)
@@ -941,7 +945,7 @@ def main():
             "Barre d'action avec boutique intégrée",
             "Appuyez sur 'B' pour ouvrir/fermer la boutique",
             "Appuyez sur 'ESPACE' pour ajouter 50 pièces d'or",
-            f"Or actuel: {action_bar.player_gold}",
+            f"Or actuel: {get_player_gold(action_bar.current_camp == Team.ENEMY)}",
             "Q/E: Buffs globaux | R: Capacité spéciale | A: Mode attaque",
             "Boutique: 3 onglets (Unités, Bâtiments, Améliorations)",
             "Toutes les unités s'achètent maintenant dans la boutique!"
