@@ -9,6 +9,10 @@ from src.components.properties.teamComponent import TeamComponent
 from src.components.properties.spriteComponent import SpriteComponent 
 from src.components.properties.projectileComponent import ProjectileComponent
 from src.utils.sprite_utils import create_projectile_sprite_component
+from src.constants.gameplay import (
+    PROJECTILE_SPEED, PROJECTILE_DAMAGE, PROJECTILE_HEALTH,
+    PROJECTILE_WIDTH, PROJECTILE_HEIGHT, EXPLOSION_SIZE_WIDTH, EXPLOSION_SIZE_HEIGHT
+)
 
 def create_projectile(entity):
     pos = esper.component_for_entity(entity, PositionComponent)
@@ -37,25 +41,25 @@ def create_projectile(entity):
             direction=angle
         ))
 
-        bullet_speed = 10.0 
         esper.add_component(bullet_entity, VelocityComponent(
-            current_speed=bullet_speed,
-            max_forward_speed=bullet_speed,
+            current_speed=PROJECTILE_SPEED,
+            max_forward_speed=PROJECTILE_SPEED,
             max_reverse_speed=0.0,
         ))
 
         esper.add_component(bullet_entity, AttackComponent(
-            damage=10
+            damage=PROJECTILE_DAMAGE
         ))
 
         esper.add_component(bullet_entity, HealthComponent(
-            current_health=1
+            current_health=PROJECTILE_HEALTH
         ))
 
         esper.add_component(bullet_entity, CanCollideComponent())
 
         # Utiliser le nouveau système de sprites pour les projectiles (explosion au lieu de balle)
-        sprite_component = create_projectile_sprite_component("explosion", 20, 10)
+        sprite_component = create_projectile_sprite_component(
+            "explosion", EXPLOSION_SIZE_WIDTH, EXPLOSION_SIZE_HEIGHT)
         if sprite_component:
             esper.add_component(bullet_entity, sprite_component)
     

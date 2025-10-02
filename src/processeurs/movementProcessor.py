@@ -4,6 +4,7 @@ from src.components.properties.velocityComponent import VelocityComponent as Vel
 from src.components.properties.positionComponent import PositionComponent as Position
 from src.components.properties.projectileComponent import ProjectileComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.constants.gameplay import BOUNDARY_MARGIN
 
 class MovementProcessor(esper.Processor):
     """
@@ -21,7 +22,7 @@ class MovementProcessor(esper.Processor):
         
         # Marge de sécurité pour éviter que les sprites sortent complètement
         # (basée sur une taille moyenne de sprite)
-        self.boundary_margin = 32  # pixels
+        self.boundary_margin = BOUNDARY_MARGIN  # pixels
 
     def process(self):
         for ent, (vel, pos) in esper.get_components(Velocity, Position):
