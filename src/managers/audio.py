@@ -7,6 +7,7 @@ import os
 from typing import Optional
 from src.settings import settings
 from src.settings.localization import t
+from src.functions.resource_path import get_resource_path
 
 
 class AudioManager:
@@ -25,7 +26,7 @@ class AudioManager:
 
     def _load_music(self):
         """Loads and starts ambient music."""
-        music_path = os.path.join("assets/sounds", "xDeviruchi-TitleTheme.wav")
+        music_path = get_resource_path(os.path.join("assets", "sounds", "xDeviruchi-TitleTheme.ogg"))
         try:
             pygame.mixer.music.load(music_path)
             self.update_music_volume()
@@ -40,7 +41,7 @@ class AudioManager:
         """Loads sound effects."""
         try:
             self.select_sound = pygame.mixer.Sound(
-                os.path.join("assets/sounds", "select_sound_2.mp3")
+                get_resource_path(os.path.join("assets", "sounds", "select_sound_2.mp3"))
             )
             self.update_effects_volume()
             print("🔊 Sound effects loaded")

@@ -1,7 +1,8 @@
-from dataclasses import dataclass as component
+from dataclasses import dataclass
+from ...base_component import GameplayComponent
 
-@component
-class Kraken:
-    def __init__(self, kraken_tentacules_min=0, kraken_tentacules_max=0):
-        self.kraken_tentacules_min: int = kraken_tentacules_min
-        self.kraken_tentacules_max: int = kraken_tentacules_max
+@dataclass
+class KrakenEventComponent(GameplayComponent):
+    """Component for Kraken event configuration."""
+    tentacles_min: int = 2
+    tentacles_max: int = 5

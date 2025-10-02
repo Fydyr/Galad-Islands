@@ -5,6 +5,9 @@ from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, G
 from random import randint
 from src.settings.localization import t
 from src.components.cameraComponent import Camera
+from src.functions.resource_path import get_resource_path
+from src.managers.sprite_manager import sprite_manager, SpriteID
+import os
 
 
 def creer_grille():
@@ -17,18 +20,44 @@ def creer_grille():
 
 def charger_images():
     """
-    Charge et redimensionne toutes les images nécessaires à l'affichage de la carte.
+    Charge et redimensionne toutes les images nécessaires à l'affichage de la carte via le gestionnaire de sprites.
     Returns:
         dict[str, pygame.Surface]: Dictionnaire des images par type d'élément
     """
-    return {
-        'generic_island': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/generic_island.png"), (TILE_SIZE, TILE_SIZE)),
-        'ally': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/ally_island.png"), (4*TILE_SIZE, 4*TILE_SIZE)),
-        'enemy': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/enemy_island.png"), (4*TILE_SIZE, 4*TILE_SIZE)),
-        'mine': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/mine.png"), (TILE_SIZE, TILE_SIZE)),
-        'cloud': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/cloud.png"), (TILE_SIZE, TILE_SIZE)),
-        'sea': pygame.transform.scale(pygame.image.load("assets/sprites/terrain/sea.png"), (TILE_SIZE, TILE_SIZE)),
+    images = {}
+    
+    # Charger les sprites via le gestionnaire de sprites
+    sprite_mappings = {
+        'generic_island': (SpriteID.TERRAIN_GENERIC_ISLAND, TILE_SIZE, TILE_SIZE),
+        'ally': (SpriteID.TERRAIN_ALLY_ISLAND, 4*TILE_SIZE, 4*TILE_SIZE),
+        'enemy': (SpriteID.TERRAIN_ENEMY_ISLAND, 4*TILE_SIZE, 4*TILE_SIZE),
+        'mine': (SpriteID.TERRAIN_MINE, TILE_SIZE, TILE_SIZE),
+        'cloud': (SpriteID.TERRAIN_CLOUD, TILE_SIZE, TILE_SIZE),
+        'sea': (SpriteID.TERRAIN_SEA, TILE_SIZE, TILE_SIZE),
     }
+    
+    for image_key, (sprite_id, width, height) in sprite_mappings.items():
+        sprite_surface = sprite_manager.load_sprite(sprite_id)
+        if sprite_surface:
+            # Redimensionner à la taille souhaitée
+            images[image_key] = pygame.transform.scale(sprite_surface, (width, height))
+            print(f"Image de terrain chargée via sprite manager: {image_key} -> {sprite_id.value}")
+        else:
+            print(f"Impossible de charger le sprite de terrain: {sprite_id.value}")
+            # Créer une surface de remplacement de couleur
+            fallback_surface = pygame.Surface((width, height), pygame.SRCALPHA)
+            fallback_colors = {
+                'sea': (0, 50, 100),
+                'generic_island': (139, 69, 19),
+                'ally': (0, 100, 0),
+                'enemy': (100, 0, 0),
+                'mine': (50, 50, 50),
+                'cloud': (200, 200, 200)
+            }
+            fallback_surface.fill(fallback_colors.get(image_key, (128, 128, 128)))
+            images[image_key] = fallback_surface
+    
+    return images
 
 def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
     """

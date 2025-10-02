@@ -33,6 +33,7 @@ theme:
 nav:
   - Accueil: index.md
   - 📖 Documentation Utilisateur:
+    - Installation et Configuration: user/installation.md
     - Guide de démarrage: user/getting-started.md
     - Gameplay:
       - Contrôles: user/controls.md
@@ -57,6 +58,10 @@ nav:
     - Configuration: dev/configuration.md
     - Maintenance: dev/maintenance.md
     - Contribution: dev/contributing.md
+    - Gestion des versions: dev/versioning.md
+  - 💬 Support et Contact:
+    - Support: support.md
+    - Contact: contact.md
 
 plugins:
   - search:

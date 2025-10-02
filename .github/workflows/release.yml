@@ -1,48 +1,14 @@
-name: Build and Release
-description: Bump version, build the project, and create a release
+name: Automatic Release
 
 on:
   push:
+    tags:
+      - 'v*'
+  pull_request:
     branches:
       - main
-  workflow_dispatch:
-
 jobs:
-  version:
-    runs-on: ubuntu-latest
-    outputs:
-      new_tag: ${{ steps.bump.outputs.new_tag }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install Commitizen
-        run: pip install commitizen
-
-      - name: Set git user
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-
-      - name: Bump version and changelog
-        id: bump
-        run: |
-          cz bump --yes --changelog
-          git push --follow-tags
-          git push origin --tags
-          echo "new_tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build:
-    needs: version
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -51,7 +17,6 @@ jobs:
       - name: Checkout code at tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.version.outputs.new_tag }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -67,25 +32,50 @@ jobs:
           pip install pyinstaller
 
       - name: Build with PyInstaller
+        shell: bash
         run: |
           # Détection du séparateur selon l'OS
           if [ "$RUNNER_OS" = "Windows" ]; then SEP=';'; else SEP=':'; fi
           pyinstaller --onefile main.py --name galad-islands \
-            --add-data "assets${SEP}assets" \
-            --add-data "src${SEP}src"
+            --add-data "assets${SEP}assets"
 
       - name: Archive build
         if: runner.os == 'Windows'
-        run: Compress-Archive -Path dist/galad-islands.exe -DestinationPath galad-islands-windows.zip
+        run: |
+          mkdir -p galad-islands-windows
+          copy dist\galad-islands.exe galad-islands-windows\
+          xcopy /E /I assets galad-islands-windows\assets
+          copy RELEASE_README.md galad-islands-windows\README.md
+          Compress-Archive -Path galad-islands-windows\* -DestinationPath galad-islands-windows.zip
         shell: pwsh
 
       - name: Archive build (Linux/Mac)
         if: runner.os != 'Windows'
-        run: zip galad-islands-${{ runner.os }}.zip dist/galad-islands
+        run: |
+          mkdir -p galad-islands-${{ runner.os }}
+          cp dist/galad-islands galad-islands-${{ runner.os }}/
+          cp -r assets galad-islands-${{ runner.os }}/
+          cp RELEASE_README.md galad-islands-${{ runner.os }}/README.md
+          chmod +x galad-islands-${{ runner.os }}/galad-islands
+          zip -r galad-islands-${{ runner.os }}.zip galad-islands-${{ runner.os }}
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: "Galad Islands ${{ github.ref_name }}"
+          body: |
+            🎮 **Galad Islands - Version ${{ github.ref_name }}**
+            
+            Téléchargez le jeu pour votre plateforme :
+            - **Windows** : `galad-islands-windows.zip`
+            - **Linux** : `galad-islands-Linux.zip` 
+            - **macOS** : `galad-islands-macOS.zip`
+            
+            📖 Consultez le fichier `README.md` inclus dans l'archive pour les instructions d'installation.
+            
+            🔗 [Documentation complète](https://fydyr.github.io/Galad-Islands/)
+            🔗 [Changelog](https://github.com/Fydyr/Galad-Islands/blob/main/CHANGELOG.md)
           files: |
             galad-islands-*.zip
         env:

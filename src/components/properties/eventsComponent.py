@@ -1,8 +1,9 @@
-from dataclasses import dataclass as component
+from dataclasses import dataclass
 
-@component
+@dataclass
 class EventsComponent:
-    def __init__(self, event_chance=0.0, event_duration=0.0, event_active=False):
-        self.event_chance: float = event_chance
-        self.event_duration: float = event_duration
-        self.event_active: bool = event_active
+    """Component for entities that can trigger or be affected by events."""
+    event_chance: float = 0.0
+    event_duration: float = 0.0
+    event_active: bool = False
+    remaining_duration: float = 0.0
