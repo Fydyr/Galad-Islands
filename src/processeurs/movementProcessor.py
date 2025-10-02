@@ -4,6 +4,7 @@ from src.components.properties.velocityComponent import VelocityComponent as Vel
 from src.components.properties.positionComponent import PositionComponent as Position
 from src.components.properties.projectileComponent import ProjectileComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.constants.gameplay import BOUNDARY_MARGIN
 
 class MovementProcessor(esper.Processor):
     """
@@ -21,15 +22,15 @@ class MovementProcessor(esper.Processor):
         
         # Marge de sécurité pour éviter que les sprites sortent complètement
         # (basée sur une taille moyenne de sprite)
-        self.boundary_margin = 32  # pixels
+        self.boundary_margin = BOUNDARY_MARGIN  # pixels
 
     def process(self):
         for ent, (vel, pos) in esper.get_components(Velocity, Position):
             # Calculer la vitesse effective d'abord
             effective_speed = 0
-            if vel.currentSpeed != 0:
-                effective_speed = vel.currentSpeed * vel.terrain_modifier
-                print(f"Debug Movement: Speed={vel.currentSpeed}, Modifier={vel.terrain_modifier}, Effective={effective_speed}")
+            if vel.current_speed != 0:
+                effective_speed = vel.current_speed * vel.terrain_modifier
+                print(f"Debug Movement: Speed={vel.current_speed}, Modifier={vel.terrain_modifier}, Effective={effective_speed}")
             
             # Ne bouger que si la vitesse effective != 0
             if effective_speed != 0:
@@ -56,7 +57,7 @@ class MovementProcessor(esper.Processor):
                     
                     # Si la position a été contrainte par les limites de la carte, arrêter le mouvement
                     if constrained_x != new_x or constrained_y != new_y:
-                        vel.currentSpeed = 0.0
+                        vel.current_speed = 0.0
                         # Réinitialiser le modificateur de terrain si arrêté par les limites
                         vel.terrain_modifier = 1.0
                     

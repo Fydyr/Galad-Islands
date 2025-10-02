@@ -1,6 +1,7 @@
-from dataclasses import dataclass as component
+from dataclasses import dataclass
+from ..base_component import GameplayComponent
 
-@component
-class PlayerComponent:
-    def __init__(self, stored_gold: int = 0):
-        self.stored_gold: int = stored_gold
+@dataclass
+class PlayerComponent(GameplayComponent):
+    """Component marking an entity as belonging to the player."""
+    stored_gold: int = 0

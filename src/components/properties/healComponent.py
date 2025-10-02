@@ -1,6 +1,10 @@
-from dataclasses import dataclass as component
+from dataclasses import dataclass
+from ..base_component import GameplayComponent
 
-@component
-class HealComponent:
-    def __init__(self, amount=0):
-        self.amount: int = amount
+@dataclass
+class HealComponent(GameplayComponent):
+    """Component representing healing capabilities or heal effects."""
+    amount: int = 0
+    heal_type: str = "instant"  # "instant", "over_time", "area"
+    duration: float = 0.0  # For over_time healing
+    radius: float = 0.0  # For area healing

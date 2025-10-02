@@ -1,7 +1,8 @@
-from dataclasses import dataclass as component
+from dataclasses import dataclass
+from ...base_component import GameplayComponent
 
-@component
-class Bandits:
-    def __init__(self, bandits_nb_min=0, bandits_nb_max=0):
-        self.bandits_nb_min: int = bandits_nb_min
-        self.bandits_nb_max: int = bandits_nb_max
+@dataclass
+class BanditsEventComponent(GameplayComponent):
+    """Component for Bandits event configuration."""
+    bandits_min: int = 2
+    bandits_max: int = 4

@@ -1,3 +1,5 @@
+# Déprécié, les fichiers de localisation se chargent maintenant de ça
+
 TIPS = [
     "Astuce : Contrôler un seul zeppelin peut renverser le cours d'une bataille au bon moment.",
     "Citation : 'Celui qui maîtrise le vent, maîtrise la guerre.'",
