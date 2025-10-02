@@ -12,7 +12,7 @@ from src.components.properties.projectileComponent import ProjectileComponent
 def create_projectile(entity):
     pos = esper.component_for_entity(entity, PositionComponent)
     team = esper.component_for_entity(entity, TeamComponent)
-    team_id = team.team_id
+    team_id = team.team
 
     # Récupère le radius pour savoir si on tire sur les côtés
     if esper.has_component(entity, RadiusComponent):
@@ -27,7 +27,7 @@ def create_projectile(entity):
     for angle in angles:
         bullet_entity = esper.create_entity()
         esper.add_component(bullet_entity, TeamComponent(
-            team_id=team_id  
+            team=team.team
         ))
 
         esper.add_component(bullet_entity, PositionComponent(
@@ -38,25 +38,25 @@ def create_projectile(entity):
 
         bullet_speed = 10.0 
         esper.add_component(bullet_entity, VelocityComponent(
-            currentSpeed=bullet_speed,
-            maxUpSpeed=bullet_speed,
-            maxReverseSpeed=0.0,
+            current_speed=bullet_speed,
+            max_forward_speed=bullet_speed,
+            max_reverse_speed=0.0,
         ))
 
         esper.add_component(bullet_entity, AttackComponent(
-            hitPoints=10
+            damage=10
         ))
 
         esper.add_component(bullet_entity, HealthComponent(
-            currentHealth=1
+            current_health=1
         ))
 
         esper.add_component(bullet_entity, CanCollideComponent())
 
         esper.add_component(bullet_entity, SpriteComponent(
-            "assets/sprites/projectile/explosion.png",
-            20,
-            10
+            image_path="assets/sprites/projectile/explosion.png",
+            width=20,
+            height=10
         ))
     
     # Identifier cette entité comme un projectile

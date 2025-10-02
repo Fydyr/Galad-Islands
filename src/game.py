@@ -179,8 +179,11 @@ class GameRenderer:
             
         # Redimensionner et faire la rotation du sprite
         sprite.scale_sprite(display_width, display_height)
-        if sprite.surface is not None:
-            rotated_image = pygame.transform.rotate(sprite.surface, -pos.direction)
+        # Utiliser la surface redimensionnée si disponible
+        if sprite.scaled_surface is not None:
+            rotated_image = pygame.transform.rotate(sprite.scaled_surface, -pos.direction)
+        elif sprite.image is not None:
+            rotated_image = pygame.transform.rotate(sprite.image, -pos.direction)
         else:
             scaled_image = pygame.transform.scale(image, (display_width, display_height))
             rotated_image = pygame.transform.rotate(scaled_image, -pos.direction)
@@ -192,19 +195,29 @@ class GameRenderer:
         # Dessiner la barre de vie si nécessaire
         if es.has_component(entity, HealthComponent):
             health = es.component_for_entity(entity, HealthComponent)
-            if health.currentHealth < health.maxHealth:
+            if health.current_health < health.max_health:
                 self._draw_health_bar(window, screen_x, screen_y, health, display_width, display_height)
                 
     def _get_sprite_image(self, sprite):
         """Obtient l'image d'un sprite selon les données disponibles."""
-        if sprite.surface is not None:
-            return sprite.surface
-        elif sprite.image is not None:
+        # Utiliser le système de sprite pour charger l'image
+        from src.systems.sprite_system import sprite_system
+        surface = sprite_system.get_render_surface(sprite)
+        if surface is not None:
+            return surface
+        
+        # Fallback - essayer de charger l'image directement
+        if sprite.image is not None:
             return sprite.image
-        elif sprite.image_path:
-            return pygame.image.load(sprite.image_path).convert_alpha()
-        else:
-            return None
+        if sprite.image_path and isinstance(sprite.image_path, str):
+            try:
+                from src.functions.resource_path import get_resource_path
+                full_path = get_resource_path(sprite.image_path)
+                return pygame.image.load(full_path).convert_alpha()
+            except pygame.error as e:
+                print(f"Error loading image: {sprite.image_path}, {e}")
+                return None
+        return None
             
     def _draw_health_bar(self, screen, x, y, health, sprite_width, sprite_height):
         """Dessine une barre de vie pour une entité."""
@@ -217,12 +230,12 @@ class GameRenderer:
         bar_x = x - bar_width // 2
         bar_y = y - bar_offset_y
         
-        # Vérifier que maxHealth n'est pas zéro pour éviter la division par zéro
-        if health.maxHealth <= 0:
+        # Vérifier que max_health n'est pas zéro pour éviter la division par zéro
+        if health.max_health <= 0:
             return
             
         # Calculer le pourcentage de vie
-        health_ratio = max(0, min(1, health.currentHealth / health.maxHealth))
+        health_ratio = max(0, min(1, health.current_health / health.max_health))
         
         # Dessiner le fond de la barre (rouge foncé)
         background_rect = pygame.Rect(bar_x, bar_y, bar_width, bar_height)

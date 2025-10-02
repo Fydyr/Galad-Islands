@@ -22,7 +22,7 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, AttackComponent(10))
             es.add_component(entity, HealthComponent(60, 60))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Scout.png" if not enemy else "assets/sprites/units/enemy/Scout.png", 80, 100))
+            es.add_component(entity, SpriteComponent(image_path="assets/sprites/units/ally/Scout.png" if not enemy else "assets/sprites/units/enemy/Scout.png", width=80, height=100))
 
 
         case UnitType.MARAUDEUR:
@@ -34,7 +34,7 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, AttackComponent(20))
             es.add_component(entity, HealthComponent(130, 130))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Maraudeur.png" if not enemy else "assets/sprites/units/enemy/Maraudeur.png", 130, 150))
+            es.add_component(entity, SpriteComponent(image_path="assets/sprites/units/ally/Maraudeur.png" if not enemy else "assets/sprites/units/enemy/Maraudeur.png", width=130, height=150))
 
         case UnitType.LEVIATHAN:
             entity = es.create_entity()
@@ -45,7 +45,7 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, AttackComponent(30))
             es.add_component(entity, HealthComponent(300, 300))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Leviathan.png" if not enemy else "assets/sprites/units/enemy/Leviathan.png", 160, 200))
+            es.add_component(entity, SpriteComponent(image_path="assets/sprites/units/ally/Leviathan.png" if not enemy else "assets/sprites/units/enemy/Leviathan.png", width=160, height=200))
 
         case UnitType.DRUID:
             entity = es.create_entity()
@@ -56,7 +56,7 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, AttackComponent(20))
             es.add_component(entity, HealthComponent(130, 130))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Druid.png" if not enemy else "assets/sprites/units/enemy/Druid.png", 130, 150))
+            es.add_component(entity, SpriteComponent(image_path="assets/sprites/units/ally/Druid.png" if not enemy else "assets/sprites/units/enemy/Druid.png", width=130, height=150))
 
         case UnitType.ARCHITECT:
             entity = es.create_entity()
@@ -67,7 +67,7 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, AttackComponent(20))
             es.add_component(entity, HealthComponent(130, 130))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Architect.png" if not enemy else "assets/sprites/units/enemy/Architect.png", 130, 150))
+            es.add_component(entity, SpriteComponent(image_path="assets/sprites/units/ally/Architect.png" if not enemy else "assets/sprites/units/enemy/Architect.png", width=130, height=150))
 
         case UnitType.ATTACK_TOWER:
 
