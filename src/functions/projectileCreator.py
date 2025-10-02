@@ -41,6 +41,7 @@ def create_projectile(entity):
             currentSpeed=bullet_speed,
             maxUpSpeed=bullet_speed,
             maxReverseSpeed=0.0,
+            terrain_modifier=1.0
         ))
 
         esper.add_component(bullet_entity, AttackComponent(

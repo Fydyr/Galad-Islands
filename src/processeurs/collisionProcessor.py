@@ -8,6 +8,7 @@ from src.components.properties.velocityComponent import VelocityComponent as Vel
 from src.components.properties.teamComponent import TeamComponent as Team
 from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.attackComponent import AttackComponent
+from src.components.properties.projectileComponent import ProjectileComponent
 from src.settings.settings import TILE_SIZE
 import math
 
@@ -193,35 +194,36 @@ class CollisionProcessor(esper.Processor):
         entities = esper.get_components(Position, Velocity, CanCollide)
         
         for ent, (pos, velocity, collide) in entities:
-            # Ignorer les entités qui ne bougent pas
-            if velocity.currentSpeed == 0:
-                # Réinitialiser le modificateur si on ne bouge pas
-                velocity.terrain_modifier = 1.0
-                continue
+            if not esper.has_component(ent, ProjectileComponent):
+                # Ignorer les entités qui ne bougent pas
+                if velocity.currentSpeed == 0:
+                    # Réinitialiser le modificateur si on ne bouge pas
+                    velocity.terrain_modifier = 1.0
+                    continue
+                    
+                # Calculer la position future (où l'entité veut aller)
+                # IMPORTANT : Conserver le signe de currentSpeed pour gérer le recul
+                direction_rad = math.radians(pos.direction)
+                future_x = pos.x - velocity.currentSpeed * math.cos(direction_rad)
+                future_y = pos.y - velocity.currentSpeed * math.sin(direction_rad)
                 
-            # Calculer la position future (où l'entité veut aller)
-            # IMPORTANT : Conserver le signe de currentSpeed pour gérer le recul
-            direction_rad = math.radians(pos.direction)
-            future_x = pos.x - velocity.currentSpeed * math.cos(direction_rad)
-            future_y = pos.y - velocity.currentSpeed * math.sin(direction_rad)
-            
-            # Convertir les positions en coordonnées de grille
-            future_grid_x = int(future_x // TILE_SIZE)
-            future_grid_y = int(future_y // TILE_SIZE)
-            
-            # Vérifier les limites de la grille pour la position future
-            if (future_grid_x < 0 or future_grid_x >= len(self.graph[0]) or 
-                future_grid_y < 0 or future_grid_y >= len(self.graph)):
-                # Hors limites - bloquer le mouvement
-                velocity.currentSpeed = 0
-                velocity.terrain_modifier = 1.0
-                continue
-            
-            # Obtenir le type de terrain de destination
-            future_terrain = self._get_terrain_type_from_grid(future_grid_x, future_grid_y)
-            
-            # Appliquer les effets selon le terrain de destination
-            self._apply_terrain_effects(ent, pos, velocity, future_terrain)
+                # Convertir les positions en coordonnées de grille
+                future_grid_x = int(future_x // TILE_SIZE)
+                future_grid_y = int(future_y // TILE_SIZE)
+                
+                # Vérifier les limites de la grille pour la position future
+                if (future_grid_x < 0 or future_grid_x >= len(self.graph[0]) or 
+                    future_grid_y < 0 or future_grid_y >= len(self.graph)):
+                    # Hors limites - bloquer le mouvement
+                    velocity.currentSpeed = 0
+                    velocity.terrain_modifier = 1.0
+                    continue
+                
+                # Obtenir le type de terrain de destination
+                future_terrain = self._get_terrain_type_from_grid(future_grid_x, future_grid_y)
+                
+                # Appliquer les effets selon le terrain de destination
+                self._apply_terrain_effects(ent, pos, velocity, future_terrain)
 
     def _get_terrain_type_from_grid(self, grid_x, grid_y):
         """Obtient le type de terrain à partir des coordonnées de grille"""
