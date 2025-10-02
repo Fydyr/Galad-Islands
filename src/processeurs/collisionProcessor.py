@@ -299,12 +299,21 @@ class CollisionProcessor(esper.Processor):
             
         effect = self.terrain_effects[terrain_type]
         
+        # Vérifier si c'est un projectile
+        is_projectile = esper.has_component(entity, ProjectileComponent)
+        
         # Si le terrain ne permet pas le passage (îles, bases)
         if not effect['can_pass']:
-            # BLOQUER complètement le mouvement - ne pas changer la position
-            velocity.current_speed = 0
-            velocity.terrain_modifier = 0.0  # Force l'arrêt complet
-            print(f"Debug: Mouvement bloqué par {terrain_type} - Speed={velocity.current_speed}, Modifier={velocity.terrain_modifier}")
+            if is_projectile:
+                # DÉTRUIRE les projectiles qui touchent des obstacles solides
+                print(f"Debug: Projectile {entity} détruit par collision avec {terrain_type}")
+                esper.delete_entity(entity)
+                return
+            else:
+                # BLOQUER complètement le mouvement des unités normales
+                velocity.current_speed = 0
+                velocity.terrain_modifier = 0.0  # Force l'arrêt complet
+                print(f"Debug: Mouvement bloqué par {terrain_type} - Speed={velocity.current_speed}, Modifier={velocity.terrain_modifier}")
         else:
             # Le terrain permet le passage, appliquer le modificateur de vitesse
             velocity.terrain_modifier = effect['speed_modifier']
