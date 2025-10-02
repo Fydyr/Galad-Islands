@@ -1,3 +1,13 @@
+## v0.4.3 (2025-10-02)
+
+### Fix
+
+- les mines sont pas censés être détruites par les projectiles
+
+### Refactor
+
+- intégrer le gestionnaire de sprites pour le chargement des images de terrain et ajouter de nouvelles constantes de sprite
+
 ## v0.4.2 (2025-10-02)
 
 ### Refactor
