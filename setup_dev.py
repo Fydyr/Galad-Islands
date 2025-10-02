@@ -96,8 +96,6 @@ except ImportError:
 def clean_old_bump_hooks():
     print("\nNettoyage des anciennes installations de hooks avec bump automatique...")
     try:
-        import setup.install_hooks_with_bump as old_hooks
-        # Suppression des fichiers de hooks manuellement si la méthode n'existe pas
         hooks_path = os.path.join(os.getcwd(), ".git", "hooks")
         pre_commit_hook = os.path.join(hooks_path, "pre-commit")
         if os.path.exists(pre_commit_hook):
@@ -105,8 +103,8 @@ def clean_old_bump_hooks():
             print("✔️  Ancien hook pre-commit supprimé.")
         else:
             print("Aucun ancien hook pre-commit détecté.")
-    except ImportError:
-        print("Aucune ancienne installation de hooks détectée.")
+    except Exception as e:
+        print(f"Erreur lors de la suppression du hook : {e}")
 
 if __name__ == "__main__":
     print("Voulez-vous nettoyer les anciennes installations de hooks avec bump automatique ? [O/n]")
