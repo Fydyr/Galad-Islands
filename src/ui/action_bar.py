@@ -741,47 +741,67 @@ class ActionBar:
             surface.blit(cooldown_text, text_rect)
     
     def _draw_player_info(self, surface: pygame.Surface):
-        """Dessine les informations du joueur au centre."""
-        # Zone centrale pour les informations du joueur
+        """Dessine les informations du joueur au centre, sur deux lignes distinctes."""
         center_x = self.screen_width // 2
         info_y = self.screen_height - self.bar_height + 10
-        
-        # Calculer la largeur nécessaire pour centrer proprement
-        # Or du joueur (centré)
+
+        # Or du joueur (ligne 1)
         current_gold = get_player_gold(self.current_camp == Team.ENEMY)
-        gold_text = self.font_title.render(f"💰 {current_gold}", True, UIColors.GOLD)
-        mode_text = self.font_small.render(f"Mode: {self.current_mode.title()}", True, UIColors.TEXT_NORMAL)
-        
-        info_width = max(gold_text.get_width(), mode_text.get_width()) + 40
-        info_height = 60
-        
-        # Fond pour les informations (centré)
+        try:
+            from src.managers.sprite_manager import sprite_manager, SpriteID
+            gold_icon = sprite_manager.load_sprite(SpriteID.UI_BITCOIN)
+        except Exception:
+            gold_icon = None
+
+        gold_str = str(current_gold)
+        if gold_icon:
+            icon_surface = pygame.transform.scale(gold_icon, (28, 28))
+            gold_text = self.font_title.render(gold_str, True, UIColors.GOLD)
+            gold_line_width = icon_surface.get_width() + gold_text.get_width() + 16
+        else:
+            gold_text = self.font_title.render(f"💰 {gold_str}", True, UIColors.GOLD)
+            gold_line_width = gold_text.get_width()
+
+        # Mode (ligne 2)
+        mode_color = UIColors.SUCCESS if self.current_mode == "attack" else UIColors.TEXT_NORMAL
+        mode_text_colored = self.font_small.render(f"Mode: {self.current_mode.title()}", True, mode_color)
+        mode_line_width = mode_text_colored.get_width()
+
+        # Largeur de la zone = max des deux lignes + padding
+        info_width = max(gold_line_width, mode_line_width) + 40
+        info_height = 68
         info_rect = pygame.Rect(center_x - info_width//2, info_y, info_width, info_height)
         pygame.draw.rect(surface, UIColors.BACKGROUND, info_rect, border_radius=8)
         pygame.draw.rect(surface, UIColors.BORDER, info_rect, 2, border_radius=8)
-        
-        # Or du joueur (centré)
-        gold_rect = gold_text.get_rect(center=(center_x, info_y + 15))
-        surface.blit(gold_text, gold_rect)
-        
-        # Mode actuel (centré)
-        mode_color = UIColors.SUCCESS if self.current_mode == "attack" else UIColors.TEXT_NORMAL
-        mode_text_colored = self.font_small.render(f"Mode: {self.current_mode.title()}", True, mode_color)
-        mode_rect = mode_text_colored.get_rect(center=(center_x, info_y + 35))
+
+        # Affichage ligne 1 : or
+        gold_y = info_rect.y + 14
+        if gold_icon:
+            icon_x = info_rect.x + (info_width - gold_line_width) // 2
+            icon_y = gold_y
+            surface.blit(icon_surface, (icon_x, icon_y))
+            gold_rect = gold_text.get_rect(midleft=(icon_x + icon_surface.get_width() + 8, icon_y + icon_surface.get_height() // 2))
+            surface.blit(gold_text, gold_rect)
+        else:
+            gold_rect = gold_text.get_rect(center=(center_x, gold_y + 14))
+            surface.blit(gold_text, gold_rect)
+
+        # Affichage ligne 2 : mode
+        mode_y = gold_y + 32
+        mode_rect = mode_text_colored.get_rect(center=(center_x, mode_y + 10))
         surface.blit(mode_text_colored, mode_rect)
-        
-        # Status des buffs globaux (en dessous du mode, centré)
+
+        # Ligne 3 : buffs globaux
         if self.global_attack_active or self.global_defense_active:
             buffs = []
             if self.global_attack_active:
                 buffs.append("⚔️ ATK")
             if self.global_defense_active:
                 buffs.append("🛡️ DEF")
-            
             buff_text = " | ".join(buffs)
             buff_color = UIColors.WARNING
             buff_surface = self.font_small.render(buff_text, True, buff_color)
-            buff_rect = buff_surface.get_rect(center=(center_x, info_y + 50))
+            buff_rect = buff_surface.get_rect(center=(center_x, mode_y + 28))
             surface.blit(buff_surface, buff_rect)
     
     def _draw_selected_unit_info(self, surface: pygame.Surface):
