@@ -8,6 +8,7 @@ from src.components.properties.velocityComponent import VelocityComponent as Vel
 from src.components.properties.teamComponent import TeamComponent as Team
 from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.attackComponent import AttackComponent
+from src.components.properties.projectileComponent import ProjectileComponent
 from src.settings.settings import TILE_SIZE
 import math
 
@@ -126,6 +127,29 @@ class CollisionProcessor(esper.Processor):
 
     def _handle_entity_hit(self, entity1, entity2):
         """Gère les dégâts entre deux entités qui se percutent"""
+        # Vérifier si l'une des entités est un projectile et l'autre une mine
+        is_projectile1 = esper.has_component(entity1, ProjectileComponent)
+        is_projectile2 = esper.has_component(entity2, ProjectileComponent)
+        is_mine1 = self._is_mine_entity(entity1)
+        is_mine2 = self._is_mine_entity(entity2)
+        
+        # Si un projectile touche une mine, la mine ne prend pas de dégâts
+        # Mais le projectile peut être détruit
+        if (is_projectile1 and is_mine2) or (is_projectile2 and is_mine1):
+            print(f"Debug: Projectile touche une mine - mine résiste à l'impact")
+            
+            # Détruire seulement le projectile
+            if is_projectile1:
+                print(f"Debug: Projectile {entity1} détruit par mine")
+                esper.delete_entity(entity1)
+            if is_projectile2:
+                print(f"Debug: Projectile {entity2} détruit par mine")
+                esper.delete_entity(entity2)
+            
+            # La mine ne prend aucun dégât et reste en place
+            return
+        
+        # Logique normale pour les autres collisions
         # Obtenir les composants d'attaque et de santé
         attack1 = esper.component_for_entity(entity1, AttackComponent) if esper.has_component(entity1, AttackComponent) else None
         health1 = esper.component_for_entity(entity1, HealthComponent) if esper.has_component(entity1, HealthComponent) else None
@@ -159,6 +183,13 @@ class CollisionProcessor(esper.Processor):
         
         # Dispatcher l'événement original pour compatibilité
         esper.dispatch_event('entities_hit', entity1, entity2)
+
+    def _is_mine_entity(self, entity):
+        """Vérifie si une entité est une mine (health max = 1)"""
+        if esper.has_component(entity, HealthComponent):
+            health = esper.component_for_entity(entity, HealthComponent)
+            return health.max_health == 1
+        return False
 
     def _destroy_mine_on_grid(self, entity):
         """Détruit la mine sur la grille si l'entité est une mine"""
