@@ -125,6 +125,26 @@ class CollisionProcessor(esper.Processor):
 
     def _handle_entity_hit(self, entity1, entity2):
         """Gère les dégâts entre deux entités qui se percutent"""
+        # Vérifier si l'une des entités est un projectile et l'autre une mine
+        from src.components.properties.projectileComponent import ProjectileComponent
+        is_projectile1 = esper.has_component(entity1, ProjectileComponent)
+        is_projectile2 = esper.has_component(entity2, ProjectileComponent)
+        is_mine1 = self._is_mine_entity(entity1)
+        is_mine2 = self._is_mine_entity(entity2)
+        # Si un projectile touche une mine, la mine ne prend pas de dégâts
+        # Mais le projectile peut être détruit
+        if (is_projectile1 and is_mine2) or (is_projectile2 and is_mine1):
+            print(f"Debug: Projectile touche une mine - mine résiste à l'impact")
+            # Détruire seulement le projectile
+            if is_projectile1:
+                print(f"Debug: Projectile {entity1} détruit par mine")
+                esper.delete_entity(entity1)
+            if is_projectile2:
+                print(f"Debug: Projectile {entity2} détruit par mine")
+                esper.delete_entity(entity2)
+            # La mine ne prend aucun dégât et reste en place
+            return
+        
         # Obtenir les composants d'attaque et de santé
         attack1 = esper.component_for_entity(entity1, AttackComponent) if esper.has_component(entity1, AttackComponent) else None
         health1 = esper.component_for_entity(entity1, HealthComponent) if esper.has_component(entity1, HealthComponent) else None
@@ -259,27 +279,33 @@ class CollisionProcessor(esper.Processor):
             return 'water'
 
     def _apply_terrain_effects(self, entity, pos, velocity, terrain_type):
-        """Applique les effets du terrain sur l'entité"""
+        from src.components.properties.projectileComponent import ProjectileComponent
         if terrain_type not in self.terrain_effects:
-            # Terrain inconnu, traiter comme de l'eau
             velocity.terrain_modifier = 1.0
             return
-            
         effect = self.terrain_effects[terrain_type]
-        
-        # Si le terrain ne permet pas le passage (îles, bases)
+        is_projectile = esper.has_component(entity, ProjectileComponent)
         if not effect['can_pass']:
-            # BLOQUER complètement le mouvement - ne pas changer la position
-            velocity.currentSpeed = 0
-            velocity.terrain_modifier = 0.0  # Force l'arrêt complet
-            print(f"Debug: Mouvement bloqué par {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
+            if is_projectile:
+                print(f"Debug: Projectile {entity} détruit par collision avec {terrain_type}")
+                esper.delete_entity(entity)
+                return
+            else:
+                velocity.currentSpeed = 0
+                velocity.terrain_modifier = 0.0
+                print(f"Debug: Mouvement bloqué par {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
         else:
-            # Le terrain permet le passage, appliquer le modificateur de vitesse
             velocity.terrain_modifier = effect['speed_modifier']
             print(f"Debug: Terrain {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
-            
-            # Debug optionnel pour les nuages
             if terrain_type == 'cloud':
                 print(f"Debug: Passage dans nuage, vitesse réduite à {effect['speed_modifier']*100}%")
             elif terrain_type == 'water':
                 print(f"Debug: Navigation normale en mer")
+                
+    def _is_mine_entity(self, entity):
+        """Vérifie si une entité est une mine (health max = 1)"""
+        from src.components.properties.healthComponent import HealthComponent
+        if esper.has_component(entity, HealthComponent):
+            health = esper.component_for_entity(entity, HealthComponent)
+            return health.maxHealth == 1
+        return False
