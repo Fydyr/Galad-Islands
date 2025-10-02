@@ -9,6 +9,7 @@ from enum import Enum
 from src.ui.boutique import Shop, ShopFaction
 from src.settings.localization import t
 from src.constants.team import Team
+from src.functions.player_utils import get_player_gold, set_player_gold
 
 
 # Couleurs de l'interface améliorées
@@ -119,7 +120,6 @@ class ActionBar:
             self.font_title = pygame.font.SysFont("Arial", 28, bold=True)
         
         # État du jeu
-        self.player_gold = 100
         self.selected_unit: Optional[UnitInfo] = None
         self.current_mode = "normal"  # normal, attack, move, build
         self.global_attack_active = False
@@ -143,8 +143,10 @@ class ActionBar:
         self.hovered_camp_button = False
         self.pressed_button = -1
         
-        # Boutique intégrée
-        self.shop = Shop(screen_width, screen_height)
+        # Boutique intégrée avec fonctions utilitaires
+        self.shop = Shop(screen_width, screen_height, 
+                        get_player_gold=lambda: get_player_gold(self.current_camp == Team.ENEMY),
+                        set_player_gold=lambda gold: set_player_gold(gold, self.current_camp == Team.ENEMY))
         
         # Configurations des unités (placeholder)
         self.unit_configs = {
@@ -337,9 +339,10 @@ class ActionBar:
         def callback():
             config = self.unit_configs[unit_type]
             print(f"[PLACEHOLDER] Demande création {config['name']} - Camp: {self.current_camp}")
-            print(f"[PLACEHOLDER] Coût: {config['cost']} or - Or actuel: {self.player_gold}")
+            current_gold = get_player_gold(self.current_camp == Team.ENEMY)
+            print(f"[PLACEHOLDER] Coût: {config['cost']} or - Or actuel: {current_gold}")
             # Effet visuel temporaire (simulation de création réussie)
-            if self.player_gold >= config['cost']:
+            if current_gold >= config['cost']:
                 self._show_feedback("success", t("feedback.unit_created").format(config['name'], self.current_camp))
             else:
                 self._show_feedback("warning", t("shop.insufficient_gold"))
@@ -518,13 +521,13 @@ class ActionBar:
     
     def update_player_gold(self, gold: int):
         """Met à jour l'or du joueur."""
-        self.player_gold = gold
-        # Synchroniser avec la boutique
-        self.shop.set_player_gold(gold)
+        is_enemy = (self.current_camp == Team.ENEMY)
+        set_player_gold(gold, is_enemy)
         
+        current_gold = get_player_gold(is_enemy)
         for button in self.action_buttons:
             if button.is_global:
-                button.enabled = self.player_gold >= button.cost
+                button.enabled = current_gold >= button.cost
     
     def update(self, dt: float):
         """Met à jour la barre d'action."""
@@ -533,9 +536,7 @@ class ActionBar:
         # Mettre à jour la boutique
         self.shop.update(dt)
         
-        # Synchroniser l'or avec la boutique
-        if self.shop.player_gold != self.player_gold:
-            self.player_gold = self.shop.player_gold
+        # Plus besoin de synchronisation - la boutique utilise directement le gestionnaire
         
         # Cooldown des capacités spéciales
         if self.selected_unit and self.selected_unit.special_cooldown > 0:
@@ -740,45 +741,67 @@ class ActionBar:
             surface.blit(cooldown_text, text_rect)
     
     def _draw_player_info(self, surface: pygame.Surface):
-        """Dessine les informations du joueur au centre."""
-        # Zone centrale pour les informations du joueur
+        """Dessine les informations du joueur au centre, sur deux lignes distinctes."""
         center_x = self.screen_width // 2
         info_y = self.screen_height - self.bar_height + 10
-        
-        # Calculer la largeur nécessaire pour centrer proprement
-        gold_text = self.font_title.render(f"💰 {self.player_gold}", True, UIColors.GOLD)
-        mode_text = self.font_small.render(f"Mode: {self.current_mode.title()}", True, UIColors.TEXT_NORMAL)
-        
-        info_width = max(gold_text.get_width(), mode_text.get_width()) + 40
-        info_height = 60
-        
-        # Fond pour les informations (centré)
+
+        # Or du joueur (ligne 1)
+        current_gold = get_player_gold(self.current_camp == Team.ENEMY)
+        try:
+            from src.managers.sprite_manager import sprite_manager, SpriteID
+            gold_icon = sprite_manager.load_sprite(SpriteID.UI_BITCOIN)
+        except Exception:
+            gold_icon = None
+
+        gold_str = str(current_gold)
+        if gold_icon:
+            icon_surface = pygame.transform.scale(gold_icon, (28, 28))
+            gold_text = self.font_title.render(gold_str, True, UIColors.GOLD)
+            gold_line_width = icon_surface.get_width() + gold_text.get_width() + 16
+        else:
+            gold_text = self.font_title.render(f"💰 {gold_str}", True, UIColors.GOLD)
+            gold_line_width = gold_text.get_width()
+
+        # Mode (ligne 2)
+        mode_color = UIColors.SUCCESS if self.current_mode == "attack" else UIColors.TEXT_NORMAL
+        mode_text_colored = self.font_small.render(f"Mode: {self.current_mode.title()}", True, mode_color)
+        mode_line_width = mode_text_colored.get_width()
+
+        # Largeur de la zone = max des deux lignes + padding
+        info_width = max(gold_line_width, mode_line_width) + 40
+        info_height = 68
         info_rect = pygame.Rect(center_x - info_width//2, info_y, info_width, info_height)
         pygame.draw.rect(surface, UIColors.BACKGROUND, info_rect, border_radius=8)
         pygame.draw.rect(surface, UIColors.BORDER, info_rect, 2, border_radius=8)
-        
-        # Or du joueur (centré)
-        gold_rect = gold_text.get_rect(center=(center_x, info_y + 15))
-        surface.blit(gold_text, gold_rect)
-        
-        # Mode actuel (centré)
-        mode_color = UIColors.SUCCESS if self.current_mode == "attack" else UIColors.TEXT_NORMAL
-        mode_text_colored = self.font_small.render(f"Mode: {self.current_mode.title()}", True, mode_color)
-        mode_rect = mode_text_colored.get_rect(center=(center_x, info_y + 35))
+
+        # Affichage ligne 1 : or
+        gold_y = info_rect.y + 14
+        if gold_icon:
+            icon_x = info_rect.x + (info_width - gold_line_width) // 2
+            icon_y = gold_y
+            surface.blit(icon_surface, (icon_x, icon_y))
+            gold_rect = gold_text.get_rect(midleft=(icon_x + icon_surface.get_width() + 8, icon_y + icon_surface.get_height() // 2))
+            surface.blit(gold_text, gold_rect)
+        else:
+            gold_rect = gold_text.get_rect(center=(center_x, gold_y + 14))
+            surface.blit(gold_text, gold_rect)
+
+        # Affichage ligne 2 : mode
+        mode_y = gold_y + 32
+        mode_rect = mode_text_colored.get_rect(center=(center_x, mode_y + 10))
         surface.blit(mode_text_colored, mode_rect)
-        
-        # Status des buffs globaux (en dessous du mode, centré)
+
+        # Ligne 3 : buffs globaux
         if self.global_attack_active or self.global_defense_active:
             buffs = []
             if self.global_attack_active:
                 buffs.append("⚔️ ATK")
             if self.global_defense_active:
                 buffs.append("🛡️ DEF")
-            
             buff_text = " | ".join(buffs)
             buff_color = UIColors.WARNING
             buff_surface = self.font_small.render(buff_text, True, buff_color)
-            buff_rect = buff_surface.get_rect(center=(center_x, info_y + 50))
+            buff_rect = buff_surface.get_rect(center=(center_x, mode_y + 28))
             surface.blit(buff_surface, buff_rect)
     
     def _draw_selected_unit_info(self, surface: pygame.Surface):
@@ -923,8 +946,9 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     # Ajouter de l'or pour tester
-                    action_bar.update_player_gold(action_bar.player_gold + 50)
-                    print(f"Or ajouté! Total: {action_bar.player_gold}")
+                    current_gold = get_player_gold(action_bar.current_camp == Team.ENEMY)
+                    action_bar.update_player_gold(current_gold + 50)
+                    print(f"Or ajouté! Total: {current_gold + 50}")
             
             # Laisser la barre d'action gérer l'événement
             action_bar.handle_event(event)
@@ -941,7 +965,7 @@ def main():
             "Barre d'action avec boutique intégrée",
             "Appuyez sur 'B' pour ouvrir/fermer la boutique",
             "Appuyez sur 'ESPACE' pour ajouter 50 pièces d'or",
-            f"Or actuel: {action_bar.player_gold}",
+            f"Or actuel: {get_player_gold(action_bar.current_camp == Team.ENEMY)}",
             "Q/E: Buffs globaux | R: Capacité spéciale | A: Mode attaque",
             "Boutique: 3 onglets (Unités, Bâtiments, Améliorations)",
             "Toutes les unités s'achètent maintenant dans la boutique!"

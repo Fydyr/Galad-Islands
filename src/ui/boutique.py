@@ -102,10 +102,12 @@ class ShopItem:
 class UnifiedShop:
     """Système de boutique unifié pour les factions alliées et ennemies."""
     
-    def __init__(self, screen_width: int, screen_height: int, faction: ShopFaction = ShopFaction.ALLY):
+    def __init__(self, screen_width: int, screen_height: int, faction: ShopFaction = ShopFaction.ALLY, get_player_gold: Callable[[], int] = lambda: 0, set_player_gold: Callable[[int], None] = lambda gold: None):
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.faction = faction
+        self.get_player_gold = get_player_gold
+        self.set_player_gold = set_player_gold
         
         # Définir le thème selon la faction
         self.theme = AllyTheme if faction == ShopFaction.ALLY else EnemyTheme
@@ -136,9 +138,6 @@ class UnifiedShop:
             self.font_normal = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_NORMAL)
             self.font_small = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_SMALL)
             self.font_tiny = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_TINY)
-        
-        # Ressources du joueur
-        self.player_gold = SHOP_DEFAULT_PLAYER_GOLD
         
         # Items de la boutique
         self.shop_items: Dict[ShopCategory, List[ShopItem]] = {
@@ -686,7 +685,8 @@ class UnifiedShop:
     
     def _can_purchase_item(self, item: ShopItem) -> bool:
         """Vérifie si l'item peut être acheté."""
-        if self.player_gold < item.cost:
+        player_gold = self.get_player_gold()
+        if player_gold < item.cost:
             return False
         if item.max_quantity > 0 and item.current_quantity >= item.max_quantity:
             return False
@@ -697,8 +697,9 @@ class UnifiedShop:
         if not self._can_purchase_item(item):
             return False
         
-        # Déduire le coût
-        self.player_gold -= item.cost
+        # Déduire le coût via le setter externe
+        player_gold = self.get_player_gold()
+        self.set_player_gold(player_gold - item.cost)
         
         # Incrémenter la quantité
         if item.max_quantity > 0:
@@ -710,7 +711,7 @@ class UnifiedShop:
                 success = item.purchase_callback()
                 if not success:
                     # Rembourser si l'achat a échoué
-                    self.player_gold += item.cost
+                    self.set_player_gold(self.get_player_gold() + item.cost)
                     if item.max_quantity > 0:
                         item.current_quantity -= 1
                     return False
@@ -721,8 +722,8 @@ class UnifiedShop:
         return True
     
     def set_player_gold(self, gold: int):
-        """Met à jour l'or du joueur."""
-        self.player_gold = gold
+        """Met à jour l'or du joueur (API compatible, mais déléguée)."""
+        self.set_player_gold(gold)
     
     def update(self, dt: float):
         """Met à jour la boutique."""
@@ -928,7 +929,8 @@ class UnifiedShop:
         pygame.draw.rect(surface, self.theme.GOLD, info_rect, 1, border_radius=8)
         
         # Icône et texte de l'or
-        gold_text = f"{self.player_gold}"
+        player_gold = self.get_player_gold()
+        gold_text = f"{player_gold}"
         text_x_offset = 0
         
         if "gold" in self.tab_icons and self.tab_icons["gold"]:
@@ -938,7 +940,7 @@ class UnifiedShop:
             surface.blit(icon, (icon_x, icon_y))
             text_x_offset = SHOP_TEXT_X_OFFSET
         else:
-            gold_text = f"💰 {self.player_gold}"
+            gold_text = f"💰 {player_gold}"
         
         # Position du texte
         text_center_x = info_rect.centerx + text_x_offset // 2
@@ -1050,7 +1052,7 @@ class UnifiedShop:
         
         # Indication si pas achetable
         if not can_purchase:
-            error_text = "💸" if self.player_gold < item.cost else "🚫"
+            error_text = "💸" if self.get_player_gold() < item.cost else "🚫"
             error_surface = self.font_normal.render(error_text, True, self.theme.PURCHASE_ERROR)
             error_rect = error_surface.get_rect(bottomright=(rect.right - 5, rect.bottom - 5))
             surface.blit(error_surface, error_rect)
