@@ -8,6 +8,7 @@ from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.teamComponent import TeamComponent 
 from src.components.properties.spriteComponent import SpriteComponent 
 from src.components.properties.projectileComponent import ProjectileComponent
+from src.utils.sprite_utils import create_projectile_sprite_component
 
 def create_projectile(entity):
     pos = esper.component_for_entity(entity, PositionComponent)
@@ -53,11 +54,10 @@ def create_projectile(entity):
 
         esper.add_component(bullet_entity, CanCollideComponent())
 
-        esper.add_component(bullet_entity, SpriteComponent(
-            image_path="assets/sprites/projectile/explosion.png",
-            width=20,
-            height=10
-        ))
+        # Utiliser le nouveau système de sprites pour les projectiles (explosion au lieu de balle)
+        sprite_component = create_projectile_sprite_component("explosion", 20, 10)
+        if sprite_component:
+            esper.add_component(bullet_entity, sprite_component)
     
-    # Identifier cette entité comme un projectile
-    esper.add_component(bullet_entity, ProjectileComponent("bullet"))
+        # Identifier cette entité comme un projectile
+        esper.add_component(bullet_entity, ProjectileComponent("explosion"))

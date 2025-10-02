@@ -1,0 +1,260 @@
+"""
+Sprite Manager - Centralized management of all game sprites.
+This manager handles sprite registration, loading, and prov            # Événements
+            SpriteData(SpriteID.CHEST_CLOSE, "assets/event/chest_close.png", 50, 40, "Coffre fermé"),
+            SpriteData(SpriteID.CHEST_OPEN, "assets/event/chest_open.png", 50, 40, "Coffre ouvert"),
+            SpriteData(SpriteID.KRAKEN, "assets/event/kraken.png", 200, 200, "Kraken"),
+            SpriteData(SpriteID.TENTACULE_KRAKEN, "assets/event/tentacule_kraken.png", 60, 150, "Tentacule de Kraken"),
+            SpriteData(SpriteID.PIRATE_SHIP, "assets/event/pirate_ship.png", 120, 80, "Navire pirate"),
+            SpriteData(SpriteID.TEMPETE, "assets/event/tempete.png", 100, 100, "Tempête"),clean API
+for accessing sprites by ID rather than file paths.
+"""
+import pygame
+from typing import Dict, Optional, Tuple
+from enum import Enum, auto
+from src.functions.resource_path import get_resource_path
+
+
+class SpriteID(Enum):
+    """Enumeration of all sprite IDs in the game."""
+    
+    # Player Units - Ally
+    ALLY_SCOUT = "ally_scout"
+    ALLY_MARAUDEUR = "ally_maraudeur"
+    ALLY_LEVIATHAN = "ally_leviathan"
+    ALLY_DRUID = "ally_druid"
+    ALLY_ARCHITECT = "ally_architect"
+    ALLY_ZASPER = "ally_zasper"
+    ALLY_BARHAMUS = "ally_barhamus"
+    ALLY_DRAUPNIR = "ally_draupnir"
+    
+    # Player Units - Enemy
+    ENEMY_SCOUT = "enemy_scout"
+    ENEMY_MARAUDEUR = "enemy_maraudeur"
+    ENEMY_LEVIATHAN = "enemy_leviathan"
+    ENEMY_DRUID = "enemy_druid"
+    ENEMY_ARCHITECT = "enemy_architect"
+    ENEMY_ZASPER = "enemy_zasper"
+    ENEMY_BARHAMUS = "enemy_barhamus"
+    ENEMY_DRAUPNIR = "enemy_draupnir"
+    
+    # Projectiles
+    PROJECTILE_BULLET = "ball"
+    PROJECTILE_CANNONBALL = "ball"
+    PROJECTILE_ARROW = "ball"
+    
+    # Effets
+    EXPLOSION = "explosion"
+    BALL_EXPLOSION = "ball_explosion"
+    IMPACT_EXPLOSION = "impact_explosion"
+    
+    # Buildings
+    BUILDING_CONSTRUCTION = "building_construction"
+    ATTACK_TOWER = "attack_tower"
+    HEAL_TOWER = "heal_tower"
+    
+    # Événements
+    CHEST_CLOSE = "chest_close"
+    CHEST_OPEN = "chest_open"
+    KRAKEN = "kraken"
+    PIRATE_SHIP = "pirate_ship"
+    TEMPETE = "tempete"
+    TENTACULE_KRAKEN = "tentacule_kraken"
+    
+    # UI Elements
+    UI_BITCOIN = "ui_bitcoin"
+    UI_SWORDS = "ui_swords"
+    
+    # Terrain (if needed)
+    TERRAIN_WATER = "terrain_water"
+    TERRAIN_ISLAND = "terrain_island"
+    TERRAIN_CLOUD = "terrain_cloud"
+
+
+class SpriteData:
+    """Data class for sprite information."""
+    
+    def __init__(self, sprite_id: SpriteID, file_path: str, default_width: int, default_height: int, description: str = ""):
+        self.sprite_id = sprite_id
+        self.file_path = file_path
+        self.default_width = default_width
+        self.default_height = default_height
+        self.description = description
+
+
+class SpriteManager:
+    """Manager for centralized sprite handling."""
+    
+    def __init__(self):
+        self._sprites_registry: Dict[SpriteID, SpriteData] = {}
+        self._loaded_images: Dict[SpriteID, pygame.Surface] = {}
+        self._initialize_sprite_registry()
+    
+    def _initialize_sprite_registry(self):
+        """Initialize the sprite registry with all game sprites."""
+        sprites = [
+            # Allied Units
+            SpriteData(SpriteID.ALLY_SCOUT, "assets/sprites/units/ally/Scout.png", 80, 100, "Scout allié"),
+            SpriteData(SpriteID.ALLY_MARAUDEUR, "assets/sprites/units/ally/Maraudeur.png", 130, 150, "Maraudeur allié"),
+            SpriteData(SpriteID.ALLY_LEVIATHAN, "assets/sprites/units/ally/Leviathan.png", 160, 200, "Léviathan allié"),
+            SpriteData(SpriteID.ALLY_DRUID, "assets/sprites/units/ally/Druid.png", 130, 150, "Druide allié"),
+            SpriteData(SpriteID.ALLY_ARCHITECT, "assets/sprites/units/ally/Architect.png", 130, 150, "Architecte allié"),
+            SpriteData(SpriteID.ALLY_ZASPER, "assets/sprites/units/ally/Zasper.png", 120, 140, "Zasper allié"),
+            SpriteData(SpriteID.ALLY_BARHAMUS, "assets/sprites/units/ally/Barhamus.png", 140, 160, "Barhamus allié"),
+            SpriteData(SpriteID.ALLY_DRAUPNIR, "assets/sprites/units/ally/Draupnir.png", 150, 170, "Draupnir allié"),
+            
+            # Enemy Units
+            SpriteData(SpriteID.ENEMY_SCOUT, "assets/sprites/units/enemy/Scout.png", 80, 100, "Scout ennemi"),
+            SpriteData(SpriteID.ENEMY_MARAUDEUR, "assets/sprites/units/enemy/Maraudeur.png", 130, 150, "Maraudeur ennemi"),
+            SpriteData(SpriteID.ENEMY_LEVIATHAN, "assets/sprites/units/enemy/Leviathan.png", 160, 200, "Léviathan ennemi"),
+            SpriteData(SpriteID.ENEMY_DRUID, "assets/sprites/units/enemy/Druid.png", 130, 150, "Druide ennemi"),
+            SpriteData(SpriteID.ENEMY_ARCHITECT, "assets/sprites/units/enemy/Architect.png", 130, 150, "Architecte ennemi"),
+            SpriteData(SpriteID.ENEMY_ZASPER, "assets/sprites/units/enemy/Zasper.png", 120, 140, "Zasper ennemi"),
+            SpriteData(SpriteID.ENEMY_BARHAMUS, "assets/sprites/units/enemy/Barhamus.png", 140, 160, "Barhamus ennemi"),
+            SpriteData(SpriteID.ENEMY_DRAUPNIR, "assets/sprites/units/enemy/Draupnir.png", 150, 170, "Draupnir ennemi"),
+            
+            # Projectiles
+            SpriteData(SpriteID.PROJECTILE_BULLET,
+                       "assets/sprites/projectile/ball.png", 10, 5, "Projectile standard"),
+            SpriteData(SpriteID.PROJECTILE_CANNONBALL, "assets/sprites/projectile/ball.png", 15, 10, "Boulet de canon"),
+            SpriteData(SpriteID.PROJECTILE_ARROW, "assets/sprites/projectile/ball.png", 8, 3, "Flèche"),
+
+            # Effets
+            SpriteData(SpriteID.EXPLOSION, "assets/sprites/projectile/explosion.png", 32, 32, "Explosion générique"),
+            SpriteData(SpriteID.BALL_EXPLOSION, "assets/sprites/projectile/ball_explosion.png", 24, 24, "Explosion de projectile"),
+            SpriteData(SpriteID.IMPACT_EXPLOSION, "assets/sprites/projectile/impact_explosion.png", 20, 20, "Explosion d'impact"),
+            
+            # Buildings
+            SpriteData(SpriteID.BUILDING_CONSTRUCTION, "assets/image/FluentEmojiFlatBuildingConstruction.png", 64, 64, "Bâtiment en construction"),
+            SpriteData(SpriteID.ATTACK_TOWER, "assets/sprites/buildings/attack_tower.png", 80, 120, "Tour d'attaque"),
+            SpriteData(SpriteID.HEAL_TOWER, "assets/sprites/buildings/heal_tower.png", 80, 120, "Tour de soin"),
+            
+            # Events
+            SpriteData(SpriteID.CHEST_CLOSE, "assets/event/chest_close.png", 50, 40, "Coffre fermé"),
+            SpriteData(SpriteID.CHEST_OPEN, "assets/event/chest_open.png", 50, 40, "Coffre ouvert"),
+            SpriteData(SpriteID.KRAKEN, "assets/event/kraken.png", 200, 200, "Kraken"),
+            SpriteData(SpriteID.TENTACULE_KRAKEN, "assets/event/tentacule_kraken.png", 60, 150, "Tentacule de Kraken"),
+            SpriteData(SpriteID.PIRATE_SHIP, "assets/event/pirate_ship.png", 120, 80, "Navire pirate"),
+            SpriteData(SpriteID.TEMPETE, "assets/event/tempete.png", 100, 100, "Tempête"),
+            
+            # UI Elements
+            SpriteData(SpriteID.UI_BITCOIN, "assets/image/StreamlineUltimateColorCryptoCurrencyBitcoinCircle.png", 32, 32, "Icône Bitcoin"),
+            SpriteData(SpriteID.UI_SWORDS, "assets/image/TwemojiCrossedSwords.png", 32, 32, "Épées croisées"),
+        ]
+        
+        # Register all sprites
+        for sprite_data in sprites:
+            self._sprites_registry[sprite_data.sprite_id] = sprite_data
+    
+    def get_sprite_data(self, sprite_id: SpriteID) -> Optional[SpriteData]:
+        """Get sprite data by ID."""
+        return self._sprites_registry.get(sprite_id)
+    
+    def get_sprite_path(self, sprite_id: SpriteID) -> Optional[str]:
+        """Get the file path for a sprite ID."""
+        sprite_data = self.get_sprite_data(sprite_id)
+        return sprite_data.file_path if sprite_data else None
+    
+    def get_default_size(self, sprite_id: SpriteID) -> Optional[Tuple[int, int]]:
+        """Get the default size (width, height) for a sprite."""
+        sprite_data = self.get_sprite_data(sprite_id)
+        return (sprite_data.default_width, sprite_data.default_height) if sprite_data else None
+    
+    def load_sprite(self, sprite_id: SpriteID) -> Optional[pygame.Surface]:
+        """Load and cache a sprite image."""
+        # Return cached image if already loaded
+        if sprite_id in self._loaded_images:
+            return self._loaded_images[sprite_id]
+        
+        # Get sprite data
+        sprite_data = self.get_sprite_data(sprite_id)
+        if not sprite_data:
+            print(f"Warning: Sprite ID {sprite_id} not found in registry")
+            return None
+        
+        try:
+            # Load the image
+            full_path = get_resource_path(sprite_data.file_path)
+            image = pygame.image.load(full_path).convert_alpha()
+            
+            # Cache the loaded image
+            self._loaded_images[sprite_id] = image
+            
+            print(f"Loaded sprite: {sprite_id.value} ({sprite_data.description})")
+            return image
+            
+        except (pygame.error, FileNotFoundError) as e:
+            print(f"Error loading sprite {sprite_id.value} from {sprite_data.file_path}: {e}")
+            return None
+    
+    def create_sprite_component(self, sprite_id: SpriteID, width: Optional[int] = None, height: Optional[int] = None):
+        """Create a SpriteComponent with the specified sprite ID."""
+        from src.components.properties.spriteComponent import SpriteComponent
+        
+        sprite_data = self.get_sprite_data(sprite_id)
+        if not sprite_data:
+            print(f"Warning: Cannot create SpriteComponent for unknown sprite ID {sprite_id}")
+            return None
+        
+        # Use provided dimensions or default ones
+        final_width = width or sprite_data.default_width
+        final_height = height or sprite_data.default_height
+        
+        return SpriteComponent(
+            image_path=sprite_data.file_path,
+            width=float(final_width),
+            height=float(final_height)
+        )
+    
+    def preload_sprites(self, sprite_ids: list[SpriteID]):
+        """Preload a list of sprites to improve performance."""
+        print(f"Preloading {len(sprite_ids)} sprites...")
+        loaded_count = 0
+        
+        for sprite_id in sprite_ids:
+            if self.load_sprite(sprite_id):
+                loaded_count += 1
+        
+        print(f"Successfully preloaded {loaded_count}/{len(sprite_ids)} sprites")
+    
+    def preload_all_sprites(self):
+        """Preload all registered sprites."""
+        all_sprite_ids = list(self._sprites_registry.keys())
+        self.preload_sprites(all_sprite_ids)
+    
+    def clear_cache(self):
+        """Clear the sprite cache to free memory."""
+        self._loaded_images.clear()
+        print("Sprite cache cleared")
+    
+    def get_sprite_info(self, sprite_id: SpriteID) -> str:
+        """Get detailed information about a sprite."""
+        sprite_data = self.get_sprite_data(sprite_id)
+        if not sprite_data:
+            return f"Sprite {sprite_id} not found"
+        
+        is_loaded = sprite_id in self._loaded_images
+        return (f"Sprite: {sprite_id.value}\n"
+                f"Description: {sprite_data.description}\n"
+                f"Path: {sprite_data.file_path}\n"
+                f"Default Size: {sprite_data.default_width}x{sprite_data.default_height}\n"
+                f"Loaded: {'Yes' if is_loaded else 'No'}")
+    
+    def list_all_sprites(self) -> str:
+        """List all registered sprites."""
+        sprites_info = []
+        for sprite_id, sprite_data in self._sprites_registry.items():
+            is_loaded = sprite_id in self._loaded_images
+            status = "✓" if is_loaded else "○"
+            sprites_info.append(f"{status} {sprite_id.value} - {sprite_data.description}")
+        
+        return "Registered Sprites:\n" + "\n".join(sprites_info)
+
+
+# Global sprite manager instance
+sprite_manager = SpriteManager()
+
+
+def get_sprite_manager() -> SpriteManager:
+    """Get the global sprite manager instance."""
+    return sprite_manager
