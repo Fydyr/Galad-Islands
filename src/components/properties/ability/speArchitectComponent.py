@@ -6,13 +6,13 @@ from ...base_component import GameplayComponent
 class ArchitectAbilityComponent(GameplayComponent):
     """Component for Architect's reload boost ability."""
     is_active: bool = False
-    available: bool = True
-    effect_radius: float = 150.0  # Effect radius
-    reload_speed_multiplier: float = 2.0  # Multiply reload speed by this factor
+    available: bool = False
+    effect_radius: float = 0.0  # Effect radius
+    reload_speed_multiplier: float = 0.0  # Multiply reload speed by this factor
     affected_unit_ids: List[int] = field(default_factory=list)  # IDs of affected units
-    base_duration: float = 8.0  # Effect duration
+    base_duration: float = 0.0  # Effect duration
     remaining_time: float = 0.0  # Time left of effect
-    cooldown: float = 12.0  # Cooldown between uses
+    cooldown: float = 0.0  # Cooldown between uses
     cooldown_remaining: float = 0.0 
     
 
