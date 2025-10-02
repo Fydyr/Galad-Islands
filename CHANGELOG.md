@@ -1,3 +1,9 @@
+## v0.4.5 (2025-10-02)
+
+### Fix
+
+- corriger l'initialisation de affected_unit_ids dans le constructeur
+
 ## v0.4.4 (2025-10-02)
 
 ### Fix
