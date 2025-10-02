@@ -8,6 +8,9 @@ from src.components.properties.radiusComponent import RadiusComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.canCollideComponent import CanCollideComponent
+from src.components.properties.ability.speDruidComponent import SpeDruid
+from src.components.properties.ability.speArchitectComponent import SpeArchitect
+
 
 
 
@@ -58,6 +61,20 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Druid.png" if not enemy else "assets/sprites/units/enemy/Druid.png", 130, 150))
 
+            es.add_component(entity, SpeDruid(
+                is_active=False,
+                available=True,
+                cooldown=0.0,
+                cooldown_duration=15.0,  # 15 secondes de cooldown
+                immobilization_duration=5.0,  # 5 secondes d'immobilisation
+                target_id=None,
+                remaining_duration=0.0,
+                projectile_launched=False,
+                projectile_position=None,
+                projectile_speed=300.0,  # Vitesse du projectile
+                projectile_target_position=None
+            ))
+
         case UnitType.ARCHITECT:
             entity = es.create_entity()
             es.add_component(entity, PositionComponent(pos.x, pos.y, 180 if not enemy else 0))
@@ -68,6 +85,16 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, HealthComponent(130, 130))
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Architect.png" if not enemy else "assets/sprites/units/enemy/Architect.png", 130, 150))
+
+            es.add_component(entity, SpeArchitect(
+                is_active=False,
+                available=True,
+                radius=400.0,  # 8 cases (environ 400 pixels)
+                reload_factor=1.0,  # Double la vitesse de rechargement
+                affected_units=[],
+                duration=10.0,  # Durée de l'effet : 10 secondes
+                timer=0.0
+            ))
 
         case UnitType.ATTACK_TOWER:
 
