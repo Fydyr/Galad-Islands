@@ -3,7 +3,6 @@ import pygame
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.spriteComponent import SpriteComponent
 from src.components.properties.healthComponent import HealthComponent
-from src.systems.sprite_system import sprite_system
 
 class RenderProcessor(esper.Processor):
     def __init__(self, screen, camera=None):
@@ -13,10 +12,9 @@ class RenderProcessor(esper.Processor):
 
     def process(self):
         for ent, (pos, sprite) in esper.get_components(PositionComponent, SpriteComponent):
-            # Skip invisible sprites
-            if not sprite.visible:
-                continue
-                
+            # Load the sprite
+            image = pygame.image.load(sprite.image_path).convert_alpha()
+            
             # Calculate sprite size based on camera zoom
             if self.camera:
                 # Scale sprite size according to camera zoom to maintain consistent screen size
@@ -25,34 +23,24 @@ class RenderProcessor(esper.Processor):
                 screen_x, screen_y = self.camera.world_to_screen(pos.x, pos.y)
             else:
                 # Fallback if no camera is provided
-                display_width = int(sprite.width)
-                display_height = int(sprite.height)
+                display_width = sprite.width
+                display_height = sprite.height
                 screen_x, screen_y = pos.x, pos.y
             
-            # Update sprite dimensions for the sprite system
-            sprite.width = display_width
-            sprite.height = display_height
-            
-            # Get the rendered surface from the sprite system
-            surface = sprite_system.get_render_surface(sprite)
-            if surface is None:
-                continue  # Skip if sprite couldn't be loaded
-            
-            # Rotate the image if needed
-            if pos.direction != 0:
-                rotated_image = pygame.transform.rotate(surface, -pos.direction)
-            else:
-                rotated_image = surface
+            # Rotate the scaled image from the sprite
+            sprite.scale_sprite(display_width, display_height)
+            rotated_image = pygame.transform.rotate(sprite.surface, -pos.direction)
             
             # Get the rect and set its center to the screen position
             rect = rotated_image.get_rect(center=(screen_x, screen_y))
+            # pygame.draw.rect(self.screen, 5, rect, 2)
             # Blit using the rect's topleft to keep the rotation centered
             self.screen.blit(rotated_image, rect.topleft)
             
             # Afficher la barre de vie si l'entité a un HealthComponent
             if esper.has_component(ent, HealthComponent):
                 health = esper.component_for_entity(ent, HealthComponent)
-                if health.current_health < health.max_health:
+                if health.currentHealth < health.maxHealth :
                     self._draw_health_bar(screen_x, screen_y, health, display_width, display_height)
     
     def _draw_health_bar(self, x, y, health, sprite_width, sprite_height):
@@ -65,13 +53,13 @@ class RenderProcessor(esper.Processor):
         bar_x = x - bar_width // 2
         bar_y = y - bar_offset_y
         
-        # Vérifier que max_health n'est pas zéro pour éviter la division par zéro
-        if health.max_health <= 0:
-            # Si max_health est 0 ou négatif, on ne dessine pas la barre de vie
+        # Vérifier que maxHealth n'est pas zéro pour éviter la division par zéro
+        if health.maxHealth <= 0:
+            # Si maxHealth est 0 ou négatif, on ne dessine pas la barre de vie
             return
         
         # Calculer le pourcentage de vie
-        health_ratio = health.health_percentage
+        health_ratio = max(0, min(1, health.currentHealth / health.maxHealth))
         
         # Dessiner le fond de la barre (rouge foncé)
         background_rect = pygame.Rect(bar_x, bar_y, bar_width, bar_height)

@@ -7,7 +7,6 @@ from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.baseComponent import BaseComponent 
 from src.components.properties.radiusComponent import RadiusComponent 
 from src.settings.controls import KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_STOP, KEY_PREV_TROOP, KEY_NEXT_TROOP, KEY_ATTACK, KEY_SPECIAL_ABILITY, KEY_ATTACK_MODE
-from src.constants.gameplay import SPEED_ACCELERATION, SPEED_DECELERATION
 import pygame
 
 class PlayerControlProcessor(esper.Processor):
@@ -15,7 +14,6 @@ class PlayerControlProcessor(esper.Processor):
     def __init__(self):
         self.fire_event = False  # Initialisation de l'état de l'événement de tir
         self.slowing_down = False  # Indique si le frein est activé
-        self.tab_pressed = False  # Pour gérer l'état de la touche Tab
 
     def process(self):
         keys = pygame.key.get_pressed()
@@ -28,10 +26,10 @@ class PlayerControlProcessor(esper.Processor):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     self.slowing_down = True
                     # Ralentit progressivement jusqu'à l'arrêt
-                    if abs(velocity.current_speed) > 0.01:
-                        velocity.current_speed *= 0.9  # Ralentissement progressif
+                    if abs(velocity.currentSpeed) > 0.01:
+                        velocity.currentSpeed *= 0.9  # Ralentissement progressif
                     else:
-                        velocity.current_speed = 0.0
+                        velocity.currentSpeed = 0.0
                         self.slowing_down = False
             else:
                 self.slowing_down = False
@@ -40,13 +38,13 @@ class PlayerControlProcessor(esper.Processor):
             if not self.slowing_down and keys[getattr(pygame, f'K_{KEY_UP}')]:
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
-                    if velocity.current_speed < velocity.max_forward_speed:
-                        velocity.current_speed += SPEED_ACCELERATION
+                    if velocity.currentSpeed < velocity.maxUpSpeed:
+                        velocity.currentSpeed += 0.2
             if not self.slowing_down and keys[getattr(pygame, f'K_{KEY_DOWN}')]:
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
-                    if velocity.current_speed > velocity.max_reverse_speed:
-                        velocity.current_speed -= SPEED_DECELERATION
+                    if velocity.currentSpeed > velocity.maxReverseSpeed:
+                        velocity.currentSpeed -= 0.1
 
             if keys[getattr(pygame, f'K_{KEY_RIGHT}')]:
                 if esper.has_component(entity, PositionComponent):
@@ -59,11 +57,11 @@ class PlayerControlProcessor(esper.Processor):
             if keys[ord(KEY_PREV_TROOP)]:
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
-                    base.current_troop_index = (base.current_troop_index - 1) % len(base.available_troops)
+                    base.currentTroop = (base.currentTroop - 1) % len(base.troopList)
             if keys[ord(KEY_NEXT_TROOP)]:
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
-                    base.current_troop_index = (base.current_troop_index + 1) % len(base.available_troops)
+                    base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
             if radius.cooldown > 0:
                 radius.cooldown -= 0.1  # Réduction du cooldown
             else:
@@ -72,18 +70,13 @@ class PlayerControlProcessor(esper.Processor):
                     radius.cooldown = radius.bullet_cooldown
             # Changement du mode d'attaque avec Tab
             if keys[pygame.K_TAB]:
-                if not self.tab_pressed and esper.has_component(entity, RadiusComponent):
+                if esper.has_component(entity, RadiusComponent):
                     radius = esper.component_for_entity(entity, RadiusComponent)
-                    # Ne changer le mode que si l'unité peut tirer sur les côtés
-                    if radius.bullets_side > 0:
-                        radius.can_shoot_from_side = not radius.can_shoot_from_side
-                        print(f"Mode de tir {'latéral activé' if radius.can_shoot_from_side else 'frontal uniquement'}")
-                    self.tab_pressed = True
-            else:
-                self.tab_pressed = False
+                    radius.can_shoot_from_side = not radius.can_shoot_from_side
+    
 
 
-
+                
 
 
 

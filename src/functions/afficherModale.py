@@ -6,38 +6,16 @@ import pygame
 import sys
 from PIL import Image
 
-# Import des constantes centralisées
-from src.constants.gameplay import (
-    COLOR_WHITE as WHITE,
-    COLOR_GOLD as GOLD,
-    COLOR_GRAY as GRAY,
-    COLOR_DARK_GRAY as DARK_GRAY,
-    COLOR_LIGHT_GRAY as LIGHT_GRAY,
-    COLOR_ERROR_GRAY,
-    MODAL_MARGIN,
-    MODAL_PADDING,
-    MODAL_SCROLL_SPEED,
-    MODAL_HEADER_HEIGHT,
-    MODAL_FOOTER_HEIGHT,
-    MODAL_BUTTON_WIDTH,
-    MODAL_BUTTON_HEIGHT,
-    MODAL_SCROLLBAR_WIDTH,
-    MODAL_ERROR_SURFACE_WIDTH,
-    MODAL_ERROR_SURFACE_HEIGHT,
-    MODAL_DEFAULT_MAX_WIDTH,
-    MODAL_DEFAULT_GIF_DURATION,
-    MODAL_FONT_SIZE_SMALL,
-    MODAL_FONT_SIZE_NORMAL,
-    MODAL_FONT_SIZE_MEDIUM,
-    MODAL_FONT_SIZE_LARGE,
-    MODAL_FONT_SIZE_XLARGE,
-    MODAL_TEXT_LINE_SPACING,
-    MODAL_MEDIA_SPACING
-)
+# Constantes de couleurs
+WHITE = (255, 255, 255)
+GOLD = (255, 215, 0)
+GRAY = (128, 128, 128)
+DARK_GRAY = (64, 64, 64)
+LIGHT_GRAY = (192, 192, 192)
 
 class GifAnimation:
     """Classe pour gérer les GIF animés"""
-    def __init__(self, path, max_width=MODAL_DEFAULT_MAX_WIDTH):
+    def __init__(self, path, max_width=620):
         self.frames = []
         self.durations = []
         self.current_frame = 0
@@ -63,14 +41,14 @@ class GifAnimation:
                 pygame_surface = pygame.image.fromstring(data, size, mode)
                 
                 self.frames.append(pygame_surface)
-                # Durée en millisecondes (par défaut MODAL_DEFAULT_GIF_DURATION ms si non spécifié)
-                duration = gif.info.get('duration', MODAL_DEFAULT_GIF_DURATION)
+                # Durée en millisecondes (par défaut 100ms si non spécifié)
+                duration = gif.info.get('duration', 100)
                 self.durations.append(duration)
         except Exception as e:
             print(f"Erreur lors du chargement du GIF: {e}")
             # Créer un frame d'erreur
-            error_surface = pygame.Surface((MODAL_ERROR_SURFACE_WIDTH, MODAL_ERROR_SURFACE_HEIGHT))
-            error_surface.fill(COLOR_ERROR_GRAY)
+            error_surface = pygame.Surface((200, 100))
+            error_surface.fill((100, 100, 100))
             font = pygame.font.SysFont("Arial", 16)
             text = font.render("Erreur GIF", True, WHITE)
             error_surface.blit(text, (50, 40))
@@ -118,9 +96,9 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
     # Configuration du modal (responsive)
     modal_width = max(400, min(1000, int(WIDTH * 0.7)))
     modal_height = max(300, min(700, int(HEIGHT * 0.8)))
-    margin = MODAL_MARGIN
-    padding = MODAL_PADDING
-    scroll_speed = MODAL_SCROLL_SPEED
+    margin = 20
+    padding = 15
+    scroll_speed = 30
     
     # Cache pour les ressources
     font_cache = {}
@@ -219,26 +197,26 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
                 text = line[5:]
                 default_bold = True
                 color = (200, 200, 150)
-                size = MODAL_FONT_SIZE_NORMAL
+                size = 22
             elif line.startswith("### "):
                 text = line[4:]
                 default_bold = True
                 color = GOLD
-                size = MODAL_FONT_SIZE_MEDIUM
+                size = 26
             elif line.startswith("## "):
                 text = line[3:]
                 default_bold = False
                 color = GOLD
-                size = MODAL_FONT_SIZE_LARGE
+                size = 30
             elif line.startswith("# "):
                 text = line[2:]
                 default_bold = True
                 color = GOLD
-                size = MODAL_FONT_SIZE_XLARGE
+                size = 36
             else:
                 default_bold = False
                 color = WHITE
-                size = MODAL_FONT_SIZE_SMALL
+                size = 20
             
             # Détecter si le texte contient du formatage
             has_bold = "**" in text
@@ -276,15 +254,15 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
                 lines = textwrap.wrap(text, width=wrap_width) if text else [""]
                 for line in lines:
                     wrapped.append(("text", line, size, bold, italic, color))
-                    heights.append(size + MODAL_TEXT_LINE_SPACING)
+                    heights.append(size + 8)
             
             elif elem[0] == "media":
                 media_type, media = elem[1], elem[2]
                 wrapped.append(("media", media_type, media))
                 if media_type == "gif":
-                    heights.append(media.get_size()[1] + MODAL_MEDIA_SPACING)
+                    heights.append(media.get_size()[1] + 10)
                 else:
-                    heights.append(media.get_height() + MODAL_MEDIA_SPACING)
+                    heights.append(media.get_height() + 10)
         
         return wrapped, heights
 
@@ -300,8 +278,8 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
     wrapped_elements, heights = wrap_elements(parsed_elements)
 
     # Calculs de scroll
-    header_height = MODAL_HEADER_HEIGHT
-    footer_height = MODAL_FOOTER_HEIGHT
+    header_height = 50
+    footer_height = 70
     content_height = sum(heights) + 2 * padding
     viewable_height = modal_height - header_height - footer_height
     max_scroll = max(0, content_height - viewable_height)
@@ -312,11 +290,11 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
     modal_rect = modal_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2))
     
     # Bouton fermer
-    btn_width, btn_height = MODAL_BUTTON_WIDTH, MODAL_BUTTON_HEIGHT
+    btn_width, btn_height = 120, 40
     close_btn = pygame.Rect(modal_width - btn_width - 20, modal_height - btn_height - 15, btn_width, btn_height)
     
     # Scrollbar
-    scrollbar_width = MODAL_SCROLLBAR_WIDTH
+    scrollbar_width = 15
     scrollbar_x = modal_width - scrollbar_width - 5
     scrollbar_track = pygame.Rect(scrollbar_x, header_height, scrollbar_width, modal_height - header_height - footer_height)
 

@@ -1,9 +1,7 @@
-from dataclasses import dataclass
-from ..base_component import GameplayComponent
-from .unit_class_enum import UnitClass
+from dataclasses import dataclass as component
 
-@dataclass
-class ClassComponent(GameplayComponent):
-    """Component representing the class/type of a unit."""
-    def __init__(self, unit_class: UnitClass = UnitClass.ZASPER):
-        self.unit_class = unit_class
+@component
+class ClasseComponent:
+    
+    def __init__(self, class_id=0):
+        self.class_id: int = class_id  # ID de la classe (0: Zasper, 1: Barhamus...)

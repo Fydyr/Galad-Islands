@@ -1,15 +1,34 @@
-from dataclasses import dataclass
-from ...base_component import GameplayComponent
+from dataclasses import dataclass as component
 
-@dataclass
-class BarhamusAbilityComponent(GameplayComponent):
-    """Component for Barhamus's mana shield ability (damage reduction)."""
-    def __init__(self, is_active: bool = False, damage_reduction_min: float = 0.0, damage_reduction_max: float = 0.0, current_reduction: float = 0.0, base_duration: float = 0.0, remaining_time: float = 0.0, cooldown: float = 0.0, cooldown_remaining: float = 0.0):
-        self.is_active = is_active
-        self.damage_reduction_min = damage_reduction_min  # Minimum 20% damage reduction
-        self.damage_reduction_max = damage_reduction_max  # Maximum 80% damage reduction  
-        self.current_reduction = current_reduction  # Current active reduction
-        self.base_duration = base_duration  # Base shield duration
-        self.remaining_time = remaining_time  # Time left of shield
-        self.cooldown = cooldown # Cooldown between uses
-        self.cooldown_remaining: float = 0.0
+@component
+class SpeBarhamus:
+    def __init__(self, is_active=False, reduction_min=0.0, reduction_max=0.0, reduction_value=0.0, duration=0.0, timer=0.0):
+        self.is_active: bool = is_active
+        self.reduction_min: float = reduction_min
+        self.reduction_max: float = reduction_max
+        self.reduction_value: float = reduction_value
+        self.duration: float = duration
+        self.timer: float = timer  # Temps restant de la réduction
+
+    def activate(self, reduction: float, duration: float):
+        """
+        Active le bouclier de mana avec une réduction donnée et une durrée.
+        - reduction: pourcentage de réduction (entre reduction_min et reduction_max)
+        - duration: durée de la réduction en secondes
+        """
+        self.is_active = True
+        self.reduction_value = max(self.reduction_min, min(self.reduction_max, reduction))
+        self.duration = duration
+        self.timer = duration
+
+    def update(self, dt):
+        """
+        Met à jour le timer et gère l'état du bouclier.
+        - dt: temps écoulé depuis la dernière frame
+        """
+        if self.is_active:
+            self.timer -= dt
+            if self.timer <= 0:
+                self.is_active = False
+                self.timer = 0.0
+                self.reduction_value = self.reduction_min # Réinitialise la réduction

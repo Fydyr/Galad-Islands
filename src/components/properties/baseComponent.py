@@ -1,27 +1,9 @@
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass as component
 
-@dataclass
+@component
 class BaseComponent:
-    """Component representing a base with available troops."""
-    def __init__(self, available_troops: List[str] = field(default_factory=list) , current_troop_index: int = 0):
-        self.available_troops = available_troops
-        self.current_troop_index = current_troop_index
-    
-    
-    @property
-    def current_troop(self) -> str | None:
-        """Get the currently selected troop type."""
-        if 0 <= self.current_troop_index < len(self.available_troops):
-            return self.available_troops[self.current_troop_index]
-        return None
-    
-    def next_troop(self) -> None:
-        """Select the next troop in the list."""
-        if self.available_troops:
-            self.current_troop_index = (self.current_troop_index + 1) % len(self.available_troops)
-    
-    def previous_troop(self) -> None:
-        """Select the previous troop in the list."""
-        if self.available_troops:
-            self.current_troop_index = (self.current_troop_index - 1) % len(self.available_troops) 
+    def __init__(self, troopList=[], currentTroop=0):
+        # Liste des troupes disponibles pour le joueur
+        self.troopList: list = troopList
+        # Index de la troupe actuellement sélectionnée
+        self.currentTroop: int = currentTroop 
