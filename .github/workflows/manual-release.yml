@@ -77,6 +77,7 @@ jobs:
             📖 Consultez le fichier `README.md` inclus dans l'archive pour les instructions d'installation.
             
             🔗 [Documentation complète](https://fydyr.github.io/Galad-Islands/)
+            🔗 [Changelog](https://github.com/Fydyr/Galad-Islands/blob/main/CHANGELOG.md)
           files: |
             galad-islands-*.zip
         env:
