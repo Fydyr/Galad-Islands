@@ -27,6 +27,9 @@ from src.functions.handleHealth import entitiesHit
 from src.functions.afficherModale import afficher_modale
 from src.functions.baseManager import get_base_manager
 
+# Importations du système de sprites
+from src.initialization.sprite_init import initialize_sprite_system
+
 # Importations UI
 from src.ui.action_bar import ActionBar
 
@@ -356,6 +359,10 @@ class GameEngine:
         self.grid = game_state["grid"]
         self.images = game_state["images"]
         self.camera = game_state["camera"]
+        
+        # Initialiser le système de sprites
+        initialize_sprite_system()
+        print("Debug: Système de sprites initialisé")
         
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
