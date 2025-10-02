@@ -2,132 +2,70 @@
 
 ## 🎯 Objectif
 
-Ce document explique comment gérer les versions du projet Galad Islands avec un système de bump automatique via les hooks Git.
+Ce document explique comment gérer les versions du projet Galad Islands avec un système de gestion manuelle des versions.
 
 > **💡 Info : Migration du workflow de version**
-> 
-> Le projet a récemment migré d'un système de bump centralisé (GitHub Actions) vers un système décentralisé (hooks pre-commit locaux). 
-> 
+>
+> Le projet a récemment migré d'un système de bump automatique (hooks pre-commit locaux) vers une gestion manuelle des versions.
+>
 > 📖 **[Consultez le guide de migration](workflow-migration.md)** pour comprendre les changements et les avantages du nouveau système.
 
-## 🚀 Nouveau : Bump automatique avec hooks pre-commit
+## 🚀 Nouveau : Gestion manuelle des versions
 
-Le système de bump automatique via hook pre-commit est maintenant la méthode recommandée. Il bumpe automatiquement la version lors des commits éligibles.
+Le système de bump automatique via hook pre-commit a été supprimé. Désormais, les versions doivent être gérées manuellement par les développeurs.
 
-### Installation du hook
+### Comment gérer les versions manuellement
 
-```bash
-# Installation automatique (recommandé)
-python setup/install_hooks_with_bump.py
+1. **Activer l'environnement virtuel** :
 
-# Ou via setup_dev.py (installation complète, y compris les dépendances de développement)
-python setup_dev.py
+   ```bash
+   source venv/bin/activate  # Unix/Linux/macOS
+   # ou
+   venv\Scripts\activate     # Windows
+   ```
 
-# Ou installation manuelle
-cp hooks/pre-commit .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit  # Unix/Linux/macOS uniquement
-```
+2. **S'assurer d'être à jour** :
 
-### Comment ça fonctionne
+   ```bash
+   git checkout main && git pull origin main
+   ```
 
-1. **Vous faites un commit normal** : `git commit -m "feat: nouvelle fonctionnalité"`
-2. **Le hook pre-commit s'exécute** : Détecte que c'est un commit `feat`
-3. **Bump automatique** : Version passe de 0.3.1 → 0.4.0
-4. **Changelog mis à jour** : Nouveau changelog généré
-5. **Commit final** : Votre commit + bump inclus
+3. **Effectuer le bump** :
 
-### Types de commits qui déclenchent un bump
+   ```bash
+   python -m commitizen bump --increment patch --yes --changelog
+   ```
+
+4. **Pousser les changements** :
+
+   ```bash
+   git push origin main && git push origin --tags
+   ```
+
+### Types de commits et leur impact
 
 - ✅ **feat**: nouvelle fonctionnalité → bump **minor**
 - ✅ **fix**: correction de bug → bump **patch**
 - ✅ **perf**: amélioration performances → bump **patch**
 - ✅ **refactor**: refactorisation → bump **patch**
-
-### Types de commits qui NE déclenchent PAS de bump
-
-- ❌ **docs**: documentation uniquement
-- ❌ **style**: formatage, espaces
-- ❌ **test**: ajout/modification de tests
-- ❌ **chore**: maintenance
-- ❌ **ci**: configuration CI
-
-## 🛠️ Méthodes disponibles
-
-### Option 1 : Hooks pre-commit automatiques (Recommandé)
-
-```bash
-# Installation du système automatique
-python setup_dev.py
-
-# Ou installation des hooks uniquement
-python setup/install_hooks_with_bump.py
-
-# Test de l'installation
-python setup/test_hooks.py
-
-# Utilisation : commits normaux avec bump automatique
-git commit -m "feat: nouvelle fonctionnalité"  # → bump minor automatique
-```
-
-Le système automatique :
-
-- ✅ Multi-plateforme (Windows, Linux, macOS)
-- ✅ Détection automatique des commits éligibles
-- ✅ Bump de version instantané
-- ✅ Changelog mis à jour automatiquement
-- ✅ Pas d'intervention manuelle nécessaire
-- ✅ Fonctionne avec l'environnement virtuel
-
-### Option 2 : Commandes manuelles
-
-```bash
-# 1. Activer l'environnement virtuel
-source venv/bin/activate
-
-# 2. S'assurer d'être à jour
-git checkout main && git pull origin main
-
-# 3. Effectuer le bump
-python -m commitizen bump --increment patch --yes --changelog
-
-# 4. Pousser les changements
-git push origin main && git push origin --tags
-```
-
-### Option 3 : Scripts de fallback (cas particuliers)
-
-```bash
-# Si les hooks ne fonctionnent pas, bump manuel avec Python
-python -c "
-import subprocess, sys
-subprocess.run([sys.executable, '-m', 'commitizen', 'bump', '--yes', '--changelog'])
-"
-
-# Ou commandes commitizen directes
-python -m commitizen bump --increment patch --yes --changelog
-python -m commitizen bump --increment minor --yes --changelog
-python -m commitizen bump --increment major --yes --changelog
-```
+- ❌ **docs**, **style**, **test**, **chore**, **ci** : pas de bump
 
 ## 🔄 Workflow recommandé
 
 1. **Installation initiale** : `python setup_dev.py` (une seule fois)
 2. **Développement normal** : Commits avec messages conventionnels
-3. **Bump automatique** : Le hook pre-commit gère tout automatiquement
+3. **Bump manuel** : Utiliser Commitizen pour gérer les versions
 4. **Push avec tags** : `git push origin main && git push origin --tags`
 
-## 🚫 Workflow GitHub Actions (Déprécié)
+## 🚫 Suppression des hooks pre-commit
 
-> **⚠️ Attention : Workflow déprécié**
-> 
-> Le workflow automatique GitHub Actions `version-bump.yml` a été **désactivé** et remplacé par les hooks pre-commit locaux.
-> 
-> - ✅ **Nouveau** : Bump automatique via hooks pre-commit
-> - 🔄 **Legacy** : Workflow manuel uniquement (cas exceptionnels)
-> 
-> 📖 **[Voir le guide de migration](workflow-migration.md)** pour plus de détails sur cette transition.
-
-Le workflow `version-bump.yml` reste disponible en mode **manuel uniquement** pour les cas exceptionnels (urgences, maintenance, etc.).
+> **⚠️ Attention : Hooks supprimés**
+>
+> Le système de bump automatique via hooks pre-commit a été **désactivé**. Les versions doivent désormais être gérées manuellement.
+>
+> - ✅ **Nouveau** : Gestion manuelle des versions
+> - 🔄 **Legacy** : Les hooks ne sont plus installés par défaut
+>
 
 ## 🎯 Avantages de cette approche
 
@@ -142,13 +80,10 @@ Le workflow `version-bump.yml` reste disponible en mode **manuel uniquement** po
 ### Installation et tests
 
 ```bash
-# Réinstaller les hooks
-python setup/install_hooks_with_bump.py
+# Réinstaller Commitizen
+python -m pip install commitizen
 
-# Tester l'installation
-python setup/test_hooks.py
-
-# Vérifier commitizen
+# Vérifier Commitizen
 python -m commitizen version
 ```
 
@@ -159,18 +94,5 @@ python -m commitizen version
 source venv/bin/activate  # Unix/Linux/macOS
 # ou
 venv\Scripts\activate     # Windows
-
-# Vérifier les hooks installés
-ls -la .git/hooks/pre-commit
 ```
 
-### Conflit avec le workflow GitHub
-
-- Le workflow ne devrait plus se déclencher après un bump manuel
-- Si problème, désactivez temporairement le workflow dans `.github/workflows/version-bump.yml`
-
-## 📚 Documentation complémentaire
-
-- 🔄 **[Guide de migration des workflows](workflow-migration.md)** - Transition vers les hooks pre-commit
-- 🛠️ **[Configuration des hooks](../setup/README.md)** - Scripts d'installation et tests
-- 👥 **[Guide de contribution](contributing.md)** - Conventions de commit et processus
