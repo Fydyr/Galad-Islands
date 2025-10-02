@@ -65,9 +65,13 @@ class SpriteID(Enum):
     UI_BITCOIN = "ui_bitcoin"
     UI_SWORDS = "ui_swords"
     
-    # Terrain (if needed)
+    # Terrain
     TERRAIN_WATER = "terrain_water"
-    TERRAIN_ISLAND = "terrain_island"
+    TERRAIN_SEA = "terrain_sea"
+    TERRAIN_GENERIC_ISLAND = "terrain_generic_island"
+    TERRAIN_ALLY_ISLAND = "terrain_ally_island"
+    TERRAIN_ENEMY_ISLAND = "terrain_enemy_island"
+    TERRAIN_MINE = "terrain_mine"
     TERRAIN_CLOUD = "terrain_cloud"
 
 
@@ -140,6 +144,14 @@ class SpriteManager:
             # UI Elements
             SpriteData(SpriteID.UI_BITCOIN, "assets/image/StreamlineUltimateColorCryptoCurrencyBitcoinCircle.png", 32, 32, "Icône Bitcoin"),
             SpriteData(SpriteID.UI_SWORDS, "assets/image/TwemojiCrossedSwords.png", 32, 32, "Épées croisées"),
+            
+            # Terrain
+            SpriteData(SpriteID.TERRAIN_SEA, "assets/sprites/terrain/sea.png", 64, 64, "Mer"),
+            SpriteData(SpriteID.TERRAIN_GENERIC_ISLAND, "assets/sprites/terrain/generic_island.png", 64, 64, "Île générique"),
+            SpriteData(SpriteID.TERRAIN_ALLY_ISLAND, "assets/sprites/terrain/ally_island.png", 256, 256, "Île alliée"),
+            SpriteData(SpriteID.TERRAIN_ENEMY_ISLAND, "assets/sprites/terrain/enemy_island.png", 256, 256, "Île ennemie"),
+            SpriteData(SpriteID.TERRAIN_MINE, "assets/sprites/terrain/mine.png", 64, 64, "Mine"),
+            SpriteData(SpriteID.TERRAIN_CLOUD, "assets/sprites/terrain/cloud.png", 64, 64, "Nuage"),
         ]
         
         # Register all sprites
