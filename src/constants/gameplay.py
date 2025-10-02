@@ -39,6 +39,56 @@ MODAL_FONT_SIZE_XLARGE = 36
 MODAL_TEXT_LINE_SPACING = 8
 MODAL_MEDIA_SPACING = 10
 
+# Constantes de la boutique - Dimensions
+SHOP_WIDTH = 900
+SHOP_HEIGHT = 650
+
+# Constantes de la boutique - Onglets
+SHOP_TAB_WIDTH = 160
+SHOP_TAB_HEIGHT = 40
+SHOP_TAB_SPACING = 10
+
+# Constantes de la boutique - Items
+SHOP_ITEM_WIDTH = 200
+SHOP_ITEM_HEIGHT = 100
+SHOP_ITEMS_PER_ROW = 4
+SHOP_ITEM_SPACING_X = 15
+SHOP_ITEM_SPACING_Y = 15
+
+# Constantes de la boutique - Icônes
+SHOP_ICON_SIZE_LARGE = 64  # Icônes principales
+SHOP_ICON_SIZE_MEDIUM = 56  # Icônes d'items
+SHOP_ICON_SIZE_SMALL = 24  # Icônes d'onglets
+SHOP_ICON_SIZE_TINY = 16   # Petites icônes
+
+# Constantes de la boutique - Marges et espacements
+SHOP_MARGIN = 20
+SHOP_PADDING = 30
+SHOP_TAB_Y_OFFSET = 80
+SHOP_ITEMS_START_Y = 140
+
+# Constantes de la boutique - Interface
+SHOP_CLOSE_BUTTON_SIZE = 35
+SHOP_CLOSE_BUTTON_MARGIN = 15
+SHOP_CLOSE_X_SIZE = 8
+SHOP_CLOSE_X_THICKNESS = 3
+SHOP_SHADOW_OFFSET = 5
+SHOP_SHADOW_LAYERS = 10
+
+# Constantes de la boutique - Animations et feedback
+SHOP_FEEDBACK_DURATION = 3.0  # secondes
+SHOP_TEXT_X_OFFSET = 30
+
+# Constantes de la boutique - Or du joueur par défaut
+SHOP_DEFAULT_PLAYER_GOLD = 100
+
+# Constantes de la boutique - Polices
+SHOP_FONT_SIZE_TITLE = 32
+SHOP_FONT_SIZE_SUBTITLE = 26
+SHOP_FONT_SIZE_NORMAL = 20
+SHOP_FONT_SIZE_SMALL = 16
+SHOP_FONT_SIZE_TINY = 14
+
 # Seuils de couleur pour les barres de vie
 HEALTH_HIGH_THRESHOLD = 0.6  # Vert si > 60%
 HEALTH_MEDIUM_THRESHOLD = 0.3   # Orange si > 30%, Rouge si < 30%
@@ -62,6 +112,16 @@ COLOR_GRAY = (128, 128, 128)
 COLOR_DARK_GRAY = (64, 64, 64)
 COLOR_LIGHT_GRAY = (192, 192, 192)
 COLOR_ERROR_GRAY = (100, 100, 100)
+
+# Couleurs communes pour les boutiques
+COLOR_BLACK = (0, 0, 0)
+COLOR_GREEN_SUCCESS = (80, 200, 80)
+COLOR_RED_ERROR = (200, 80, 80)
+
+# Couleurs de placeholder pour icônes
+COLOR_PLACEHOLDER_UNIT = (100, 150, 200)
+COLOR_PLACEHOLDER_BUILDING = (150, 120, 80)
+COLOR_PLACEHOLDER_UPGRADE = (200, 150, 100)
 
 # =============================================================================
 # CONSTANTES DE MOUVEMENT ET PHYSICS
