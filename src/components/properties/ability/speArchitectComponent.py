@@ -5,15 +5,26 @@ from ...base_component import GameplayComponent
 @dataclass
 class ArchitectAbilityComponent(GameplayComponent):
     """Component for Architect's reload boost ability."""
-    is_active: bool = False
-    available: bool = False
-    effect_radius: float = 0.0  # Effect radius
-    reload_speed_multiplier: float = 0.0  # Multiply reload speed by this factor
-    affected_unit_ids: List[int] = field(default_factory=list)  # IDs of affected units
-    base_duration: float = 0.0  # Effect duration
-    remaining_time: float = 0.0  # Time left of effect
-    cooldown: float = 0.0  # Cooldown between uses
-    cooldown_remaining: float = 0.0 
+    def __init__(self,
+                 is_active: bool = False,
+                 available: bool = False,
+                 effect_radius: float = 0.0,
+                 reload_speed_multiplier: float = 0.0,
+                 affected_unit_ids: Optional[List[int]] = None,
+                 base_duration: float = 0.0,
+                 remaining_time: float = 0.0,
+                 cooldown: float = 0.0,
+                 cooldown_remaining: float = 0.0):
+        
+        self.is_active0 = is_active
+        self.available = available  # Ability is ready to use
+        self.effect_radius = effect_radius  # Effect radius
+        self.reload_speed_multiplier = reload_speed_multiplier # Multiply reload speed by this factor
+        self.affected_unit_ids = affected_unit_ids  # IDs of affected units
+        self.base_duration = base_duration# Effect duration
+        self.remaining_time = remaining_time # Time left of effect
+        self.cooldown = cooldown  # Cooldown between uses
+        self.cooldown_remaining = cooldown_remaining  # Time left on cooldown 
     
 
     def __post_init__(self):

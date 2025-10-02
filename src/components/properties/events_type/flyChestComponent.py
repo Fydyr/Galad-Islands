@@ -4,7 +4,9 @@ from ...base_component import GameplayComponent
 @dataclass
 class FlyingChestEventComponent(GameplayComponent):
     """Component for Flying Chest event configuration."""
-    gold_min: int = 50
-    gold_max: int = 200
-    chest_count_min: int = 1
-    chest_count_max: int = 3
+    def __init__(self, gold_min: int = 0, gold_max: int = 0, chest_count_min: int = 0, chest_count_max: int = 0):
+        self.gold_min = gold_min
+        self.gold_max = gold_max
+        self.chest_count_min = chest_count_min
+        self.chest_count_max = chest_count_max
+    
