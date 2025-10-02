@@ -1,8 +1,9 @@
-from dataclasses import dataclass
-from ..base_component import GameplayComponent
+from dataclasses import dataclass as component
 
-@dataclass
-class PlayerSelectedComponent(GameplayComponent):
-    """Component indicating which player controls this entity."""
-    def __init__(self, player_id: int = 0):
-        self.player_id = player_id  # Player identifier (0 = player 1, 1 = player 2, etc.)
+@component
+class PlayerSelectedComponent:
+    def __init__(self, player_id: int):
+        """
+        player_id : identifiant du joueur qui contrôle cette entité (0 = joueur 1, 1 = joueur 2, etc.)
+        """
+        self.player_id = player_id

@@ -1,13 +1,16 @@
-from dataclasses import dataclass
-from ..base_component import GameplayComponent
+from dataclasses import dataclass as component
 
-@dataclass
-class ProjectileComponent(GameplayComponent):
+@component
+class ProjectileComponent:
     """
-    Component for identifying projectiles in the ECS system.
+    Composant pour identifier les projectiles dans le système ECS.
     
-    Used to apply specific rules to projectiles like automatic
-    removal at map boundaries.
+    Utilisé pour appliquer des règles spécifiques aux projectiles
+    comme la suppression automatique aux limites de la carte.
     """
-    def __init__(self, projectile_type: str = "bullet" ):
-        self.projectile_type = projectile_type  # Type: "bullet", "missile", "magic", etc.
+    def __init__(self, projectile_type: str = "bullet"):
+        """
+        Args:
+            projectile_type (str): Type de projectile ("bullet", "missile", "magic", etc.)
+        """
+        self.projectile_type: str = projectile_type

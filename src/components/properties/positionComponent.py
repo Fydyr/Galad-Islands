@@ -1,11 +1,8 @@
-from dataclasses import dataclass
-from ..base_component import PhysicsComponent
+from dataclasses import dataclass as component
 
-@dataclass
-class PositionComponent(PhysicsComponent):
-    """Component representing the position and direction of an entity in 2D space."""
-    def __init__(self ,x: float = 0.0, y: float = 0.0 ,direction: float = 0.0):
-        self.x = x,
-        self.y = y,
-        self.direction = direction
-    
+@component
+class PositionComponent:
+    def __init__(self, x=0.0, y=0.0, direction=0.0):
+        self.x: float = x
+        self.y: float = y
+        self.direction: float = direction
