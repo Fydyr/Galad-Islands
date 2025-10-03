@@ -21,7 +21,7 @@ from src.components.properties.healthComponent import HealthComponent
 
 # Importations des factories et fonctions utilitaires
 from src.factory.unitFactory import UnitFactory
-from src.factory.unitType import UnitType
+from src.constants.unitType import UnitType
 from src.functions.projectileCreator import create_projectile
 from src.functions.handleHealth import entitiesHit
 from src.functions.afficherModale import afficher_modale
