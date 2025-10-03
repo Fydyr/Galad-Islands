@@ -225,7 +225,9 @@ def init_game_map(screen_width, screen_height):
     images = charger_images()
     placer_elements(grid)
     
+    from src.settings.settings import ZOOM_MIN
     camera = Camera(screen_width, screen_height)
+    camera.zoom = ZOOM_MIN  # Dézoom par défaut
     # Centrer la caméra dès l'initialisation
     visible_width = screen_width / camera.zoom
     visible_height = screen_height / camera.zoom
