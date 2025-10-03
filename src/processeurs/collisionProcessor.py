@@ -117,8 +117,8 @@ class CollisionProcessor(esper.Processor):
                     already_hit.append((ent, other_ent))
                     already_hit.append((other_ent, ent))
                     
-                    # Si c'est la même équipe, ignorer
-                    if team.team_id == other_team.team_id:
+                    # Si c'est la même équipe, ignorer SAUF si une des deux est une mine (team_id=2)
+                    if team.team_id == other_team.team_id and team.team_id != 2 and other_team.team_id != 2:
                         continue
                     
                     # Gérer la collision entre les deux entités
