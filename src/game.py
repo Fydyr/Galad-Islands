@@ -118,9 +118,9 @@ class EventHandler:
             return
         elif self._handle_group_shortcuts(event):
             return
-        elif controls.matches_action(controls.ACTION_UNIT_SPECIAL, event):
-            self.game_engine.trigger_selected_special_ability()
-            return
+        # elif controls.matches_action(controls.ACTION_UNIT_SPECIAL, event):
+        #     self.game_engine.trigger_selected_special_ability()
+        #     return
         else:
             if controls.matches_action(controls.ACTION_UNIT_PREVIOUS, event):
                 self.game_engine.select_previous_unit()
@@ -519,6 +519,7 @@ class GameEngine:
         
         # Configurer les handlers d'événements
         es.set_handler('attack_event', create_projectile)
+        es.set_handler('special_vine_event', create_projectile)
         es.set_handler('entities_hit', entitiesHit)
         
     def _create_initial_entities(self):
@@ -536,7 +537,7 @@ class GameEngine:
         
         # Créer les unités
         spawn_x, spawn_y = base_manager.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
-        player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
+        player_unit = UnitFactory(UnitType.DRUID, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
             self._set_selected_entity(player_unit)
 

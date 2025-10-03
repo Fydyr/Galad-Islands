@@ -204,7 +204,7 @@ MARAUDEUR_SHIELD_DURATION = BARHAMUS_SHIELD_DURATION
 
 # Druid : Lierre volant
 DRUID_IMMOBILIZATION_DURATION = 5.0 # Durée d'immobilisation
-DRUID_PROJECTILE_SPEED = 300.0     # Vitesse du projectile druide
+DRUID_PROJECTILE_SPEED = 15.0     # Vitesse du projectile druide
 
 # Architecte : Rayon d'effet
 ARCHITECT_RADIUS = 400.0           # Rayon d'effet de l'architecte

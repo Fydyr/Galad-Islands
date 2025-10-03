@@ -123,17 +123,9 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
                 es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Druid.png" if not enemy else "assets/sprites/units/enemy/Druid.png", 130, 150))
 
             es.add_component(entity, SpeDruid(
-                is_active=False,
                 available=True,
                 cooldown=0.0,
                 cooldown_duration=SPECIAL_ABILITY_COOLDOWN,
-                immobilization_duration=DRUID_IMMOBILIZATION_DURATION,
-                target_id=None,
-                remaining_duration=0.0,
-                projectile_launched=False,
-                projectile_position=None,
-                projectile_speed=DRUID_PROJECTILE_SPEED,
-                projectile_target_position=None
             ))
 
         case UnitType.ARCHITECT:

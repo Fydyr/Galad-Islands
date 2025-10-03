@@ -6,8 +6,10 @@ from src.components.properties.spriteComponent import SpriteComponent as Sprite
 from src.components.properties.canCollideComponent import CanCollideComponent as CanCollide
 from src.components.properties.velocityComponent import VelocityComponent as Velocity
 from src.components.properties.teamComponent import TeamComponent as Team
-from src.components.properties.healthComponent import HealthComponent
-from src.components.properties.attackComponent import AttackComponent
+from src.components.properties.healthComponent import HealthComponent as Health
+from src.components.properties.attackComponent import AttackComponent as Attack
+from src.components.properties.ability.VineComponent import VineComponent as Vine
+from src.components.properties.ability.isVinedComponent import isVinedComponent as IsVined
 from src.settings.settings import TILE_SIZE
 import math
 from src.components.properties.lifetimeComponent import LifetimeComponent
@@ -78,13 +80,13 @@ class CollisionProcessor(esper.Processor):
                     ))
                     
                     # Health (1 HP - détruit en une collision)
-                    esper.add_component(mine_entity, HealthComponent(
+                    esper.add_component(mine_entity, Health(
                         currentHealth=1,
                         maxHealth=1
                     ))
                     
                     # Attack (40 dégâts)
-                    esper.add_component(mine_entity, AttackComponent(
+                    esper.add_component(mine_entity, Attack(
                         hitPoints=40
                     ))
                     
@@ -161,12 +163,16 @@ class CollisionProcessor(esper.Processor):
             pass
         
         # Obtenir les composants d'attaque et de santé
-        attack1 = esper.component_for_entity(entity1, AttackComponent) if esper.has_component(entity1, AttackComponent) else None
-        health1 = esper.component_for_entity(entity1, HealthComponent) if esper.has_component(entity1, HealthComponent) else None
-        
-        attack2 = esper.component_for_entity(entity2, AttackComponent) if esper.has_component(entity2, AttackComponent) else None
-        health2 = esper.component_for_entity(entity2, HealthComponent) if esper.has_component(entity2, HealthComponent) else None
-        
+        attack1 = esper.component_for_entity(entity1, Attack) if esper.has_component(entity1, Attack) else None
+        health1 = esper.component_for_entity(entity1, Health) if esper.has_component(entity1, Health) else None
+        velo1 = esper.component_for_entity(entity1, Velocity) if esper.has_component(entity1, Velocity) else None
+        vine1 = esper.component_for_entity(entity1, Vine) if esper.has_component(entity1, Vine) else None
+
+        attack2 = esper.component_for_entity(entity2, Attack) if esper.has_component(entity2, Attack) else None
+        health2 = esper.component_for_entity(entity2, Health) if esper.has_component(entity2, Health) else None
+        velo2 = (esper.component_for_entity(entity2, Velocity) if esper.has_component(entity2, Velocity) else None)
+        vine2 = esper.component_for_entity(entity2, Vine) if esper.has_component(entity2, Vine) else None
+
         # Déléguer la logique de dégâts au gestionnaire central `entities_hit` qui
         # applique correctement les capacités spéciales (invincibilité, bouclier, ...)
         # Sauvegarder l'état avant l'appel pour gérer les explosions et mines
@@ -178,17 +184,22 @@ class CollisionProcessor(esper.Processor):
             had_proj2 = False
 
         # Sauvegarder les positions si nécessaire (pour explosion si le projectile meurt)
-        pos1 = None
-        pos2 = None
-        try:
-            if esper.has_component(entity1, Position):
-                p = esper.component_for_entity(entity1, Position)
-                pos1 = (p.x, p.y)
-            if esper.has_component(entity2, Position):
-                p2 = esper.component_for_entity(entity2, Position)
-                pos2 = (p2.x, p2.y)
-        except Exception:
-            pass
+        if vine1 is not None and velo2 is not None and not had_proj2:
+            esper.add_component(entity2, IsVined(vine1.time))
+        elif vine2 is not None and velo1 is not None and not had_proj1:
+            esper.add_component(entity1, IsVined(vine2.time))
+        else:
+            pos1 = None
+            pos2 = None
+            try:
+                if esper.has_component(entity1, Position):
+                    p = esper.component_for_entity(entity1, Position)
+                    pos1 = (p.x, p.y)
+                if esper.has_component(entity2, Position):
+                    p2 = esper.component_for_entity(entity2, Position)
+                    pos2 = (p2.x, p2.y)
+            except Exception:
+                pass
 
         # Dispatcher l'événement qui appliquera les dégâts correctement
         try:
@@ -235,7 +246,7 @@ class CollisionProcessor(esper.Processor):
     def _create_explosion_at_entity(self, entity):
         """Crée une entité explosion à la position de l'entité donnée (projectile)"""
         # Utiliser les imports en tête de fichier : SpriteID, sprite_manager, Position, Sprite
-        if not esper.has_component(entity, Position):
+        if not esper.has_component(entity, Position) or esper.has_component(entity, Vine):
             return
         pos = esper.component_for_entity(entity, Position)
         explosion_entity = esper.create_entity()
@@ -263,8 +274,8 @@ class CollisionProcessor(esper.Processor):
             return
         
         # Vérifier si c'est une mine (health max = 1)
-        if esper.has_component(entity, HealthComponent):
-            health = esper.component_for_entity(entity, HealthComponent)
+        if esper.has_component(entity, Health):
+            health = esper.component_for_entity(entity, Health)
             if health.maxHealth == 1:  # C'est une mine
                 # Obtenir la position
                 if esper.has_component(entity, Position):
@@ -407,12 +418,12 @@ class CollisionProcessor(esper.Processor):
                 
     def _is_mine_entity(self, entity):
         """Vérifie si une entité est une mine (health max = 1, team_id = 0, attack = 40)"""
-        if (esper.has_component(entity, HealthComponent) and 
+        if (esper.has_component(entity, Health) and 
             esper.has_component(entity, Team) and 
-            esper.has_component(entity, AttackComponent)):
-            health = esper.component_for_entity(entity, HealthComponent)
+            esper.has_component(entity, Attack)):
+            health = esper.component_for_entity(entity, Health)
             team = esper.component_for_entity(entity, Team)
-            attack = esper.component_for_entity(entity, AttackComponent)
+            attack = esper.component_for_entity(entity, Attack)
             return (health.maxHealth == 1 and 
                     team.team_id == 0 and 
                     attack.hitPoints == 40)
