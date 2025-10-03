@@ -4,6 +4,8 @@ from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
 from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
 from src.components.properties.ability.speDruidComponent import SpeDruid
 from src.components.properties.ability.speArchitectComponent import SpeArchitect
+from src.components.properties.ability.isVinedComponent import isVinedComponent
+from src.processeurs.ability.VineProcessor import VineProcessor
 from src.components.properties.radiusComponent import RadiusComponent
 
 class CapacitiesSpecialesProcessor(esper.Processor):
@@ -23,6 +25,9 @@ class CapacitiesSpecialesProcessor(esper.Processor):
         # Druid : lierre volant (immobilisation)
         for ent, speDruid in esper.get_component(SpeDruid):
             speDruid.update(dt)
+
+        for ent, isVined in esper.get_component(isVinedComponent):
+            VineProcessor.update(dt, ent, isVined)
         
         # Architect : rechargement automatique (effet de zone)
         for ent, speArchitect in esper.get_component(SpeArchitect):

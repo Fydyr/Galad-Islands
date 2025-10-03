@@ -2,6 +2,7 @@ import esper
 from math import cos, sin, radians
 from src.components.properties.velocityComponent import VelocityComponent as Velocity
 from src.components.properties.positionComponent import PositionComponent as Position
+from src.components.properties.ability.isVinedComponent import isVinedComponent as isVined
 from src.components.properties.projectileComponent import ProjectileComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 
@@ -31,7 +32,7 @@ class MovementProcessor(esper.Processor):
                 effective_speed = vel.currentSpeed * vel.terrain_modifier
             
             # Ne bouger que si la vitesse effective != 0
-            if effective_speed != 0:
+            if effective_speed != 0 and not esper.has_component(ent, isVined):
                 # Calculer la nouvelle position avec la vitesse effective
                 direction_rad = radians(pos.direction)
                 new_x = pos.x - effective_speed * cos(direction_rad)

@@ -77,7 +77,7 @@ class PlayerControlProcessor(esper.Processor):
                 radius.cooldown -= 0.1  # Réduction du cooldown
             else:
                 if controls.is_action_active(controls.ACTION_UNIT_ATTACK, keys, modifiers_state):
-                    esper.dispatch_event("attack_event", entity)
+                    esper.dispatch_event("attack_event", entity, "bullet")
                     radius.cooldown = radius.bullet_cooldown
             # Changement du mode d'attaque avec Tab
             if controls.is_action_active(controls.ACTION_UNIT_ATTACK_MODE, keys, modifiers_state):
@@ -129,25 +129,7 @@ class PlayerControlProcessor(esper.Processor):
 
     def _activate_druid_ability(self, druid_entity, spe_druid):
         """Active la capacité Lierre volant du Druid"""
-        druid_pos = esper.component_for_entity(druid_entity, PositionComponent)
-        druid_team = esper.component_for_entity(druid_entity, TeamComponent)
-        
-        # Recherche de l'ennemi le plus proche
-        closest_enemy = None
-        closest_distance = float('inf')
-        
-        for ent, (pos, team) in esper.get_components(PositionComponent, TeamComponent):
-            if team.team != druid_team.team:
-                distance = math.sqrt((pos.x - druid_pos.x)**2 + (pos.y - druid_pos.y)**2)
-                if distance < closest_distance:
-                    closest_distance = distance
-                    closest_enemy = ent
-        
-        if closest_enemy:
-            enemy_pos = esper.component_for_entity(closest_enemy, PositionComponent)
-            start_pos = (druid_pos.x, druid_pos.y)
-            target_pos = (enemy_pos.x, enemy_pos.y)
-            spe_druid.launch_projectile(start_pos, target_pos, closest_enemy)
+        spe_druid.launch_projectile(druid_entity)
 
     def _activate_architect_ability(self, architect_entity, spe_architect):
         """Active la capacité Rechargement automatique de l'Architect"""

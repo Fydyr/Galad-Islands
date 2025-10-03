@@ -40,6 +40,7 @@ class SpriteID(Enum):
     PROJECTILE_BULLET = "ball"
     PROJECTILE_CANNONBALL = "ball"
     PROJECTILE_ARROW = "ball"
+    PROJECTILE_VINE = "vine"
     
     # Effets
     EXPLOSION = "explosion"
@@ -116,10 +117,10 @@ class SpriteManager:
             SpriteData(SpriteID.ENEMY_DRAUPNIR, "assets/sprites/units/enemy/Draupnir.png", 150, 170, "Draupnir ennemi"),
             
             # Projectiles
-            SpriteData(SpriteID.PROJECTILE_BULLET,
-                       "assets/sprites/projectile/ball.png", 20, 15, "Projectile standard"),
+            SpriteData(SpriteID.PROJECTILE_BULLET, "assets/sprites/projectile/ball.png", 20, 15, "Projectile standard"),
             SpriteData(SpriteID.PROJECTILE_CANNONBALL, "assets/sprites/projectile/ball.png", 20, 15, "Boulet de canon"),
             SpriteData(SpriteID.PROJECTILE_ARROW, "assets/sprites/projectile/ball.png", 20, 15, "Flèche"),
+            SpriteData(SpriteID.PROJECTILE_VINE, "assets/sprites/projectile/vine.png", 20, 20, "Boule de lierres"),
 
             # Effets
             SpriteData(SpriteID.EXPLOSION, "assets/sprites/projectile/explosion.png", 32, 32, "Explosion générique"),
