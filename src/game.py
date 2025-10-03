@@ -27,6 +27,12 @@ from src.components.properties.teamComponent import TeamComponent
 from src.components.properties.radiusComponent import RadiusComponent
 from src.components.properties.classeComponent import ClasseComponent
 
+# Importations des capacités spéciales
+
+from src.components.properties.ability.speBarhamusComponent import SpeBarhamus
+from src.components.properties.ability.speZasperComponent import SpeZasper
+from src.components.properties.ability.speDraupnirComponent import SpeDraupnir
+
 # Importations des factories et fonctions utilitaires
 from src.factory.unitFactory import UnitFactory
 from src.factory.unitType import UnitType
@@ -183,32 +189,60 @@ class GameRenderer:
             self._render_single_sprite(window, camera, ent, pos, sprite)
             
     def _render_single_sprite(self, window, camera, entity, pos, sprite):
-        """Rend un sprite individuel."""
-        # Obtenir l'image du sprite
+        """Rend un sprite individuel avec effet visuel spécial si invincible."""
+        from src.components.properties.ability.speZasperComponent import SpeZasper
         image = self._get_sprite_image(sprite)
         if image is None:
             return
-            
-        # Calculer les dimensions et position à l'écran
+
         display_width = int(sprite.width * camera.zoom)
         display_height = int(sprite.height * camera.zoom)
         screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
-        
-        # Éviter les dimensions invalides
+
         if display_width <= 0 or display_height <= 0:
             return
-            
-        # Redimensionner et faire la rotation du sprite
+
         sprite.scale_sprite(display_width, display_height)
         if sprite.surface is not None:
             rotated_image = pygame.transform.rotate(sprite.surface, -pos.direction)
         else:
             scaled_image = pygame.transform.scale(image, (display_width, display_height))
             rotated_image = pygame.transform.rotate(scaled_image, -pos.direction)
-            
-        # Dessiner le sprite centré sur sa position
+
+        # Calculer le rect avant tout effet visuel
         rect = rotated_image.get_rect(center=(screen_x, screen_y))
-        window.blit(rotated_image, rect.topleft)
+
+        # Effet visuel d'invincibilité pour Zasper : clignotement
+        invincible = False
+        if es.has_component(entity, SpeZasper):
+            spe = es.component_for_entity(entity, SpeZasper)
+            if getattr(spe, 'is_active', False):
+                invincible = True
+
+        if invincible:
+            # Clignote : visible 2 frames sur 3
+            if (pygame.time.get_ticks() // 100) % 3 != 0:
+                temp_img = rotated_image.copy()
+                temp_img.set_alpha(128)  # semi-transparent
+                window.blit(temp_img, rect.topleft)
+            else:
+                # Invisible cette frame (effet de clignotement)
+                pass
+        else:
+            window.blit(rotated_image, rect.topleft)
+
+        # Effet visuel : halo bleu pour le bouclier de Barhamus
+        if es.has_component(entity, SpeBarhamus):
+            shield = es.component_for_entity(entity, SpeBarhamus)
+            if getattr(shield, 'is_active', False):
+                # Halo bleu semi-transparent
+                halo_radius = max(display_width, display_height) // 2 + 10
+                halo_surface = pygame.Surface(
+                    (halo_radius*2, halo_radius*2), pygame.SRCALPHA)
+                pygame.draw.circle(
+                    halo_surface, (80, 180, 255, 90), (halo_radius, halo_radius), halo_radius)
+                window.blit(halo_surface, (screen_x - halo_radius, screen_y -
+                                           halo_radius), special_flags=pygame.BLEND_RGBA_ADD)
 
         # Dessiner l'indicateur de sélection si nécessaire
         if es.has_component(entity, PlayerSelectedComponent):
@@ -502,8 +536,9 @@ class GameEngine:
         previous_index = (current_index - 1) % len(units)
         self._set_selected_entity(units[previous_index])
 
+
     def trigger_selected_attack(self):
-        """Déclenche l'attaque principale de l'unité sélectionnée."""
+        """Déclenche l'attaque principale de l'unité sélectionnée, avec gestion de la seconde salve de Draupnir."""
         if self.selected_unit_id is None:
             return
 
@@ -519,8 +554,21 @@ class GameEngine:
         if radius.cooldown > 0:
             return
 
+        # Gestion de la capacité spéciale de Draupnir : seconde salve
+        is_draupnir = es.has_component(entity, SpeDraupnir)
+        draupnir_comp = es.component_for_entity(entity, SpeDraupnir) if is_draupnir else None
+
+        # Première attaque
         es.dispatch_event("attack_event", entity)
         radius.cooldown = radius.bullet_cooldown
+
+        # Si Draupnir et capacité active, déclenche une seconde salve immédiate
+        if draupnir_comp is not None and getattr(draupnir_comp, "is_active", False):
+            # On désactive la capacité après usage (sécurité)
+            draupnir_comp.is_active = False
+            # On relance une attaque sans attendre le cooldown
+            es.dispatch_event("attack_event", entity)
+            # Le cooldown reste inchangé (déjà appliqué)
 
     def _get_player_units(self) -> List[int]:
         """Retourne la liste triée des unités alliées contrôlables."""
@@ -546,7 +594,9 @@ class GameEngine:
 
         if entity_id is not None and entity_id in es._entities:
             if not es.has_component(entity_id, PlayerSelectedComponent):
-                es.add_component(entity_id, PlayerSelectedComponent(self.player))
+                # Correction : self.player ne doit pas être None
+                player_id = self.player if self.player is not None else 0
+                es.add_component(entity_id, PlayerSelectedComponent(player_id))
 
         if self.action_bar is None:
             return
