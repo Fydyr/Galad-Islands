@@ -44,7 +44,6 @@ class CollisionProcessor(esper.Processor):
         if not self.graph:
             return
         
-        print("Debug: Initialisation des entités mines...")
         mine_count = 0
         
         for y in range(len(self.graph)):
@@ -93,7 +92,6 @@ class CollisionProcessor(esper.Processor):
                     
                     mine_count += 1
         
-        print(f"Debug: {mine_count} entités mines créées")
 
     def _process_entity_collisions(self):
         """Gère les collisions entre entités (logique existante)"""
@@ -159,11 +157,9 @@ class CollisionProcessor(esper.Processor):
         if attack1 and health2:
             damage = attack1.hitPoints
             health2.currentHealth -= damage
-            print(f"Debug: Entité {entity1} inflige {damage} dégâts à {entity2} (HP: {health2.currentHealth}/{health2.maxHealth})")
             
             # Détruire entity2 si mort
             if health2.currentHealth <= 0:
-                print(f"Debug: Entité {entity2} détruite")
                 self._destroy_mine_on_grid(entity2)
                 if esper.has_component(entity2, ProjectileComponent):
                     self._create_explosion_at_entity(entity2)
@@ -173,11 +169,10 @@ class CollisionProcessor(esper.Processor):
         if attack2 and health1:
             damage = attack2.hitPoints
             health1.currentHealth -= damage
-            print(f"Debug: Entité {entity2} inflige {damage} dégâts à {entity1} (HP: {health1.currentHealth}/{health1.maxHealth})")
+            
             
             # Détruire entity1 si mort
             if health1.currentHealth <= 0:
-                print(f"Debug: Entité {entity1} détruite")
                 self._destroy_mine_on_grid(entity1)
                 if esper.has_component(entity1, ProjectileComponent):
                     self._create_explosion_at_entity(entity1)
@@ -234,7 +229,6 @@ class CollisionProcessor(esper.Processor):
                         0 <= grid_x < len(self.graph[0]) and
                         self.graph[grid_y][grid_x] == 3):
                         self.graph[grid_y][grid_x] = 0  # Remplacer par de l'eau
-                        print(f"Debug: Mine détruite sur la grille en ({grid_x}, {grid_y})")
                         
                         # Dispatcher événement d'explosion
                         esper.dispatch_event('mine_explosion', pos.x, pos.y)

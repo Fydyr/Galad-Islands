@@ -5,10 +5,10 @@ These functions provide convenient shortcuts for common sprite operations.
 from typing import Optional, Tuple
 from src.managers.sprite_manager import sprite_manager, SpriteID
 from src.components.properties.spriteComponent import SpriteComponent
-from src.constants.unitType import UnitType
+from src.factory.unitType import UnitKey, UnitType
 
 
-def get_unit_sprite_id(unit_type: UnitType, is_enemy: bool) -> Optional[SpriteID]:
+def get_unit_sprite_id(unit_type: UnitKey, is_enemy: bool) -> Optional[SpriteID]:
     """
     Get the appropriate sprite ID for a unit type and faction.
     
@@ -37,7 +37,7 @@ def get_unit_sprite_id(unit_type: UnitType, is_enemy: bool) -> Optional[SpriteID
     return None
 
 
-def create_unit_sprite_component(unit_type: UnitType, is_enemy: bool, width: Optional[int] = None, height: Optional[int] = None) -> Optional[SpriteComponent]:
+def create_unit_sprite_component(unit_type: UnitKey, is_enemy: bool, width: Optional[int] = None, height: Optional[int] = None) -> Optional[SpriteComponent]:
     """
     Create a SpriteComponent for a unit.
     

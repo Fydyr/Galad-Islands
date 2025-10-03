@@ -1,4 +1,6 @@
 import esper
+import pygame
+import math
 from src.components.properties.playerSelectedComponent import PlayerSelectedComponent
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
@@ -9,9 +11,7 @@ from src.components.properties.radiusComponent import RadiusComponent
 from src.components.properties.ability.speDruidComponent import SpeDruid
 from src.components.properties.ability.speArchitectComponent import SpeArchitect
 from src.components.properties.teamComponent import TeamComponent
-from src.settings.controls import KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_STOP, KEY_PREV_TROOP, KEY_NEXT_TROOP, KEY_ATTACK, KEY_SPECIAL_ABILITY, KEY_ATTACK_MODE
-import pygame
-import math
+from src.settings import controls
 
 class PlayerControlProcessor(esper.Processor):
 
@@ -22,11 +22,14 @@ class PlayerControlProcessor(esper.Processor):
 
     def process(self):
         keys = pygame.key.get_pressed()
+        modifiers_state = pygame.key.get_mods()
         for entity, selected in esper.get_component(PlayerSelectedComponent):
+            if not esper.has_component(entity, RadiusComponent):
+                continue
             radius = esper.component_for_entity(entity, RadiusComponent)
 
             # Gestion du frein progressif
-            if keys[pygame.K_LCTRL]:
+            if controls.is_action_active(controls.ACTION_UNIT_STOP, keys, modifiers_state):
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     self.slowing_down = True
@@ -40,47 +43,47 @@ class PlayerControlProcessor(esper.Processor):
                 self.slowing_down = False
 
             # Accélération uniquement si le frein n'est pas activé
-            if not self.slowing_down and keys[getattr(pygame, f'K_{KEY_UP}')]:
+            if not self.slowing_down and controls.is_action_active(controls.ACTION_UNIT_MOVE_FORWARD, keys, modifiers_state):
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     if velocity.currentSpeed < velocity.maxUpSpeed:
                         velocity.currentSpeed += 0.2
-            if not self.slowing_down and keys[getattr(pygame, f'K_{KEY_DOWN}')]:
+            if not self.slowing_down and controls.is_action_active(controls.ACTION_UNIT_MOVE_BACKWARD, keys, modifiers_state):
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     if velocity.currentSpeed > velocity.maxReverseSpeed:
                         velocity.currentSpeed -= 0.1
 
-            if keys[getattr(pygame, f'K_{KEY_RIGHT}')]:
+            if controls.is_action_active(controls.ACTION_UNIT_TURN_RIGHT, keys, modifiers_state):
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
                     position.direction = (position.direction + 1) % 360
-            if keys[getattr(pygame, f'K_{KEY_LEFT}')]:
+            if controls.is_action_active(controls.ACTION_UNIT_TURN_LEFT, keys, modifiers_state):
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
                     position.direction = (position.direction - 1) % 360
-            if keys[ord(KEY_PREV_TROOP)]:
+            if controls.is_action_active(controls.ACTION_UNIT_PREVIOUS, keys, modifiers_state):
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
                     base.currentTroop = (base.currentTroop - 1) % len(base.troopList)
-            if keys[ord(KEY_NEXT_TROOP)]:
+            if controls.is_action_active(controls.ACTION_UNIT_NEXT, keys, modifiers_state):
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
                     base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
             if radius.cooldown > 0:
                 radius.cooldown -= 0.1  # Réduction du cooldown
             else:
-                if keys[getattr(pygame, f'K_{KEY_ATTACK}')]:
+                if controls.is_action_active(controls.ACTION_UNIT_ATTACK, keys, modifiers_state):
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
             # Changement du mode d'attaque avec Tab
-            if keys[pygame.K_TAB]:
+            if controls.is_action_active(controls.ACTION_UNIT_ATTACK_MODE, keys, modifiers_state):
                 if esper.has_component(entity, RadiusComponent):
                     radius = esper.component_for_entity(entity, RadiusComponent)
                     radius.can_shoot_from_side = not radius.can_shoot_from_side
     
             # GESTION DE LA CAPACITÉ SPÉCIALE
-            if keys[getattr(pygame, f'K_{KEY_SPECIAL_ABILITY}')]:
+            if controls.is_action_active(controls.ACTION_UNIT_SPECIAL, keys, modifiers_state):
                 if not self.special_ability_pressed:
                     self.special_ability_pressed = True
                     

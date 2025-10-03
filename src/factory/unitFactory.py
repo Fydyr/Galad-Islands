@@ -1,7 +1,19 @@
-"""Factory de création des entités d'unités du jeu."""
+"""Factory de création des entités d'unités du jeu et accès au catalogue."""
+
+from typing import Iterable, Optional, Tuple
 
 import esper as es
-from src.factory.unitType import UnitType
+from src.factory.unitType import (
+    FactionUnitConfig,
+    UnitKey,
+    UnitMetadata,
+    UnitType,
+    get_shop_config,
+    get_unit_metadata,
+    get_unit_type_from_shop_id as _catalog_unit_lookup,
+    iterable_shop_configs,
+    purchasable_units,
+)
 from src.constants.gameplay import (
     # Directions par défaut
     ALLY_DEFAULT_DIRECTION, ENEMY_DEFAULT_DIRECTION,
@@ -33,9 +45,8 @@ from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
 from src.settings.localization import t
 
 
-
-
-def UnitFactory(unit: UnitType, enemy: bool, pos):
+def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
+    """Instancie une entité Esper correspondant au type d'unité fourni."""
     entity = None
     match(unit):
         case UnitType.SCOUT:
@@ -159,20 +170,14 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
         case _:
             pass
 
-    if entity is not None and unit in (
-        UnitType.SCOUT,
-        UnitType.MARAUDEUR,
-        UnitType.LEVIATHAN,
-        UnitType.DRUID,
-        UnitType.ARCHITECT,
-    ):
-        config = unit.get_shop_config(enemy)
+    if entity is not None and unit in purchasable_units():
+        config = get_shop_config(unit, enemy)
         display_name = t(config.name_key)
         if not es.has_component(entity, ClasseComponent):
             es.add_component(
                 entity,
                 ClasseComponent(
-                    unit_type=unit.name,
+                    unit_type=unit,
                     shop_id=config.shop_id,
                     display_name=display_name,
                     is_enemy=enemy,
@@ -180,3 +185,29 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             )
 
     return entity if entity is not None else None
+
+
+def iter_unit_shop_configs(enemy: bool = False) -> Iterable[Tuple[UnitKey, FactionUnitConfig]]:
+    """Retourne un générateur sur les configurations boutique connues."""
+
+    yield from iterable_shop_configs(enemy)
+
+
+def resolve_unit_type_from_shop_id(shop_id: str) -> Optional[UnitKey]:
+    """Associe l'identifiant boutique fourni à un type d'unité constant."""
+
+    return _catalog_unit_lookup(shop_id)
+
+
+def get_unit_metadata_for(unit: UnitKey) -> UnitMetadata:
+    """Expose les métadonnées détaillées d'un type d'unité."""
+
+    return get_unit_metadata(unit)
+
+
+__all__ = [
+    "UnitFactory",
+    "iter_unit_shop_configs",
+    "resolve_unit_type_from_shop_id",
+    "get_unit_metadata_for",
+]
