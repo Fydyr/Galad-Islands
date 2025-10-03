@@ -56,6 +56,8 @@ def create_projectile(entity):
         ))
 
         esper.add_component(bullet_entity, CanCollideComponent())
+        # Identifier cette entité comme un projectile
+        esper.add_component(bullet_entity, ProjectileComponent("bullet"))
 
         # Utiliser le SpriteManager pour les projectiles
         sprite_id = SpriteID.EXPLOSION
@@ -71,5 +73,3 @@ def create_projectile(entity):
                 PROJECTILE_HEIGHT
             ))
     
-    # Identifier cette entité comme un projectile
-    esper.add_component(bullet_entity, ProjectileComponent("bullet"))
