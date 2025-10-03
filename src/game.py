@@ -531,7 +531,7 @@ class GameEngine:
         # Créer des unités ennemies pour les tests
         enemy_anchor_x, enemy_anchor_y = base_manager.get_spawn_position(is_enemy=True, jitter=0)
         enemy_offsets = [
-            (0.0, 0.0),
+            (-0.8 * TILE_SIZE, 0.0),
             (-0.6 * TILE_SIZE, 0.0),
             (0.0, -0.6 * TILE_SIZE),
             (-0.4 * TILE_SIZE, -0.4 * TILE_SIZE),
