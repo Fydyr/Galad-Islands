@@ -10,19 +10,19 @@ Le camp adverse dispose aussi de **5 unités principales**, chacune avec ses pro
 
 | Unité        | Type         | Rôle                  | Vie  | Attaque | Spécialité                |
 |--------------|--------------|-----------------------|------|---------|---------------------------|
-| **Valkar**   | Intercepteur | Harcèlement           | 90   | 30      | Vitesse, esquive          |
-| **Goliath**  | Blindé       | Percée/Front          | 400  | 120     | Armure lourde, zone       |
-| **Spectre**  | Furtif       | Sabotage              | 110  | 40      | Invisibilité, sabotage    |
-| **Nécroprêtre** | Soutien   | Affaiblissement       | 130  | 0       | Malédiction, drain de vie |
-| **Bastion**  | Défenseur    | Plateforme mobile     | 350  | 60      | Bouclier, défense         |
+| **Éclaireur Ennemi** | Intercepteur | Harcèlement     | 90   | 30      | Vitesse, esquive          |
+| **Guerrier Ennemi**  | Blindé       | Percée/Front    | 400  | 120     | Armure lourde, zone       |
+| **Brute Ennemie**    | Furtif       | Sabotage        | 110  | 40      | Invisibilité, sabotage    |
+| **Chaman Ennemi**    | Soutien      | Affaiblissement | 130  | 0       | Malédiction, drain de vie |
+| **Ingénieur Ennemi** | Défenseur    | Plateforme      | 350  | 60      | Bouclier, défense         |
 
 ---
 
-### ⚡ Valkar — Intercepteur rapide
+### ⚡ Éclaireur Ennemi
 
-![Valkar](../assets/sprites/units/enemy/valkar.png)
+![Éclaireur Ennemi](../assets/sprites/units/enemy/Scout.png)
 
-#### Caractéristiques de Valkar
+#### Caractéristiques de l'Éclaireur Ennemi
 
 - **Type** : Unité de harcèlement rapide
 - **Vitesse** : ⭐⭐⭐⭐⭐ (Très rapide)
@@ -30,23 +30,23 @@ Le camp adverse dispose aussi de **5 unités principales**, chacune avec ses pro
 - **Attaque** : ⭐⭐ (Rapide, faible)
 - **Spécialité** : Esquive accrue
 
-#### Capacité spéciale de Valkar : Rafale d’esquive (`R`)
+#### Capacité spéciale de l'Éclaireur Ennemi : Rafale d’esquive (`R`)
 
 - **Effet** : Devient temporairement intouchable pendant 2 secondes
 - **Cooldown** : 12 secondes
 
-#### Utilisation tactique de Valkar
+#### Utilisation tactique de l'Éclaireur Ennemi
 
-!!! warning "Menace Valkar"
-    Les Valkar sont utilisés pour harceler vos éclaireurs, couper les renforts et détourner l’attention. Ils sont dangereux en groupe mais tombent vite sous le feu concentré.
+!!! warning "Menace : Éclaireur Ennemi"
+    Les éclaireurs ennemis sont utilisés pour harceler vos éclaireurs, couper les renforts et détourner l’attention. Ils sont dangereux en groupe mais tombent vite sous le feu concentré.
 
 ---
 
-### 🛡️ Goliath — Blindé lourd
+### 🛡️ Guerrier Ennemi
 
-![Goliath](../assets/sprites/units/enemy/goliath.png)
+![Guerrier Ennemi](../assets/sprites/units/enemy/Maraudeur.png)
 
-#### Caractéristiques de Goliath
+#### Caractéristiques du Guerrier Ennemi
 
 - **Type** : Unité de percée blindée
 - **Vitesse** : ⭐ (Très lent)
@@ -54,23 +54,23 @@ Le camp adverse dispose aussi de **5 unités principales**, chacune avec ses pro
 - **Attaque** : ⭐⭐⭐⭐ (Zone)
 - **Spécialité** : Dégâts de zone
 
-#### Capacité spéciale de Goliath : Choc de masse (`R`)
+#### Capacité spéciale du Guerrier Ennemi : Choc de masse (`R`)
 
 - **Effet** : Inflige des dégâts de zone et repousse les unités proches
 - **Cooldown** : 25 secondes
 
-#### Utilisation tactique de Goliath
+#### Utilisation tactique du Guerrier Ennemi
 
-!!! danger "Menace Goliath"
-    Les Goliath sont utilisés pour briser vos lignes et absorber les dégâts. Évitez de les affronter sans soutien ou sans unités à dégâts élevés.
+!!! danger "Menace : Guerrier Ennemi"
+    Les guerriers ennemis sont utilisés pour briser vos lignes et absorber les dégâts. Évitez de les affronter sans soutien ou sans unités à dégâts élevés.
 
 ---
 
-### 👻 Spectre — Saboteur furtif
+### 👻 Brute Ennemie — (shop id: `enemy_brute`)
 
-![Spectre](../assets/sprites/units/enemy/spectre.png)
+![Brute Ennemie](../assets/sprites/units/enemy/Leviathan.png)
 
-#### Caractéristiques de Spectre
+#### Caractéristiques de la Brute Ennemie
 
 - **Type** : Unité furtive
 - **Vitesse** : ⭐⭐⭐⭐ (Rapide)
@@ -78,23 +78,23 @@ Le camp adverse dispose aussi de **5 unités principales**, chacune avec ses pro
 - **Attaque** : ⭐⭐ (Sabotage)
 - **Spécialité** : Invisibilité
 
-#### Capacité spéciale de Spectre : Camouflage (`R`)
+#### Capacité spéciale de la Brute Ennemie : Camouflage (`R`)
 
 - **Effet** : Devient invisible pendant 8 secondes
 - **Cooldown** : 18 secondes
 
-#### Utilisation tactique de Spectre
+#### Utilisation tactique de la Brute Ennemie
 
-!!! warning "Menace Spectre"
-    Les Spectres infiltrent vos lignes pour saboter vos bâtiments ou éliminer vos soutiens. Utilisez des éclaireurs ou des tours pour les détecter.
+!!! warning "Menace : Brute Ennemie"
+    Les brutes ennemies brisent les lignes et perturbent les formations ; attention à leur présence dans les combats rapprochés.
 
 ---
 
-### ☠️ Nécroprêtre — Soutien occulte
+### ☠️ Chaman Ennemi
 
-![Nécroprêtre](../assets/sprites/units/enemy/necropretre.png)
+![Chaman Ennemi](../assets/sprites/units/enemy/Druid.png)
 
-#### Caractéristiques de Nécroprêtre
+#### Caractéristiques du Chaman Ennemi
 
 - **Type** : Soutien/mage
 - **Vitesse** : ⭐⭐ (Lent)
@@ -102,23 +102,23 @@ Le camp adverse dispose aussi de **5 unités principales**, chacune avec ses pro
 - **Attaque** : - (Aucune directe)
 - **Spécialité** : Affaiblissement, drain
 
-#### Capacité spéciale de Nécroprêtre : Malédiction (`R`)
+#### Capacité spéciale du Chaman Ennemi : Malédiction (`R`)
 
 - **Effet** : Réduit l’attaque et la défense des unités proches
 - **Cooldown** : 20 secondes
 
-#### Utilisation tactique de Nécroprêtre
+#### Utilisation tactique du Chaman Ennemi
 
-!!! tip "Menace Nécroprêtre"
-    Les Nécroprêtres affaiblissent vos troupes et soignent les ennemis. Ciblez-les en priorité lors des affrontements.
+!!! tip "Menace : Chaman Ennemi"
+    Les chamans ennemis affaiblissent vos troupes et soignent les autres ennemis. Ciblez-les en priorité lors des affrontements.
 
 ---
 
-### 🏰 Bastion — Plateforme défensive mobile
+### 🏰 Ingénieur Ennemi
 
-![Bastion](../assets/sprites/units/enemy/bastion.png)
+![Ingénieur Ennemi](../assets/sprites/units/enemy/Architect.png)
 
-#### Caractéristiques de Bastion
+#### Caractéristiques de l'Ingénieur Ennemi
 
 - **Type** : Défenseur mobile
 - **Vitesse** : ⭐ (Très lent)
@@ -126,15 +126,15 @@ Le camp adverse dispose aussi de **5 unités principales**, chacune avec ses pro
 - **Attaque** : ⭐⭐⭐ (Défense)
 - **Spécialité** : Bouclier protecteur
 
-#### Capacité spéciale de Bastion : Bouclier énergétique (`R`)
+#### Capacité spéciale de l'Ingénieur Ennemi : Bouclier énergétique (`R`)
 
 - **Effet** : Génère un bouclier qui réduit de 50% les dégâts subis pendant 10 secondes
 - **Cooldown** : 30 secondes
 
-#### Utilisation tactique de Bastion
+#### Utilisation tactique de l'Ingénieur Ennemi
 
-!!! warning "Menace Bastion"
-    Les Bastions protègent les points stratégiques et couvrent la retraite des autres unités. Détruisez-les pour percer les défenses ennemies.
+!!! warning "Menace : Ingénieur Ennemi"
+    Les ingénieurs ennemis construisent et protègent des positions défensives ; détruisez leurs installations pour percer les défenses ennemies.
 
 ---
 

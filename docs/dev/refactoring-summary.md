@@ -2,8 +2,7 @@
 
 ## ✅ **Travail Accompli**
 
-### **1. Composants Refactorisés (100% terminé)**
-- ✅ **18 composants** convertis de l'ancien format vers de vraies dataclasses
+### **1. Systèmes Créés**
 - ✅ **Type hints cohérents** ajoutés partout
 - ✅ **Enums créées** pour remplacer les entiers magiques (`Team`, `UnitClass`)
 - ✅ **Hiérarchie ECS** mise en place avec classes de base
@@ -23,19 +22,6 @@
 
 ```
 src/
-├── components/
-│   ├── base_component.py          # Classes de base ECS
-│   └── properties/
-│       ├── team_enum.py           # Enum Team (ALLY, ENEMY, NEUTRAL)
-│       ├── unit_class_enum.py     # Enum UnitClass (ZASPER, BARHAMUS, etc.)
-│       ├── positionComponent.py   # Position avec types clairs
-│       ├── healthComponent.py     # Santé avec propriétés calculées
-│       ├── attackComponent.py     # Attaque avec damage/range/cooldown
-│       ├── spriteComponent.py     # Sprites sans logique
-│       └── ability/               # Habilités spéciales refactorisées
-│           ├── ZasperAbilityComponent.py
-│           ├── BarhamusAbilityComponent.py
-│           └── [autres abilities...]
 └── systems/
     ├── __init__.py               # Exports des systèmes
     ├── sprite_system.py          # Cache et rendu sprites
