@@ -10,10 +10,12 @@ def processHealth(entity, damage):
     if esper.has_component(entity, SpeMaraudeur):
         shield = esper.component_for_entity(entity, SpeMaraudeur)
         damage = shield.apply_damage_reduction(damage)
+        print(f"[handleHealth] Maraudeur reduction applied: new_damage={damage}")
     # Vérifie si l'entité possède l'invincibilité du Zasper
     if esper.has_component(entity, SpeScout):
         invincibility = esper.component_for_entity(entity, SpeScout)
         if invincibility.is_invincible():
+            print(f"[handleHealth] Scout invincible detected for entity {entity}")
             damage = 0
     # Sinon, applique les dégâts normalement
     if health.currentHealth > 0:

@@ -31,9 +31,11 @@ from src.components.properties.classeComponent import ClasseComponent
 
 # Importations des capacités spéciales
 
-from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
 from src.components.properties.ability.speScoutComponent import SpeScout
+from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
 from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
+from src.components.properties.ability.speDruidComponent import SpeDruid
+from src.components.properties.ability.speArchitectComponent import SpeArchitect
 
 # Importations des factories et fonctions utilitaires
 from src.factory.unitFactory import UnitFactory
@@ -46,6 +48,8 @@ from src.functions.baseManager import get_base_manager
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.exit_modal import ExitConfirmationModal
+
+
 
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
@@ -109,6 +113,9 @@ class EventHandler:
             self.game_engine.cycle_selection_team()
             return
         elif self._handle_group_shortcuts(event):
+            return
+        elif controls.matches_action(controls.ACTION_UNIT_SPECIAL, event):
+            self.game_engine.trigger_selected_special_ability()
             return
         else:
             if controls.matches_action(controls.ACTION_UNIT_PREVIOUS, event):
@@ -456,6 +463,7 @@ class GameEngine:
         
         # Initialiser l'ActionBar
         self.action_bar = ActionBar(self.window.get_width(), self.window.get_height())
+        self.action_bar.set_game_engine(self)  # Connecter la référence au moteur de jeu
         self.action_bar.on_camp_change = self._handle_action_bar_camp_change
         self.action_bar.set_camp(self.selection_team_filter, show_feedback=False)
         
@@ -759,6 +767,89 @@ class GameEngine:
             # On relance une attaque sans attendre le cooldown
             es.dispatch_event("attack_event", entity)
             # Le cooldown reste inchangé (déjà appliqué)
+
+    def trigger_selected_special_ability(self):
+        """Déclenche la capacité spéciale de l'unité sélectionnée selon sa classe."""
+        if self.selected_unit_id is None:
+            return
+
+        entity = self.selected_unit_id
+        if entity not in es._entities:
+            self._set_selected_entity(None)
+            return
+
+        if es.has_component(entity, TeamComponent):
+            team = es.component_for_entity(entity, TeamComponent)
+            if team.team_id != Team.ALLY:
+                return
+
+
+        # Scout : manœuvre d'évasion
+        if es.has_component(entity, SpeScout):
+            scout_comp = es.component_for_entity(entity, SpeScout)
+            if scout_comp.can_activate():
+                scout_comp.activate()
+                print(f"Capacité spéciale Scout activée pour l'unité {entity}")
+            else:
+                print(f"Capacité Scout en cooldown pour l'unité {entity}")
+
+        # Maraudeur : bouclier de mana
+        elif es.has_component(entity, SpeMaraudeur):
+            maraudeur_comp = es.component_for_entity(entity, SpeMaraudeur)
+            if maraudeur_comp.can_activate():
+                maraudeur_comp.activate()
+                print(f"Capacité spéciale Maraudeur activée pour l'unité {entity}")
+            else:
+                print(f"Capacité Maraudeur en cooldown pour l'unité {entity}")
+
+        # Leviathan : seconde salve
+        elif es.has_component(entity, SpeLeviathan):
+            leviathan_comp = es.component_for_entity(entity, SpeLeviathan)
+            if leviathan_comp.can_activate():
+                leviathan_comp.activate()
+                print(f"Capacité spéciale Leviathan activée pour l'unité {entity}")
+            else:
+                print(f"Capacité Leviathan en cooldown pour l'unité {entity}")
+
+        # Druid : lierre volant
+        elif es.has_component(entity, SpeDruid):
+            druid_comp = es.component_for_entity(entity, SpeDruid)
+            if druid_comp.can_cast_ivy():
+                # Pour le Druid, on a besoin d'une cible - utiliser la position de la souris ou l'ennemi le plus proche
+                # Pour l'instant, on active juste le système
+                druid_comp.available = False
+                druid_comp.cooldown = druid_comp.cooldown_duration
+                print(f"Capacité spéciale Druid activée pour l'unité {entity}")
+            else:
+                print(f"Capacité Druid en cooldown pour l'unité {entity}")
+
+        # Architect : rechargement automatique
+        elif es.has_component(entity, SpeArchitect):
+            architect_comp = es.component_for_entity(entity, SpeArchitect)
+            if architect_comp.available:
+                # Trouver les unités alliées dans le rayon
+                # Les imports sont déjà disponibles en haut du fichier
+                
+                if es.has_component(entity, PositionComponent):
+                    architect_pos = es.component_for_entity(entity, PositionComponent)
+                    affected_units = []
+                    
+                    # Chercher les unités alliées dans le rayon
+                    for ally_entity, (pos, team) in es.get_components(PositionComponent, TeamComponent):
+                        if team.team_id == Team.ALLY and ally_entity != entity:
+                            distance = ((pos.x - architect_pos.x) ** 2 + (pos.y - architect_pos.y) ** 2) ** 0.5
+                            if distance <= architect_comp.radius:
+                                affected_units.append(ally_entity)
+                    
+                    architect_comp.activate(affected_units, 10.0)  # 10 secondes d'effet
+                    print(f"Capacité spéciale Architect activée pour l'unité {entity} affectant {len(affected_units)} unités")
+                else:
+                    print(f"Impossible d'activer la capacité Architect - pas de position")
+            else:
+                print(f"Capacité Architect en cooldown pour l'unité {entity}")
+
+        else:
+            print(f"Aucune capacité spéciale disponible pour l'unité {entity}")
 
     def _get_player_units(self) -> List[int]:
         """Retourne la liste triée des unités pour la faction active."""

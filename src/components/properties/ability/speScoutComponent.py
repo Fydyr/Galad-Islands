@@ -20,6 +20,7 @@ class SpeScout:
             self.is_active = True
             self.timer = self.duration
             self.cooldown_timer = self.cooldown
+            print(f"[SpeScout] activated: duration={self.duration}, cooldown={self.cooldown}")
             return True
         return False
 
