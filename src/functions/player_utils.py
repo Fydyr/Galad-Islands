@@ -3,6 +3,7 @@ Fonctions utilitaires pour accéder aux entités joueur et gérer leur or.
 """
 import esper
 from src.components.properties.playerComponent import PlayerComponent
+from src.constants.gameplay import PLAYER_DEFAULT_GOLD
 from src.components.properties.teamComponent import TeamComponent
 from src.constants.team import Team
 from typing import Optional
@@ -19,7 +20,7 @@ def get_player_entity(is_enemy: bool = False) -> Optional[int]:
     # Si pas trouvé, créer l'entité joueur manquante
     print(f"Création d'une entité joueur {'ennemie' if is_enemy else 'alliée'}")
     entity = esper.create_entity()
-    esper.add_component(entity, PlayerComponent(stored_gold=100))
+    esper.add_component(entity, PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD))
     team_value = Team.ENEMY if is_enemy else Team.ALLY
     esper.add_component(entity, TeamComponent(team_value))
     return entity

@@ -5,6 +5,10 @@ import os
 import pygame
 import sys
 from PIL import Image
+from src.constants.gameplay import (
+    MODAL_DEFAULT_MAX_WIDTH, MODAL_DEFAULT_GIF_DURATION,
+    MODAL_ERROR_SURFACE_WIDTH, MODAL_ERROR_SURFACE_HEIGHT
+)
 
 # Constantes de couleurs
 WHITE = (255, 255, 255)
@@ -15,7 +19,7 @@ LIGHT_GRAY = (192, 192, 192)
 
 class GifAnimation:
     """Classe pour gérer les GIF animés"""
-    def __init__(self, path, max_width=620):
+    def __init__(self, path, max_width=MODAL_DEFAULT_MAX_WIDTH):
         self.frames = []
         self.durations = []
         self.current_frame = 0
@@ -42,12 +46,12 @@ class GifAnimation:
                 
                 self.frames.append(pygame_surface)
                 # Durée en millisecondes (par défaut 100ms si non spécifié)
-                duration = gif.info.get('duration', 100)
+                duration = gif.info.get('duration', MODAL_DEFAULT_GIF_DURATION)
                 self.durations.append(duration)
         except Exception as e:
             print(f"Erreur lors du chargement du GIF: {e}")
             # Créer un frame d'erreur
-            error_surface = pygame.Surface((200, 100))
+            error_surface = pygame.Surface((MODAL_ERROR_SURFACE_WIDTH, MODAL_ERROR_SURFACE_HEIGHT))
             error_surface.fill((100, 100, 100))
             font = pygame.font.SysFont("Arial", 16)
             text = font.render("Erreur GIF", True, WHITE)

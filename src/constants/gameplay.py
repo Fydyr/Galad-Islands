@@ -48,6 +48,9 @@ SHOP_TAB_WIDTH = 160
 SHOP_TAB_HEIGHT = 40
 SHOP_TAB_SPACING = 10
 
+# Constantes du joueur
+PLAYER_DEFAULT_GOLD = 100
+
 # Constantes de la boutique - Items
 SHOP_ITEM_WIDTH = 200
 SHOP_ITEM_HEIGHT = 100
@@ -147,12 +150,49 @@ PROJECTILE_HEIGHT = 10
 EXPLOSION_SIZE_WIDTH = 20
 EXPLOSION_SIZE_HEIGHT = 10
 
-# Vie des unités (par type)
+# Vie des unités (par type) - Valeurs mises à jour depuis unitFactory.py
 UNIT_HEALTH_SCOUT = 60
-UNIT_HEALTH_MARAUDEUR = 80
-UNIT_HEALTH_LEVIATHAN = 120
-UNIT_HEALTH_DRUID = 70
-UNIT_HEALTH_ARCHITECT = 75
+UNIT_HEALTH_MARAUDEUR = 130  # Était 80, mise à jour depuis factory
+UNIT_HEALTH_LEVIATHAN = 300  # Était 120, mise à jour depuis factory
+UNIT_HEALTH_DRUID = 130      # Était 70, mise à jour depuis factory
+UNIT_HEALTH_ARCHITECT = 130  # Était 75, mise à jour depuis factory
+
+# Vitesses des unités (par type)
+UNIT_SPEED_SCOUT = 5.0
+UNIT_SPEED_MARAUDEUR = 3.5
+UNIT_SPEED_LEVIATHAN = 2.0
+UNIT_SPEED_DRUID = 3.5
+UNIT_SPEED_ARCHITECT = 3.5
+
+# Vitesses de recul des unités (par type)
+UNIT_REVERSE_SPEED_SCOUT = -1.0
+UNIT_REVERSE_SPEED_MARAUDEUR = -0.6
+UNIT_REVERSE_SPEED_LEVIATHAN = -0.2
+UNIT_REVERSE_SPEED_DRUID = -0.6
+UNIT_REVERSE_SPEED_ARCHITECT = -0.6
+
+# Attaques des unités (par type)
+UNIT_ATTACK_SCOUT = 10
+UNIT_ATTACK_MARAUDEUR = 20
+UNIT_ATTACK_LEVIATHAN = 30
+UNIT_ATTACK_DRUID = 20
+UNIT_ATTACK_ARCHITECT = 20
+
+# Cooldowns d'attaque des unités (en secondes)
+UNIT_COOLDOWN_SCOUT = 2
+UNIT_COOLDOWN_MARAUDEUR = 4
+UNIT_COOLDOWN_LEVIATHAN = 8
+UNIT_COOLDOWN_DRUID = 4
+UNIT_COOLDOWN_ARCHITECT = 4
+
+# Capacités spéciales
+DRUID_COOLDOWN_DURATION = 15.0     # Cooldown de la capacité druide
+DRUID_IMMOBILIZATION_DURATION = 5.0 # Durée d'immobilisation
+DRUID_PROJECTILE_SPEED = 300.0     # Vitesse du projectile druide
+
+ARCHITECT_RADIUS = 400.0           # Rayon d'effet de l'architecte
+ARCHITECT_RELOAD_FACTOR = 1.0      # Facteur de rechargement
+ARCHITECT_DURATION = 10.0          # Durée de l'effet architecte
 
 # Vie des bases
 BASE_HEALTH = 1000
