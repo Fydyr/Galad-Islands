@@ -87,9 +87,6 @@ class CollisionProcessor(esper.Processor):
                     # Peut entrer en collision
                     esper.add_component(mine_entity, CanCollide())
                     
-                    # Team neutre (pour qu'elle touche tout le monde)
-                    esper.add_component(mine_entity, Team(team_id=2))
-                    
                     mine_count += 1
         
 
@@ -115,8 +112,8 @@ class CollisionProcessor(esper.Processor):
                     already_hit.append((ent, other_ent))
                     already_hit.append((other_ent, ent))
                     
-                    # Si c'est la même équipe, ignorer SAUF si une des deux est une mine (team_id=2)
-                    if team.team_id == other_team.team_id and team.team_id != 2 and other_team.team_id != 2:
+                    # Si c'est la même équipe, ignorer SAUF si une des deux est une mine (team_id=0)
+                    if team.team_id == other_team.team_id and team.team_id != 0 and other_team.team_id != 0:
                         continue
                     
                     # Gérer la collision entre les deux entités
