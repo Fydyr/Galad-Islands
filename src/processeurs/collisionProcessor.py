@@ -87,6 +87,9 @@ class CollisionProcessor(esper.Processor):
                     # Peut entrer en collision
                     esper.add_component(mine_entity, CanCollide())
                     
+                    # Team neutre (pour qu'elle touche tout le monde)
+                    esper.add_component(mine_entity, Team(team_id=0))
+                    
                     mine_count += 1
         
 
