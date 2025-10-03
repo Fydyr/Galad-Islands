@@ -29,7 +29,6 @@ class MovementProcessor(esper.Processor):
             effective_speed = 0
             if vel.currentSpeed != 0:
                 effective_speed = vel.currentSpeed * vel.terrain_modifier
-                print(f"Debug Movement: Speed={vel.currentSpeed}, Modifier={vel.terrain_modifier}, Effective={effective_speed}")
             
             # Ne bouger que si la vitesse effective != 0
             if effective_speed != 0:

@@ -111,7 +111,7 @@
 4. **Ile inaccessible** : Pas de passage disponible
 
 **Solutions :**
-- **Clic maintenu** pour sélection multiple
+- **Utiliser** les groupes (`Ctrl + numéro`) pour rappeler rapidement l'unité voulue
 - **Double-clic** pour déplacer en force
 - **Attendre** la fin des animations
 - **Vérifier** les connexions entre îles

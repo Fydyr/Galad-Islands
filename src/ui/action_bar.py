@@ -10,6 +10,8 @@ from src.ui.boutique import Shop, ShopFaction
 from src.settings.localization import t
 from src.constants.team import Team
 from src.functions.player_utils import get_player_gold, set_player_gold
+from src.settings import controls
+from src.managers.sprite_manager import sprite_manager, SpriteID
 
 
 # Couleurs de l'interface améliorées
@@ -147,6 +149,7 @@ class ActionBar:
         self.shop = Shop(screen_width, screen_height, 
                         get_player_gold=self._get_current_player_gold,
                         set_player_gold=self._set_current_player_gold)
+        self.on_camp_change: Optional[Callable[[int], None]] = None
         
         # Configurations des unités (placeholder)
         self.unit_configs = {
@@ -189,7 +192,7 @@ class ActionBar:
                 icon_path="assets/sprites/ui/shop_icon.png",
                 text=t("actionbar.shop"),
                 cost=0,
-                hotkey="B",
+                hotkey=self._get_hotkey_for_action("system_shop"),
                 tooltip=t("tooltip.shop"),
                 callback=self._open_shop
             )
@@ -348,18 +351,34 @@ class ActionBar:
                 self._show_feedback("warning", t("shop.insufficient_gold"))
         return callback
     
-    def _switch_camp(self):
-        """Bascule entre les camps ally/enemy (placeholder)."""
-        self.current_camp = Team.ENEMY if self.current_camp == Team.ALLY else Team.ALLY
-        camp_name = t("camp.ally") if self.current_camp == Team.ALLY else t("camp.enemy")
-        
-        # Changer la faction de la boutique en conséquence
-        new_faction = ShopFaction.ALLY if self.current_camp == Team.ALLY else ShopFaction.ENEMY
+    def set_camp(self, team: int, show_feedback: bool = False) -> None:
+        """Met à jour le camp courant et synchronise la boutique."""
+        if team == self.current_camp:
+            if show_feedback:
+                camp_name = t("camp.ally") if self.current_camp == Team.ALLY else t("camp.enemy")
+                feedback = t("camp.feedback", camp=camp_name)
+                self._show_feedback("success", feedback)
+                print(f"[INFO] {feedback} (Team: {self.current_camp})")
+            return
+
+        self.current_camp = team
+        new_faction = ShopFaction.ALLY if team == Team.ALLY else ShopFaction.ENEMY
         self.shop.switch_faction(new_faction)
-        
-        print(f"[PLACEHOLDER] Changement de camp vers: {camp_name} (Team: {self.current_camp})")
-        self._show_feedback("success", f"Camp: {camp_name}")
-        print(f"Boutique changée vers la faction: {new_faction.value}")
+
+        if show_feedback:
+            camp_name = t("camp.ally") if self.current_camp == Team.ALLY else t("camp.enemy")
+            feedback = t("camp.feedback", camp=camp_name)
+            self._show_feedback("success", feedback)
+            print(f"[INFO] {feedback} (Team: {self.current_camp})")
+
+    def _switch_camp(self):
+        """Bascule entre les camps ally/enemy et notifie le moteur."""
+        new_team = Team.ENEMY if self.current_camp == Team.ALLY else Team.ALLY
+
+        if self.on_camp_change is not None:
+            self.on_camp_change(new_team)
+        else:
+            self.set_camp(new_team, show_feedback=True)
     
     def _activate_global_attack(self):
         """Active le boost d'attaque global (placeholder)."""
@@ -412,13 +431,25 @@ class ActionBar:
         print(f"[PLACEHOLDER] Changement de mode: {old_mode} → {self.current_mode}")
         self._show_feedback("success", f"Mode: {mode_name}")
     
-    def _get_current_player_gold(self) -> int:
-        """Retourne l'or du joueur pour le camp actuel."""
-        return get_player_gold(self.current_camp == Team.ENEMY)
+    def _get_hotkey_for_action(self, action: str) -> str:
+        """Retourne le raccourci clavier pour une action donnée."""
+        bindings = controls.get_bindings(action)
+        if bindings:
+            # Prendre le premier binding et le simplifier
+            binding = bindings[0].upper()
+            # Si c'est une combinaison, prendre seulement la dernière partie
+            if "+" in binding:
+                binding = binding.split("+")[-1]
+            return binding
+        return ""
     
     def _set_current_player_gold(self, gold: int):
         """Met à jour l'or du joueur pour le camp actuel."""
         set_player_gold(gold, self.current_camp == Team.ENEMY)
+    
+    def _get_current_player_gold(self) -> int:
+        """Retourne l'or du joueur pour le camp actuel."""
+        return get_player_gold(self.current_camp == Team.ENEMY)
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Gère les événements pour la barre d'action."""
@@ -504,7 +535,8 @@ class ActionBar:
         key_char = pygame.key.name(key)
         
         # Raccourci spécial pour changement de camp
-        if key_char == "t":
+        camp_hotkey = self._get_hotkey_for_action("selection_cycle_team").lower()
+        if key_char == camp_hotkey:
             self._switch_camp()
             return True
         
@@ -662,7 +694,8 @@ class ActionBar:
         surface.blit(text_surface, text_rect)
         
         # Raccourci clavier en bas du bouton
-        shortcut_surface = self.font_small.render("T", True, UIColors.TEXT_DISABLED)
+        camp_hotkey = self._get_hotkey_for_action("selection_cycle_team")
+        shortcut_surface = self.font_small.render(camp_hotkey, True, UIColors.TEXT_DISABLED)
         shortcut_rect = shortcut_surface.get_rect()
         shortcut_rect.centerx = self.camp_button_rect.centerx
         shortcut_rect.bottom = self.camp_button_rect.bottom - 2
@@ -756,7 +789,6 @@ class ActionBar:
         # Or du joueur (ligne 1)
         current_gold = get_player_gold(self.current_camp == Team.ENEMY)
         try:
-            from src.managers.sprite_manager import sprite_manager, SpriteID
             gold_icon = sprite_manager.load_sprite(SpriteID.UI_BITCOIN)
         except Exception:
             gold_icon = None

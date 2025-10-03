@@ -43,7 +43,6 @@ class CollisionProcessor(esper.Processor):
         if not self.graph:
             return
         
-        print("Debug: Initialisation des entités mines...")
         mine_count = 0
         
         for y in range(len(self.graph)):
@@ -92,7 +91,6 @@ class CollisionProcessor(esper.Processor):
                     
                     mine_count += 1
         
-        print(f"Debug: {mine_count} entités mines créées")
 
     def _process_entity_collisions(self):
         """Gère les collisions entre entités (logique existante)"""
@@ -134,13 +132,10 @@ class CollisionProcessor(esper.Processor):
         # Si un projectile touche une mine, la mine ne prend pas de dégâts
         # Mais le projectile peut être détruit
         if (is_projectile1 and is_mine2) or (is_projectile2 and is_mine1):
-            print(f"Debug: Projectile touche une mine - mine résiste à l'impact")
             # Détruire seulement le projectile
             if is_projectile1:
-                print(f"Debug: Projectile {entity1} détruit par mine")
                 esper.delete_entity(entity1)
             if is_projectile2:
-                print(f"Debug: Projectile {entity2} détruit par mine")
                 esper.delete_entity(entity2)
             # La mine ne prend aucun dégât et reste en place
             return
@@ -156,11 +151,9 @@ class CollisionProcessor(esper.Processor):
         if attack1 and health2:
             damage = attack1.hitPoints
             health2.currentHealth -= damage
-            print(f"Debug: Entité {entity1} inflige {damage} dégâts à {entity2} (HP: {health2.currentHealth}/{health2.maxHealth})")
             
             # Détruire entity2 si mort
             if health2.currentHealth <= 0:
-                print(f"Debug: Entité {entity2} détruite")
                 self._destroy_mine_on_grid(entity2)
                 esper.delete_entity(entity2)
         
@@ -168,11 +161,10 @@ class CollisionProcessor(esper.Processor):
         if attack2 and health1:
             damage = attack2.hitPoints
             health1.currentHealth -= damage
-            print(f"Debug: Entité {entity2} inflige {damage} dégâts à {entity1} (HP: {health1.currentHealth}/{health1.maxHealth})")
+            
             
             # Détruire entity1 si mort
             if health1.currentHealth <= 0:
-                print(f"Debug: Entité {entity1} détruite")
                 self._destroy_mine_on_grid(entity1)
                 esper.delete_entity(entity1)
         
@@ -199,7 +191,6 @@ class CollisionProcessor(esper.Processor):
                         0 <= grid_x < len(self.graph[0]) and
                         self.graph[grid_y][grid_x] == 3):
                         self.graph[grid_y][grid_x] = 0  # Remplacer par de l'eau
-                        print(f"Debug: Mine détruite sur la grille en ({grid_x}, {grid_y})")
                         
                         # Dispatcher événement d'explosion
                         esper.dispatch_event('mine_explosion', pos.x, pos.y)
@@ -287,20 +278,13 @@ class CollisionProcessor(esper.Processor):
         is_projectile = esper.has_component(entity, ProjectileComponent)
         if not effect['can_pass']:
             if is_projectile:
-                print(f"Debug: Projectile {entity} détruit par collision avec {terrain_type}")
                 esper.delete_entity(entity)
                 return
             else:
                 velocity.currentSpeed = 0
                 velocity.terrain_modifier = 0.0
-                print(f"Debug: Mouvement bloqué par {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
         else:
             velocity.terrain_modifier = effect['speed_modifier']
-            print(f"Debug: Terrain {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
-            if terrain_type == 'cloud':
-                print(f"Debug: Passage dans nuage, vitesse réduite à {effect['speed_modifier']*100}%")
-            elif terrain_type == 'water':
-                print(f"Debug: Navigation normale en mer")
                 
     def _is_mine_entity(self, entity):
         """Vérifie si une entité est une mine (health max = 1)"""

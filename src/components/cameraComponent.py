@@ -1,6 +1,18 @@
 # Importation des modules nécessaires
 import pygame
-from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED, config_manager
+from src.settings import controls
+from src.settings.settings import (
+    MAP_WIDTH,
+    MAP_HEIGHT,
+    TILE_SIZE,
+    SCREEN_WIDTH,
+    SCREEN_HEIGHT,
+    CAMERA_SPEED,
+    ZOOM_MIN,
+    ZOOM_MAX,
+    ZOOM_SPEED,
+    config_manager,
+)
 
 
 class Camera:
@@ -19,19 +31,29 @@ class Camera:
         self.world_width = MAP_WIDTH * TILE_SIZE
         self.world_height = MAP_HEIGHT * TILE_SIZE
         
-    def update(self, dt, keys):
+    def update(self, dt, keys, modifiers_state: int | None = None):
         """Met à jour la position de la caméra selon les entrées clavier."""
+        if modifiers_state is None:
+            modifiers_state = pygame.key.get_mods()
+
         sensitivity = config_manager.get("camera_sensitivity", 1.0)
-        move_speed = CAMERA_SPEED * sensitivity * dt / self.zoom  # Plus on zoome, plus on bouge lentement
-        
-        # Déplacement avec les flèches uniquement (ne pas utiliser Z/Q/S/D)
-        if keys[pygame.K_LEFT]:
+        base_speed = CAMERA_SPEED * sensitivity * dt / self.zoom  # Plus on zoome, plus on bouge lentement
+
+        fast_multiplier = config_manager.get_camera_fast_multiplier()
+        is_fast = controls.is_action_active(
+            controls.ACTION_CAMERA_FAST_MODIFIER,
+            pressed_keys=keys,
+            modifiers_state=modifiers_state,
+        )
+        move_speed = base_speed * fast_multiplier if is_fast else base_speed
+
+        if controls.is_action_active(controls.ACTION_CAMERA_MOVE_LEFT, keys, modifiers_state):
             self.x -= move_speed
-        if keys[pygame.K_RIGHT]:
+        if controls.is_action_active(controls.ACTION_CAMERA_MOVE_RIGHT, keys, modifiers_state):
             self.x += move_speed
-        if keys[pygame.K_UP]:
+        if controls.is_action_active(controls.ACTION_CAMERA_MOVE_UP, keys, modifiers_state):
             self.y -= move_speed
-        if keys[pygame.K_DOWN]:
+        if controls.is_action_active(controls.ACTION_CAMERA_MOVE_DOWN, keys, modifiers_state):
             self.y += move_speed
             
         # Contraindre la caméra dans les limites du monde
@@ -104,9 +126,6 @@ class Camera:
     
     def get_visible_tiles(self):
         """Retourne les indices des tuiles visibles à l'écran."""
-        # Calculer les limites en coordonnées tuiles
-        tile_size_zoomed = TILE_SIZE * self.zoom
-        
         # Limites du monde visible
         start_x = max(0, int(self.x // TILE_SIZE))
         start_y = max(0, int(self.y // TILE_SIZE))
@@ -114,3 +133,9 @@ class Camera:
         end_y = min(MAP_HEIGHT, int((self.y + self.screen_height / self.zoom) // TILE_SIZE) + 1)
         
         return start_x, start_y, end_x, end_y
+
+    def center_on(self, world_x: float, world_y: float) -> None:
+        """Centre la caméra sur une position exprimée en coordonnées monde."""
+        self.x = world_x - (self.screen_width / (2 * self.zoom))
+        self.y = world_y - (self.screen_height / (2 * self.zoom))
+        self._constrain_camera()
