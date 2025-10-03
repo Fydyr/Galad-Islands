@@ -13,6 +13,9 @@ from src.constants.gameplay import (
     PROJECTILE_WIDTH, PROJECTILE_HEIGHT
 )
 from src.managers.sprite_manager import SpriteID, sprite_manager
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_projectile(entity):
     pos = esper.component_for_entity(entity, PositionComponent)
@@ -30,6 +33,7 @@ def create_projectile(entity):
         angles = [pos.direction]
 
     for angle in angles:
+        logger.debug("create_projectile -> entity=%s angle=%s", entity, angle)
         bullet_entity = esper.create_entity()
         esper.add_component(bullet_entity, TeamComponent(
             team_id=team_id  
