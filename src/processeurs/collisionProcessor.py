@@ -285,22 +285,35 @@ class CollisionProcessor(esper.Processor):
             return
         effect = self.terrain_effects[terrain_type]
         is_projectile = esper.has_component(entity, ProjectileComponent)
+        # Les projectiles traversent les îles, mais pas les bases/mine
         if not effect['can_pass']:
             if is_projectile:
-                print(f"Debug: Projectile {entity} détruit par collision avec {terrain_type}")
-                esper.delete_entity(entity)
-                return
+                # Détruire seulement si base ou mine, PAS pour les îles
+                if terrain_type in ['ally_base', 'enemy_base', 'mine']:
+                    print(f"Debug: Projectile {entity} détruit par collision avec {terrain_type}")
+                    esper.delete_entity(entity)
+                    return
+                # Sinon (ex: île), traverser sans effet
+                else:
+                    # Pas de destruction, pas de blocage
+                    velocity.terrain_modifier = 1.0
+                    return
             else:
                 velocity.currentSpeed = 0
                 velocity.terrain_modifier = 0.0
                 print(f"Debug: Mouvement bloqué par {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
         else:
-            velocity.terrain_modifier = effect['speed_modifier']
-            print(f"Debug: Terrain {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
-            if terrain_type == 'cloud':
-                print(f"Debug: Passage dans nuage, vitesse réduite à {effect['speed_modifier']*100}%")
-            elif terrain_type == 'water':
-                print(f"Debug: Navigation normale en mer")
+            if is_projectile and terrain_type == 'cloud':
+                # Les projectiles ne sont pas ralentis dans les nuages
+                velocity.terrain_modifier = 1.0
+                print(f"Debug: Projectile traverse nuage sans ralentissement")
+            else:
+                velocity.terrain_modifier = effect['speed_modifier']
+                print(f"Debug: Terrain {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
+                if terrain_type == 'cloud':
+                    print(f"Debug: Passage dans nuage, vitesse réduite à {effect['speed_modifier']*100}%")
+                elif terrain_type == 'water':
+                    print(f"Debug: Navigation normale en mer")
                 
     def _is_mine_entity(self, entity):
         """Vérifie si une entité est une mine (health max = 1)"""
