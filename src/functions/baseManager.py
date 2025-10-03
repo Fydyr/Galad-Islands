@@ -23,11 +23,19 @@ class BaseManager:
         self.ally_base_entity = None
         self.enemy_base_entity = None
         self.initialized = False
+
+    def reset(self) -> None:
+        """Réinitialise les références pour forcer une recréation propre."""
+        self.ally_base_entity = None
+        self.enemy_base_entity = None
+        self.initialized = False
     
     def initialize_bases(self):
         """Crée les entités de base si elles n'existent pas déjà."""
-        if self.initialized:
+        if self.initialized and self._bases_are_valid():
             return
+        if self.initialized and not self._bases_are_valid():
+            self.reset()
         
         # Position de la base alliée (grille 1,1 à 4,4)
         ally_center_x = (1 + 4) / 2 * TILE_SIZE
@@ -95,8 +103,18 @@ class BaseManager:
         ))
         
         self.initialized = True
-        print(f"Debug: Bases initialisées - Alliée: {self.ally_base_entity}, Ennemie: {self.enemy_base_entity}")
     
+    def _bases_are_valid(self) -> bool:
+        """Vérifie que les entités de bases sont toujours présentes dans l'ECS."""
+        if self.ally_base_entity is None or self.enemy_base_entity is None:
+            return False
+        try:
+            ally_ok = esper.has_component(self.ally_base_entity, BaseComponent)
+            enemy_ok = esper.has_component(self.enemy_base_entity, BaseComponent)
+        except KeyError:
+            return False
+        return ally_ok and enemy_ok
+
     def get_ally_base(self):
         """Retourne l'entité de base alliée."""
         if not self.initialized:
@@ -121,8 +139,6 @@ class BaseManager:
             base_component = esper.component_for_entity(base_entity, BaseComponent)
             base_component.troopList.append(unit_entity)
             
-            faction_name = "ennemie" if is_enemy else "alliée"
-            print(f"Debug: Unité {unit_entity} ajoutée à la base {faction_name}. Total: {len(base_component.troopList)} unités")
             return True
         
         return False

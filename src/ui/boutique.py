@@ -6,8 +6,11 @@ import math
 import os
 import random
 from src.settings.localization import t
-from src.factory.unitFactory import UnitFactory
-from src.factory.unitType import UnitType, get_unit_type_from_shop_id
+from src.factory.unitFactory import (
+    UnitFactory,
+    iter_unit_shop_configs,
+    resolve_unit_type_from_shop_id,
+)
 from src.components.properties.positionComponent import PositionComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 from src.functions.baseManager import get_base_manager
@@ -246,9 +249,9 @@ class UnifiedShop:
             self.shop_items[ShopCategory.BUILDINGS].append(item)
     
     def _populate_unit_items(self, is_enemy: bool):
-        """Ajoute les unités disponibles en se basant sur les UnitType."""
+        """Ajoute les unités disponibles en se basant sur le catalogue de la factory."""
 
-        for unit_type, faction_config in UnitType.iterable_shop_configs(enemy=is_enemy):
+        for unit_type, faction_config in iter_unit_shop_configs(enemy=is_enemy):
             config_data = dict(faction_config.stats)
             config_data["description_key"] = faction_config.description_key
 
@@ -273,8 +276,8 @@ class UnifiedShop:
         return PositionComponent(spawn_x, spawn_y)
     
     def _map_boutique_id_to_unit_type(self, unit_id: str):
-        """Mappe un ID de la boutique vers un UnitType de ta factory."""
-        return get_unit_type_from_shop_id(unit_id)
+        """Mappe un identifiant boutique vers le type d'unité constant exposé par la factory."""
+        return resolve_unit_type_from_shop_id(unit_id)
     
     def _create_stats_description(self, config: Dict) -> str:
         """Crée une description formatée pour les statistiques d'une unité."""

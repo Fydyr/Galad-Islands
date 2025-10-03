@@ -174,3 +174,80 @@ class InputField(UIComponent):
                 self.callback(self.text)
             return True
         return False
+
+
+class KeyBindingRow(UIComponent):
+    """Ligne interactive permettant de modifier une association de touches."""
+
+    def __init__(
+        self,
+        rect: pygame.Rect,
+        action: str,
+        label: str,
+        label_font: pygame.font.Font,
+        binding_font: pygame.font.Font,
+        binding_text: str,
+        on_rebind: Optional[Callable[[str], None]] = None,
+        capturing: bool = False,
+    ):
+        super().__init__(rect)
+        self.action = action
+        self.label = label
+        self.label_font = label_font
+        self.binding_font = binding_font
+        self.binding_text = binding_text
+        self.on_rebind = on_rebind
+        self.capturing = capturing
+
+    def set_binding_text(self, binding_text: str) -> None:
+        """Met à jour le texte affiché pour l'association actuelle."""
+        self.binding_text = binding_text
+
+    def set_capturing(self, capturing: bool) -> None:
+        """Active l'état de capture visuel."""
+        self.capturing = capturing
+
+    def _binding_rect(self) -> pygame.Rect:
+        """Calcule la zone cliquable correspondant à l'association."""
+        padding = 8
+        height = self.rect.height - 2 * padding
+        width = max(160, int(self.rect.width * 0.4))
+        x = self.rect.right - width - padding
+        y = self.rect.top + padding
+        return pygame.Rect(x, y, width, height)
+
+    def draw(self, surface: pygame.Surface) -> None:
+        if not self.visible:
+            return
+
+        background_color = (50, 50, 50)
+        pygame.draw.rect(surface, background_color, self.rect, border_radius=6)
+        pygame.draw.rect(surface, (30, 30, 30), self.rect, 2, border_radius=6)
+
+        label_surface = self.label_font.render(self.label, True, (220, 220, 220))
+        label_position = (
+            self.rect.left + 12,
+            self.rect.top + (self.rect.height - label_surface.get_height()) // 2,
+        )
+        surface.blit(label_surface, label_position)
+
+        binding_rect = self._binding_rect()
+        binding_color = (110, 80, 160) if self.capturing else (70, 70, 70)
+        pygame.draw.rect(surface, binding_color, binding_rect, border_radius=6)
+        pygame.draw.rect(surface, (180, 180, 180), binding_rect, 1, border_radius=6)
+
+        binding_surface = self.binding_font.render(self.binding_text, True, (240, 240, 240))
+        binding_position = binding_surface.get_rect(center=binding_rect.center)
+        surface.blit(binding_surface, binding_position)
+
+    def handle_event(self, event: pygame.event.Event) -> bool:
+        if not self.visible or not self.enabled:
+            return False
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self._binding_rect().collidepoint(event.pos):
+                if self.on_rebind:
+                    self.on_rebind(self.action)
+                return True
+
+        return False

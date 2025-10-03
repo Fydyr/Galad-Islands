@@ -78,12 +78,11 @@ L'interface de Galad Islands est conçue pour être intuitive et accessible, ave
 - **Cooldowns** : Temps de recharge restant
 - **Coûts** : Or nécessaire pour activer
 
-#### Sélection multiple
+#### Gestion de la sélection
 
-**Compteur de groupe**
-- **Affichage** : "X unités sélectionnées"
-- **Types** : Répartition par type d'unité
-- **Commandes** : Actions applicables au groupe
+- **Focus unique** : L'interface affiche toujours l'unité actuellement ciblée
+- **Raccourcis de groupe** : Utilisez `Ctrl + Maj + (1-9)` puis `Ctrl + (1-9)` pour basculer rapidement
+- **Bascule de faction** : `T` permet de changer la faction prise en compte
 
 ### États et notifications
 
@@ -173,7 +172,7 @@ L'interface de Galad Islands est conçue pour être intuitive et accessible, ave
     **Pour devenir plus efficace :**
     
     1. **Mémorisez** les raccourcis les plus utilisés (`B`, `Q`, `E`)
-    2. **Utilisez** la sélection multiple pour les commandes de groupe
+  2. **Enregistrez** vos unités clés dans des groupes (`Ctrl + Maj + numéro`)
     3. **Surveillez** constamment vos ressources et cooldowns
     4. **Personnalisez** l'interface selon vos préférences
 

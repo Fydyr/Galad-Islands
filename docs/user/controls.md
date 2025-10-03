@@ -69,12 +69,12 @@
 | `Espace` | Recentrer sur l'unité sélectionnée |
 | `C` | Basculer entre vue libre et suivi d'unité |
 
-### Sélection multiple
+### Groupes de contrôle
 | Combinaison | Action |
 |-------------|--------|
-| `Shift + 1-9` | Ajouter une unité à la sélection |
-| `Ctrl + 1-9` | Sélection rapide de groupe |
-| `Ctrl + A` | Sélectionner toutes les unités |
+| `Ctrl + Shift + 1-9` | Assigner l'unité courante au groupe |
+| `Ctrl + 1-9` | Rappeler un groupe enregistré |
+| `Ctrl + A` | Cibler l'unité principale de la faction active |
 
 ## 📱 Interface tactile (si supportée)
 

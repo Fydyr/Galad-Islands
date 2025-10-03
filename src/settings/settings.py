@@ -6,6 +6,7 @@ Centralise la gestion des paramètres utilisateur et des constantes de jeu.
 import json
 import math
 import os
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -25,8 +26,40 @@ DEFAULT_CONFIG = {
     "vsync": True,
     "show_fps": False,
     "language": "fr",
-    "camera_sensitivity": 1.0
+    "camera_sensitivity": 1.0,
+    "camera_fast_multiplier": 2.5,
+    "key_bindings": {
+        "unit_move_forward": ["z"],
+        "unit_move_backward": ["s"],
+        "unit_turn_left": ["q"],
+        "unit_turn_right": ["d"],
+        "unit_stop": ["lctrl", "rctrl"],
+        "unit_attack": ["a"],
+        "unit_attack_mode": ["tab"],
+        "unit_special": ["e"],
+        "unit_previous": ["1"],
+        "unit_next": ["2"],
+        "camera_move_left": ["left"],
+        "camera_move_right": ["right"],
+        "camera_move_up": ["up"],
+        "camera_move_down": ["down"],
+    "camera_fast_modifier": ["ctrl"],
+    "camera_follow_toggle": ["c"],
+        "selection_select_all": ["ctrl+a"],
+        "selection_cycle_team": ["t"],
+        "system_pause": ["escape"],
+        "system_help": ["f1"],
+        "system_debug": ["f3"]
+    }
 }
+
+for _slot in range(1, 10):
+    DEFAULT_CONFIG["key_bindings"].setdefault(
+        f"selection_group_assign_{_slot}", [f"ctrl+shift+{_slot}"]
+    )
+    DEFAULT_CONFIG["key_bindings"].setdefault(
+        f"selection_group_select_{_slot}", [f"ctrl+{_slot}"]
+    )
 
 AVAILABLE_RESOLUTIONS = [
     (800, 600, "800x600"),
@@ -43,7 +76,7 @@ class ConfigManager:
     
     def __init__(self, config_path: str = CONFIG_FILE):
         self.path = config_path
-        self.config = DEFAULT_CONFIG.copy()
+        self.config = deepcopy(DEFAULT_CONFIG)
         self.load_config()
 
     def load_config(self) -> None:
@@ -55,7 +88,11 @@ class ConfigManager:
                     # Validation et fusion avec la config par défaut
                     for key, value in saved_config.items():
                         if key in self.config:
-                            self.config[key] = value
+                            default_value = self.config[key]
+                            if isinstance(default_value, dict) and isinstance(value, dict):
+                                self.config[key] = self._merge_nested_dicts(default_value, value)
+                            else:
+                                self.config[key] = value
                 print(f"Configuration chargée depuis {self.path}")
             else:
                 print("Fichier de configuration non trouvé, utilisation des valeurs par défaut")
@@ -87,7 +124,7 @@ class ConfigManager:
 
     def reset_to_defaults(self) -> None:
         """Remet la configuration aux valeurs par défaut."""
-        self.config = DEFAULT_CONFIG.copy()
+        self.config = deepcopy(DEFAULT_CONFIG)
 
     # Méthodes spécifiques pour les paramètres fréquemment utilisés
     def get_resolution(self) -> Tuple[int, int]:
@@ -116,6 +153,36 @@ class ConfigManager:
     def set_camera_sensitivity(self, sensitivity: float) -> None:
         """Définit la sensibilité de la caméra (0.1 à 5.0)."""
         self.config["camera_sensitivity"] = max(0.1, min(5.0, float(sensitivity)))
+
+    def get_camera_fast_multiplier(self) -> float:
+        """Retourne le multiplicateur de vitesse lorsque l'accélération caméra est active."""
+        return max(1.0, float(self.config.get("camera_fast_multiplier", 2.5)))
+
+    def set_camera_fast_multiplier(self, multiplier: float) -> None:
+        """Met à jour le multiplicateur de vitesse pour le déplacement rapide de la caméra."""
+        self.config["camera_fast_multiplier"] = max(1.0, float(multiplier))
+
+    def get_key_bindings(self) -> Dict[str, List[str]]:
+        """Retourne une copie des associations de touches personnalisées."""
+        key_bindings = self.config.get("key_bindings", {})
+        return deepcopy(key_bindings) if isinstance(key_bindings, dict) else {}
+
+    def set_key_binding(self, action: str, bindings: List[str]) -> None:
+        """Met à jour les touches associées à une action spécifique."""
+        if action:
+            if "key_bindings" not in self.config or not isinstance(self.config["key_bindings"], dict):
+                self.config["key_bindings"] = {}
+            self.config["key_bindings"][action] = list(bindings)
+
+    def _merge_nested_dicts(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+        """Fusionne récursivement deux dictionnaires sans perdre les valeurs par défaut."""
+        result = deepcopy(base)
+        for key, value in override.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = self._merge_nested_dicts(result[key], value)
+            else:
+                result[key] = value
+        return result
 
 
 # Instance globale du gestionnaire de configuration

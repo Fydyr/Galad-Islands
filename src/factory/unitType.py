@@ -1,9 +1,10 @@
-"""Définition des types d'unités et de leurs métadonnées boutique."""
+"""Définition immuable des unités disponibles et de leurs métadonnées boutique."""
 
 from dataclasses import dataclass
-from enum import Enum
 from types import MappingProxyType
 from typing import Dict, Iterable, Mapping, Optional, Tuple
+
+UnitKey = str
 
 
 @dataclass(frozen=True)
@@ -18,17 +19,42 @@ class FactionUnitConfig:
 
 @dataclass(frozen=True)
 class UnitMetadata:
-    """Métadonnées complètes pour un type d'unité."""
+    """Métadonnées complètes décrivant un type d'unité."""
 
     order: int
     ally: FactionUnitConfig
     enemy: FactionUnitConfig
 
 
-class UnitType(Enum):
-    """Types d'unités disponibles dans le jeu."""
+class UnitType:
+    """Constantes identifiant chaque type d'unité du jeu."""
 
-    SCOUT = UnitMetadata(
+    SCOUT: UnitKey = "SCOUT"
+    MARAUDEUR: UnitKey = "MARAUDEUR"
+    LEVIATHAN: UnitKey = "LEVIATHAN"
+    DRUID: UnitKey = "DRUID"
+    ARCHITECT: UnitKey = "ARCHITECT"
+    ATTACK_TOWER: UnitKey = "ATTACK_TOWER"
+    HEAL_TOWER: UnitKey = "HEAL_TOWER"
+
+    PURCHASABLE: Tuple[UnitKey, ...] = (
+        SCOUT,
+        MARAUDEUR,
+        LEVIATHAN,
+        DRUID,
+        ARCHITECT,
+    )
+
+    BUILDINGS: Tuple[UnitKey, ...] = (
+        ATTACK_TOWER,
+        HEAL_TOWER,
+    )
+
+    REGISTRY: Tuple[UnitKey, ...] = PURCHASABLE + BUILDINGS
+
+
+_RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
+    UnitType.SCOUT: UnitMetadata(
         order=1,
         ally=FactionUnitConfig(
             shop_id="zasper",
@@ -52,8 +78,8 @@ class UnitType(Enum):
                 "degats_max": 18,
             }),
         ),
-    )
-    MARAUDEUR = UnitMetadata(
+    ),
+    UnitType.MARAUDEUR: UnitMetadata(
         order=2,
         ally=FactionUnitConfig(
             shop_id="barhamus",
@@ -77,8 +103,8 @@ class UnitType(Enum):
                 "degats_max_salve": 35,
             }),
         ),
-    )
-    LEVIATHAN = UnitMetadata(
+    ),
+    UnitType.LEVIATHAN: UnitMetadata(
         order=3,
         ally=FactionUnitConfig(
             shop_id="draupnir",
@@ -102,8 +128,8 @@ class UnitType(Enum):
                 "degats_max_salve": 65,
             }),
         ),
-    )
-    DRUID = UnitMetadata(
+    ),
+    UnitType.DRUID: UnitMetadata(
         order=4,
         ally=FactionUnitConfig(
             shop_id="druid",
@@ -125,8 +151,8 @@ class UnitType(Enum):
                 "soin": 25,
             }),
         ),
-    )
-    ARCHITECT = UnitMetadata(
+    ),
+    UnitType.ARCHITECT: UnitMetadata(
         order=5,
         ally=FactionUnitConfig(
             shop_id="architect",
@@ -148,8 +174,8 @@ class UnitType(Enum):
                 "degats": 5,
             }),
         ),
-    )
-    ATTACK_TOWER = UnitMetadata(
+    ),
+    UnitType.ATTACK_TOWER: UnitMetadata(
         order=101,
         ally=FactionUnitConfig(
             shop_id="defense_tower",
@@ -171,8 +197,8 @@ class UnitType(Enum):
                 "radius_action": 9,
             }),
         ),
-    )
-    HEAL_TOWER = UnitMetadata(
+    ),
+    UnitType.HEAL_TOWER: UnitMetadata(
         order=102,
         ally=FactionUnitConfig(
             shop_id="heal_tower",
@@ -194,39 +220,64 @@ class UnitType(Enum):
                 "radius_action": 6,
             }),
         ),
+    ),
+}
+
+UNIT_METADATA: Mapping[UnitKey, UnitMetadata] = MappingProxyType(_RAW_UNIT_METADATA)
+
+
+def get_unit_metadata(unit_type: UnitKey) -> UnitMetadata:
+    """Retourne les métadonnées associées à un type d'unité."""
+
+    return UNIT_METADATA[unit_type]
+
+
+def get_shop_config(unit_type: UnitKey, enemy: bool = False) -> FactionUnitConfig:
+    """Retourne la configuration boutique d'un type d'unité pour une faction."""
+
+    metadata = get_unit_metadata(unit_type)
+    return metadata.enemy if enemy else metadata.ally
+
+
+def iterable_shop_configs(enemy: bool = False) -> Iterable[Tuple[UnitKey, FactionUnitConfig]]:
+    """Itère sur les configurations boutique des unités achetables."""
+
+    for unit_key in UnitType.PURCHASABLE:
+        yield unit_key, get_shop_config(unit_key, enemy)
+
+
+def purchasable_units() -> Tuple[UnitKey, ...]:
+    """Retourne l'ordre canonique des unités achetables."""
+
+    return UnitType.PURCHASABLE
+
+
+SHOP_UNIT_ID_INDEX: Dict[str, UnitKey] = {
+    config.shop_id: unit_key
+    for unit_key in UnitType.PURCHASABLE
+    for config in (
+        UNIT_METADATA[unit_key].ally,
+        UNIT_METADATA[unit_key].enemy,
     )
-
-    def get_shop_config(self, enemy: bool = False) -> FactionUnitConfig:
-        """Retourne la configuration boutique correspondant à la faction."""
-
-        return self.value.enemy if enemy else self.value.ally
-
-    @classmethod
-    def purchasable_units(cls) -> Tuple["UnitType", ...]:
-        """Retourne l'ordre des unités disponibles à l'achat."""
-
-        ordered_units = (cls.SCOUT, cls.MARAUDEUR, cls.LEVIATHAN, cls.DRUID, cls.ARCHITECT)
-        return ordered_units
-
-    @classmethod
-    def iterable_shop_configs(
-        cls, enemy: bool = False
-    ) -> Iterable[Tuple["UnitType", FactionUnitConfig]]:
-        """Itère sur les configurations boutique triées pour une faction."""
-
-        for unit_type in cls.purchasable_units():
-            yield unit_type, unit_type.get_shop_config(enemy)
-
-
-# Indexation directe des identifiants boutique vers leur UnitType
-SHOP_UNIT_ID_INDEX: Dict[str, UnitType] = {
-    config.shop_id: unit_type
-    for unit_type in UnitType.purchasable_units()
-    for config in (unit_type.value.ally, unit_type.value.enemy)
 }
 
 
-def get_unit_type_from_shop_id(shop_id: str) -> Optional[UnitType]:
-    """Retrouve le UnitType associé à un identifiant boutique."""
+def get_unit_type_from_shop_id(shop_id: str) -> Optional[UnitKey]:
+    """Retrouve le type d'unité associé à un identifiant boutique."""
 
     return SHOP_UNIT_ID_INDEX.get(shop_id)
+
+
+__all__ = [
+    "FactionUnitConfig",
+    "UnitMetadata",
+    "UnitType",
+    "UNIT_METADATA",
+    "UnitKey",
+    "get_unit_metadata",
+    "get_shop_config",
+    "iterable_shop_configs",
+    "purchasable_units",
+    "get_unit_type_from_shop_id",
+    "SHOP_UNIT_ID_INDEX",
+]

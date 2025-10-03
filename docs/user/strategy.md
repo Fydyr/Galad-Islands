@@ -48,10 +48,10 @@
 #### Focus Fire (Concentration de tir)
 
 **Méthode :**
-1. **Sélection multiple** (`Ctrl + clic`)
-2. **Cible unique** (unité ennemie la plus dangereuse)
-3. **Élimination rapide** avant changement de cible
-4. **Répétition** sur prochaine priorité
+1. **Attribuez** vos unités offensives à un groupe (`Ctrl + Maj + numéro`)
+2. **Rappelez** le groupe voulu (`Ctrl + numéro`)
+3. **Verrouillez** une cible prioritaire (ennemi le plus dangereux)
+4. **Enchaînez** les priorités jusqu'à neutralisation complète
 
 **Priorités d'élimination :**
 1. **Druid** ennemi (soin = menace)
