@@ -12,6 +12,9 @@ from src.settings.localization import t
 from src.settings.docs_manager import get_help_path
 from src.settings import controls
 from src.constants.team import Team
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Importations des processeurs
 from src.processeurs import movementProcessor, collisionProcessor, playerControlProcessor
@@ -763,6 +766,11 @@ class GameEngine:
 
         # Si Leviathan et capacité active, déclenche une seconde salve immédiate
         if leviathan_comp is not None and getattr(leviathan_comp, "is_active", False):
+            # Log pour debug : on détecte que la capacité est active
+            try:
+                logger.debug("trigger_selected_attack -> Leviathan active for entity %s (cooldown_timer=%s)", entity, getattr(leviathan_comp, 'cooldown_timer', None))
+            except Exception:
+                pass
             # On désactive la capacité après usage (sécurité)
             leviathan_comp.is_active = False
             # On relance une attaque sans attendre le cooldown
@@ -807,10 +815,33 @@ class GameEngine:
         elif es.has_component(entity, SpeLeviathan):
             leviathan_comp = es.component_for_entity(entity, SpeLeviathan)
             if leviathan_comp.can_activate():
-                leviathan_comp.activate()
-                print(f"Capacité spéciale Leviathan activée pour l'unité {entity}")
-            else:
-                print(f"Capacité Leviathan en cooldown pour l'unité {entity}")
+                # Activer la capacité et tirer immédiatement une seconde salve
+                activated = leviathan_comp.activate()
+                if activated:
+                    # Consommer immédiatement la capacité : tirer maintenant
+                    # On ne laisse pas pending (is_active) vrai car on consomme tout de suite
+                    try:
+                        # Log debug
+                        logger.debug("trigger_selected_special_ability -> Leviathan activate & immediate shot for entity %s", entity)
+                    except Exception:
+                        pass
+                    # Dispatch d'un attack_event immédiat
+                    es.dispatch_event("attack_event", entity)
+                    # Jouer un son de feedback si disponible
+                    try:
+                        if getattr(self, 'select_sound', None):
+                            self.select_sound.play()
+                    except Exception:
+                        pass
+                    # Vérifier que la capacité reste en pending (is_active True)
+                    try:
+                        logger.debug("trigger_selected_special_ability -> after immediate shot, is_active=%s, cooldown_timer=%s", getattr(leviathan_comp, 'is_active', None), getattr(leviathan_comp, 'cooldown_timer', None))
+                    except Exception:
+                        pass
+                    print(f"Capacité spéciale Leviathan activée et tir immédiat pour l'unité {entity}")
+                else:
+                    print(f"Capacité Leviathan en cooldown pour l'unité {entity}")
+                
 
         # Druid : lierre volant
         elif es.has_component(entity, SpeDruid):
