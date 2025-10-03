@@ -10,6 +10,7 @@ from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.settings.settings import TILE_SIZE
 import math
+from src.components.properties.lifetimeComponent import LifetimeComponent
 
 class CollisionProcessor(esper.Processor):
     def __init__(self, graph=None):
@@ -135,12 +136,14 @@ class CollisionProcessor(esper.Processor):
         # Mais le projectile peut être détruit
         if (is_projectile1 and is_mine2) or (is_projectile2 and is_mine1):
             print(f"Debug: Projectile touche une mine - mine résiste à l'impact")
-            # Détruire seulement le projectile
+            # Détruire seulement le projectile et créer une explosion
             if is_projectile1:
                 print(f"Debug: Projectile {entity1} détruit par mine")
+                self._create_explosion_at_entity(entity1)
                 esper.delete_entity(entity1)
             if is_projectile2:
                 print(f"Debug: Projectile {entity2} détruit par mine")
+                self._create_explosion_at_entity(entity2)
                 esper.delete_entity(entity2)
             # La mine ne prend aucun dégât et reste en place
             return
@@ -162,6 +165,8 @@ class CollisionProcessor(esper.Processor):
             if health2.currentHealth <= 0:
                 print(f"Debug: Entité {entity2} détruite")
                 self._destroy_mine_on_grid(entity2)
+                if esper.has_component(entity2, ProjectileComponent):
+                    self._create_explosion_at_entity(entity2)
                 esper.delete_entity(entity2)
         
         # Entity2 inflige des dégâts à Entity1
@@ -174,10 +179,40 @@ class CollisionProcessor(esper.Processor):
             if health1.currentHealth <= 0:
                 print(f"Debug: Entité {entity1} détruite")
                 self._destroy_mine_on_grid(entity1)
+                if esper.has_component(entity1, ProjectileComponent):
+                    self._create_explosion_at_entity(entity1)
                 esper.delete_entity(entity1)
+
+    def _create_explosion_at_entity(self, entity):
+        """Crée une entité explosion à la position de l'entité donnée (projectile)"""
+        from src.managers.sprite_manager import SpriteID, sprite_manager
+        from src.components.properties.positionComponent import PositionComponent
+        from src.components.properties.spriteComponent import SpriteComponent
+        if not esper.has_component(entity, PositionComponent):
+            return
+        pos = esper.component_for_entity(entity, PositionComponent)
+        explosion_entity = esper.create_entity()
+        esper.add_component(explosion_entity, PositionComponent(
+            x=pos.x,
+            y=pos.y,
+            direction=pos.direction if hasattr(pos, 'direction') else 0
+        ))
+        # Sprite d'explosion
+        sprite_id = SpriteID.EXPLOSION
+        size = sprite_manager.get_default_size(sprite_id)
+        if size:
+            width, height = size
+            esper.add_component(explosion_entity, sprite_manager.create_sprite_component(sprite_id, width, height))
+        else:
+            esper.add_component(explosion_entity, SpriteComponent(
+                "assets/sprites/projectile/explosion.png",
+                32, 32
+            ))
+        # Durée de vie temporaire pour l'explosion (ex: 0.4s)
+        esper.add_component(explosion_entity, LifetimeComponent(0.4))
         
         # Dispatcher l'événement original pour compatibilité
-        esper.dispatch_event('entities_hit', entity1, entity2)
+            # esper.dispatch_event('entities_hit', entity1, entity2)
 
     def _destroy_mine_on_grid(self, entity):
         """Détruit la mine sur la grille si l'entité est une mine"""

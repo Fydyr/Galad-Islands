@@ -16,6 +16,7 @@ from src.constants.team import Team
 # Importations des processeurs
 from src.processeurs import movementProcessor, collisionProcessor, playerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
+from src.processeurs.lifetimeProcessor import LifetimeProcessor
 
 # Importations des composants
 from src.components.properties.positionComponent import PositionComponent
@@ -373,6 +374,7 @@ class GameEngine:
         self.collision_processor = None
         self.player_controls = None
         self.capacities_processor = None
+        self.lifetime_processor = None
 
         # Gestion de la sélection des unités
         self.selected_unit_id = None
@@ -435,10 +437,12 @@ class GameEngine:
         self.collision_processor = collisionProcessor.CollisionProcessor(graph=self.grid)
         self.player_controls = playerControlProcessor.PlayerControlProcessor()
         self.capacities_processor = CapacitiesSpecialesProcessor()
+        self.lifetime_processor = LifetimeProcessor()
         
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
+        es.add_processor(self.lifetime_processor, priority=10)
         
         # Configurer les handlers d'événements
         es.set_handler('attack_event', create_projectile)
