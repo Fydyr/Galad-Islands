@@ -294,7 +294,8 @@ def run_game_frame(window, game_state, dt):
 
     # Gestion des touches pressées
     keys = pygame.key.get_pressed()
-    camera.update(dt, keys)
+    modifiers_state = pygame.key.get_mods()
+    camera.update(dt, keys, modifiers_state)
     
     # Effacer l'écran
     window.fill((0, 50, 100))

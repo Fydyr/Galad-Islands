@@ -1,5 +1,5 @@
 # Importations standard
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pygame
 
@@ -10,7 +10,7 @@ import src.components.mapComponent as game_map
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path
-from src.settings.controls import KEY_PREV_TROOP, KEY_NEXT_TROOP
+from src.settings import controls
 from src.constants.team import Team
 
 # Importations des processeurs
@@ -45,6 +45,7 @@ from src.functions.baseManager import get_base_manager
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
+from src.ui.exit_modal import ExitConfirmationModal
 
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
@@ -66,6 +67,14 @@ class EventHandler:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._handle_quit()
+                continue
+
+            if self.game_engine.exit_modal.is_active():
+                if event.type == pygame.VIDEORESIZE:
+                    self._handle_resize(event)
+                else:
+                    self.game_engine.handle_exit_modal_event(event)
+                continue
             elif event.type == pygame.KEYDOWN:
                 self._handle_keydown(event)
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -81,16 +90,30 @@ class EventHandler:
         
     def _handle_keydown(self, event):
         """Gère les événements de touches pressées."""
-        if event.key == pygame.K_ESCAPE:
-            self.game_engine._quit_game()
-        elif event.key == pygame.K_F1:
+        if controls.matches_action(controls.ACTION_SYSTEM_PAUSE, event):
+            self.game_engine.open_exit_modal()
+            return
+        elif controls.matches_action(controls.ACTION_SYSTEM_HELP, event):
             self._show_help_modal()
-        elif event.key == pygame.K_F3:
+        elif controls.matches_action(controls.ACTION_SYSTEM_DEBUG, event):
             self._toggle_debug()
+        elif controls.matches_action(controls.ACTION_SYSTEM_SHOP, event):
+            self._open_shop()
+        elif controls.matches_action(controls.ACTION_CAMERA_FOLLOW_TOGGLE, event):
+            self.game_engine.toggle_camera_follow_mode()
+            return
+        elif controls.matches_action(controls.ACTION_SELECTION_SELECT_ALL, event):
+            self.game_engine.select_all_allied_units()
+            return
+        elif controls.matches_action(controls.ACTION_SELECTION_CYCLE_TEAM, event):
+            self.game_engine.cycle_selection_team()
+            return
+        elif self._handle_group_shortcuts(event):
+            return
         else:
-            if event.key == ord(KEY_PREV_TROOP):
+            if controls.matches_action(controls.ACTION_UNIT_PREVIOUS, event):
                 self.game_engine.select_previous_unit()
-            elif event.key == ord(KEY_NEXT_TROOP):
+            elif controls.matches_action(controls.ACTION_UNIT_NEXT, event):
                 self.game_engine.select_next_unit()
             
     def _handle_mousedown(self, event):
@@ -139,6 +162,31 @@ class EventHandler:
         """Bascule l'affichage des informations de debug."""
         self.game_engine.show_debug = not self.game_engine.show_debug
 
+    def _open_shop(self):
+        """Ouvre la boutique via l'ActionBar."""
+        if self.game_engine.action_bar is not None:
+            self.game_engine.action_bar._open_shop()
+
+    def _handle_group_shortcuts(self, event: pygame.event.Event) -> bool:
+        """Gère les raccourcis clavier liés aux groupes de contrôle."""
+        assign_slot = controls.resolve_group_event(
+            controls.ACTION_SELECTION_GROUP_ASSIGN_PREFIX,
+            event,
+        )
+        if assign_slot is not None:
+            self.game_engine.assign_control_group(assign_slot)
+            return True
+
+        select_slot = controls.resolve_group_event(
+            controls.ACTION_SELECTION_GROUP_SELECT_PREFIX,
+            event,
+        )
+        if select_slot is not None:
+            self.game_engine.select_control_group(select_slot)
+            return True
+
+        return False
+
 
 class GameRenderer:
     """Classe responsable de tout le rendu du jeu."""
@@ -171,6 +219,9 @@ class GameRenderer:
         if show_debug:
             self._render_debug_info(window, camera, dt)
             
+        if self.game_engine.exit_modal.is_active():
+            self.game_engine.exit_modal.render(window)
+
         pygame.display.flip()
         
     def _clear_screen(self, window):
@@ -378,10 +429,15 @@ class GameEngine:
 
         # Gestion de la sélection des unités
         self.selected_unit_id = None
+        self.camera_follow_enabled = False
+        self.camera_follow_target_id: Optional[int] = None
+        self.control_groups: Dict[int, int] = {}
+        self.selection_team_filter = Team.ALLY
         
         # Gestionnaire d'événements et rendu
         self.event_handler = EventHandler(self)
         self.renderer = GameRenderer(self)
+        self.exit_modal = ExitConfirmationModal()
         
     def initialize(self):
         """Initialise tous les composants du jeu."""
@@ -400,6 +456,8 @@ class GameEngine:
         
         # Initialiser l'ActionBar
         self.action_bar = ActionBar(self.window.get_width(), self.window.get_height())
+        self.action_bar.on_camp_change = self._handle_action_bar_camp_change
+        self.action_bar.set_camp(self.selection_team_filter, show_feedback=False)
         
         # Initialiser la carte
         self._initialize_game_map()
@@ -431,6 +489,9 @@ class GameEngine:
         
         # Nettoyer tous les processeurs existants
         es._processors.clear()
+
+        # Réinitialiser les gestionnaires globaux dépendant du monde
+        get_base_manager().reset()
         
         # Créer et ajouter les processeurs
         self.movement_processor = movementProcessor.MovementProcessor()
@@ -460,7 +521,6 @@ class GameEngine:
         # Initialiser le gestionnaire de bases
         base_manager = get_base_manager()
         base_manager.initialize_bases()
-        print("Debug: Gestionnaire de bases initialisé")
         
         # Créer les unités
         spawn_x, spawn_y = base_manager.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
@@ -505,13 +565,131 @@ class GameEngine:
         self.camera.y = center_y - self.camera.screen_height / (2 * self.camera.zoom)
         self.camera._constrain_camera()
 
-    def handle_mouse_selection(self, mouse_pos: Tuple[int, int]):
+    def toggle_camera_follow_mode(self) -> None:
+        """Bascule entre une caméra libre et le suivi de l'unité sélectionnée."""
+        if self.camera is None:
+            return
+
+        if not self.camera_follow_enabled:
+            if self.selected_unit_id is None:
+                return
+            self.camera_follow_enabled = True
+            self.camera_follow_target_id = self.selected_unit_id
+            self._center_camera_on_target()
+        else:
+            self.camera_follow_enabled = False
+            self.camera_follow_target_id = None
+
+    def _handle_action_bar_camp_change(self, team: int) -> None:
+        """Callback déclenchée par l'ActionBar lors d'un changement de camp."""
+        self.set_selection_team(team, notify=True)
+
+    def set_selection_team(self, team: int, notify: bool = False) -> None:
+        """Définit la faction active utilisée pour la sélection."""
+        if team not in (Team.ALLY, Team.ENEMY):
+            return
+
+        if team == self.selection_team_filter:
+            if notify and self.action_bar is not None:
+                self.action_bar.set_camp(team, show_feedback=True)
+            return
+
+        self.selection_team_filter = team
+        self._clear_current_selection()
+        self._update_selection_state()
+
+        if self.action_bar is not None:
+            self.action_bar.set_camp(team, show_feedback=notify)
+        elif notify:
+            camp_name = t("camp.ally") if team == Team.ALLY else t("camp.enemy")
+            feedback = t("camp.feedback", camp=camp_name)
+            print(f"[INFO] {feedback}")
+
+    def cycle_selection_team(self) -> None:
+        """Bascule sur la faction suivante pour la sélection."""
+        order = (Team.ALLY, Team.ENEMY)
+        try:
+            index = order.index(self.selection_team_filter)
+        except ValueError:
+            index = 0
+        next_team = order[(index + 1) % len(order)]
+        self.set_selection_team(next_team, notify=True)
+
+    def open_exit_modal(self) -> None:
+        """Affiche la modale de confirmation de sortie."""
+        if self.exit_modal.is_active():
+            return
+
+        target_surface = self.window or pygame.display.get_surface()
+        self.exit_modal.open(target_surface)
+
+    def close_exit_modal(self) -> None:
+        """Ferme la modale de confirmation de sortie."""
+        if not self.exit_modal.is_active():
+            return
+
+        self.exit_modal.close()
+
+    def handle_exit_modal_event(self, event: pygame.event.Event) -> bool:
+        """Transfère un événement à la modale de sortie."""
+        if not self.exit_modal.is_active():
+            return False
+
+        target_surface = self.window or pygame.display.get_surface()
+        result = self.exit_modal.handle_event(event, target_surface)
+
+        if result == "quit":
+            self._quit_game()
+            return True
+
+        if result == "stay":
+            return True
+
+        return True
+
+    def handle_mouse_selection(self, mouse_pos: Tuple[int, int]) -> None:
         """Gère la sélection via un clic gauche."""
         entity = self._find_unit_at_screen_position(mouse_pos)
-        if entity is not None:
-            self._set_selected_entity(entity)
-        else:
-            self._set_selected_entity(None)
+        self._set_selected_entity(entity)
+
+    def select_all_allied_units(self) -> None:
+        """Sélectionne la première unité contrôlable de la faction active."""
+        units = self._get_player_units()
+        self._set_selected_entity(units[0] if units else None)
+
+    def assign_control_group(self, slot: int) -> None:
+        """Enregistre la sélection courante dans le groupe indiqué."""
+        if slot < 1 or slot > 9:
+            return
+
+        if self.selected_unit_id is not None and self.selected_unit_id in es._entities:
+            self.control_groups[slot] = self.selected_unit_id
+        elif slot in self.control_groups:
+            del self.control_groups[slot]
+
+    def select_control_group(self, slot: int) -> None:
+        """Restaure la sélection associée au groupe indiqué."""
+        member = self._get_valid_group_member(slot)
+        self._set_selected_entity(member)
+
+    def _get_valid_group_member(self, slot: int) -> Optional[int]:
+        """Retourne l'unité enregistrée dans un groupe si elle est toujours valide."""
+        member = self.control_groups.get(slot)
+        if member is None:
+            return None
+
+        if member not in es._entities:
+            if slot in self.control_groups:
+                del self.control_groups[slot]
+            return None
+
+        if self.selection_team_filter in (Team.ALLY, Team.ENEMY):
+            if es.has_component(member, TeamComponent):
+                team = es.component_for_entity(member, TeamComponent)
+                if team.team_id != self.selection_team_filter:
+                    return None
+
+        return member
 
     def select_next_unit(self):
         """Sélectionne l'unité alliée suivante."""
@@ -554,6 +732,11 @@ class GameEngine:
             self._set_selected_entity(None)
             return
 
+        if es.has_component(entity, TeamComponent):
+            team = es.component_for_entity(entity, TeamComponent)
+            if team.team_id != Team.ALLY:
+                return
+
         if not es.has_component(entity, RadiusComponent):
             return
 
@@ -578,41 +761,70 @@ class GameEngine:
             # Le cooldown reste inchangé (déjà appliqué)
 
     def _get_player_units(self) -> List[int]:
-        """Retourne la liste triée des unités alliées contrôlables."""
+        """Retourne la liste triée des unités pour la faction active."""
         units: List[int] = []
+        target_team = self.selection_team_filter if self.selection_team_filter in (Team.ALLY, Team.ENEMY) else Team.ALLY
+
         for entity, (pos, sprite, team) in es.get_components(PositionComponent, SpriteComponent, TeamComponent):
-            if team.team_id == Team.ALLY:
+            if team.team_id == target_team:
                 units.append(entity)
 
         units.sort()
         return units
 
-    def _set_selected_entity(self, entity_id: Optional[int]):
+    def _clear_current_selection(self) -> None:
+        """Supprime la sélection courante et les composants associés."""
+        if self.selected_unit_id is not None and self.selected_unit_id in es._entities:
+            if es.has_component(self.selected_unit_id, PlayerSelectedComponent):
+                es.remove_component(self.selected_unit_id, PlayerSelectedComponent)
+        self.selected_unit_id = None
+
+    def _ensure_selection_component(self, entity_id: int) -> None:
+        """Ajoute le composant de sélection à l'entité si nécessaire."""
+        if entity_id in es._entities:
+            if not es.has_component(entity_id, PlayerSelectedComponent):
+                # Correction : self.player ne doit pas être None
+                player_id = self.player if self.player is not None else 0
+                es.add_component(entity_id, PlayerSelectedComponent(player_id))
+
+    def _update_selection_state(self) -> None:
+        """Synchronise l'interface et la caméra après un changement de sélection."""
+        if self.selected_unit_id is None or self.selected_unit_id not in es._entities:
+            if self.selected_unit_id is not None and self.selected_unit_id in es._entities:
+                if es.has_component(self.selected_unit_id, PlayerSelectedComponent):
+                    es.remove_component(self.selected_unit_id, PlayerSelectedComponent)
+            self.selected_unit_id = None
+            if self.action_bar is not None:
+                self.action_bar.select_unit(None)
+            if self.camera_follow_enabled:
+                self.camera_follow_enabled = False
+                self.camera_follow_target_id = None
+            return
+
+        if self.camera_follow_enabled:
+            self.camera_follow_target_id = self.selected_unit_id
+            self._center_camera_on_target()
+
+        if self.action_bar is not None:
+            unit_info = self._build_unit_info(self.selected_unit_id)
+            self.action_bar.select_unit(unit_info)
+
+    def _set_selected_entity(self, entity_id: Optional[int]) -> None:
         """Met à jour l'unité actuellement contrôlée par le joueur."""
         if self.selected_unit_id == entity_id:
-            self._refresh_selected_unit_info()
+            self._update_selection_state()
             return
 
         if self.selected_unit_id is not None and self.selected_unit_id in es._entities:
             if es.has_component(self.selected_unit_id, PlayerSelectedComponent):
                 es.remove_component(self.selected_unit_id, PlayerSelectedComponent)
 
-        self.selected_unit_id = entity_id
+        self.selected_unit_id = entity_id if entity_id in es._entities else None
 
-        if entity_id is not None and entity_id in es._entities:
-            if not es.has_component(entity_id, PlayerSelectedComponent):
-                # Correction : self.player ne doit pas être None
-                player_id = self.player if self.player is not None else 0
-                es.add_component(entity_id, PlayerSelectedComponent(player_id))
+        if self.selected_unit_id is not None:
+            self._ensure_selection_component(self.selected_unit_id)
 
-        if self.action_bar is None:
-            return
-
-        if self.selected_unit_id is None:
-            self.action_bar.select_unit(None)
-        else:
-            unit_info = self._build_unit_info(self.selected_unit_id)
-            self.action_bar.select_unit(unit_info)
+        self._update_selection_state()
 
     def _build_unit_info(self, entity_id: int) -> UnitInfo:
         """Construit les informations affichées dans l'ActionBar."""
@@ -700,8 +912,10 @@ class GameEngine:
         best_entity: Optional[int] = None
         best_distance = float("inf")
 
+        target_team = self.selection_team_filter if self.selection_team_filter in (Team.ALLY, Team.ENEMY) else Team.ALLY
+
         for entity, (pos, sprite, team) in es.get_components(PositionComponent, SpriteComponent, TeamComponent):
-            if team.team_id != Team.ALLY:
+            if team.team_id != target_team:
                 continue
 
             display_width = int(sprite.width * self.camera.zoom)
@@ -741,10 +955,17 @@ class GameEngine:
         
     def _update_game(self, dt):
         """Met à jour la logique du jeu."""
+        if self.exit_modal.is_active():
+            return
+
         # Mettre à jour la caméra
         if self.camera is not None:
             keys = pygame.key.get_pressed()
-            self.camera.update(dt, keys)
+            modifiers_state = pygame.key.get_mods()
+            if self.camera_follow_enabled:
+                self._update_camera_follow(dt, keys, modifiers_state)
+            else:
+                self.camera.update(dt, keys, modifiers_state)
         
         # Mettre à jour l'ActionBar
         if self.action_bar is not None:
@@ -773,6 +994,62 @@ class GameEngine:
         if self.created_local_window:
             pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
             pygame.display.set_caption(t("system.main_window_title"))
+
+    def _update_camera_follow(self, dt: float, keys, modifiers_state: int) -> None:
+        """Maintient la caméra centrée sur l'unité suivie."""
+        if self.camera is None:
+            return
+
+        if self._has_manual_camera_input(keys, modifiers_state):
+            self.camera_follow_enabled = False
+            self.camera_follow_target_id = None
+            self.camera.update(dt, keys, modifiers_state)
+            return
+
+        target_id = self.camera_follow_target_id
+        if target_id is None or target_id not in es._entities:
+            self.camera_follow_enabled = False
+            self.camera_follow_target_id = None
+            self.camera.update(dt, keys, modifiers_state)
+            return
+
+        if not es.has_component(target_id, PositionComponent):
+            self.camera_follow_enabled = False
+            self.camera_follow_target_id = None
+            self.camera.update(dt, keys, modifiers_state)
+            return
+
+        target_position = es.component_for_entity(target_id, PositionComponent)
+        self.camera.center_on(target_position.x, target_position.y)
+
+    def _center_camera_on_target(self) -> None:
+        """Centre immédiatement la caméra sur la cible suivie."""
+        if not self.camera_follow_enabled or self.camera is None:
+            return
+
+        target_id = self.camera_follow_target_id
+        if target_id is None or target_id not in es._entities:
+            self.camera_follow_enabled = False
+            self.camera_follow_target_id = None
+            return
+
+        if not es.has_component(target_id, PositionComponent):
+            self.camera_follow_enabled = False
+            self.camera_follow_target_id = None
+            return
+
+        target_position = es.component_for_entity(target_id, PositionComponent)
+        self.camera.center_on(target_position.x, target_position.y)
+
+    def _has_manual_camera_input(self, keys, modifiers_state: int) -> bool:
+        """Détecte un déplacement caméra manuel pour quitter le mode suivi."""
+        monitored_actions = (
+            controls.ACTION_CAMERA_MOVE_LEFT,
+            controls.ACTION_CAMERA_MOVE_RIGHT,
+            controls.ACTION_CAMERA_MOVE_UP,
+            controls.ACTION_CAMERA_MOVE_DOWN,
+        )
+        return any(controls.is_action_active(action, keys, modifiers_state) for action in monitored_actions)
 
 
 def game(window=None, bg_original=None, select_sound=None):

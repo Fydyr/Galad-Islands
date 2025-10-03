@@ -8,26 +8,28 @@ from typing import Dict, List, Optional, Tuple, Any, Callable
 from dataclasses import dataclass
 
 from src.settings.settings import (
-    config_manager, 
-    get_available_resolutions, 
-    apply_resolution, 
-    set_window_mode, 
-    set_audio_volume, 
-    set_camera_sensitivity, 
-    reset_to_defaults
+    config_manager,
+    get_available_resolutions,
+    apply_resolution,
+    set_window_mode,
+    set_audio_volume,
+    set_camera_sensitivity,
+    reset_to_defaults,
 )
 from src.settings.localization import (
-    get_current_language, 
-    set_language, 
-    get_available_languages, 
-    t
+    get_current_language,
+    set_language,
+    get_available_languages,
+    t,
 )
+from src.settings import controls
 
 from src.ui.settings_ui_component import (
     UIComponent,
     Button,
     Slider,
-    RadioButton
+    RadioButton,
+    KeyBindingRow,
 )
 
 
@@ -64,6 +66,72 @@ class UIConstants:
 
 
 # =============================================================================
+# MÉTADONNÉES DES RACCOURCIS CLAVIER
+# =============================================================================
+
+BASIC_BINDINGS: List[Tuple[str, str]] = [
+    (controls.ACTION_UNIT_MOVE_FORWARD, "options.binding.unit_move_forward"),
+    (controls.ACTION_UNIT_MOVE_BACKWARD, "options.binding.unit_move_backward"),
+    (controls.ACTION_UNIT_TURN_LEFT, "options.binding.unit_turn_left"),
+    (controls.ACTION_UNIT_TURN_RIGHT, "options.binding.unit_turn_right"),
+    (controls.ACTION_UNIT_STOP, "options.binding.unit_stop"),
+    (controls.ACTION_UNIT_ATTACK, "options.binding.unit_attack"),
+    (controls.ACTION_UNIT_ATTACK_MODE, "options.binding.unit_attack_mode"),
+    (controls.ACTION_UNIT_SPECIAL, "options.binding.unit_special"),
+    (controls.ACTION_UNIT_PREVIOUS, "options.binding.unit_previous"),
+    (controls.ACTION_UNIT_NEXT, "options.binding.unit_next"),
+]
+
+CAMERA_BINDINGS: List[Tuple[str, str]] = [
+    (controls.ACTION_CAMERA_MOVE_LEFT, "options.binding.camera_move_left"),
+    (controls.ACTION_CAMERA_MOVE_RIGHT, "options.binding.camera_move_right"),
+    (controls.ACTION_CAMERA_MOVE_UP, "options.binding.camera_move_up"),
+    (controls.ACTION_CAMERA_MOVE_DOWN, "options.binding.camera_move_down"),
+    (controls.ACTION_CAMERA_FAST_MODIFIER, "options.binding.camera_fast_modifier"),
+    (controls.ACTION_CAMERA_FOLLOW_TOGGLE, "options.binding.camera_follow_toggle"),
+]
+
+SELECTION_BINDINGS: List[Tuple[str, str]] = [
+    (controls.ACTION_SELECTION_SELECT_ALL, "options.binding.selection_select_all"),
+    (controls.ACTION_SELECTION_CYCLE_TEAM, "options.binding.selection_cycle_team"),
+]
+
+SYSTEM_BINDINGS: List[Tuple[str, str]] = [
+    (controls.ACTION_SYSTEM_PAUSE, "options.binding.system_pause"),
+    (controls.ACTION_SYSTEM_HELP, "options.binding.system_help"),
+    (controls.ACTION_SYSTEM_DEBUG, "options.binding.system_debug"),
+    (controls.ACTION_SYSTEM_SHOP, "options.binding.system_shop"),
+]
+
+KEY_BINDING_GROUPS: List[Tuple[str, List[Tuple[str, str]]]] = [
+    ("options.binding_group.unit", BASIC_BINDINGS),
+    ("options.binding_group.camera", CAMERA_BINDINGS),
+    ("options.binding_group.selection", SELECTION_BINDINGS),
+    ("options.binding_group.system", SYSTEM_BINDINGS),
+]
+
+CONTROL_GROUP_ACTIONS: Tuple[Tuple[str, str], ...] = (
+    ("options.binding.selection_group_assign", controls.ACTION_SELECTION_GROUP_ASSIGN_PREFIX),
+    ("options.binding.selection_group_select", controls.ACTION_SELECTION_GROUP_SELECT_PREFIX),
+)
+
+MODIFIER_NAMES: Tuple[Tuple[int, str], ...] = (
+    (pygame.KMOD_CTRL, "ctrl"),
+    (pygame.KMOD_SHIFT, "shift"),
+    (pygame.KMOD_ALT, "alt"),
+)
+
+SPECIAL_KEY_TOKENS: Dict[int, str] = {
+    pygame.K_LCTRL: "lctrl",
+    pygame.K_RCTRL: "rctrl",
+    pygame.K_LSHIFT: "lshift",
+    pygame.K_RSHIFT: "rshift",
+    pygame.K_LALT: "lalt",
+    pygame.K_RALT: "ralt",
+}
+
+
+# =============================================================================
 # GESTIONNAIRE D'ÉTAT DES OPTIONS
 # =============================================================================
 
@@ -79,6 +147,7 @@ class OptionsState:
     custom_height: str
     editing_width: bool
     editing_height: bool
+    key_bindings: Dict[str, List[str]]
     
     @classmethod
     def from_config(cls) -> 'OptionsState':
@@ -109,7 +178,8 @@ class OptionsState:
             custom_width=str(current_res[0]),
             custom_height=str(current_res[1]),
             editing_width=False,
-            editing_height=False
+            editing_height=False,
+            key_bindings=config_manager.get_key_bindings(),
         )
 
 
@@ -152,6 +222,7 @@ class OptionsWindow:
         self.running = True
         self.scroll_y = 0
         self.max_scroll = 0
+        self.capturing_action: Optional[str] = None
         
         # Composants UI
         self.components: List[UIComponent] = []
@@ -166,6 +237,7 @@ class OptionsWindow:
     def _refresh_state(self) -> None:
         """Met à jour l'état depuis la configuration actuelle."""
         self.state = OptionsState.from_config()
+        self.capturing_action = None
     
     def _create_components(self, content_surface: pygame.Surface, y_pos: int) -> int:
         """Crée tous les composants UI et retourne la position Y finale."""
@@ -355,7 +427,64 @@ class OptionsWindow:
         )
         self.components.append(sensitivity_slider)
         y_pos += 50
+
+        y_pos = self._create_key_binding_section(surface, y_pos)
         
+        return y_pos
+
+    def _create_key_binding_section(self, surface: pygame.Surface, y_pos: int) -> int:
+        """Crée la liste des raccourcis personnalisables."""
+        info_text = t("options.binding.instructions")
+        info_surf = self.font_small.render(info_text, True, Colors.LIGHT_GRAY)
+        surface.blit(info_surf, (0, y_pos))
+        y_pos += 25
+
+        for group_label_key, bindings in KEY_BINDING_GROUPS:
+            group_surf = self.font_normal.render(t(group_label_key), True, Colors.GOLD)
+            surface.blit(group_surf, (0, y_pos))
+            y_pos += UIConstants.LINE_HEIGHT
+
+            for action, label_key in bindings:
+                row_rect = pygame.Rect(0, y_pos, self.modal_width - 60, UIConstants.LINE_HEIGHT)
+                row = KeyBindingRow(
+                    rect=row_rect,
+                    action=action,
+                    label=t(label_key),
+                    label_font=self.font_normal,
+                    binding_font=self.font_small,
+                    binding_text=self._get_binding_display_text(action),
+                    on_rebind=self._start_binding_capture,
+                    capturing=(self.capturing_action == action),
+                )
+                self.components.append(row)
+                y_pos += UIConstants.LINE_HEIGHT
+
+            y_pos += 15
+
+        group_title = self.font_normal.render(t("options.binding_group.control_groups"), True, Colors.GOLD)
+        surface.blit(group_title, (0, y_pos))
+        y_pos += UIConstants.LINE_HEIGHT
+
+        for label_key, prefix in CONTROL_GROUP_ACTIONS:
+            for slot in controls.CONTROL_GROUP_SLOTS:
+                action_name = controls.get_group_action_name(prefix, slot)
+                label = t(label_key, slot=slot)
+                row_rect = pygame.Rect(0, y_pos, self.modal_width - 60, UIConstants.LINE_HEIGHT)
+                row = KeyBindingRow(
+                    rect=row_rect,
+                    action=action_name,
+                    label=label,
+                    label_font=self.font_normal,
+                    binding_font=self.font_small,
+                    binding_text=self._get_binding_display_text(action_name),
+                    on_rebind=self._start_binding_capture,
+                    capturing=(self.capturing_action == action_name),
+                )
+                self.components.append(row)
+                y_pos += UIConstants.LINE_HEIGHT
+
+            y_pos += 10
+
         return y_pos
     
     def _create_info_section(self, surface: pygame.Surface, y_pos: int) -> int:
@@ -412,6 +541,83 @@ class OptionsWindow:
         
         y_pos += 60
         return y_pos
+
+    def _get_binding_display_text(self, action: str) -> str:
+        """Retourne le texte affiché pour une action donnée."""
+        bindings = self.state.key_bindings.get(action, [])
+        if not bindings:
+            return t("options.binding.unassigned")
+        formatted = [self._format_combo_text(binding) for binding in bindings]
+        return ", ".join(formatted)
+
+    def _format_combo_text(self, combo: str) -> str:
+        """Formate une combinaison pour l'affichage utilisateur."""
+        parts = [part.strip() for part in combo.split("+") if part.strip()]
+        if not parts:
+            return combo.upper()
+        return " + ".join(part.replace(" ", " ").upper() for part in parts)
+
+    def _start_binding_capture(self, action: str) -> None:
+        """Prépare la capture d'une nouvelle combinaison pour l'action donnée."""
+        self.capturing_action = action
+
+    def _cancel_binding_capture(self) -> None:
+        """Annule la capture en cours."""
+        self.capturing_action = None
+
+    def _handle_capture_event(self, event: pygame.event.Event) -> None:
+        """Gère un événement clavier pendant la capture d'un raccourci."""
+        if self.capturing_action is None:
+            return
+
+        if event.key == pygame.K_ESCAPE:
+            self._cancel_binding_capture()
+            return
+
+        combo = self._event_to_combo(event)
+        if combo is None:
+            return
+
+        self._apply_binding_change(self.capturing_action, combo)
+        self._cancel_binding_capture()
+
+    def _event_to_combo(self, event: pygame.event.Event) -> Optional[str]:
+        """Convertit un événement pygame en combinaison compréhensible par la config."""
+        if event.key is None:
+            return None
+
+        key_token = SPECIAL_KEY_TOKENS.get(event.key)
+        if key_token is None:
+            key_name = pygame.key.name(event.key)
+            if not key_name:
+                return None
+            key_token = key_name.lower()
+
+        modifiers: List[str] = []
+        for flag, name in MODIFIER_NAMES:
+            if event.mod & flag:
+                modifiers.append(name)
+
+        if key_token in ("lctrl", "rctrl"):
+            modifiers = [mod for mod in modifiers if mod != "ctrl"]
+        elif key_token in ("lshift", "rshift"):
+            modifiers = [mod for mod in modifiers if mod != "shift"]
+        elif key_token in ("lalt", "ralt"):
+            modifiers = [mod for mod in modifiers if mod != "alt"]
+
+        parts: List[str] = modifiers.copy()
+        if key_token:
+            parts.append(key_token)
+
+        combo = "+".join(parts)
+        return combo or None
+
+    def _apply_binding_change(self, action: str, combo: str) -> None:
+        """Enregistre une nouvelle combinaison dans la configuration."""
+        config_manager.set_key_binding(action, [combo])
+        config_manager.save_config()
+        self.state.key_bindings[action] = [combo]
+        controls.refresh_key_bindings()
     
     # =========================================================================
     # MÉTHODES DE CALLBACK
@@ -454,6 +660,7 @@ class OptionsWindow:
         """Callback pour la réinitialisation des paramètres."""
         reset_to_defaults()
         self._refresh_state()
+        controls.refresh_key_bindings()
         # Appliquer le volume par défaut immédiatement
         if pygame.mixer.get_init():
             default_volume = config_manager.get("volume_music", 0.5)
@@ -474,8 +681,12 @@ class OptionsWindow:
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
+                if self.capturing_action is not None:
+                    self._handle_capture_event(event)
+                elif event.key == pygame.K_ESCAPE:
                     self.running = False
+                else:
+                    self._handle_component_events(event)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:  # Molette vers le haut
                     self.scroll_y = min(self.scroll_y + 30, 0)
@@ -532,9 +743,16 @@ class OptionsWindow:
         title_surf = self.font_title.render(t("options.title"), True, Colors.GOLD)
         self.modal_surface.blit(title_surf, (20, 15))
         
-        # Créer le contenu avec défilement
-        content_surface = pygame.Surface((self.modal_width - 40, 2000), flags=pygame.SRCALPHA)
+        # Créer le contenu avec défilement (surface provisoire)
+        content_height_hint = max(self.content_rect.height, 2048)
+        content_surface = pygame.Surface((self.modal_width - 40, content_height_hint), flags=pygame.SRCALPHA)
         final_y = self._create_components(content_surface, 0)
+
+        if final_y > content_surface.get_height():
+            # Recréer la surface pour correspondre à la hauteur réelle requise
+            precise_height = max(final_y, self.content_rect.height)
+            content_surface = pygame.Surface((self.modal_width - 40, precise_height), flags=pygame.SRCALPHA)
+            final_y = self._create_components(content_surface, 0)
         
         # Calculer le défilement maximum
         self.max_scroll = max(0, final_y - (self.modal_height - 100))
@@ -550,25 +768,37 @@ class OptionsWindow:
         if self.max_scroll > 0:
             self._render_scrollbar(final_y)
         
+        if self.capturing_action is not None:
+            prompt_text = t("options.binding.capture_prompt")
+            prompt_surf = self.font_normal.render(prompt_text, True, Colors.GOLD)
+            hint_text = t("options.binding.capture_cancel")
+            hint_surf = self.font_small.render(hint_text, True, Colors.LIGHT_GRAY)
+            self.modal_surface.blit(prompt_surf, (20, self.modal_height - 60))
+            self.modal_surface.blit(hint_surf, (20, self.modal_height - 35))
+
         # Dessiner le modal sur l'écran principal
         self.surface.blit(self.modal_surface, self.modal_rect.topleft)
     
     def _render_scrolled_content(self, content_surface: pygame.Surface, content_height: int) -> None:
         """Rend le contenu avec défilement."""
-        visible_content_height = min(self.content_rect.height, content_height + self.scroll_y)
-        
-        if self.scroll_y < 0:
-            # Créer une surface clippée pour le défilement
-            content_clipped = pygame.Surface(
-                (self.content_rect.width, visible_content_height), 
-                flags=pygame.SRCALPHA
-            )
-            source_rect = pygame.Rect(0, -self.scroll_y, self.content_rect.width, visible_content_height)
-            content_clipped.blit(content_surface, (0, 0), source_rect)
-            self.modal_surface.blit(content_clipped, self.content_rect.topleft)
-        else:
-            clip_rect = pygame.Rect(0, 0, self.content_rect.width, self.content_rect.height)
-            self.modal_surface.blit(content_surface, self.content_rect.topleft, clip_rect)
+        if content_height <= 0:
+            return
+
+        viewport_height = self.content_rect.height
+        offset_y = max(0, -self.scroll_y)
+        remaining_height = max(0, content_height - offset_y)
+
+        if remaining_height <= 0:
+            return
+
+        draw_height = min(viewport_height, remaining_height)
+
+        target_surface = pygame.Surface((self.content_rect.width, viewport_height), flags=pygame.SRCALPHA)
+        target_surface.fill((0, 0, 0, 0))
+
+        source_rect = pygame.Rect(0, offset_y, self.content_rect.width, draw_height)
+        target_surface.blit(content_surface, (0, 0), source_rect)
+        self.modal_surface.blit(target_surface, self.content_rect.topleft)
     
     def _render_scrollbar(self, content_height: int) -> None:
         """Rend la scrollbar."""
