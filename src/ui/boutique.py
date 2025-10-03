@@ -6,8 +6,8 @@ import math
 import os
 import random
 from src.settings.localization import t
-from src.factory.unitFactory import UnitFactor
-from src.constants.unitType import UnitType
+from src.factory.unitFactory import UnitFactory
+from src.factory.unitType import UnitType, get_unit_type_from_shop_id
 from src.components.properties.positionComponent import PositionComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 from src.functions.baseManager import get_base_manager
@@ -106,8 +106,12 @@ class UnifiedShop:
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.faction = faction
-        self.get_player_gold = get_player_gold
-        self.set_player_gold = set_player_gold
+        self._get_player_gold_callback = get_player_gold
+        self._set_player_gold_callback = set_player_gold
+        try:
+            self.player_gold = int(get_player_gold())
+        except Exception:
+            self.player_gold = SHOP_DEFAULT_PLAYER_GOLD
         
         # Définir le thème selon la faction
         self.theme = AllyTheme if faction == ShopFaction.ALLY else EnemyTheme
@@ -188,35 +192,7 @@ class UnifiedShop:
     
     def _initialize_ally_items(self):
         """Initialise les items pour la faction alliée."""
-        
-        # === UNITÉS ALLIÉES ===
-        units_data = [
-            ("zasper", t("units.zasper"), t("shop.zasper_desc"), 
-             {'cout_gold': 10, 'armure_max': 60, 'degats_min': 10, 'degats_max': 15}),
-            ("barhamus", t("units.barhamus"), t("shop.barhamus_desc"), 
-             {'cout_gold': 20, 'armure_max': 130, 'degats_min_salve': 20, 'degats_max_salve': 30}),
-            ("draupnir", t("units.draupnir"), t("shop.draupnir_desc"), 
-             {'cout_gold': 40, 'armure_max': 300, 'degats_min_salve': 40, 'degats_max_salve': 60}),
-            ("druid", t("units.druid"), t("shop.druid_desc"), 
-             {'cout_gold': 30, 'armure_max': 100, 'soin': 20}),
-            ("architect", t("units.architect"), t("shop.architect_desc"), 
-             {'cout_gold': 30, 'armure_max': 100, 'degats': 0})
-        ]
-
-        for unit_id, name, description, config in units_data:
-            short_desc = self._create_stats_description(config)
-            
-            item = ShopItem(
-                id=unit_id,
-                name=name,
-                description=short_desc,
-                cost=config['cout_gold'],
-                icon_path="",  # Plus utilisé avec le sprite manager
-                category=ShopCategory.UNITS,
-                config_data=config,
-                purchase_callback=self._create_unit_purchase_callback(unit_id)
-            )
-            self.shop_items[ShopCategory.UNITS].append(item)
+        self._populate_unit_items(is_enemy=False)
         
         # === BÂTIMENTS ALLIÉS ===
         buildings_data = [
@@ -243,36 +219,9 @@ class UnifiedShop:
     
     def _initialize_enemy_items(self):
         """Initialise les items pour la faction ennemie."""
-        
-        # === UNITÉS ENNEMIES ===
-        units_data = [
-            ("enemy_scout", t("enemy_shop.scout"), t("enemy_shop.scout_desc"), 
-             {'cout_gold': 12, 'armure_max': 50, 'degats_min': 12, 'degats_max': 18}),
-            ("enemy_warrior", t("enemy_shop.warrior"), t("enemy_shop.warrior_desc"), 
-             {'cout_gold': 25, 'armure_max': 120, 'degats_min_salve': 25, 'degats_max_salve': 35}),
-            ("enemy_brute", t("enemy_shop.brute"), t("enemy_shop.brute_desc"), 
-             {'cout_gold': 45, 'armure_max': 280, 'degats_min_salve': 45, 'degats_max_salve': 65}),
-            ("enemy_shaman", t("enemy_shop.shaman"), t("enemy_shop.shaman_desc"), 
-             {'cout_gold': 35, 'armure_max': 90, 'soin': 25}),
-            ("enemy_engineer", t("enemy_shop.engineer"), t("enemy_shop.engineer_desc"), 
-             {'cout_gold': 32, 'armure_max': 95, 'degats': 5})
-        ]
-        
-        for unit_id, name, description, config in units_data:
-            short_desc = self._create_stats_description(config)
-            
-            item = ShopItem(
-                id=unit_id,
-                name=name,
-                description=short_desc,
-                cost=config['cout_gold'],
-                icon_path="",  # Plus utilisé avec le sprite manager
-                category=ShopCategory.UNITS,
-                config_data=config,
-                purchase_callback=self._create_unit_purchase_callback(unit_id)
-            )
-            self.shop_items[ShopCategory.UNITS].append(item)
-        
+
+        self._populate_unit_items(is_enemy=True)
+
         # === BÂTIMENTS ENNEMIS ===
         buildings_data = [
             ("enemy_attack_tower", t("enemy_shop.attack_tower"), t("enemy_shop.attack_tower_desc"), 
@@ -296,43 +245,36 @@ class UnifiedShop:
             )
             self.shop_items[ShopCategory.BUILDINGS].append(item)
     
+    def _populate_unit_items(self, is_enemy: bool):
+        """Ajoute les unités disponibles en se basant sur les UnitType."""
+
+        for unit_type, faction_config in UnitType.iterable_shop_configs(enemy=is_enemy):
+            config_data = dict(faction_config.stats)
+            config_data["description_key"] = faction_config.description_key
+
+            short_desc = self._create_stats_description(faction_config.stats)
+
+            item = ShopItem(
+                id=faction_config.shop_id,
+                name=t(faction_config.name_key),
+                description=short_desc,
+                cost=config_data.get("cout_gold", 0),
+                icon_path="",
+                category=ShopCategory.UNITS,
+                config_data=config_data,
+                purchase_callback=self._create_unit_purchase_callback(faction_config.shop_id)
+            )
+            self.shop_items[ShopCategory.UNITS].append(item)
+
     def _get_base_spawn_position(self, is_enemy=False):
-        """Calcule une position de spawn près de la base appropriée selon la faction."""
-        if is_enemy:
-            # Base ennemie : grille (MAP_WIDTH-4, MAP_HEIGHT-4) à (MAP_WIDTH, MAP_HEIGHT)
-            base_center_x = (MAP_WIDTH - 4 + 1 + MAP_WIDTH - 1 + 1) / 2 * TILE_SIZE
-            base_center_y = (MAP_HEIGHT - 4 + 1 + MAP_HEIGHT - 1 + 1) / 2 * TILE_SIZE
-        else:
-            # Base alliée : grille (1,1) à (4,4)
-            base_center_x = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en X
-            base_center_y = (1 + 4) / 2 * TILE_SIZE  # Centre de la base en Y
-        
-        # Ajouter un décalage aléatoire pour éviter que toutes les unités apparaissent au même endroit
-        offset_x = random.randint(-100, 100)
-        offset_y = random.randint(-100, 100)
-        
-        spawn_x = base_center_x + offset_x
-        spawn_y = base_center_y + offset_y
-        
+        """Calcule une position de spawn praticable selon la faction."""
+        base_manager = get_base_manager()
+        spawn_x, spawn_y = base_manager.get_spawn_position(is_enemy=is_enemy)
         return PositionComponent(spawn_x, spawn_y)
     
     def _map_boutique_id_to_unit_type(self, unit_id: str):
         """Mappe un ID de la boutique vers un UnitType de ta factory."""
-        unit_mapping = {
-            # Unités alliées
-            "zasper": UnitType.SCOUT,
-            "barhamus": UnitType.MARAUDEUR,
-            "draupnir": UnitType.LEVIATHAN,
-            "druid": UnitType.DRUID,
-            "architect": UnitType.ARCHITECT,
-            # Unités ennemies (même type d'unité, faction différente)
-            "enemy_scout": UnitType.SCOUT,
-            "enemy_warrior": UnitType.MARAUDEUR,
-            "enemy_brute": UnitType.LEVIATHAN,
-            "enemy_shaman": UnitType.DRUID,
-            "enemy_engineer": UnitType.ARCHITECT
-        }
-        return unit_mapping.get(unit_id)
+        return get_unit_type_from_shop_id(unit_id)
     
     def _create_stats_description(self, config: Dict) -> str:
         """Crée une description formatée pour les statistiques d'une unité."""
@@ -721,9 +663,24 @@ class UnifiedShop:
         
         return True
     
+    def get_player_gold(self) -> int:
+        """Retourne l'or courant du joueur en tenant compte des callbacks externes."""
+
+        try:
+            value = int(self._get_player_gold_callback())
+            self.player_gold = value
+            return value
+        except Exception:
+            return self.player_gold
+
     def set_player_gold(self, gold: int):
-        """Met à jour l'or du joueur (API compatible, mais déléguée)."""
-        self.set_player_gold(gold)
+        """Met à jour l'or du joueur et synchronise le callback associé."""
+
+        self.player_gold = gold
+        try:
+            self._set_player_gold_callback(gold)
+        except Exception as error:
+            print(f"Impossible de propager la mise à jour de l'or: {error}")
     
     def update(self, dt: float):
         """Met à jour la boutique."""
@@ -800,9 +757,9 @@ class UnifiedShop:
         """Dessine le titre de la boutique."""
         # Titre principal selon la faction
         if self.faction == ShopFaction.ALLY:
-            title_text = f"🏪 {t('shop.title').upper()}"
+            title_text = f"{t('shop.title').upper()}"
         else:
-            title_text = f"🏪 {t('enemy_shop.title').upper()}"
+            title_text = f"{t('enemy_shop.title').upper()}"
         
         # Ombre du texte
         shadow_surface = self.font_title.render(title_text, True, (0, 0, 0))

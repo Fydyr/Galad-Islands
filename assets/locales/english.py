@@ -182,7 +182,7 @@ TRANSLATIONS = {
     "mode.normal": "Normal",
     
     # Enemy shop (boutique2.py)
-    "enemy_shop.title": "💀 SHOP",
+    "enemy_shop.title": "SHOP",
     "enemy_shop.subtitle": "Command your evil troops",
     "enemy_shop.scout": "Enemy Scout",
     "enemy_shop.scout_desc": "Fast and aggressive scout",

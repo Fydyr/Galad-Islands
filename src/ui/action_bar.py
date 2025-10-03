@@ -145,8 +145,8 @@ class ActionBar:
         
         # Boutique intégrée avec fonctions utilitaires
         self.shop = Shop(screen_width, screen_height, 
-                        get_player_gold=lambda: get_player_gold(self.current_camp == Team.ENEMY),
-                        set_player_gold=lambda gold: set_player_gold(gold, self.current_camp == Team.ENEMY))
+                        get_player_gold=self._get_current_player_gold,
+                        set_player_gold=self._set_current_player_gold)
         
         # Configurations des unités (placeholder)
         self.unit_configs = {
@@ -411,6 +411,14 @@ class ActionBar:
         mode_name = t("mode.attack") if self.current_mode == "attack" else t("mode.normal")
         print(f"[PLACEHOLDER] Changement de mode: {old_mode} → {self.current_mode}")
         self._show_feedback("success", f"Mode: {mode_name}")
+    
+    def _get_current_player_gold(self) -> int:
+        """Retourne l'or du joueur pour le camp actuel."""
+        return get_player_gold(self.current_camp == Team.ENEMY)
+    
+    def _set_current_player_gold(self, gold: int):
+        """Met à jour l'or du joueur pour le camp actuel."""
+        set_player_gold(gold, self.current_camp == Team.ENEMY)
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Gère les événements pour la barre d'action."""
