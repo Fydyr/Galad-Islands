@@ -2,6 +2,20 @@
 
 import esper as es
 from src.factory.unitType import UnitType
+from src.constants.gameplay import (
+    # Directions par défaut
+    ALLY_DEFAULT_DIRECTION, ENEMY_DEFAULT_DIRECTION,
+    # Stats des unités
+    UNIT_HEALTH_SCOUT, UNIT_HEALTH_MARAUDEUR, UNIT_HEALTH_LEVIATHAN, UNIT_HEALTH_DRUID, UNIT_HEALTH_ARCHITECT,
+    UNIT_SPEED_SCOUT, UNIT_SPEED_MARAUDEUR, UNIT_SPEED_LEVIATHAN, UNIT_SPEED_DRUID, UNIT_SPEED_ARCHITECT,
+    UNIT_REVERSE_SPEED_SCOUT, UNIT_REVERSE_SPEED_MARAUDEUR, UNIT_REVERSE_SPEED_LEVIATHAN, UNIT_REVERSE_SPEED_DRUID, UNIT_REVERSE_SPEED_ARCHITECT,
+    UNIT_ATTACK_SCOUT, UNIT_ATTACK_MARAUDEUR, UNIT_ATTACK_LEVIATHAN, UNIT_ATTACK_DRUID, UNIT_ATTACK_ARCHITECT,
+    UNIT_COOLDOWN_SCOUT, UNIT_COOLDOWN_MARAUDEUR, UNIT_COOLDOWN_LEVIATHAN, UNIT_COOLDOWN_DRUID, UNIT_COOLDOWN_ARCHITECT,
+    # Capacités spéciales
+    DRUID_COOLDOWN_DURATION, DRUID_IMMOBILIZATION_DURATION, DRUID_PROJECTILE_SPEED,
+    ARCHITECT_RADIUS, ARCHITECT_RELOAD_FACTOR, ARCHITECT_DURATION,
+)
+from src.managers.sprite_manager import SpriteID, sprite_manager
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.spriteComponent import SpriteComponent
@@ -23,81 +37,112 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
     match(unit):
         case UnitType.SCOUT:
             entity = es.create_entity()
-            es.add_component(entity, PositionComponent(pos.x, pos.y, 180 if not enemy else 0))
-            es.add_component(entity, VelocityComponent(0, 5, -1))
-            es.add_component(entity, RadiusComponent(bullet_cooldown=2))
+            es.add_component(entity, PositionComponent(pos.x, pos.y, ALLY_DEFAULT_DIRECTION if not enemy else ENEMY_DEFAULT_DIRECTION))
+            es.add_component(entity, VelocityComponent(0, UNIT_SPEED_SCOUT, UNIT_REVERSE_SPEED_SCOUT))
+            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_SCOUT))
             es.add_component(entity, TeamComponent(1 if not enemy else 2))
-            es.add_component(entity, AttackComponent(10))
-            es.add_component(entity, HealthComponent(60, 60))
+            es.add_component(entity, AttackComponent(UNIT_ATTACK_SCOUT))
+            es.add_component(entity, HealthComponent(UNIT_HEALTH_SCOUT, UNIT_HEALTH_SCOUT))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Scout.png" if not enemy else "assets/sprites/units/enemy/Scout.png", 80, 100))
+            sprite_id = SpriteID.ALLY_SCOUT if not enemy else SpriteID.ENEMY_SCOUT
+            size = sprite_manager.get_default_size(sprite_id)
+            if size:
+                width, height = size
+                es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
+            else:
+                # Fallback vers les anciennes valeurs si le sprite n'est pas trouvé
+                es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Scout.png" if not enemy else "assets/sprites/units/enemy/Scout.png", 80, 100))
 
 
         case UnitType.MARAUDEUR:
             entity = es.create_entity()
-            es.add_component(entity, PositionComponent(pos.x, pos.y, 180 if not enemy else 0))
-            es.add_component(entity, VelocityComponent(0, 3.5, -0.6))
-            es.add_component(entity, RadiusComponent(bullet_cooldown=4))
+            es.add_component(entity, PositionComponent(pos.x, pos.y, ALLY_DEFAULT_DIRECTION if not enemy else ENEMY_DEFAULT_DIRECTION))
+            es.add_component(entity, VelocityComponent(0, UNIT_SPEED_MARAUDEUR, UNIT_REVERSE_SPEED_MARAUDEUR))
+            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_MARAUDEUR))
             es.add_component(entity, TeamComponent(1 if not enemy else 2))
-            es.add_component(entity, AttackComponent(20))
-            es.add_component(entity, HealthComponent(130, 130))
+            es.add_component(entity, AttackComponent(UNIT_ATTACK_MARAUDEUR))
+            es.add_component(entity, HealthComponent(UNIT_HEALTH_MARAUDEUR, UNIT_HEALTH_MARAUDEUR))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Maraudeur.png" if not enemy else "assets/sprites/units/enemy/Maraudeur.png", 130, 150))
+            sprite_id = SpriteID.ALLY_MARAUDEUR if not enemy else SpriteID.ENEMY_MARAUDEUR
+            size = sprite_manager.get_default_size(sprite_id)
+            if size:
+                width, height = size
+                es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
+            else:
+                es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Maraudeur.png" if not enemy else "assets/sprites/units/enemy/Maraudeur.png", 130, 150))
 
         case UnitType.LEVIATHAN:
             entity = es.create_entity()
-            es.add_component(entity, PositionComponent(pos.x, pos.y, 180 if not enemy else 0))
-            es.add_component(entity, VelocityComponent(0, 2, -0.2))
-            es.add_component(entity, RadiusComponent(bullet_cooldown=8))
+            es.add_component(entity, PositionComponent(pos.x, pos.y, ALLY_DEFAULT_DIRECTION if not enemy else ENEMY_DEFAULT_DIRECTION))
+            es.add_component(entity, VelocityComponent(0, UNIT_SPEED_LEVIATHAN, UNIT_REVERSE_SPEED_LEVIATHAN))
+            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_LEVIATHAN))
             es.add_component(entity, TeamComponent(1 if not enemy else 2))
-            es.add_component(entity, AttackComponent(30))
-            es.add_component(entity, HealthComponent(300, 300))
+            es.add_component(entity, AttackComponent(UNIT_ATTACK_LEVIATHAN))
+            es.add_component(entity, HealthComponent(UNIT_HEALTH_LEVIATHAN, UNIT_HEALTH_LEVIATHAN))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Leviathan.png" if not enemy else "assets/sprites/units/enemy/Leviathan.png", 160, 200))
+            sprite_id = SpriteID.ALLY_LEVIATHAN if not enemy else SpriteID.ENEMY_LEVIATHAN
+            size = sprite_manager.get_default_size(sprite_id)
+            if size:
+                width, height = size
+                es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
+            else:
+                es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Leviathan.png" if not enemy else "assets/sprites/units/enemy/Leviathan.png", 160, 200))
 
         case UnitType.DRUID:
             entity = es.create_entity()
-            es.add_component(entity, PositionComponent(pos.x, pos.y, 180 if not enemy else 0))
-            es.add_component(entity, VelocityComponent(0, 3.5, -0.6))
-            es.add_component(entity, RadiusComponent(bullet_cooldown=4))
+            es.add_component(entity, PositionComponent(pos.x, pos.y, ALLY_DEFAULT_DIRECTION if not enemy else ENEMY_DEFAULT_DIRECTION))
+            es.add_component(entity, VelocityComponent(0, UNIT_SPEED_DRUID, UNIT_REVERSE_SPEED_DRUID))
+            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_DRUID))
             es.add_component(entity, TeamComponent(1 if not enemy else 2))
-            es.add_component(entity, AttackComponent(20))
-            es.add_component(entity, HealthComponent(130, 130))
+            es.add_component(entity, AttackComponent(UNIT_ATTACK_DRUID))
+            es.add_component(entity, HealthComponent(UNIT_HEALTH_DRUID, UNIT_HEALTH_DRUID))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Druid.png" if not enemy else "assets/sprites/units/enemy/Druid.png", 130, 150))
+            sprite_id = SpriteID.ALLY_DRUID if not enemy else SpriteID.ENEMY_DRUID
+            size = sprite_manager.get_default_size(sprite_id)
+            if size:
+                width, height = size
+                es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
+            else:
+                es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Druid.png" if not enemy else "assets/sprites/units/enemy/Druid.png", 130, 150))
 
             es.add_component(entity, SpeDruid(
                 is_active=False,
                 available=True,
                 cooldown=0.0,
-                cooldown_duration=15.0,  # 15 secondes de cooldown
-                immobilization_duration=5.0,  # 5 secondes d'immobilisation
+                cooldown_duration=DRUID_COOLDOWN_DURATION,
+                immobilization_duration=DRUID_IMMOBILIZATION_DURATION,
                 target_id=None,
                 remaining_duration=0.0,
                 projectile_launched=False,
                 projectile_position=None,
-                projectile_speed=300.0,  # Vitesse du projectile
+                projectile_speed=DRUID_PROJECTILE_SPEED,
                 projectile_target_position=None
             ))
 
         case UnitType.ARCHITECT:
             entity = es.create_entity()
-            es.add_component(entity, PositionComponent(pos.x, pos.y, 180 if not enemy else 0))
-            es.add_component(entity, VelocityComponent(0, 3.5, -0.6))
-            es.add_component(entity, RadiusComponent(bullet_cooldown=4))
+            es.add_component(entity, PositionComponent(pos.x, pos.y, ALLY_DEFAULT_DIRECTION if not enemy else ENEMY_DEFAULT_DIRECTION))
+            es.add_component(entity, VelocityComponent(0, UNIT_SPEED_ARCHITECT, UNIT_REVERSE_SPEED_ARCHITECT))
+            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_ARCHITECT))
             es.add_component(entity, TeamComponent(1 if not enemy else 2))
-            es.add_component(entity, AttackComponent(20))
-            es.add_component(entity, HealthComponent(130, 130))
+            es.add_component(entity, AttackComponent(UNIT_ATTACK_ARCHITECT))
+            es.add_component(entity, HealthComponent(UNIT_HEALTH_ARCHITECT, UNIT_HEALTH_ARCHITECT))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Architect.png" if not enemy else "assets/sprites/units/enemy/Architect.png", 130, 150))
+            sprite_id = SpriteID.ALLY_ARCHITECT if not enemy else SpriteID.ENEMY_ARCHITECT
+            size = sprite_manager.get_default_size(sprite_id)
+            if size:
+                width, height = size
+                es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
+            else:
+                es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Architect.png" if not enemy else "assets/sprites/units/enemy/Architect.png", 130, 150))
 
             es.add_component(entity, SpeArchitect(
                 is_active=False,
                 available=True,
-                radius=400.0,  # 8 cases (environ 400 pixels)
-                reload_factor=1.0,  # Double la vitesse de rechargement
+                radius=ARCHITECT_RADIUS,
+                reload_factor=ARCHITECT_RELOAD_FACTOR,
                 affected_units=[],
-                duration=10.0,  # Durée de l'effet : 10 secondes
+                duration=ARCHITECT_DURATION,
                 timer=0.0
             ))
 

@@ -8,6 +8,11 @@ from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.teamComponent import TeamComponent 
 from src.components.properties.spriteComponent import SpriteComponent 
 from src.components.properties.projectileComponent import ProjectileComponent
+from src.constants.gameplay import (
+    PROJECTILE_SPEED, PROJECTILE_DAMAGE, PROJECTILE_HEALTH,
+    PROJECTILE_WIDTH, PROJECTILE_HEIGHT
+)
+from src.managers.sprite_manager import SpriteID, sprite_manager
 
 def create_projectile(entity):
     pos = esper.component_for_entity(entity, PositionComponent)
@@ -36,28 +41,35 @@ def create_projectile(entity):
             direction=angle
         ))
 
-        bullet_speed = 10.0 
         esper.add_component(bullet_entity, VelocityComponent(
-            currentSpeed=bullet_speed,
-            maxUpSpeed=bullet_speed,
+            currentSpeed=PROJECTILE_SPEED,
+            maxUpSpeed=PROJECTILE_SPEED,
             maxReverseSpeed=0.0,
         ))
 
         esper.add_component(bullet_entity, AttackComponent(
-            hitPoints=10
+            hitPoints=PROJECTILE_DAMAGE
         ))
 
         esper.add_component(bullet_entity, HealthComponent(
-            currentHealth=1
+            currentHealth=PROJECTILE_HEALTH
         ))
 
         esper.add_component(bullet_entity, CanCollideComponent())
 
-        esper.add_component(bullet_entity, SpriteComponent(
-            "assets/sprites/projectile/explosion.png",
-            20,
-            10
-        ))
+        # Utiliser le SpriteManager pour les projectiles
+        sprite_id = SpriteID.EXPLOSION
+        size = sprite_manager.get_default_size(sprite_id)
+        if size:
+            width, height = size
+            esper.add_component(bullet_entity, sprite_manager.create_sprite_component(sprite_id, width, height))
+        else:
+            # Fallback vers l'ancienne méthode
+            esper.add_component(bullet_entity, SpriteComponent(
+                "assets/sprites/projectile/explosion.png",
+                PROJECTILE_WIDTH,
+                PROJECTILE_HEIGHT
+            ))
     
     # Identifier cette entité comme un projectile
     esper.add_component(bullet_entity, ProjectileComponent("bullet"))
