@@ -84,8 +84,7 @@ class ShopFaction(Enum):
 class ShopCategory(Enum):
     """Catégories d'items dans la boutique."""
     UNITS = "units"
-    BUILDINGS = "buildings" 
-    UPGRADES = "upgrades"
+
 
 @dataclass
 class ShopItem:
@@ -149,14 +148,17 @@ class UnifiedShop:
         # Items de la boutique
         self.shop_items: Dict[ShopCategory, List[ShopItem]] = {
             ShopCategory.UNITS: [],
-            ShopCategory.BUILDINGS: [],
-            ShopCategory.UPGRADES: []
+
         }
         
         # Icônes chargées
         self.icons: Dict[str, Optional[pygame.Surface]] = {}
         self.tab_icons: Dict[str, Optional[pygame.Surface]] = {}
-        
+        # Définition des onglets visibles (key, category)
+        # 'gold' n'est pas une catégorie de ShopCategory mais un onglet UI
+        self.tab_keys = ["units"]
+        self.tab_categories: List[Optional[ShopCategory]] = [ShopCategory.UNITS]
+
         # Animation et feedback
         self.purchase_feedback = ""
         self.feedback_timer = 0.0
@@ -196,57 +198,13 @@ class UnifiedShop:
     def _initialize_ally_items(self):
         """Initialise les items pour la faction alliée."""
         self._populate_unit_items(is_enemy=False)
-        
-        # === BÂTIMENTS ALLIÉS ===
-        buildings_data = [
-            ("defense_tower", t("shop.defense_tower"), t("shop.defense_tower_desc"), 
-             {'cout_gold': 25, 'armure_max': 70, 'radius_action': 8}),
-            ("heal_tower", t("shop.heal_tower"), t("shop.heal_tower_desc"), 
-             {'cout_gold': 20, 'armure_max': 70, 'radius_action': 5})
-        ]
-
-        for building_id, name, description, config in buildings_data:
-            short_desc = self._create_building_description(config)
-            
-            item = ShopItem(
-                id=building_id,
-                name=name,
-                description=short_desc,
-                cost=config['cout_gold'],
-                icon_path="",  # Plus utilisé avec le sprite manager
-                category=ShopCategory.BUILDINGS,
-                config_data=config,
-                purchase_callback=self._create_building_purchase_callback(building_id)
-            )
-            self.shop_items[ShopCategory.BUILDINGS].append(item)
+        # (Les bâtiments ont été retirés de la boutique)
     
     def _initialize_enemy_items(self):
         """Initialise les items pour la faction ennemie."""
 
         self._populate_unit_items(is_enemy=True)
-
-        # === BÂTIMENTS ENNEMIS ===
-        buildings_data = [
-            ("enemy_attack_tower", t("enemy_shop.attack_tower"), t("enemy_shop.attack_tower_desc"), 
-             {'cout_gold': 30, 'armure_max': 80, 'radius_action': 9}),
-            ("enemy_heal_tower", t("enemy_shop.heal_tower"), t("enemy_shop.heal_tower_desc"), 
-             {'cout_gold': 25, 'armure_max': 75, 'radius_action': 6})
-        ]
-        
-        for building_id, name, description, config in buildings_data:
-            short_desc = self._create_building_description(config)
-            
-            item = ShopItem(
-                id=building_id,
-                name=name,
-                description=short_desc,
-                cost=config['cout_gold'],
-                icon_path="",  # Plus utilisé avec le sprite manager
-                category=ShopCategory.BUILDINGS,
-                config_data=config,
-                purchase_callback=self._create_building_purchase_callback(building_id)
-            )
-            self.shop_items[ShopCategory.BUILDINGS].append(item)
+        # (Les bâtiments ennemis retirés de la boutique)
     
     def _populate_unit_items(self, is_enemy: bool):
         """Ajoute les unités disponibles en se basant sur le catalogue de la factory."""
@@ -337,7 +295,6 @@ class UnifiedShop:
         """Mappe un élément UI vers un SpriteID."""
         ui_mapping = {
             "units": SpriteID.UI_SWORDS,
-            "buildings": SpriteID.BUILDING_CONSTRUCTION,
             "gold": SpriteID.UI_BITCOIN
         }
         return ui_mapping.get(ui_element)
@@ -351,8 +308,6 @@ class UnifiedShop:
                 # Déterminer le SpriteID approprié selon la catégorie
                 if category == ShopCategory.UNITS:
                     sprite_id = self._get_sprite_id_for_unit(item.id, self.faction == ShopFaction.ENEMY)
-                elif category == ShopCategory.BUILDINGS:
-                    sprite_id = self._get_sprite_id_for_building(item.id)
                 
                 if sprite_id:
                     # Charger via le gestionnaire de sprites
@@ -371,11 +326,9 @@ class UnifiedShop:
     
     def _load_tab_icons(self):
         """Charge les icônes pour les onglets via le gestionnaire de sprites."""
-        tab_elements = ["units", "buildings", "gold"]
-        
-        for tab_name in tab_elements:
+        for tab_name in self.tab_keys:
             sprite_id = self._get_sprite_id_for_ui(tab_name)
-            
+
             if sprite_id:
                 sprite_surface = sprite_manager.load_sprite(sprite_id)
                 if sprite_surface:
@@ -397,12 +350,7 @@ class UnifiedShop:
         if category == ShopCategory.UNITS:
             base_color = COLOR_PLACEHOLDER_UNIT
             symbol = "⚔"
-        elif category == ShopCategory.BUILDINGS:
-            base_color = COLOR_PLACEHOLDER_BUILDING
-            symbol = "🏗"
-        else:
-            base_color = COLOR_PLACEHOLDER_UPGRADE
-            symbol = "⚡"
+
         
         # Dégradé radial
         center = SHOP_ICON_SIZE_LARGE // 2
@@ -524,8 +472,7 @@ class UnifiedShop:
                 self.close()
             elif event.key == pygame.K_1:
                 self.current_category = ShopCategory.UNITS
-            elif event.key == pygame.K_2:
-                self.current_category = ShopCategory.BUILDINGS
+            # (K_2 / Buildings shortcut removed)
             elif event.key == pygame.K_f:
                 # Basculer entre les factions (pour test)
                 new_faction = ShopFaction.ENEMY if self.faction == ShopFaction.ALLY else ShopFaction.ALLY
@@ -571,10 +518,10 @@ class UnifiedShop:
         
         # Onglets
         tab_rects = self._get_tab_rects()
-        categories = [ShopCategory.UNITS, ShopCategory.BUILDINGS]
         for i, rect in enumerate(tab_rects):
-            if rect.collidepoint(mouse_pos) and i < len(categories):
-                self.current_category = categories[i]
+            if rect.collidepoint(mouse_pos):
+                if i < len(self.tab_categories) and self.tab_categories[i] is not None:
+                    self.current_category = self.tab_categories[i]
                 return True
         
         # Items
@@ -598,7 +545,7 @@ class UnifiedShop:
         tab_x_start = self.shop_x + SHOP_MARGIN
         
         rects = []
-        for i in range(2):  # Seulement Units et Buildings
+        for i in range(len(self.tab_keys)):
             x = tab_x_start + i * (tab_width + SHOP_TAB_SPACING)
             rects.append(pygame.Rect(x, tab_y, tab_width, tab_height))
         
@@ -614,7 +561,9 @@ class UnifiedShop:
         spacing_x = SHOP_ITEM_SPACING_X
         spacing_y = SHOP_ITEM_SPACING_Y
         
-        current_items = self.shop_items[self.current_category]
+        # Sécuriser l'accès : si current_category est None (onglet UI), tomber sur UNITS
+        key = self.current_category if self.current_category in self.shop_items else ShopCategory.UNITS
+        current_items = self.shop_items[key]
         rects = []
         
         for i in range(len(current_items)):
@@ -777,10 +726,10 @@ class UnifiedShop:
         # Sous-titre avec la catégorie actuelle
         category_names = {
             ShopCategory.UNITS: t("shop.category_units") if self.faction == ShopFaction.ALLY else t("enemy_shop.subtitle"),
-            ShopCategory.BUILDINGS: t("shop.category_buildings")
         }
-        
-        subtitle = category_names.get(self.current_category, "")
+
+        lookup_key = self.current_category if self.current_category in category_names else ShopCategory.UNITS
+        subtitle = category_names.get(lookup_key, "")
         if subtitle:
             subtitle_surface = self.font_small.render(subtitle, True, self.theme.TEXT_NORMAL)
             subtitle_rect = subtitle_surface.get_rect(center=(self.shop_x + self.shop_width // 2, self.shop_y + 55))
@@ -827,11 +776,12 @@ class UnifiedShop:
     def _draw_tabs(self, surface: pygame.Surface):
         """Dessine les onglets de catégories."""
         tab_rects = self._get_tab_rects()
-        categories = [ShopCategory.UNITS, ShopCategory.BUILDINGS]
-        tab_names = [t("shop.units"), t("shop.buildings")]
-        tab_icon_keys = ["units", "buildings"]
-        
-        for i, (rect, category, name, icon_key) in enumerate(zip(tab_rects, categories, tab_names, tab_icon_keys)):
+        tab_names = [t("shop.units"), t("shop.gold")]
+        tab_icon_keys = self.tab_keys
+
+        # On n'utilise plus ShopCategory.BUILDINGS; l'index de tab_categories indique la catégorie liée
+        for i, (rect, name, icon_key) in enumerate(zip(tab_rects, tab_names, tab_icon_keys)):
+            category = self.tab_categories[i] if i < len(self.tab_categories) else None
             is_active = (category == self.current_category)
             is_hovered = (i == self.hovered_tab_index)
             
@@ -917,7 +867,8 @@ class UnifiedShop:
     
     def _draw_items(self, surface: pygame.Surface):
         """Dessine les items de la catégorie actuelle."""
-        current_items = self.shop_items[self.current_category]
+        key = self.current_category if self.current_category in self.shop_items else ShopCategory.UNITS
+        current_items = self.shop_items[key]
         item_rects = self._get_item_rects()
         
         for i, (item, rect) in enumerate(zip(current_items, item_rects)):
