@@ -36,6 +36,7 @@ from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
 from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
 from src.components.properties.ability.speDruidComponent import SpeDruid
 from src.components.properties.ability.speArchitectComponent import SpeArchitect
+# Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
 
 # Importations des factories et fonctions utilitaires
 from src.factory.unitFactory import UnitFactory
@@ -936,10 +937,34 @@ class GameEngine:
             pos = es.component_for_entity(entity_id, PositionComponent)
             position = (pos.x, pos.y)
 
+        # Récupérer le cooldown de la capacité spéciale si présent
         cooldown = 0.0
-        if es.has_component(entity_id, RadiusComponent):
-            radius = es.component_for_entity(entity_id, RadiusComponent)
-            cooldown = max(0.0, radius.cooldown)
+        # Priorité : composants de capacité spéciale, sinon RadiusComponent fallback
+        try:
+            # Vérifier plusieurs composants de capacité courants
+            if es.has_component(entity_id, SpeScout):
+                comp = es.component_for_entity(entity_id, SpeScout)
+                cooldown = max(0.0, getattr(comp, 'cooldown_timer', 0.0))
+            elif es.has_component(entity_id, SpeMaraudeur):
+                comp = es.component_for_entity(entity_id, SpeMaraudeur)
+                cooldown = max(0.0, getattr(comp, 'cooldown_timer', 0.0))
+            elif es.has_component(entity_id, SpeLeviathan):
+                comp = es.component_for_entity(entity_id, SpeLeviathan)
+                cooldown = max(0.0, getattr(comp, 'cooldown_timer', 0.0))
+            elif es.has_component(entity_id, SpeDruid):
+                comp = es.component_for_entity(entity_id, SpeDruid)
+                cooldown = max(0.0, getattr(comp, 'cooldown_timer', 0.0))
+            elif es.has_component(entity_id, SpeArchitect):
+                comp = es.component_for_entity(entity_id, SpeArchitect)
+                cooldown = max(0.0, getattr(comp, 'cooldown_timer', 0.0))
+            else:
+                # Fallback sur RadiusComponent si existant
+                if es.has_component(entity_id, RadiusComponent):
+                    radius = es.component_for_entity(entity_id, RadiusComponent)
+                    cooldown = max(0.0, radius.cooldown)
+        except Exception:
+            # En cas de problème, fallback sur 0
+            cooldown = 0.0
 
         unit_info = UnitInfo(
             unit_id=entity_id,
@@ -988,11 +1013,31 @@ class GameEngine:
             pos = es.component_for_entity(entity_id, PositionComponent)
             unit_info.position = (pos.x, pos.y)
 
-        if es.has_component(entity_id, RadiusComponent):
-            radius = es.component_for_entity(entity_id, RadiusComponent)
-            unit_info.special_cooldown = max(0.0, radius.cooldown)
-        else:
-            unit_info.special_cooldown = 0.0
+        # Mettre à jour le cooldown de la capacité spéciale à partir des composants spécifiques
+        cooldown = 0.0
+        try:
+            if es.has_component(entity_id, SpeScout):
+                comp = es.component_for_entity(entity_id, SpeScout)
+                cooldown = getattr(comp, 'cooldown_timer', 0.0)
+            elif es.has_component(entity_id, SpeMaraudeur):
+                comp = es.component_for_entity(entity_id, SpeMaraudeur)
+                cooldown = getattr(comp, 'cooldown_timer', 0.0)
+            elif es.has_component(entity_id, SpeLeviathan):
+                comp = es.component_for_entity(entity_id, SpeLeviathan)
+                cooldown = getattr(comp, 'cooldown_timer', 0.0)
+            elif es.has_component(entity_id, SpeDruid):
+                comp = es.component_for_entity(entity_id, SpeDruid)
+                cooldown = getattr(comp, 'cooldown_timer', 0.0)
+            elif es.has_component(entity_id, SpeArchitect):
+                comp = es.component_for_entity(entity_id, SpeArchitect)
+                cooldown = getattr(comp, 'cooldown_timer', 0.0)
+            elif es.has_component(entity_id, RadiusComponent):
+                radius = es.component_for_entity(entity_id, RadiusComponent)
+                cooldown = max(0.0, radius.cooldown)
+        except Exception:
+            cooldown = 0.0
+
+        unit_info.special_cooldown = max(0.0, cooldown)
 
     def _find_unit_at_screen_position(self, mouse_pos: Tuple[int, int]) -> Optional[int]:
         """Recherche l'unité alliée située sous le curseur."""
