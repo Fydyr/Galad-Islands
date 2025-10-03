@@ -6,8 +6,8 @@ import math
 import os
 import random
 from src.settings.localization import t
-from src.factory.unitFactory import UnitFactory
-from src.factory.unitType import UnitType
+from src.factory.unitFactory import UnitFactor
+from src.constants.unitType import UnitType
 from src.components.properties.positionComponent import PositionComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 from src.functions.baseManager import get_base_manager

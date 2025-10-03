@@ -1,5 +1,5 @@
 import esper as es
-from src.factory.unitType import UnitType
+from src.constants.unitType import UnitType
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.spriteComponent import SpriteComponent

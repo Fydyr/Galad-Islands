@@ -1,6 +1,6 @@
 from enum import Enum
 
-class UnitClass(Enum):
+class UnitType(Enum):
     """Enumeration for different unit classes in the game."""
     SCOUT = 0
     MARAUDEUR = 1  
@@ -13,19 +13,19 @@ class UnitClass(Enum):
         """Get the display name for the unit class."""
         if enemy:
             names = {
-                UnitClass.SCOUT: "Gargoille",
-                UnitClass.MARAUDEUR: "Griffon", 
-                UnitClass.LEVIATHAN: "Dragon",
-                UnitClass.DRUID: "Litch",
-                UnitClass.ARCHITECT: "Goblin ingénieur"
+                UnitType.SCOUT: "Gargoille",
+                UnitType.MARAUDEUR: "Griffon", 
+                UnitType.LEVIATHAN: "Dragon",
+                UnitType.DRUID: "Litch",
+                UnitType.ARCHITECT: "Goblin ingénieur"
             }
         else:
             names = {
-                UnitClass.SCOUT: "Zasper",
-                UnitClass.MARAUDEUR: "Barhamus", 
-                UnitClass.LEVIATHAN: "Draupnir",
-                UnitClass.DRUID: "Druid",
-                UnitClass.ARCHITECT: "Architect"
+                UnitType.SCOUT: "Zasper",
+                UnitType.MARAUDEUR: "Barhamus", 
+                UnitType.LEVIATHAN: "Draupnir",
+                UnitType.DRUID: "Druid",
+                UnitType.ARCHITECT: "Architect"
             }
         return names.get(self, self.name.title())
 
