@@ -1,38 +1,78 @@
 import esper
-from components.properties.velocityComponent import VelocityComponent as Velocity
-from components.properties.capacity.VineComponent import VineComponent as Vine
-from components.properties.capacity.isVinedComponent import isVinedComponent as isVined
+from src.components.properties.velocityComponent import VelocityComponent
+from src.components.properties.ability.VineComponent import VineComponent
+from src.components.properties.ability.isVinedComponent import isVinedComponent
+from src.components.properties.ability.speDruidComponent import SpeDruid
 
 class VineProcessor(esper.Processor):
 
-    def process(self, delta_time):
-        # Process all entities that have a Vine component (vines that are actively blocking)
-        for ent, vine in self.world.get_component(Vine):
-            # Ensure the entity is marked as vined when it has an active vine
-            if not self.world.has_component(ent, isVined):
-                self.world.add_component(ent, isVined(isVined=True))
-
-            # Set velocity to zero while entity is vined (immobilize the entity)
-            if self.world.has_component(ent, Velocity):
-                velocity = self.world.component_for_entity(ent, Velocity)
-                velocity.vx = 0
-                velocity.vy = 0
-
-            # Decrease the vine duration over time
-            vine.time -= delta_time
-
-            # Remove vine effect when time expires
-            if vine.time <= 0:
-                # Remove the vine component first
-                self.world.remove_component(ent, Vine)
-
-                # Remove the isVined status to allow movement again
-                if self.world.has_component(ent, isVined):
-                    self.world.remove_component(ent, isVined)
-
-        # Handle entities that might have isVined component but no active Vine
-        # This cleanup ensures consistency if components get out of sync
-        for ent, is_vined_comp in self.world.get_component(isVined):
-            # If entity is marked as vined but has no active vine component, clean it up
-            if not self.world.has_component(ent, Vine):
-                self.world.remove_component(ent, isVined)
+    def process(self, dt):
+        # Gestion du projectile du Druid et application de l'effet de lierre
+        for ent, speDruid in esper.get_component(SpeDruid):
+            # Si le projectile atteint sa cible, applique l'effet de lierre
+            if speDruid.is_active and speDruid.target_id is not None:
+                try:
+                    target_entity = speDruid.target_id
+                    
+                    # Ajoute le composant VineComponent si pas déjà présent
+                    if not esper.has_component(target_entity, VineComponent):
+                        esper.add_component(target_entity, VineComponent(time=speDruid.immobilization_duration))
+                    
+                    # Ajoute le composant isVinedComponent
+                    if not esper.has_component(target_entity, isVinedComponent):
+                        esper.add_component(target_entity, isVinedComponent(isVined=True))
+                    
+                    # Immobilise la cible
+                    if esper.has_component(target_entity, VelocityComponent):
+                        velocity = esper.component_for_entity(target_entity, VelocityComponent)
+                        # Sauvegarde la vitesse originale
+                        if not hasattr(speDruid, 'saved_speed'):
+                            speDruid.saved_speed = velocity.currentSpeed
+                        velocity.currentSpeed = 0.0
+                except:
+                    # Si l'entité n'existe plus, désactive la capacité
+                    speDruid.is_active = False
+                    speDruid.target_id = None
+            
+            # Restaure la vitesse quand l'effet se termine
+            if not speDruid.is_active and hasattr(speDruid, 'saved_speed'):
+                if speDruid.target_id is not None:
+                    try:
+                        target_entity = speDruid.target_id
+                        
+                        # Restaure la vitesse
+                        if esper.has_component(target_entity, VelocityComponent):
+                            velocity = esper.component_for_entity(target_entity, VelocityComponent)
+                            velocity.currentSpeed = speDruid.saved_speed
+                        
+                        # Retire les composants de lierre
+                        if esper.has_component(target_entity, isVinedComponent):
+                            esper.remove_component(target_entity, isVinedComponent)
+                        if esper.has_component(target_entity, VineComponent):
+                            esper.remove_component(target_entity, VineComponent)
+                    except:
+                        pass
+                delattr(speDruid, 'saved_speed')
+                speDruid.target_id = None
+        
+        # Gestion du timer des entités liées par le lierre
+        for ent, (vine, isVined) in esper.get_components(VineComponent, isVinedComponent):
+            if isVined.isVined:
+                # Assure que l'entité est immobilisée
+                if esper.has_component(ent, VelocityComponent):
+                    velocity = esper.component_for_entity(ent, VelocityComponent)
+                    velocity.currentSpeed = 0.0
+                
+                # Décrémente le timer
+                vine.time -= dt
+                
+                # Quand le temps expire, retire l'effet
+                if vine.time <= 0:
+                    # Retire les composants de lierre
+                    esper.remove_component(ent, isVinedComponent)
+                    esper.remove_component(ent, VineComponent)
+        
+        # Nettoyage des entités marquées comme "vined" mais sans VineComponent actif
+        for ent, isVined in esper.get_component(isVinedComponent):
+            if not esper.has_component(ent, VineComponent):
+                esper.remove_component(ent, isVinedComponent)
