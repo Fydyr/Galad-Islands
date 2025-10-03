@@ -194,6 +194,14 @@ BARHAMUS_SHIELD_REDUCTION_MIN = 0.20  # 20%
 BARHAMUS_SHIELD_REDUCTION_MAX = 0.45  # 45%
 BARHAMUS_SHIELD_DURATION = 5.0        # Durée d'effet du bouclier (secondes)
 
+# NOTE: historical name "Barhamus" was used for these shield constants.
+# The Maraudeur unit uses the same values. To support a clean rename
+# without breaking existing imports, we provide MARAUDEUR_* aliases.
+# Prefer MARAUDEUR_* in new code.
+MARAUDEUR_SHIELD_REDUCTION_MIN = BARHAMUS_SHIELD_REDUCTION_MIN
+MARAUDEUR_SHIELD_REDUCTION_MAX = BARHAMUS_SHIELD_REDUCTION_MAX
+MARAUDEUR_SHIELD_DURATION = BARHAMUS_SHIELD_DURATION
+
 # Druid : Lierre volant
 DRUID_IMMOBILIZATION_DURATION = 5.0 # Durée d'immobilisation
 DRUID_PROJECTILE_SPEED = 300.0     # Vitesse du projectile druide

@@ -1,14 +1,30 @@
 
 from typing import Optional
 from dataclasses import dataclass as component
-from src.constants.gameplay import BARHAMUS_SHIELD_REDUCTION_MIN, BARHAMUS_SHIELD_REDUCTION_MAX, BARHAMUS_SHIELD_DURATION, SPECIAL_ABILITY_COOLDOWN
+"""
+Le Maraudeur utilise historiquement des constantes nommées BARHAMUS_*.
+Nous importons les alias MARAUDEUR_* (préférés) et gardons les BARHAMUS_*
+comme fallback pour compatibilité si nécessaire.
+"""
+from src.constants.gameplay import (
+    # Preferred names for new code
+    MARAUDEUR_SHIELD_REDUCTION_MIN,
+    MARAUDEUR_SHIELD_REDUCTION_MAX,
+    MARAUDEUR_SHIELD_DURATION,
+    # Backwards-compatible old names (still present in constants)
+    BARHAMUS_SHIELD_REDUCTION_MIN,
+    BARHAMUS_SHIELD_REDUCTION_MAX,
+    BARHAMUS_SHIELD_DURATION,
+    SPECIAL_ABILITY_COOLDOWN,
+)
 
 @component
 class SpeMaraudeur:
-    def __init__(self, is_active=False, reduction_value=0.0, duration=BARHAMUS_SHIELD_DURATION, timer=0.0, cooldown=SPECIAL_ABILITY_COOLDOWN, cooldown_timer=0.0):
+    def __init__(self, is_active=False, reduction_value=0.0, duration=MARAUDEUR_SHIELD_DURATION, timer=0.0, cooldown=SPECIAL_ABILITY_COOLDOWN, cooldown_timer=0.0):
         self.is_active: bool = is_active
-        self.reduction_min: float = BARHAMUS_SHIELD_REDUCTION_MIN
-        self.reduction_max: float = BARHAMUS_SHIELD_REDUCTION_MAX
+        # Prefer MARAUDEUR_* constants, but keep compatibility with BARHAMUS_* values
+        self.reduction_min: float = MARAUDEUR_SHIELD_REDUCTION_MIN
+        self.reduction_max: float = MARAUDEUR_SHIELD_REDUCTION_MAX
         self.reduction_value: float = reduction_value
         self.duration: float = duration
         self.timer: float = timer  # Temps restant de la réduction
@@ -33,8 +49,13 @@ class SpeMaraudeur:
             self.duration = duration if duration is not None else self.duration
             self.timer = self.duration
             self.cooldown_timer = self.cooldown
+            # Activation silencieuse en production — retire les prints de debug
             return True
         return False
+
+    def is_shielded(self) -> bool:
+        """Retourne True si le bouclier est actif (API miroir de SpeScout)."""
+        return self.is_active
 
     def update(self, dt):
         """

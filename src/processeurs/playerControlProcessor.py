@@ -10,6 +10,9 @@ from src.components.properties.baseComponent import BaseComponent
 from src.components.properties.radiusComponent import RadiusComponent 
 from src.components.properties.ability.speDruidComponent import SpeDruid
 from src.components.properties.ability.speArchitectComponent import SpeArchitect
+from src.components.properties.ability.speScoutComponent import SpeScout
+from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
+from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
 from src.components.properties.teamComponent import TeamComponent
 from src.settings import controls
 
@@ -98,6 +101,29 @@ class PlayerControlProcessor(esper.Processor):
                         spe_architect = esper.component_for_entity(entity, SpeArchitect)
                         if spe_architect.available and not spe_architect.is_active:
                             self._activate_architect_ability(entity, spe_architect)
+                    # Capacité du Scout (invincibilité)
+                    elif esper.has_component(entity, SpeScout):
+                        spe_scout = esper.component_for_entity(entity, SpeScout)
+                        if spe_scout.can_activate():
+                            spe_scout.activate()
+                        else:
+                            pass
+
+                    # Capacité du Maraudeur (bouclier de mana)
+                    elif esper.has_component(entity, SpeMaraudeur):
+                        spe_maraudeur = esper.component_for_entity(entity, SpeMaraudeur)
+                        if spe_maraudeur.can_activate():
+                            spe_maraudeur.activate()
+                        else:
+                            pass
+
+                    # Capacité du Leviathan (seconde salve)
+                    elif esper.has_component(entity, SpeLeviathan):
+                        spe_lev = esper.component_for_entity(entity, SpeLeviathan)
+                        if spe_lev.can_activate():
+                            spe_lev.activate()
+                        else:
+                            pass
             else:
                 self.special_ability_pressed = False
 

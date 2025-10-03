@@ -295,7 +295,6 @@ class CollisionProcessor(esper.Processor):
             0 <= grid_x < len(self.graph[0]) and
             self.graph[grid_y][grid_x] == 3):
             self.graph[grid_y][grid_x] = 0  # Remplacer par de l'eau
-            
             # Dispatcher événement d'explosion
             esper.dispatch_event('mine_explosion', x, y)
 
