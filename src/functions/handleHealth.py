@@ -6,6 +6,7 @@ from src.components.properties.ability.speScoutComponent import SpeScout
 
 def processHealth(entity, damage):
     health = esper.component_for_entity(entity, Health)
+    
     # Vérifie si l'entité possède le bouclier de Barhamus
     if esper.has_component(entity, SpeMaraudeur):
         shield = esper.component_for_entity(entity, SpeMaraudeur)
@@ -20,12 +21,24 @@ def processHealth(entity, damage):
     # Sinon, applique les dégâts normalement
     if health.currentHealth > 0:
         health.currentHealth -= int(damage)
+        
     if health.currentHealth <= 0:
         esper.delete_entity(entity)
 
 def entitiesHit(ent1, ent2):
-    damage1 = esper.component_for_entity(ent1, Attack).hitPoints
-    damage2 = esper.component_for_entity(ent2, Attack).hitPoints
+    # Vérifier si les entités ont des composants d'attaque
+    damage1 = 0
+    damage2 = 0
     
-    processHealth(ent1, damage2)
-    processHealth(ent2, damage1)
+    if esper.has_component(ent1, Attack):
+        damage1 = esper.component_for_entity(ent1, Attack).hitPoints
+        
+    if esper.has_component(ent2, Attack):
+        damage2 = esper.component_for_entity(ent2, Attack).hitPoints
+    
+    # Appliquer les dégâts seulement si les entités ont des HP
+    if esper.has_component(ent1, Health) and damage2 > 0:
+        processHealth(ent1, damage2)
+        
+    if esper.has_component(ent2, Health) and damage1 > 0:
+        processHealth(ent2, damage1)
