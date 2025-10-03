@@ -1,5 +1,7 @@
+"""Factory de création des entités d'unités du jeu."""
+
 import esper as es
-from src.constants.unitType import UnitType
+from src.factory.unitType import UnitType
 from src.components.properties.positionComponent import PositionComponent
 from src.components.properties.velocityComponent import VelocityComponent
 from src.components.properties.spriteComponent import SpriteComponent
@@ -10,11 +12,14 @@ from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.ability.speDruidComponent import SpeDruid
 from src.components.properties.ability.speArchitectComponent import SpeArchitect
+from src.components.properties.classeComponent import ClasseComponent
+from src.settings.localization import t
 
 
 
 
 def UnitFactory(unit: UnitType, enemy: bool, pos):
+    entity = None
     match(unit):
         case UnitType.SCOUT:
             entity = es.create_entity()
@@ -97,12 +102,30 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             ))
 
         case UnitType.ATTACK_TOWER:
-
             pass
         case UnitType.HEAL_TOWER:
-
             pass
         case _:
             pass
 
-    return entity if entity != None else None
+    if entity is not None and unit in (
+        UnitType.SCOUT,
+        UnitType.MARAUDEUR,
+        UnitType.LEVIATHAN,
+        UnitType.DRUID,
+        UnitType.ARCHITECT,
+    ):
+        config = unit.get_shop_config(enemy)
+        display_name = t(config.name_key)
+        if not es.has_component(entity, ClasseComponent):
+            es.add_component(
+                entity,
+                ClasseComponent(
+                    unit_type=unit.name,
+                    shop_id=config.shop_id,
+                    display_name=display_name,
+                    is_enemy=enemy,
+                ),
+            )
+
+    return entity if entity is not None else None
