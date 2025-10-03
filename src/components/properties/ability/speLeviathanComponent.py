@@ -2,7 +2,7 @@ from dataclasses import dataclass as component
 from src.constants.gameplay import SPECIAL_ABILITY_COOLDOWN
 
 @component
-class SpeDraupnir:
+class SpeLeviathan:
     def __init__(self, is_active=False, cooldown=SPECIAL_ABILITY_COOLDOWN, cooldown_timer=0.0, salve_ready=True):
         self.is_active: bool = is_active  # Capacité spéciale activée ?
         self.cooldown: float = cooldown   # Cooldown de la capacité spéciale

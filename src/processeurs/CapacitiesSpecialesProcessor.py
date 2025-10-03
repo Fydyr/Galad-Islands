@@ -1,31 +1,31 @@
 
 import esper
-from components.properties.ability.speZasperComponent import SpeZasper
-from components.properties.ability.speBarhamusComponent import SpeBarhamus
-from components.properties.ability.speDraupnirComponent import SpeDraupnir
-from components.properties.ability.speDruidComponent import SpeDruid
-from components.properties.ability.speArchitectComponent import SpeArchitect
-from components.properties.velocityComponent import VelocityComponent
-from components.properties.radiusComponent import RadiusComponent
+from src.components.properties.ability.speScoutComponent import SpeScout
+from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
+from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
+from src.components.properties.ability.speDruidComponent import SpeDruid
+from src.components.properties.ability.speArchitectComponent import SpeArchitect
+from src.components.properties.velocityComponent import VelocityComponent
+from src.components.properties.radiusComponent import RadiusComponent
 from src.components.properties.ability.isVinedComponent import isVinedComponent
 from src.components.properties.ability.VineComponent import VineComponent
 
 class CapacitiesSpecialesProcessor(esper.Processor):
     def process(self, dt):
-        # Zasper : manœuvre d'évasion (invincibilité)
-        for ent, (speZasper,) in esper.get_component(SpeZasper):
-            speZasper.update(dt)
+        # Scout : manœuvre d'évasion (invincibilité)
+        for ent, speScout in esper.get_component(SpeScout):
+            speScout.update(dt)
         
-        # Barhamus : bouclier de mana (réduction dégâts)
-        for ent, (speBarhamus,) in esper.get_component(SpeBarhamus):
-            speBarhamus.update(dt, ent)
+        # Maraudeur : bouclier de mana (réduction dégâts)
+        for ent, speMaraudeur in esper.get_component(SpeMaraudeur):
+            speMaraudeur.update(dt)
         
-        # Draupnir : seconde salve (instantané, cooldown)
-        for ent, (speDraupnir,) in esper.get_component(SpeDraupnir):
-            speDraupnir.update(dt, ent)
+        # Leviathan : seconde salve (instantané, cooldown)
+        for ent, speLeviathan in esper.get_component(SpeLeviathan):
+            speLeviathan.update(dt)
         
         # Druid : lierre volant (immobilisation)
-        for ent, (speDruid,) in esper.get_component(SpeDruid):
+        for ent, speDruid in esper.get_component(SpeDruid):
             speDruid.update(dt)
             
             # Si le projectile atteint sa cible, applique l'effet de lierre
@@ -85,7 +85,7 @@ class CapacitiesSpecialesProcessor(esper.Processor):
                     esper.remove_component(ent, VineComponent)
         
         # Architect : rechargement automatique (effet de zone)
-        for ent, (speArchitect,) in esper.get_component(SpeArchitect):
+        for ent, speArchitect in esper.get_component(SpeArchitect):
             speArchitect.update(dt)
             
             # Si la capacité est active, applique le boost de rechargement

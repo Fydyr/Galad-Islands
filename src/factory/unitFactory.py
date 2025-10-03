@@ -27,9 +27,9 @@ from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.ability.speDruidComponent import SpeDruid
 from src.components.properties.ability.speArchitectComponent import SpeArchitect
 from src.components.properties.classeComponent import ClasseComponent
-from src.components.properties.ability.speZasperComponent import SpeZasper
-from src.components.properties.ability.speBarhamusComponent import SpeBarhamus
-from src.components.properties.ability.speDraupnirComponent import SpeDraupnir
+from src.components.properties.ability.speScoutComponent import SpeScout
+from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
+from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
 from src.settings.localization import t
 
 
@@ -47,7 +47,7 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, AttackComponent(UNIT_ATTACK_SCOUT))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_SCOUT, UNIT_HEALTH_SCOUT))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpeZasper())
+            es.add_component(entity, SpeScout())
             sprite_id = SpriteID.ALLY_SCOUT if not enemy else SpriteID.ENEMY_SCOUT
             size = sprite_manager.get_default_size(sprite_id)
             if size:
@@ -67,7 +67,7 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, AttackComponent(UNIT_ATTACK_MARAUDEUR))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_MARAUDEUR, UNIT_HEALTH_MARAUDEUR))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpeBarhamus())
+            es.add_component(entity, SpeMaraudeur())
             sprite_id = SpriteID.ALLY_MARAUDEUR if not enemy else SpriteID.ENEMY_MARAUDEUR
             size = sprite_manager.get_default_size(sprite_id)
             if size:
@@ -85,7 +85,7 @@ def UnitFactory(unit: UnitType, enemy: bool, pos):
             es.add_component(entity, AttackComponent(UNIT_ATTACK_LEVIATHAN))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_LEVIATHAN, UNIT_HEALTH_LEVIATHAN))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpeDraupnir())
+            es.add_component(entity, SpeLeviathan())
             sprite_id = SpriteID.ALLY_LEVIATHAN if not enemy else SpriteID.ENEMY_LEVIATHAN
             size = sprite_manager.get_default_size(sprite_id)
             if size:

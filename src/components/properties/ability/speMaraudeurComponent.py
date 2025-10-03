@@ -1,9 +1,10 @@
 
+from typing import Optional
 from dataclasses import dataclass as component
 from src.constants.gameplay import BARHAMUS_SHIELD_REDUCTION_MIN, BARHAMUS_SHIELD_REDUCTION_MAX, BARHAMUS_SHIELD_DURATION, SPECIAL_ABILITY_COOLDOWN
 
 @component
-class SpeBarhamus:
+class SpeMaraudeur:
     def __init__(self, is_active=False, reduction_value=0.0, duration=BARHAMUS_SHIELD_DURATION, timer=0.0, cooldown=SPECIAL_ABILITY_COOLDOWN, cooldown_timer=0.0):
         self.is_active: bool = is_active
         self.reduction_min: float = BARHAMUS_SHIELD_REDUCTION_MIN
@@ -18,7 +19,7 @@ class SpeBarhamus:
         """Vérifie si la capacité peut être activée (pas en cooldown ni déjà active)."""
         return (not self.is_active) and (self.cooldown_timer <= 0)
 
-    def activate(self, reduction: float = None, duration: float = None):
+    def activate(self, reduction: Optional[float] = None, duration: Optional[float] = None):
         """
         Active le bouclier de mana avec une réduction donnée et une durée (ou valeurs par défaut).
         - reduction: pourcentage de réduction (entre reduction_min et reduction_max)
