@@ -11,6 +11,10 @@ from src.components.properties.attackComponent import AttackComponent
 from src.settings.settings import TILE_SIZE
 import math
 from src.components.properties.lifetimeComponent import LifetimeComponent
+from src.components.properties.projectileComponent import ProjectileComponent
+from src.components.properties.ability.speScoutComponent import SpeScout
+from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
+from src.managers.sprite_manager import SpriteID, sprite_manager
 
 class CollisionProcessor(esper.Processor):
     def __init__(self, graph=None):
@@ -125,7 +129,6 @@ class CollisionProcessor(esper.Processor):
     def _handle_entity_hit(self, entity1, entity2):
         """Gère les dégâts entre deux entités qui se percutent"""
         # Vérifier si l'une des entités est un projectile et l'autre une mine
-        from src.components.properties.projectileComponent import ProjectileComponent
         is_projectile1 = esper.has_component(entity1, ProjectileComponent)
         is_projectile2 = esper.has_component(entity2, ProjectileComponent)
         is_mine1 = self._is_mine_entity(entity1)
@@ -145,6 +148,22 @@ class CollisionProcessor(esper.Processor):
                 esper.delete_entity(entity2)
             # La mine ne prend aucun dégât et reste en place
             return
+
+        # Si une mine heurte un Scout invincible, ignorer totalement (ne pas détruire la mine)
+        try:
+            if is_mine1 and esper.has_component(entity2, SpeScout):
+                scout_comp = esper.component_for_entity(entity2, SpeScout)
+                if scout_comp.is_invincible():
+                    # Ignorer la collision
+                    print(f"Debug: Mine {entity1} touchée par Scout invincible {entity2} - aucun effet")
+                    return
+            if is_mine2 and esper.has_component(entity1, SpeScout):
+                scout_comp = esper.component_for_entity(entity1, SpeScout)
+                if scout_comp.is_invincible():
+                    print(f"Debug: Mine {entity2} touchée par Scout invincible {entity1} - aucun effet")
+                    return
+        except Exception:
+            pass
         
         # Obtenir les composants d'attaque et de santé
         attack1 = esper.component_for_entity(entity1, AttackComponent) if esper.has_component(entity1, AttackComponent) else None
@@ -153,45 +172,79 @@ class CollisionProcessor(esper.Processor):
         attack2 = esper.component_for_entity(entity2, AttackComponent) if esper.has_component(entity2, AttackComponent) else None
         health2 = esper.component_for_entity(entity2, HealthComponent) if esper.has_component(entity2, HealthComponent) else None
         
-        # Entity1 inflige des dégâts à Entity2
-        if attack1 and health2:
-            damage = attack1.hitPoints
-            health2.currentHealth -= damage
-            
-            # Détruire entity2 si mort
-            if health2.currentHealth <= 0:
-                self._destroy_mine_on_grid(entity2)
-                if esper.has_component(entity2, ProjectileComponent):
-                    self._create_explosion_at_entity(entity2)
-                esper.delete_entity(entity2)
-        
-        # Entity2 inflige des dégâts à Entity1
-        if attack2 and health1:
-            damage = attack2.hitPoints
-            health1.currentHealth -= damage
-            
-            
-            # Détruire entity1 si mort
-            if health1.currentHealth <= 0:
-                self._destroy_mine_on_grid(entity1)
-                if esper.has_component(entity1, ProjectileComponent):
-                    self._create_explosion_at_entity(entity1)
-                esper.delete_entity(entity1)
+        # Déléguer la logique de dégâts au gestionnaire central `entities_hit` qui
+        # applique correctement les capacités spéciales (invincibilité, bouclier, ...)
+        # Sauvegarder l'état avant l'appel pour gérer les explosions et mines
+        try:
+            had_proj1 = esper.has_component(entity1, ProjectileComponent)
+            had_proj2 = esper.has_component(entity2, ProjectileComponent)
+        except Exception:
+            had_proj1 = False
+            had_proj2 = False
+
+        # Sauvegarder les positions si nécessaire (pour explosion si le projectile meurt)
+        pos1 = None
+        pos2 = None
+        try:
+            if esper.has_component(entity1, Position):
+                p = esper.component_for_entity(entity1, Position)
+                pos1 = (p.x, p.y)
+            if esper.has_component(entity2, Position):
+                p2 = esper.component_for_entity(entity2, Position)
+                pos2 = (p2.x, p2.y)
+        except Exception:
+            pass
+
+        # Dispatcher l'événement qui appliquera les dégâts correctement
+        try:
+            esper.dispatch_event('entities_hit', entity1, entity2)
+        except Exception:
+            # Fallback : si le handler n'existe pas, appliquer dégâts simples
+            if attack1 and health2:
+                health2.currentHealth -= int(attack1.hitPoints)
+            if attack2 and health1:
+                health1.currentHealth -= int(attack2.hitPoints)
+
+        # Après le dispatch, vérifier si des entités ont été supprimées et agir en conséquence
+        # Gestion des mines
+        if is_mine1 and entity1 not in esper._entities:
+            self._destroy_mine_on_grid(entity1)
+        if is_mine2 and entity2 not in esper._entities:
+            self._destroy_mine_on_grid(entity2)
+
+        # Gestion des explosions pour les projectiles supprimés
+        try:
+            if had_proj1 and entity1 not in esper._entities and pos1 is not None:
+                # créer une explosion à la position sauvegardée
+                explosion_entity = esper.create_entity()
+                esper.add_component(explosion_entity, Position(x=pos1[0], y=pos1[1], direction=0))
+                size = sprite_manager.get_default_size(SpriteID.EXPLOSION)
+                if size:
+                    esper.add_component(explosion_entity, sprite_manager.create_sprite_component(SpriteID.EXPLOSION, size[0], size[1]))
+                else:
+                    esper.add_component(explosion_entity, Sprite("assets/sprites/projectile/explosion.png", 32, 32))
+                esper.add_component(explosion_entity, LifetimeComponent(0.4))
+
+            if had_proj2 and entity2 not in esper._entities and pos2 is not None:
+                explosion_entity = esper.create_entity()
+                esper.add_component(explosion_entity, Position(x=pos2[0], y=pos2[1], direction=0))
+                size = sprite_manager.get_default_size(SpriteID.EXPLOSION)
+                if size:
+                    esper.add_component(explosion_entity, sprite_manager.create_sprite_component(SpriteID.EXPLOSION, size[0], size[1]))
+                else:
+                    esper.add_component(explosion_entity, Sprite("assets/sprites/projectile/explosion.png", 32, 32))
+                esper.add_component(explosion_entity, LifetimeComponent(0.4))
+        except Exception:
+            pass
 
     def _create_explosion_at_entity(self, entity):
         """Crée une entité explosion à la position de l'entité donnée (projectile)"""
-        from src.managers.sprite_manager import SpriteID, sprite_manager
-        from src.components.properties.positionComponent import PositionComponent
-        from src.components.properties.spriteComponent import SpriteComponent
-        if not esper.has_component(entity, PositionComponent):
+        # Utiliser les imports en tête de fichier : SpriteID, sprite_manager, Position, Sprite
+        if not esper.has_component(entity, Position):
             return
-        pos = esper.component_for_entity(entity, PositionComponent)
+        pos = esper.component_for_entity(entity, Position)
         explosion_entity = esper.create_entity()
-        esper.add_component(explosion_entity, PositionComponent(
-            x=pos.x,
-            y=pos.y,
-            direction=pos.direction if hasattr(pos, 'direction') else 0
-        ))
+        esper.add_component(explosion_entity, Position(x=pos.x, y=pos.y, direction=pos.direction if hasattr(pos, 'direction') else 0))
         # Sprite d'explosion
         sprite_id = SpriteID.EXPLOSION
         size = sprite_manager.get_default_size(sprite_id)
@@ -199,7 +252,7 @@ class CollisionProcessor(esper.Processor):
             width, height = size
             esper.add_component(explosion_entity, sprite_manager.create_sprite_component(sprite_id, width, height))
         else:
-            esper.add_component(explosion_entity, SpriteComponent(
+            esper.add_component(explosion_entity, Sprite(
                 "assets/sprites/projectile/explosion.png",
                 32, 32
             ))
@@ -274,10 +327,14 @@ class CollisionProcessor(esper.Processor):
 
     def _get_terrain_type_from_grid(self, grid_x, grid_y):
         """Obtient le type de terrain à partir des coordonnées de grille"""
+        # Si la grille n'est pas fournie, considérer comme eau
+        if not self.graph:
+            return 'water'
+
         if (grid_x < 0 or grid_x >= len(self.graph[0]) or 
             grid_y < 0 or grid_y >= len(self.graph)):
             return 'water'
-            
+
         terrain_value = self.graph[grid_y][grid_x]
         return self._get_terrain_type(terrain_value)
 
@@ -308,7 +365,7 @@ class CollisionProcessor(esper.Processor):
             return 'water'
 
     def _apply_terrain_effects(self, entity, pos, velocity, terrain_type):
-        from src.components.properties.projectileComponent import ProjectileComponent
+        # ProjectileComponent importé en tête de fichier
         if terrain_type not in self.terrain_effects:
             velocity.terrain_modifier = 1.0
             return
@@ -346,7 +403,6 @@ class CollisionProcessor(esper.Processor):
                 
     def _is_mine_entity(self, entity):
         """Vérifie si une entité est une mine (health max = 1)"""
-        from src.components.properties.healthComponent import HealthComponent
         if esper.has_component(entity, HealthComponent):
             health = esper.component_for_entity(entity, HealthComponent)
             return health.maxHealth == 1

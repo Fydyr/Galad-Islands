@@ -150,6 +150,7 @@ class ActionBar:
                         get_player_gold=self._get_current_player_gold,
                         set_player_gold=self._set_current_player_gold)
         self.on_camp_change: Optional[Callable[[int], None]] = None
+        self.game_engine = None  # Référence vers le moteur de jeu
         
         # Configurations des unités (placeholder)
         self.unit_configs = {
@@ -162,6 +163,10 @@ class ActionBar:
         
         self._initialize_buttons()
         self._load_icons()
+
+    def set_game_engine(self, game_engine):
+        """Définit la référence vers le moteur de jeu."""
+        self.game_engine = game_engine
         
     def _initialize_buttons(self):
         """Initialise les boutons de la barre d'action."""
@@ -407,17 +412,17 @@ class ActionBar:
         print(f"[{type.upper()}] {message}")
     
     def _use_special_ability(self):
-        """Utilise la capacité spéciale de l'unité sélectionnée (placeholder)."""
-        if self.selected_unit:
-            print(f"[PLACEHOLDER] Demande d'utilisation de capacité spéciale: {self.selected_unit.unit_type}")
-            if self.selected_unit.special_cooldown <= 0:
-                self._show_feedback("success", t("feedback.ability_used").format(self.selected_unit.unit_type))
-                # Simuler un cooldown
-                self.selected_unit.special_cooldown = 5.0
-            else:
-                self._show_feedback("warning", t("feedback.ability_cooldown").format(self.selected_unit.special_cooldown))
+        """Déclenche la capacité spéciale de l'unité sélectionnée."""
+        # Déléguer au moteur de jeu pour la logique de capacité spéciale
+        if hasattr(self, 'game_engine') and self.game_engine:
+            self.game_engine.trigger_selected_special_ability()
         else:
-            self._show_feedback("warning", t("feedback.no_unit_selected"))
+            print("Moteur de jeu non disponible pour déclencher la capacité spéciale")
+
+    def update_special_cooldowns(self, dt: float):
+        """Met à jour les cooldowns des capacités spéciales."""
+        if self.selected_unit and self.selected_unit.special_cooldown > 0:
+            self.selected_unit.special_cooldown = max(0, self.selected_unit.special_cooldown - dt)
     
     def _open_shop(self):
         """Ouvre ou ferme la boutique."""
@@ -470,6 +475,14 @@ class ActionBar:
         
         return False
     
+    def handle_keyboard_shortcuts(self, event: pygame.event.Event):
+        """Gère les raccourcis clavier pour les actions de la barre."""
+        if event.type == pygame.KEYDOWN:
+            for button in self.action_buttons:
+                if button.hotkey and event.unicode.lower() == button.hotkey.lower():
+                    if button.enabled and button.callback:
+                        button.callback()
+
     def _handle_mouse_motion(self, mouse_pos: Tuple[int, int]):
         """Gère le survol des boutons."""
         self.hovered_button = -1
@@ -675,7 +688,7 @@ class ActionBar:
     
     def _draw_camp_button(self, surface: pygame.Surface):
         """Dessine le bouton de changement de camp."""
-        if not hasattr(self, 'camp_button_rect'):
+        if self.camp_button_rect is None:
             return
             
         # Couleur selon le camp actuel
@@ -992,6 +1005,7 @@ def main():
             
             # Laisser la barre d'action gérer l'événement
             action_bar.handle_event(event)
+            action_bar.handle_keyboard_shortcuts(event)
         
         # Mise à jour
         action_bar.update(dt)
