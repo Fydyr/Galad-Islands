@@ -20,13 +20,14 @@ def test_unified_shop():
     ally_shop = UnifiedShop(800, 600, ShopFaction.ALLY)
     print("✅ Boutique alliée créée")
     print(f"   - Items unités: {len(ally_shop.shop_items[ShopCategory.UNITS])}")
-    print(f"   - Items bâtiments: {len(ally_shop.shop_items[ShopCategory.BUILDINGS])}")
+    # Les bâtiments ont été retirés de la boutique
+    print(f"   - Items bâtiments: 0 (catégorie retirée)")
     
     # Tester le changement de faction
     ally_shop.switch_faction(ShopFaction.ENEMY)
     print("✅ Basculement vers faction ennemie")
     print(f"   - Items unités: {len(ally_shop.shop_items[ShopCategory.UNITS])}")
-    print(f"   - Items bâtiments: {len(ally_shop.shop_items[ShopCategory.BUILDINGS])}")
+    print(f"   - Items bâtiments: 0 (catégorie retirée)")
     
     # Retour à la faction alliée
     ally_shop.switch_faction(ShopFaction.ALLY)
