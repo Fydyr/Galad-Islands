@@ -23,7 +23,8 @@ class Camera:
     def __init__(self, screen_width, screen_height):
         self.x = 0.0  # Position X de la caméra en pixels monde
         self.y = 0.0  # Position Y de la caméra en pixels monde
-        self.zoom = 1.0  # Facteur de zoom
+        from src.settings.settings import ZOOM_MIN
+        self.zoom = ZOOM_MIN  # Facteur de zoom (dézoom par défaut)
         self.screen_width = screen_width
         self.screen_height = screen_height
         
