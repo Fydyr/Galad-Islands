@@ -117,9 +117,9 @@ class SpriteManager:
             
             # Projectiles
             SpriteData(SpriteID.PROJECTILE_BULLET,
-                       "assets/sprites/projectile/ball.png", 10, 5, "Projectile standard"),
-            SpriteData(SpriteID.PROJECTILE_CANNONBALL, "assets/sprites/projectile/ball.png", 15, 10, "Boulet de canon"),
-            SpriteData(SpriteID.PROJECTILE_ARROW, "assets/sprites/projectile/ball.png", 8, 3, "Flèche"),
+                       "assets/sprites/projectile/ball.png", 20, 15, "Projectile standard"),
+            SpriteData(SpriteID.PROJECTILE_CANNONBALL, "assets/sprites/projectile/ball.png", 20, 15, "Boulet de canon"),
+            SpriteData(SpriteID.PROJECTILE_ARROW, "assets/sprites/projectile/ball.png", 20, 15, "Flèche"),
 
             # Effets
             SpriteData(SpriteID.EXPLOSION, "assets/sprites/projectile/explosion.png", 32, 32, "Explosion générique"),

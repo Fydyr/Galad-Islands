@@ -10,6 +10,7 @@ from src.components.properties.healthComponent import HealthComponent
 from src.components.properties.attackComponent import AttackComponent
 from src.settings.settings import TILE_SIZE
 import math
+from src.components.properties.lifetimeComponent import LifetimeComponent
 
 class CollisionProcessor(esper.Processor):
     def __init__(self, graph=None):
@@ -132,10 +133,15 @@ class CollisionProcessor(esper.Processor):
         # Si un projectile touche une mine, la mine ne prend pas de dégâts
         # Mais le projectile peut être détruit
         if (is_projectile1 and is_mine2) or (is_projectile2 and is_mine1):
-            # Détruire seulement le projectile
+            print(f"Debug: Projectile touche une mine - mine résiste à l'impact")
+            # Détruire seulement le projectile et créer une explosion
             if is_projectile1:
+                print(f"Debug: Projectile {entity1} détruit par mine")
+                self._create_explosion_at_entity(entity1)
                 esper.delete_entity(entity1)
             if is_projectile2:
+                print(f"Debug: Projectile {entity2} détruit par mine")
+                self._create_explosion_at_entity(entity2)
                 esper.delete_entity(entity2)
             # La mine ne prend aucun dégât et reste en place
             return
@@ -155,6 +161,8 @@ class CollisionProcessor(esper.Processor):
             # Détruire entity2 si mort
             if health2.currentHealth <= 0:
                 self._destroy_mine_on_grid(entity2)
+                if esper.has_component(entity2, ProjectileComponent):
+                    self._create_explosion_at_entity(entity2)
                 esper.delete_entity(entity2)
         
         # Entity2 inflige des dégâts à Entity1
@@ -166,10 +174,40 @@ class CollisionProcessor(esper.Processor):
             # Détruire entity1 si mort
             if health1.currentHealth <= 0:
                 self._destroy_mine_on_grid(entity1)
+                if esper.has_component(entity1, ProjectileComponent):
+                    self._create_explosion_at_entity(entity1)
                 esper.delete_entity(entity1)
+
+    def _create_explosion_at_entity(self, entity):
+        """Crée une entité explosion à la position de l'entité donnée (projectile)"""
+        from src.managers.sprite_manager import SpriteID, sprite_manager
+        from src.components.properties.positionComponent import PositionComponent
+        from src.components.properties.spriteComponent import SpriteComponent
+        if not esper.has_component(entity, PositionComponent):
+            return
+        pos = esper.component_for_entity(entity, PositionComponent)
+        explosion_entity = esper.create_entity()
+        esper.add_component(explosion_entity, PositionComponent(
+            x=pos.x,
+            y=pos.y,
+            direction=pos.direction if hasattr(pos, 'direction') else 0
+        ))
+        # Sprite d'explosion
+        sprite_id = SpriteID.EXPLOSION
+        size = sprite_manager.get_default_size(sprite_id)
+        if size:
+            width, height = size
+            esper.add_component(explosion_entity, sprite_manager.create_sprite_component(sprite_id, width, height))
+        else:
+            esper.add_component(explosion_entity, SpriteComponent(
+                "assets/sprites/projectile/explosion.png",
+                32, 32
+            ))
+        # Durée de vie temporaire pour l'explosion (ex: 0.4s)
+        esper.add_component(explosion_entity, LifetimeComponent(0.4))
         
         # Dispatcher l'événement original pour compatibilité
-        esper.dispatch_event('entities_hit', entity1, entity2)
+            # esper.dispatch_event('entities_hit', entity1, entity2)
 
     def _destroy_mine_on_grid(self, entity):
         """Détruit la mine sur la grille si l'entité est une mine"""
@@ -276,15 +314,35 @@ class CollisionProcessor(esper.Processor):
             return
         effect = self.terrain_effects[terrain_type]
         is_projectile = esper.has_component(entity, ProjectileComponent)
+        # Les projectiles traversent les îles, mais pas les bases/mine
         if not effect['can_pass']:
             if is_projectile:
-                esper.delete_entity(entity)
-                return
+                # Détruire seulement si base ou mine, PAS pour les îles
+                if terrain_type in ['ally_base', 'enemy_base', 'mine']:
+                    print(f"Debug: Projectile {entity} détruit par collision avec {terrain_type}")
+                    esper.delete_entity(entity)
+                    return
+                # Sinon (ex: île), traverser sans effet
+                else:
+                    # Pas de destruction, pas de blocage
+                    velocity.terrain_modifier = 1.0
+                    return
             else:
                 velocity.currentSpeed = 0
                 velocity.terrain_modifier = 0.0
+                print(f"Debug: Mouvement bloqué par {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
         else:
-            velocity.terrain_modifier = effect['speed_modifier']
+            if is_projectile and terrain_type == 'cloud':
+                # Les projectiles ne sont pas ralentis dans les nuages
+                velocity.terrain_modifier = 1.0
+                print(f"Debug: Projectile traverse nuage sans ralentissement")
+            else:
+                velocity.terrain_modifier = effect['speed_modifier']
+                print(f"Debug: Terrain {terrain_type} - Speed={velocity.currentSpeed}, Modifier={velocity.terrain_modifier}")
+                if terrain_type == 'cloud':
+                    print(f"Debug: Passage dans nuage, vitesse réduite à {effect['speed_modifier']*100}%")
+                elif terrain_type == 'water':
+                    print(f"Debug: Navigation normale en mer")
                 
     def _is_mine_entity(self, entity):
         """Vérifie si une entité est une mine (health max = 1)"""

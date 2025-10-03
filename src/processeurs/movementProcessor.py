@@ -66,17 +66,17 @@ class MovementProcessor(esper.Processor):
 
     def _is_out_of_bounds(self, x: float, y: float) -> bool:
         """
-        Vérifie si une position est en dehors des limites de la carte.
-        
+        Vérifie si une position est en dehors des limites jouables de la carte (avec marge).
         Args:
             x (float): Position X à vérifier
             y (float): Position Y à vérifier
-            
         Returns:
             bool: True si la position est hors limites
         """
-        return (x < 0 or x > self.world_width or 
-                y < 0 or y > self.world_height)
+        return (
+            x < self.boundary_margin or x > self.world_width - self.boundary_margin or
+            y < self.boundary_margin or y > self.world_height - self.boundary_margin
+        )
 
     def _constrain_position(self, x: float, y: float) -> tuple[float, float]:
         """

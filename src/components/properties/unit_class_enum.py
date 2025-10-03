@@ -2,9 +2,9 @@ from enum import Enum, auto
 
 class UnitClass(Enum):
     """Enumeration for different unit classes in the game."""
-    ZASPER = 0
-    BARHAMUS = 1  
-    DRAUPNIR = 2
+    SCOUT = 0
+    MARAUDEUR = 1  
+    LEVIATHAN = 2
     DRUID = 3
     ARCHITECT = 4
     
@@ -12,9 +12,9 @@ class UnitClass(Enum):
     def display_name(self) -> str:
         """Get the display name for the unit class."""
         names = {
-            UnitClass.ZASPER: "Zasper",
-            UnitClass.BARHAMUS: "Barhamus", 
-            UnitClass.DRAUPNIR: "Draupnir",
+            UnitClass.SCOUT: "Scout",
+            UnitClass.MARAUDEUR: "Maraudeur", 
+            UnitClass.LEVIATHAN: "Leviathan",
             UnitClass.DRUID: "Druid",
             UnitClass.ARCHITECT: "Architect"
         }
