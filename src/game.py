@@ -15,6 +15,7 @@ from src.constants.team import Team
 
 # Importations des processeurs
 from src.processeurs import movementProcessor, collisionProcessor, playerControlProcessor
+from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 
 # Importations des composants
 from src.components.properties.positionComponent import PositionComponent
@@ -29,9 +30,9 @@ from src.components.properties.classeComponent import ClasseComponent
 
 # Importations des capacités spéciales
 
-from src.components.properties.ability.speBarhamusComponent import SpeBarhamus
-from src.components.properties.ability.speZasperComponent import SpeZasper
-from src.components.properties.ability.speDraupnirComponent import SpeDraupnir
+from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
+from src.components.properties.ability.speScoutComponent import SpeScout
+from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
 
 # Importations des factories et fonctions utilitaires
 from src.factory.unitFactory import UnitFactory
@@ -190,7 +191,7 @@ class GameRenderer:
             
     def _render_single_sprite(self, window, camera, entity, pos, sprite):
         """Rend un sprite individuel avec effet visuel spécial si invincible."""
-        from src.components.properties.ability.speZasperComponent import SpeZasper
+        from src.components.properties.ability.speScoutComponent import SpeScout
         image = self._get_sprite_image(sprite)
         if image is None:
             return
@@ -214,8 +215,8 @@ class GameRenderer:
 
         # Effet visuel d'invincibilité pour Zasper : clignotement
         invincible = False
-        if es.has_component(entity, SpeZasper):
-            spe = es.component_for_entity(entity, SpeZasper)
+        if es.has_component(entity, SpeScout):
+            spe = es.component_for_entity(entity, SpeScout)
             if getattr(spe, 'is_active', False):
                 invincible = True
 
@@ -232,8 +233,8 @@ class GameRenderer:
             window.blit(rotated_image, rect.topleft)
 
         # Effet visuel : halo bleu pour le bouclier de Barhamus
-        if es.has_component(entity, SpeBarhamus):
-            shield = es.component_for_entity(entity, SpeBarhamus)
+        if es.has_component(entity, SpeMaraudeur):
+            shield = es.component_for_entity(entity, SpeMaraudeur)
             if getattr(shield, 'is_active', False):
                 # Halo bleu semi-transparent
                 halo_radius = max(display_width, display_height) // 2 + 10
@@ -371,6 +372,7 @@ class GameEngine:
         self.movement_processor = None
         self.collision_processor = None
         self.player_controls = None
+        self.capacities_processor = None
 
         # Gestion de la sélection des unités
         self.selected_unit_id = None
@@ -432,6 +434,7 @@ class GameEngine:
         self.movement_processor = movementProcessor.MovementProcessor()
         self.collision_processor = collisionProcessor.CollisionProcessor(graph=self.grid)
         self.player_controls = playerControlProcessor.PlayerControlProcessor()
+        self.capacities_processor = CapacitiesSpecialesProcessor()
         
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
@@ -554,18 +557,18 @@ class GameEngine:
         if radius.cooldown > 0:
             return
 
-        # Gestion de la capacité spéciale de Draupnir : seconde salve
-        is_draupnir = es.has_component(entity, SpeDraupnir)
-        draupnir_comp = es.component_for_entity(entity, SpeDraupnir) if is_draupnir else None
+        # Gestion de la capacité spéciale de Leviathan : seconde salve
+        is_leviathan = es.has_component(entity, SpeLeviathan)
+        leviathan_comp = es.component_for_entity(entity, SpeLeviathan) if is_leviathan else None
 
         # Première attaque
         es.dispatch_event("attack_event", entity)
         radius.cooldown = radius.bullet_cooldown
 
-        # Si Draupnir et capacité active, déclenche une seconde salve immédiate
-        if draupnir_comp is not None and getattr(draupnir_comp, "is_active", False):
+        # Si Leviathan et capacité active, déclenche une seconde salve immédiate
+        if leviathan_comp is not None and getattr(leviathan_comp, "is_active", False):
             # On désactive la capacité après usage (sécurité)
-            draupnir_comp.is_active = False
+            leviathan_comp.is_active = False
             # On relance une attaque sans attendre le cooldown
             es.dispatch_event("attack_event", entity)
             # Le cooldown reste inchangé (déjà appliqué)
@@ -743,7 +746,11 @@ class GameEngine:
         if self.action_bar is not None:
             self.action_bar.update(dt)
         
-        # Traiter la logique ECS
+        # Traiter les capacités spéciales d'abord (avec dt)
+        if self.capacities_processor is not None:
+            self.capacities_processor.process(dt)
+        
+        # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
 
         # Synchroniser les informations affichées avec l'état courant

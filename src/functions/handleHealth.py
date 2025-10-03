@@ -1,18 +1,18 @@
 import esper
 from src.components.properties.healthComponent import HealthComponent as Health
 from src.components.properties.attackComponent import AttackComponent as Attack
-from src.components.properties.ability.speBarhamusComponent import SpeBarhamus
-from src.components.properties.ability.speZasperComponent import SpeZasper
+from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
+from src.components.properties.ability.speScoutComponent import SpeScout
 
 def processHealth(entity, damage):
     health = esper.component_for_entity(entity, Health)
     # Vérifie si l'entité possède le bouclier de Barhamus
-    if esper.has_component(entity, SpeBarhamus):
-        shield = esper.component_for_entity(entity, SpeBarhamus)
+    if esper.has_component(entity, SpeMaraudeur):
+        shield = esper.component_for_entity(entity, SpeMaraudeur)
         damage = shield.apply_damage_reduction(damage)
     # Vérifie si l'entité possède l'invincibilité du Zasper
-    if esper.has_component(entity, SpeZasper):
-        invincibility = esper.component_for_entity(entity, SpeZasper)
+    if esper.has_component(entity, SpeScout):
+        invincibility = esper.component_for_entity(entity, SpeScout)
         if invincibility.is_invincible():
             damage = 0
     # Sinon, applique les dégâts normalement
