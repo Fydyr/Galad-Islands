@@ -24,7 +24,7 @@ from src.constants.gameplay import (
     UNIT_ATTACK_SCOUT, UNIT_ATTACK_MARAUDEUR, UNIT_ATTACK_LEVIATHAN, UNIT_ATTACK_DRUID, UNIT_ATTACK_ARCHITECT,
     UNIT_COOLDOWN_SCOUT, UNIT_COOLDOWN_MARAUDEUR, UNIT_COOLDOWN_LEVIATHAN, UNIT_COOLDOWN_DRUID, UNIT_COOLDOWN_ARCHITECT,
     # Capacités spéciales
-    DRUID_COOLDOWN_DURATION, DRUID_IMMOBILIZATION_DURATION, DRUID_PROJECTILE_SPEED,
+    SPECIAL_ABILITY_COOLDOWN, DRUID_IMMOBILIZATION_DURATION, DRUID_PROJECTILE_SPEED,
     ARCHITECT_RADIUS, ARCHITECT_RELOAD_FACTOR, ARCHITECT_DURATION,
 )
 from src.managers.sprite_manager import SpriteID, sprite_manager
@@ -39,6 +39,9 @@ from src.components.properties.canCollideComponent import CanCollideComponent
 from src.components.properties.ability.speDruidComponent import SpeDruid
 from src.components.properties.ability.speArchitectComponent import SpeArchitect
 from src.components.properties.classeComponent import ClasseComponent
+from src.components.properties.ability.speScoutComponent import SpeScout
+from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
+from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
 from src.settings.localization import t
 
 
@@ -55,6 +58,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             es.add_component(entity, AttackComponent(UNIT_ATTACK_SCOUT))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_SCOUT, UNIT_HEALTH_SCOUT))
             es.add_component(entity, CanCollideComponent())
+            es.add_component(entity, SpeScout())
             sprite_id = SpriteID.ALLY_SCOUT if not enemy else SpriteID.ENEMY_SCOUT
             size = sprite_manager.get_default_size(sprite_id)
             if size:
@@ -74,6 +78,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             es.add_component(entity, AttackComponent(UNIT_ATTACK_MARAUDEUR))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_MARAUDEUR, UNIT_HEALTH_MARAUDEUR))
             es.add_component(entity, CanCollideComponent())
+            es.add_component(entity, SpeMaraudeur())
             sprite_id = SpriteID.ALLY_MARAUDEUR if not enemy else SpriteID.ENEMY_MARAUDEUR
             size = sprite_manager.get_default_size(sprite_id)
             if size:
@@ -91,6 +96,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             es.add_component(entity, AttackComponent(UNIT_ATTACK_LEVIATHAN))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_LEVIATHAN, UNIT_HEALTH_LEVIATHAN))
             es.add_component(entity, CanCollideComponent())
+            es.add_component(entity, SpeLeviathan())
             sprite_id = SpriteID.ALLY_LEVIATHAN if not enemy else SpriteID.ENEMY_LEVIATHAN
             size = sprite_manager.get_default_size(sprite_id)
             if size:
@@ -120,7 +126,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
                 is_active=False,
                 available=True,
                 cooldown=0.0,
-                cooldown_duration=DRUID_COOLDOWN_DURATION,
+                cooldown_duration=SPECIAL_ABILITY_COOLDOWN,
                 immobilization_duration=DRUID_IMMOBILIZATION_DURATION,
                 target_id=None,
                 remaining_duration=0.0,

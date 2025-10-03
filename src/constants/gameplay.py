@@ -186,13 +186,25 @@ UNIT_COOLDOWN_DRUID = 4
 UNIT_COOLDOWN_ARCHITECT = 4
 
 # Capacités spéciales
-DRUID_COOLDOWN_DURATION = 15.0     # Cooldown de la capacité druide
+
+SPECIAL_ABILITY_COOLDOWN = 15.0 # Cooldown générique pour les capacités spéciales
+
+# Barhamus : Bouclier de mana
+BARHAMUS_SHIELD_REDUCTION_MIN = 0.20  # 20%
+BARHAMUS_SHIELD_REDUCTION_MAX = 0.45  # 45%
+BARHAMUS_SHIELD_DURATION = 5.0        # Durée d'effet du bouclier (secondes)
+
+# Druid : Lierre volant
 DRUID_IMMOBILIZATION_DURATION = 5.0 # Durée d'immobilisation
 DRUID_PROJECTILE_SPEED = 300.0     # Vitesse du projectile druide
 
+# Architecte : Rayon d'effet
 ARCHITECT_RADIUS = 400.0           # Rayon d'effet de l'architecte
 ARCHITECT_RELOAD_FACTOR = 1.0      # Facteur de rechargement
 ARCHITECT_DURATION = 10.0          # Durée de l'effet architecte
+
+# Zasper : Invincibilité
+ZASPER_INVINCIBILITY_DURATION = 3.0 # Durée d'invincibilité de Zasper
 
 # Vie des bases
 BASE_HEALTH = 1000
