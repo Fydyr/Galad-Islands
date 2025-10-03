@@ -10,20 +10,32 @@ def processHealth(entity, damage):
     # Vérifie si l'entité possède le bouclier de Barhamus
     if esper.has_component(entity, SpeMaraudeur):
         shield = esper.component_for_entity(entity, SpeMaraudeur)
-        damage = shield.apply_damage_reduction(damage)
-        print(f"[handleHealth] Maraudeur reduction applied: new_damage={damage}")
+        try:
+            damage = shield.apply_damage_reduction(damage)
+        except Exception:
+            # En cas d'erreur interne au bouclier, ne pas bloquer l'application des dégâts
+            pass
     # Vérifie si l'entité possède l'invincibilité du Zasper
     if esper.has_component(entity, SpeScout):
         invincibility = esper.component_for_entity(entity, SpeScout)
         if invincibility.is_invincible():
-            print(f"[handleHealth] Scout invincible detected for entity {entity}")
+            # Scout invincible — silenced debug log
             damage = 0
     # Sinon, applique les dégâts normalement
-    if health.currentHealth > 0:
-        health.currentHealth -= int(damage)
-        
-    if health.currentHealth <= 0:
-        esper.delete_entity(entity)
+    # Appliquer les dégâts si la valeur de santé est accessible
+    try:
+        if health.currentHealth > 0:
+            health.currentHealth -= int(damage)
+    except Exception:
+        # Si la structure Health est inattendue, abandonner silencieusement
+        pass
+
+    # Supprimer l'entité si elle est morte
+    try:
+        if health.currentHealth <= 0:
+            esper.delete_entity(entity)
+    except Exception:
+        pass
 
 def entitiesHit(ent1, ent2):
     # Vérifier si les entités ont des composants d'attaque
