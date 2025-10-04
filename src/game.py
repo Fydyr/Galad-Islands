@@ -43,7 +43,7 @@ from src.components.special.speArchitectComponent import SpeArchitect
 
 # import event
 from src.managers.flying_chest_manager import FlyingChestManager
-from src.managers.storm_manager import StormManager
+from src.managers.stormManager import StormManager
 
 
 # Importations des factories et fonctions utilitaires
@@ -426,7 +426,7 @@ class GameEngine:
         self.images = None
         self.camera = None
         self.flying_chest_manager = FlyingChestManager()
-        self.storm_manager = StormManager()
+        self.stormManager = StormManager()
         self.player = None
         
         # Processeurs ECS
@@ -501,8 +501,8 @@ class GameEngine:
             self.flying_chest_manager.initialize_from_grid(self.grid)
 
         # Initialize storm manager
-        if self.storm_manager is not None and self.grid is not None:
-            self.storm_manager.initialize_from_grid(self.grid)
+        if self.stormManager is not None and self.grid is not None:
+            self.stormManager.initializeFromGrid(self.grid)
 
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
@@ -512,7 +512,7 @@ class GameEngine:
         
         # Nettoyer tous les processeurs existants
         es._processors.clear()
-        StormManager().clear_all_storms()
+        StormManager().clearAllStorms()
 
         # Réinitialiser les gestionnaires globaux dépendant du monde
         get_base_manager().reset()
@@ -1166,8 +1166,8 @@ class GameEngine:
         if self.flying_chest_manager is not None:
             self.flying_chest_manager.update(dt)
             
-        if self.storm_manager is not None:
-            self.storm_manager.update(dt)
+        if self.stormManager is not None:
+            self.stormManager.update(dt)
 
         # Synchroniser les informations affichées avec l'état courant
         self._refresh_selected_unit_info()
