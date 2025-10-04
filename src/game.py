@@ -6,7 +6,7 @@ import pygame
 # Importations des modules internes
 import esper as es
 import src.settings.settings as settings
-import src.components.mapComponent as game_map
+import src.components.globals.mapComponent as game_map
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path
@@ -25,23 +25,23 @@ from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.resourceCollectionProcessor import ResourceCollectionProcessor
 
 # Importations des composants
-from src.components.properties.positionComponent import PositionComponent
-from src.components.properties.spriteComponent import SpriteComponent
-from src.components.properties.playerSelectedComponent import PlayerSelectedComponent
-from src.components.properties.playerComponent import PlayerComponent
-from src.components.properties.healthComponent import HealthComponent
-from src.components.properties.velocityComponent import VelocityComponent
-from src.components.properties.teamComponent import TeamComponent
-from src.components.properties.radiusComponent import RadiusComponent
-from src.components.properties.classeComponent import ClasseComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.spriteComponent import SpriteComponent
+from src.components.core.playerSelectedComponent import PlayerSelectedComponent
+from src.components.core.playerComponent import PlayerComponent
+from src.components.core.healthComponent import HealthComponent
+from src.components.core.velocityComponent import VelocityComponent
+from src.components.core.teamComponent import TeamComponent
+from src.components.core.radiusComponent import RadiusComponent
+from src.components.core.classeComponent import ClasseComponent
 
 # Importations des capacités spéciales
 
-from src.components.properties.ability.speScoutComponent import SpeScout
-from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
-from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
-from src.components.properties.ability.speDruidComponent import SpeDruid
-from src.components.properties.ability.speArchitectComponent import SpeArchitect
+from src.components.special.speScoutComponent import SpeScout
+from src.components.special.speMaraudeurComponent import SpeMaraudeur
+from src.components.special.speLeviathanComponent import SpeLeviathan
+from src.components.special.speDruidComponent import SpeDruid
+from src.components.special.speArchitectComponent import SpeArchitect
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
 
 # Importations des factories et fonctions utilitaires
@@ -257,7 +257,7 @@ class GameRenderer:
             
     def _render_single_sprite(self, window, camera, entity, pos, sprite):
         """Rend un sprite individuel avec effet visuel spécial si invincible."""
-        from src.components.properties.ability.speScoutComponent import SpeScout
+        from src.components.special.speScoutComponent import SpeScout
         image = self._get_sprite_image(sprite)
         if image is None:
             return

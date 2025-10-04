@@ -4,7 +4,7 @@ These functions provide convenient shortcuts for common sprite operations.
 """
 from typing import Optional, Tuple
 from src.managers.sprite_manager import sprite_manager, SpriteID
-from src.components.properties.spriteComponent import SpriteComponent
+from src.components.core.spriteComponent import SpriteComponent
 from src.factory.unitType import UnitKey, UnitType
 
 

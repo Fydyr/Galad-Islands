@@ -1,7 +1,7 @@
 import esper
-from src.components.properties.velocityComponent import VelocityComponent
-from src.components.properties.ability.VineComponent import VineComponent
-from src.components.properties.ability.isVinedComponent import isVinedComponent
+from src.components.core.velocityComponent import VelocityComponent
+from src.components.special.VineComponent import VineComponent
+from src.components.special.isVinedComponent import isVinedComponent
 
 class VineProcessor:
     def update(dt, entity, isVined):

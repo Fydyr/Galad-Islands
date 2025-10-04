@@ -1,8 +1,8 @@
 import esper
-from src.components.properties.healthComponent import HealthComponent as Health
-from src.components.properties.attackComponent import AttackComponent as Attack
-from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
-from src.components.properties.ability.speScoutComponent import SpeScout
+from src.components.core.healthComponent import HealthComponent as Health
+from src.components.core.attackComponent import AttackComponent as Attack
+from src.components.special.speMaraudeurComponent import SpeMaraudeur
+from src.components.special.speScoutComponent import SpeScout
 
 def processHealth(entity, damage):
     health = esper.component_for_entity(entity, Health)

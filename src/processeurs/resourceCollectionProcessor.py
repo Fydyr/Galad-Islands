@@ -6,8 +6,8 @@ import time
 import esper as es
 from typing import Iterable
 
-from src.components.properties.positionComponent import PositionComponent
-from src.components.properties.teamComponent import TeamComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.teamComponent import TeamComponent
 from src.constants.team import Team
 from src.functions.player_utils import add_player_gold
 from src.managers.resource_manager import get_resource_manager

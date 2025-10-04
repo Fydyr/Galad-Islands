@@ -4,7 +4,7 @@ This system should be used instead of having logic in SpriteComponent.
 """
 import pygame
 from typing import Dict, Optional
-from src.components.properties.spriteComponent import SpriteComponent
+from src.components.core.spriteComponent import SpriteComponent
 from src.functions.resource_path import get_resource_path
 
 

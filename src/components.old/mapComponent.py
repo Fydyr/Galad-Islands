@@ -1,10 +1,9 @@
-# Importation des modules nécessaires
 import pygame
 import sys
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, MINE_RATE, GENERIC_ISLAND_RATE, SCREEN_WIDTH, SCREEN_HEIGHT, CAMERA_SPEED, ZOOM_MIN, ZOOM_MAX, ZOOM_SPEED, CLOUD_RATE, config_manager
 from random import randint
 from src.settings.localization import t
-from src.components.cameraComponent import Camera
+from src.components.globals.cameraComponent import Camera
 from src.functions.resource_path import get_resource_path
 from src.managers.sprite_manager import sprite_manager, SpriteID
 import os

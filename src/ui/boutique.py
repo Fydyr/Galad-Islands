@@ -11,7 +11,7 @@ from src.factory.unitFactory import (
     iter_unit_shop_configs,
     resolve_unit_type_from_shop_id,
 )
-from src.components.properties.positionComponent import PositionComponent
+from src.components.core.positionComponent import PositionComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 from src.functions.baseManager import get_base_manager
 from src.managers.sprite_manager import sprite_manager, SpriteID

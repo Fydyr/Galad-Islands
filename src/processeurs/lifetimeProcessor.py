@@ -1,5 +1,5 @@
 import esper
-from src.components.properties.lifetimeComponent import LifetimeComponent
+from src.components.core.lifetimeComponent import LifetimeComponent
 
 class LifetimeProcessor(esper.Processor):
     def process(self, dt=0.016):
