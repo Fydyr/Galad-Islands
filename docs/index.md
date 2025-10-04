@@ -23,10 +23,16 @@ Cette documentation est organisée en deux sections principales :
 ### 🛠️ Documentation Technique  
 *Pour les développeurs et contributeurs*
 
+#### Développement
 - **[Vue d'ensemble](dev/overview.md)** - Architecture générale du projet
 - **[API](dev/api/game-engine.md)** - Documentation des interfaces de programmation
 - **[Modules](dev/modules/processors.md)** - Structure interne du code
 - **[Contribution](dev/contributing.md)** - Guide pour contribuer au projet
+
+#### Système et déploiement
+- **[Paramètres système critiques](dev/systeme.md)** - Configuration et optimisation des performances
+- **[Exigences matérielles](dev/requirements.md)** - Hardware/software requis et dépendances
+- **[Opérations système](dev/operations.md)** - Monitoring, sauvegarde, sécurité et maintenance
 
 ## ✨ Caractéristiques principales
 
