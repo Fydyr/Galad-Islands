@@ -1,15 +1,15 @@
 import esper
-from src.components.properties.positionComponent import PositionComponent
-from src.components.properties.velocityComponent import VelocityComponent
-from src.components.properties.radiusComponent import RadiusComponent
-from src.components.properties.attackComponent import AttackComponent
-from src.components.properties.healthComponent import HealthComponent
-from src.components.properties.canCollideComponent import CanCollideComponent
-from src.components.properties.teamComponent import TeamComponent 
-from src.components.properties.spriteComponent import SpriteComponent 
-from src.components.properties.projectileComponent import ProjectileComponent
-from src.components.properties.ability.VineComponent import VineComponent
-from src.components.properties.lifetimeComponent import LifetimeComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.velocityComponent import VelocityComponent
+from src.components.core.radiusComponent import RadiusComponent
+from src.components.core.attackComponent import AttackComponent
+from src.components.core.healthComponent import HealthComponent
+from src.components.core.canCollideComponent import CanCollideComponent
+from src.components.core.teamComponent import TeamComponent 
+from src.components.core.spriteComponent import SpriteComponent 
+from src.components.core.projectileComponent import ProjectileComponent
+from src.components.special.VineComponent import VineComponent
+from src.components.core.lifetimeComponent import LifetimeComponent
 from src.constants.gameplay import (
     PROJECTILE_SPEED, PROJECTILE_DAMAGE, PROJECTILE_HEALTH,
     PROJECTILE_WIDTH, PROJECTILE_HEIGHT, DRUID_IMMOBILIZATION_DURATION,

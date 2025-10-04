@@ -2,10 +2,10 @@
 Combat System - Handles damage dealing, health management, and entity destruction.
 """
 import esper
-from src.components.properties.healthComponent import HealthComponent
-from src.components.properties.attackComponent import AttackComponent
-from src.components.properties.teamComponent import TeamComponent
-from src.components.properties.team_enum import Team
+from src.components.core.healthComponent import HealthComponent
+from src.components.core.attackComponent import AttackComponent
+from src.components.core.teamComponent import TeamComponent
+from src.components.core.team_enum import Team
 
 
 class CombatSystem:
