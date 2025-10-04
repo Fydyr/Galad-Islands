@@ -558,30 +558,11 @@ class GameEngine:
         if player_unit is not None:
             self._set_selected_entity(player_unit)
 
-        # Créer des unités ennemies pour les tests
-        enemy_anchor_x, enemy_anchor_y = base_manager.get_spawn_position(is_enemy=True, jitter=0)
-        enemy_offsets = [
-            (-0.8 * TILE_SIZE, 0.0),
-            (-0.6 * TILE_SIZE, 0.0),
-            (0.0, -0.6 * TILE_SIZE),
-            (-0.4 * TILE_SIZE, -0.4 * TILE_SIZE),
-            (-0.8 * TILE_SIZE, -0.2 * TILE_SIZE),
-        ]
-
-        enemy_unit_types = [
-            UnitType.SCOUT,
-            UnitType.MARAUDEUR,
-            UnitType.LEVIATHAN,
-            UnitType.DRUID,
-            UnitType.ARCHITECT,
-        ]
-
-        for unit_type, (offset_x, offset_y) in zip(enemy_unit_types, enemy_offsets):
-            UnitFactory(
-                unit_type,
-                True,
-                PositionComponent(enemy_anchor_x + offset_x, enemy_anchor_y + offset_y),
-            )
+        # Créer un druide ennemi
+        enemy_spawn_x, enemy_spawn_y = base_manager.get_spawn_position(
+            is_enemy=True, jitter=TILE_SIZE * 2)
+        enemy_druid = UnitFactory(
+            UnitType.DRUID, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
