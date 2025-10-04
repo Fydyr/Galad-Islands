@@ -851,10 +851,12 @@ class UnifiedShop:
 
         if gold_icon:
             icon_surface = pygame.transform.scale(gold_icon, (28, 28))
-            gold_text = self.font_subtitle.render(gold_str, True, self.theme.GOLD)
-            gold_line_width = icon_surface.get_width() + gold_text.get_width() + 16
+            # Surface rendue pour l'or
+            gold_surface = self.font_subtitle.render(gold_str, True, self.theme.GOLD)
+            gold_line_width = icon_surface.get_width() + gold_surface.get_width() + 16
         else:
-            gold_text = f"💰 {gold_str}"
+            # Fallback: utiliser un symbole monétaire générique rendu par la police
+            gold_text = f"¤ {gold_str}"
             gold_line_width = self.font_subtitle.size(gold_text)[0]
         
         # Position du texte
@@ -866,8 +868,8 @@ class UnifiedShop:
             icon_x = info_rect.x + (info_rect.width - gold_line_width) // 2
             icon_y = gold_y - icon_surface.get_height() // 2
             surface.blit(icon_surface, (icon_x, icon_y))
-            gold_rect = gold_text.get_rect(midleft=(icon_x + icon_surface.get_width() + 8, gold_y))
-            surface.blit(gold_text, gold_rect)
+            gold_rect = gold_surface.get_rect(midleft=(icon_x + icon_surface.get_width() + 8, gold_y))
+            surface.blit(gold_surface, gold_rect)
         else:
             # Créer le Surface rendu pour l'affichage
             gold_surface = self.font_subtitle.render(gold_text, True, self.theme.GOLD)
@@ -959,7 +961,8 @@ class UnifiedShop:
             cost_x += SHOP_ICON_SIZE_TINY + 4
             cost_text = str(item.cost)
         else:
-            cost_text = f"💰 {item.cost}"
+            # Fallback: utiliser un symbole monétaire générique sans emoji
+            cost_text = f"¤ {item.cost}"
         
         cost_shadow = self.font_small.render(cost_text, True, (0, 0, 0))
         surface.blit(cost_shadow, (cost_x + 1, rect.y + 31))
@@ -983,7 +986,8 @@ class UnifiedShop:
         
         # Indication si pas achetable
         if not can_purchase:
-            error_text = "💸" if self.get_player_gold() < item.cost else "🚫"
+            # Utiliser des symboles de police compatibles pour indiquer l'erreur
+            error_text = "⚠" if self.get_player_gold() < item.cost else "✖"
             error_surface = self.font_normal.render(error_text, True, self.theme.PURCHASE_ERROR)
             error_rect = error_surface.get_rect(bottomright=(rect.right - 5, rect.bottom - 5))
             surface.blit(error_surface, error_rect)
