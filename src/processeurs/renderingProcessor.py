@@ -1,8 +1,8 @@
 import esper
 import pygame
-from src.components.properties.positionComponent import PositionComponent
-from src.components.properties.spriteComponent import SpriteComponent
-from src.components.properties.healthComponent import HealthComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.spriteComponent import SpriteComponent
+from src.components.core.healthComponent import HealthComponent
 
 class RenderProcessor(esper.Processor):
     def __init__(self, screen, camera=None):

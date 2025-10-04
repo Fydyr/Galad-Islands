@@ -1,12 +1,12 @@
 import esper
-from src.components.properties.ability.speScoutComponent import SpeScout
-from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
-from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
-from src.components.properties.ability.speDruidComponent import SpeDruid
-from src.components.properties.ability.speArchitectComponent import SpeArchitect
-from src.components.properties.ability.isVinedComponent import isVinedComponent
+from src.components.special.speScoutComponent import SpeScout
+from src.components.special.speMaraudeurComponent import SpeMaraudeur
+from src.components.special.speLeviathanComponent import SpeLeviathan
+from src.components.special.speDruidComponent import SpeDruid
+from src.components.special.speArchitectComponent import SpeArchitect
+from src.components.special.isVinedComponent import isVinedComponent
 from src.processeurs.ability.VineProcessor import VineProcessor
-from src.components.properties.radiusComponent import RadiusComponent
+from src.components.core.radiusComponent import RadiusComponent
 
 class CapacitiesSpecialesProcessor(esper.Processor):
     def process(self, dt):

@@ -1,19 +1,19 @@
 import esper
 import pygame
 import math
-from src.components.properties.playerSelectedComponent import PlayerSelectedComponent
-from src.components.properties.positionComponent import PositionComponent
-from src.components.properties.velocityComponent import VelocityComponent
-from src.components.properties.attackComponent import AttackComponent
-from src.components.properties.canCollideComponent import CanCollideComponent
-from src.components.properties.baseComponent import BaseComponent 
-from src.components.properties.radiusComponent import RadiusComponent 
-from src.components.properties.ability.speDruidComponent import SpeDruid
-from src.components.properties.ability.speArchitectComponent import SpeArchitect
-from src.components.properties.ability.speScoutComponent import SpeScout
-from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
-from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
-from src.components.properties.teamComponent import TeamComponent
+from src.components.core.playerSelectedComponent import PlayerSelectedComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.velocityComponent import VelocityComponent
+from src.components.core.attackComponent import AttackComponent
+from src.components.core.canCollideComponent import CanCollideComponent
+from src.components.core.baseComponent import BaseComponent 
+from src.components.core.radiusComponent import RadiusComponent 
+from src.components.special.speDruidComponent import SpeDruid
+from src.components.special.speArchitectComponent import SpeArchitect
+from src.components.special.speScoutComponent import SpeScout
+from src.components.special.speMaraudeurComponent import SpeMaraudeur
+from src.components.special.speLeviathanComponent import SpeLeviathan
+from src.components.core.teamComponent import TeamComponent
 from src.settings import controls
 
 class PlayerControlProcessor(esper.Processor):

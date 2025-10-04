@@ -1,6 +1,6 @@
 import esper
 from dataclasses import dataclass as component
-from src.components.properties.positionComponent import PositionComponent
+from src.components.core.positionComponent import PositionComponent
 
 @component
 class SpeDruid:

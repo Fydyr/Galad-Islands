@@ -2,21 +2,21 @@ import esper
 import numpy as np
 import pygame
 import math
-from src.components.properties.positionComponent import PositionComponent as Position
-from src.components.properties.spriteComponent import SpriteComponent as Sprite
-from src.components.properties.canCollideComponent import CanCollideComponent as CanCollide
-from src.components.properties.velocityComponent import VelocityComponent as Velocity
-from src.components.properties.teamComponent import TeamComponent as Team
-from src.components.properties.healthComponent import HealthComponent as Health
-from src.components.properties.attackComponent import AttackComponent as Attack
-from src.components.properties.ability.VineComponent import VineComponent as Vine
-from src.components.properties.ability.isVinedComponent import isVinedComponent as IsVined
+from src.components.core.positionComponent import PositionComponent as Position
+from src.components.core.spriteComponent import SpriteComponent as Sprite
+from src.components.core.canCollideComponent import CanCollideComponent as CanCollide
+from src.components.core.velocityComponent import VelocityComponent as Velocity
+from src.components.core.teamComponent import TeamComponent as Team
+from src.components.core.healthComponent import HealthComponent as Health
+from src.components.core.attackComponent import AttackComponent as Attack
+from src.components.special.VineComponent import VineComponent as Vine
+from src.components.special.isVinedComponent import isVinedComponent as IsVined
 from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
-from src.components.properties.lifetimeComponent import LifetimeComponent
-from src.components.properties.projectileComponent import ProjectileComponent
-from src.components.properties.ability.speScoutComponent import SpeScout
-from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
+from src.components.core.lifetimeComponent import LifetimeComponent
+from src.components.core.projectileComponent import ProjectileComponent
+from src.components.special.speScoutComponent import SpeScout
+from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.managers.sprite_manager import SpriteID, sprite_manager
 
 class CollisionProcessor(esper.Processor):
