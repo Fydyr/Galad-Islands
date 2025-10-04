@@ -281,6 +281,11 @@ TRANSLATIONS = {
     "system.game_launched": "Launching game...",
     "system.game_window_title": "Galad Islands - Map",
     
+    # Game Over
+    "game_over.victory": "VICTORY! \nYou destroyed the enemy base!",
+    "game_over.defeat": " DEFEAT \nYour base has been destroyed...",
+    "game_over.debug_message": "[GAME OVER] Team {team_id} base destroyed!",
+    
     # Debug/Development
     "debug.camera_position": "Camera: ({x:.1f}, {y:.1f})",
     "debug.zoom_level": "Zoom: {zoom:.2f}x",
