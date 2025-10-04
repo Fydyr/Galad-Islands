@@ -124,9 +124,6 @@ class EventHandler:
             return
         elif self._handle_group_shortcuts(event):
             return
-        # elif controls.matches_action(controls.ACTION_UNIT_SPECIAL, event):
-        #     self.game_engine.trigger_selected_special_ability()
-        #     return
         else:
             if controls.matches_action(controls.ACTION_UNIT_PREVIOUS, event):
                 self.game_engine.select_previous_unit()
