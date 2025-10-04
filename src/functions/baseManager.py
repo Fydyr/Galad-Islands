@@ -14,6 +14,7 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.spriteComponent import SpriteComponent
 from src.components.core.teamComponent import TeamComponent
+from src.components.core.recentHitsComponent import RecentHitsComponent
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
 
 class BaseManager:
@@ -37,14 +38,17 @@ class BaseManager:
         if self.initialized and not self._bases_are_valid():
             self.reset()
         
-        # Position de la base alliée (grille 1,1 à 4,4)
-        ally_center_x = (1 + 4) / 2 * TILE_SIZE
-        ally_center_y = (1 + 4) / 2 * TILE_SIZE
+        # Position de la base alliée - les sprites visuels commencent à (1,1) et font 4x4 tuiles
+        # Le centre visuel est à (1 + 4/2, 1 + 4/2) = (3, 3) en coordonnées de grille
+        ally_visual_center_x = 3.0 * TILE_SIZE
+        ally_visual_center_y = 3.0 * TILE_SIZE
         
-        # Position de la base ennemie (grille MAP_WIDTH-4 à MAP_WIDTH, MAP_HEIGHT-4 à MAP_HEIGHT)
+        # Position de la base ennemie - les sprites visuels commencent à (MAP_WIDTH-4, MAP_HEIGHT-4)
         from src.settings.settings import MAP_WIDTH, MAP_HEIGHT
-        enemy_center_x = (MAP_WIDTH - 4 + 1 + MAP_WIDTH - 1 + 1) / 2 * TILE_SIZE
-        enemy_center_y = (MAP_HEIGHT - 4 + 1 + MAP_HEIGHT - 1 + 1) / 2 * TILE_SIZE
+        # MAP_WIDTH=30, MAP_HEIGHT=30, donc base ennemie va de (26,26) à (29,29)
+        # Ajustement pour décaler davantage vers la gauche
+        enemy_visual_center_x = (MAP_WIDTH - 3.0) * TILE_SIZE  # Plus vers la gauche
+        enemy_visual_center_y = (MAP_HEIGHT - 2.8) * TILE_SIZE  # Maintenir la hauteur
         
         # Créer l'entité base alliée
         self.ally_base_entity = esper.create_entity()
@@ -53,25 +57,32 @@ class BaseManager:
             currentTroop=0
         ))
         esper.add_component(self.ally_base_entity, PositionComponent(
-            x=ally_center_x,
-            y=ally_center_y,
+            x=ally_visual_center_x,
+            y=ally_visual_center_y,
             direction=0
         ))
-        esper.add_component(self.ally_base_entity, TeamComponent(team_id=1))  # Team alliée
+        esper.add_component(self.ally_base_entity, TeamComponent(team_id=1))
         esper.add_component(self.ally_base_entity, HealthComponent(
             currentHealth=1000,
             maxHealth=1000
         ))
-        esper.add_component(self.ally_base_entity, AttackComponent(hitPoints=0))  # Base ne tire pas
+        esper.add_component(self.ally_base_entity, AttackComponent(hitPoints=50))  # Base inflige des dégâts au contact
+        esper.add_component(self.ally_base_entity, CanCollideComponent())  # Les bases peuvent être touchées
+        esper.add_component(self.ally_base_entity, RecentHitsComponent(cooldown_duration=1.0))  # Éviter dégâts continus
         
-        # Sprite invisible pour la base alliée (le terrain s'affiche déjà)
-        invisible_surface = pygame.Surface((4 * TILE_SIZE, 4 * TILE_SIZE), pygame.SRCALPHA)
-        invisible_surface.fill((0, 0, 0, 0))
+        # Calculer la taille de hitbox basée sur la taille réelle du sprite (391x350)
+        # Utilisons 75% de la taille du sprite pour une hitbox plus accessible  
+        ally_hitbox_width = int(391 * 0.75)  # ~293 pixels
+        ally_hitbox_height = int(350 * 0.75)  # ~262 pixels
+        
+        # Sprite invisible pour la base alliée avec hitbox adaptée
+        invisible_surface1 = pygame.Surface((ally_hitbox_width, ally_hitbox_height), pygame.SRCALPHA)
+        invisible_surface1.fill((0, 0, 0, 0))
         esper.add_component(self.ally_base_entity, SpriteComponent(
             image_path="",  # Pas de sprite, utilise la surface
-            width=4 * TILE_SIZE,
-            height=4 * TILE_SIZE,
-            surface=invisible_surface
+            width=ally_hitbox_width,
+            height=ally_hitbox_height,
+            surface=invisible_surface1
         ))
         
         # Créer l'entité base ennemie
@@ -81,8 +92,8 @@ class BaseManager:
             currentTroop=0
         ))
         esper.add_component(self.enemy_base_entity, PositionComponent(
-            x=enemy_center_x,
-            y=enemy_center_y,
+            x=enemy_visual_center_x,
+            y=enemy_visual_center_y,
             direction=0
         ))
         esper.add_component(self.enemy_base_entity, TeamComponent(team_id=2))  # Team ennemie
@@ -90,15 +101,22 @@ class BaseManager:
             currentHealth=1000,
             maxHealth=1000
         ))
-        esper.add_component(self.enemy_base_entity, AttackComponent(hitPoints=0))  # Base ne tire pas
+        esper.add_component(self.enemy_base_entity, AttackComponent(hitPoints=50))  # Base inflige des dégâts au contact
+        esper.add_component(self.enemy_base_entity, CanCollideComponent())  # Les bases peuvent être touchées
+        esper.add_component(self.enemy_base_entity, RecentHitsComponent(cooldown_duration=1.0))  # Éviter dégâts continus
         
-        # Sprite invisible pour la base ennemie
-        invisible_surface2 = pygame.Surface((4 * TILE_SIZE, 4 * TILE_SIZE), pygame.SRCALPHA)
+        # Calculer la taille de hitbox basée sur la taille réelle du sprite (477x394)
+        # Utilisons 60% de la taille du sprite pour une hitbox plus précise
+        enemy_hitbox_width = int(477 * 0.60)  # ~286 pixels
+        enemy_hitbox_height = int(394 * 0.60)  # ~236 pixels
+        
+        # Sprite invisible pour la base ennemie avec hitbox adaptée
+        invisible_surface2 = pygame.Surface((enemy_hitbox_width, enemy_hitbox_height), pygame.SRCALPHA)
         invisible_surface2.fill((0, 0, 0, 0))
         esper.add_component(self.enemy_base_entity, SpriteComponent(
             image_path="",  # Pas de sprite, utilise la surface
-            width=4 * TILE_SIZE,
-            height=4 * TILE_SIZE,
+            width=enemy_hitbox_width,
+            height=enemy_hitbox_height,
             surface=invisible_surface2
         ))
         

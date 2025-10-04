@@ -15,6 +15,7 @@ from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
 from src.components.core.lifetimeComponent import LifetimeComponent
 from src.components.core.projectileComponent import ProjectileComponent
+from src.components.core.recentHitsComponent import RecentHitsComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.managers.sprite_manager import SpriteID, sprite_manager
@@ -132,6 +133,44 @@ class CollisionProcessor(esper.Processor):
 
     def _handle_entity_hit(self, entity1, entity2):
         """Gère les dégâts entre deux entités qui se percutent"""
+        # Vérifier si c'est une collision projectile-entité déjà traitée
+        projectile_entity = None
+        target_entity = None
+        
+        if esper.has_component(entity1, ProjectileComponent):
+            projectile_entity = entity1
+            target_entity = entity2
+        elif esper.has_component(entity2, ProjectileComponent):
+            projectile_entity = entity2
+            target_entity = entity1
+            
+        # Si c'est un projectile, vérifier s'il a déjà touché cette entité
+        if projectile_entity and target_entity:
+            projectile_comp = esper.component_for_entity(projectile_entity, ProjectileComponent)
+            if target_entity in projectile_comp.hit_entities:
+                # Ce projectile a déjà touché cette entité, ignorer
+                return
+            # Marquer cette entité comme touchée par ce projectile
+            projectile_comp.hit_entities.add(target_entity)
+        
+        # Si ce n'est pas un projectile, vérifier les cooldowns pour éviter les dégâts continus
+        elif not projectile_entity:
+            # Vérifier si entity1 peut infliger des dégâts à entity2
+            if esper.has_component(entity1, RecentHitsComponent):
+                recent_hits = esper.component_for_entity(entity1, RecentHitsComponent)
+                if not recent_hits.can_hit(entity2):
+                    return  # Cooldown pas écoulé, ignorer la collision
+                recent_hits.record_hit(entity2)
+                recent_hits.cleanup_old_entries()
+            
+            # Vérifier si entity2 peut infliger des dégâts à entity1
+            if esper.has_component(entity2, RecentHitsComponent):
+                recent_hits = esper.component_for_entity(entity2, RecentHitsComponent)
+                if not recent_hits.can_hit(entity1):
+                    return  # Cooldown pas écoulé, ignorer la collision
+                recent_hits.record_hit(entity1)
+                recent_hits.cleanup_old_entries()
+        
         # Détecter immédiatement les collisions impliquant un coffre volant
         try:
             if esper.has_component(entity1, FlyingChestComponent) or esper.has_component(entity2, FlyingChestComponent):
@@ -404,14 +443,14 @@ class CollisionProcessor(esper.Processor):
             return
         effect = self.terrain_effects[terrain_type]
         is_projectile = esper.has_component(entity, ProjectileComponent)
-        # Les projectiles traversent les îles, mais pas les bases/mine
+        # Les projectiles traversent les îles et les bases, mais pas les mines
         if not effect['can_pass']:
             if is_projectile:
-                # Détruire seulement si base ou mine, PAS pour les îles
-                if terrain_type in ['ally_base', 'enemy_base', 'mine']:
+                # Détruire seulement si mine, PAS pour les bases ou îles
+                if terrain_type in ['mine']:
                     esper.delete_entity(entity)
                     return
-                # Sinon (ex: île), traverser sans effet
+                # Sinon (ex: île, base), traverser sans effet
                 else:
                     # Pas de destruction, pas de blocage
                     velocity.terrain_modifier = 1.0

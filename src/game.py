@@ -231,6 +231,10 @@ class GameRenderer:
             
         if self.game_engine.exit_modal.is_active():
             self.game_engine.exit_modal.render(window)
+        
+        # Afficher le message de fin de partie
+        if self.game_engine.game_over and self.game_engine.game_over_timer > 0:
+            self._render_game_over_message(window)
 
         pygame.display.flip()
         
@@ -400,6 +404,54 @@ class GameRenderer:
         for i, info in enumerate(debug_info):
             text_surface = font.render(info, True, (255, 255, 255))
             window.blit(text_surface, (10, 10 + i * 30))
+    
+    def _render_game_over_message(self, window):
+        """Rend le message de fin de partie au centre de l'écran."""
+        if not self.game_engine.game_over_message:
+            return
+            
+        # Créer une surface semi-transparente pour le fond
+        overlay = pygame.Surface((window.get_width(), window.get_height()))
+        overlay.set_alpha(128)  # 50% transparence
+        overlay.fill((0, 0, 0))  # Noir
+        window.blit(overlay, (0, 0))
+        
+        # Préparer le texte
+        font_large = pygame.font.Font(None, 72)
+        font_medium = pygame.font.Font(None, 48)
+        
+        # Diviser le message en lignes
+        lines = self.game_engine.game_over_message.split('\n')
+        
+        # Calculer la position centrale
+        screen_center_x = window.get_width() // 2
+        screen_center_y = window.get_height() // 2
+        
+        # Afficher chaque ligne
+        total_height = len(lines) * 80  # Estimation de la hauteur totale
+        start_y = screen_center_y - total_height // 2
+        
+        for i, line in enumerate(lines):
+            if i == 0:  # Première ligne (titre) plus grande
+                text_surface = font_large.render(line, True, (255, 255, 255))
+            else:  # Autres lignes plus petites
+                text_surface = font_medium.render(line, True, (255, 255, 255))
+            
+            # Centrer horizontalement
+            text_rect = text_surface.get_rect()
+            text_rect.centerx = screen_center_x
+            text_rect.y = start_y + i * 80
+            
+            window.blit(text_surface, text_rect)
+        
+        # Ajouter instruction pour retourner au menu
+        instruction_font = pygame.font.Font(None, 36)
+        instruction_text = "Retour au menu principal dans {:.0f}s...".format(self.game_engine.game_over_timer)
+        instruction_surface = instruction_font.render(instruction_text, True, (200, 200, 200))
+        instruction_rect = instruction_surface.get_rect()
+        instruction_rect.centerx = screen_center_x
+        instruction_rect.y = start_y + len(lines) * 80 + 40
+        window.blit(instruction_surface, instruction_rect)
 
 class GameEngine:
     """Classe principale gérant toute la logique du jeu."""
@@ -450,6 +502,12 @@ class GameEngine:
         
         # Timer pour le spawn de coffres
         self.chest_spawn_timer = 0.0
+        
+        # État de fin de partie
+        self.game_over = False
+        self.winning_team = None
+        self.game_over_message = ""
+        self.game_over_timer = 0.0
         
         # tempest manager
         
@@ -536,6 +594,7 @@ class GameEngine:
         es.set_handler('attack_event', create_projectile)
         es.set_handler('special_vine_event', create_projectile)
         es.set_handler('entities_hit', entitiesHit)
+        es.set_handler('game_over', self._handle_game_over)
         if self.flying_chest_manager is not None:
             es.set_handler('flying_chest_collision', self.flying_chest_manager.handle_collision)
         
@@ -560,7 +619,7 @@ class GameEngine:
 
         # Créer un druide ennemi
         enemy_spawn_x, enemy_spawn_y = base_manager.get_spawn_position(
-            is_enemy=True, jitter=TILE_SIZE * 2)
+            is_enemy=True, jitter=TILE_SIZE * 4)
         enemy_druid = UnitFactory(
             UnitType.DRUID, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
         
@@ -1123,6 +1182,15 @@ class GameEngine:
         """Met à jour la logique du jeu."""
         if self.exit_modal.is_active():
             return
+        
+        # Gérer le timer de fin de partie
+        if self.game_over:
+            if self.game_over_timer > 0:
+                self.game_over_timer -= dt
+                if self.game_over_timer <= 0:
+                    # Retourner au menu principal
+                    self._quit_game()
+            return
 
         # Mettre à jour la caméra
         if self.camera is not None:
@@ -1224,6 +1292,21 @@ class GameEngine:
             controls.ACTION_CAMERA_MOVE_DOWN,
         )
         return any(controls.is_action_active(action, keys, modifiers_state) for action in monitored_actions)
+
+    def _handle_game_over(self, defeated_team_id):
+        """Gère la fin de partie quand une base est détruite."""
+        print(f"[GAME OVER] Base de l'équipe {defeated_team_id} détruite !")
+        
+        # Déterminer l'équipe gagnante (l'opposée de celle qui a perdu)
+        self.winning_team = Team.ENEMY if defeated_team_id == Team.ALLY else Team.ALLY
+        self.game_over = True
+        self.game_over_timer = 3.0  # Afficher le message pendant 3 secondes
+        
+        # Préparer le message de fin de partie
+        if self.winning_team == Team.ALLY:
+            self.game_over_message = "🎉 VICTOIRE ! 🎉\nVous avez détruit la base ennemie !"
+        else:
+            self.game_over_message = "💀 DÉFAITE 💀\nVotre base a été détruite..."
 
 
 def game(window=None, bg_original=None, select_sound=None):
