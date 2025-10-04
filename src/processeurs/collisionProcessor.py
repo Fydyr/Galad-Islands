@@ -18,6 +18,7 @@ from src.components.core.projectileComponent import ProjectileComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.managers.sprite_manager import SpriteID, sprite_manager
+from src.components.events.flyChestComponent import FlyingChestComponent
 
 class CollisionProcessor(esper.Processor):
     def __init__(self, graph=None):
@@ -131,6 +132,14 @@ class CollisionProcessor(esper.Processor):
 
     def _handle_entity_hit(self, entity1, entity2):
         """Gère les dégâts entre deux entités qui se percutent"""
+        # Détecter immédiatement les collisions impliquant un coffre volant
+        try:
+            if esper.has_component(entity1, FlyingChestComponent) or esper.has_component(entity2, FlyingChestComponent):
+                esper.dispatch_event("flying_chest_collision", entity1, entity2)
+        except Exception:
+            # En cas d'erreur dans le dispatch, ne pas bloquer les autres collisions
+            pass
+
         # Vérifier si l'une des entités est un projectile et l'autre une mine
         is_projectile1 = esper.has_component(entity1, ProjectileComponent)
         is_projectile2 = esper.has_component(entity2, ProjectileComponent)

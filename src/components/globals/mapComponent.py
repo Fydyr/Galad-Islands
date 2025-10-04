@@ -22,7 +22,6 @@ from src.settings.settings import (
 from src.settings.localization import t
 from src.components.globals.cameraComponent import Camera
 from src.functions.resource_path import get_resource_path
-from src.managers.resource_manager import get_resource_manager
 
 
 def creer_grille():
@@ -46,8 +45,6 @@ def charger_images():
         'mine': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "terrain", "mine.png"))), (TILE_SIZE, TILE_SIZE)),
         'cloud': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "terrain", "cloud.png"))), (TILE_SIZE, TILE_SIZE)),
         'sea': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "terrain", "sea.png"))), (TILE_SIZE, TILE_SIZE)),
-        'chest_closed': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "event", "coffre_ferme.png"))), (TILE_SIZE, TILE_SIZE)),
-        'chest_open': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "event", "coffre_ouvert.png"))), (TILE_SIZE, TILE_SIZE)),
     }
 
 def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
@@ -146,7 +143,7 @@ def placer_elements(grid):
     # Mines
     placer_bloc_aleatoire(grid, TileType.MINE, MINE_RATE, size=1, min_dist=2, avoid_bases=True)
 
-def afficher_grille(window, grid, images, camera, resource_manager=None, show_debug=False):
+def afficher_grille(window, grid, images, camera):
     """
     Affiche la grille de jeu dans la fenêtre pygame, avec tous les éléments graphiques.
     Utilise le système de caméra pour n'afficher que les éléments visibles.
@@ -155,7 +152,6 @@ def afficher_grille(window, grid, images, camera, resource_manager=None, show_de
         grid (list[list[int]]): Grille de la carte
         images (dict[str, pygame.Surface]): Dictionnaire des images par type
         camera (Camera): Instance de la caméra pour le viewport
-        resource_manager (ResourceManager|None): Gestionnaire des ressources pour afficher les coffres
     """
     # Obtenir les limites visibles
     start_x, start_y, end_x, end_y = camera.get_visible_tiles()
@@ -234,34 +230,6 @@ def afficher_grille(window, grid, images, camera, resource_manager=None, show_de
             elif all(grid[i+dy][j+dx] == TileType.ENEMY_BASE for dy in range(4) for dx in range(4)):
                 draw_element(images['enemy'], j, i, 4)
 
-    if resource_manager is not None:
-        for node in resource_manager.nodes():
-            grid_y, grid_x = node.grid_position
-            if not (start_x <= grid_x < end_x and start_y <= grid_y < end_y):
-                continue
-            
-            # Vérifier si le coffre doit disparaître après collecte
-            from src.processeurs.resourceCollectionProcessor import collected_times
-            import time
-            if node.remaining <= 0:
-                collected_time = collected_times.get(node.identifier)
-                if collected_time is not None and time.perf_counter() - collected_time > 3.0:
-                    continue  # Ne pas afficher le coffre disparu
-            
-            sprite_key = 'chest_closed' if node.remaining > 0 else 'chest_open'
-            draw_element(images[sprite_key], grid_x, grid_y)
-
-            # Debug: dessiner un cercle rouge autour des coffres fermés
-            if node.remaining > 0 and show_debug:
-                world_x = grid_x * TILE_SIZE
-                world_y = grid_y * TILE_SIZE
-                screen_x, screen_y = camera.world_to_screen(world_x, world_y)
-                display_size = int(TILE_SIZE * camera.zoom)
-                center_x = screen_x + display_size // 2
-                center_y = screen_y + display_size // 2
-                radius = int(TILE_SIZE * 1.5 * camera.zoom)
-                pygame.draw.circle(window, (255, 0, 0), (center_x, center_y), radius, 2)
-
 def init_game_map(screen_width, screen_height):
     """
     Initialise les composants de la carte du jeu.
@@ -271,9 +239,6 @@ def init_game_map(screen_width, screen_height):
     grid = creer_grille()
     images = charger_images()
     placer_elements(grid)
-    resource_manager = get_resource_manager()
-    resource_manager.initialize_from_grid(grid)
-    
     from src.settings.settings import ZOOM_MIN
     camera = Camera(screen_width, screen_height)
     camera.zoom = ZOOM_MIN  # Dézoom par défaut
@@ -288,7 +253,6 @@ def init_game_map(screen_width, screen_height):
         "grid": grid,
         "images": images,
         "camera": camera,
-        "resources": resource_manager,
         "show_debug": False,
     }
 
@@ -305,7 +269,6 @@ def run_game_frame(window, game_state, dt):
     camera = game_state["camera"]
     grid = game_state["grid"]
     images = game_state["images"]
-    resource_manager = game_state.get("resources")
     
     # Gestion des événements
     for event in pygame.event.get():
@@ -332,7 +295,7 @@ def run_game_frame(window, game_state, dt):
     window.fill((0, 50, 100))
     
     # Afficher la grille
-    afficher_grille(window, grid, images, camera, resource_manager)
+    afficher_grille(window, grid, images, camera)
             
     # Instructions
     font = pygame.font.Font(None, 36)
