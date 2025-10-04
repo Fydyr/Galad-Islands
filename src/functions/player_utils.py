@@ -11,7 +11,7 @@ from typing import Optional
 def get_player_entity(is_enemy: bool = False) -> Optional[int]:
     """Récupère l'entité joueur selon la faction."""
     # Chercher dans les entités existantes avec PlayerComponent et TeamComponent
-    for entity, (player_comp, team_comp) in esper.get_components(PlayerComponent, TeamComponent):
+    for entity, (player_comp, team_comp) in esper._world.get_components(PlayerComponent, TeamComponent):
         if is_enemy and team_comp.team_id == Team.ENEMY:
             return entity
         elif not is_enemy and team_comp.team_id == Team.ALLY:
@@ -19,10 +19,10 @@ def get_player_entity(is_enemy: bool = False) -> Optional[int]:
     
     # Si pas trouvé, créer l'entité joueur manquante
     print(f"Création d'une entité joueur {'ennemie' if is_enemy else 'alliée'}")
-    entity = esper.create_entity()
-    esper.add_component(entity, PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD))
+    entity = esper._world.create_entity()
+    esper._world.add_component(entity, PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD))
     team_value = Team.ENEMY if is_enemy else Team.ALLY
-    esper.add_component(entity, TeamComponent(team_value))
+    esper._world.add_component(entity, TeamComponent(team_value))
     return entity
 
 def get_player_gold(is_enemy: bool = False) -> int:
