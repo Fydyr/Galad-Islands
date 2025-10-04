@@ -47,6 +47,7 @@ nav:
     - Crédits: user/credits.md
   - 🛠️ Documentation Technique:
     - Vue d'ensemble: dev/overview.md
+    - Architecture: dev/architecture.md
     - API:
       - Moteur de jeu: dev/api/game-engine.md
       - Interface utilisateur: dev/api/ui-system.md
@@ -55,7 +56,12 @@ nav:
       - Processeurs: dev/modules/processors.md
       - Gestionnaires: dev/modules/managers.md
       - Composants: dev/modules/components.md
+    - Localisation: dev/localization.md
     - Configuration: dev/configuration.md
+    - Système et Déploiement:
+      - Paramètres système critiques: dev/systeme.md
+      - Exigences matérielles: dev/requirements.md
+      - Opérations système: dev/operations.md
     - Maintenance: dev/maintenance.md
     - Contribution: dev/contributing.md
     - Gestion des versions: dev/versioning.md

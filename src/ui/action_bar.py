@@ -9,7 +9,10 @@ from enum import Enum
 from src.ui.boutique import Shop, ShopFaction
 from src.settings.localization import t
 from src.constants.team import Team
-from src.functions.player_utils import get_player_gold, set_player_gold
+import esper
+from src.components.core.playerComponent import PlayerComponent
+from src.components.core.teamComponent import TeamComponent
+from src.components.core.team_enum import Team as TeamEnum
 from src.settings import controls
 from src.managers.sprite_manager import sprite_manager, SpriteID
 
@@ -145,10 +148,8 @@ class ActionBar:
         self.hovered_camp_button = False
         self.pressed_button = -1
         
-        # Boutique intégrée avec fonctions utilitaires
-        self.shop = Shop(screen_width, screen_height, 
-                        get_player_gold=self._get_current_player_gold,
-                        set_player_gold=self._set_current_player_gold)
+        # Boutique intégrée - accès direct aux composants
+        self.shop = Shop(screen_width, screen_height)
         self.on_camp_change: Optional[Callable[[int], None]] = None
         self.game_engine = None  # Référence vers le moteur de jeu
         
@@ -167,6 +168,33 @@ class ActionBar:
     def set_game_engine(self, game_engine):
         """Définit la référence vers le moteur de jeu."""
         self.game_engine = game_engine
+    
+    def _get_player_component(self, is_enemy: bool = False) -> Optional[PlayerComponent]:
+        """Récupère le PlayerComponent du joueur spécifié."""
+        team_id = TeamEnum.ENEMY.value if is_enemy else TeamEnum.ALLY.value
+        
+        for entity, (player_comp, team_comp) in esper.get_components(PlayerComponent, TeamComponent):
+            if team_comp.team_id == team_id:
+                return player_comp
+        
+        # Si pas trouvé, créer l'entité joueur
+        from src.constants.gameplay import PLAYER_DEFAULT_GOLD
+        entity = esper.create_entity()
+        player_comp = PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD)
+        esper.add_component(entity, player_comp)
+        esper.add_component(entity, TeamComponent(team_id))
+        return player_comp
+    
+    def _get_player_gold_direct(self, is_enemy: bool = False) -> int:
+        """Récupère l'or du joueur directement du composant."""
+        player_comp = self._get_player_component(is_enemy)
+        return player_comp.get_gold() if player_comp else 0
+    
+    def _set_player_gold_direct(self, gold: int, is_enemy: bool = False) -> None:
+        """Définit l'or du joueur directement sur le composant."""
+        player_comp = self._get_player_component(is_enemy)
+        if player_comp:
+            player_comp.set_gold(gold)
         
     def _initialize_buttons(self):
         """Initialise les boutons de la barre d'action."""
@@ -347,7 +375,7 @@ class ActionBar:
         def callback():
             config = self.unit_configs[unit_type]
             print(f"[PLACEHOLDER] Demande création {config['name']} - Camp: {self.current_camp}")
-            current_gold = get_player_gold(self.current_camp == Team.ENEMY)
+            current_gold = self._get_player_gold_direct(self.current_camp == Team.ENEMY)
             print(f"[PLACEHOLDER] Coût: {config['cost']} or - Or actuel: {current_gold}")
             # Effet visuel temporaire (simulation de création réussie)
             if current_gold >= config['cost']:
@@ -367,8 +395,10 @@ class ActionBar:
             return
 
         self.current_camp = team
+        # Mettre à jour la faction de la boutique
+        from src.ui.boutique import ShopFaction
         new_faction = ShopFaction.ALLY if team == Team.ALLY else ShopFaction.ENEMY
-        self.shop.switch_faction(new_faction)
+        self.shop.set_faction(new_faction)
 
         if show_feedback:
             camp_name = t("camp.ally") if self.current_camp == Team.ALLY else t("camp.enemy")
@@ -450,11 +480,11 @@ class ActionBar:
     
     def _set_current_player_gold(self, gold: int):
         """Met à jour l'or du joueur pour le camp actuel."""
-        set_player_gold(gold, self.current_camp == Team.ENEMY)
+        self._set_player_gold_direct(gold, self.current_camp == Team.ENEMY)
     
     def _get_current_player_gold(self) -> int:
         """Retourne l'or du joueur pour le camp actuel."""
-        return get_player_gold(self.current_camp == Team.ENEMY)
+        return self._get_player_gold_direct(self.current_camp == Team.ENEMY)
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Gère les événements pour la barre d'action."""
@@ -575,9 +605,9 @@ class ActionBar:
     def update_player_gold(self, gold: int):
         """Met à jour l'or du joueur."""
         is_enemy = (self.current_camp == Team.ENEMY)
-        set_player_gold(gold, is_enemy)
+        self._set_player_gold_direct(gold, is_enemy)
         
-        current_gold = get_player_gold(is_enemy)
+        current_gold = self._get_player_gold_direct(is_enemy)
         for button in self.action_buttons:
             if button.is_global:
                 button.enabled = current_gold >= button.cost
@@ -800,7 +830,7 @@ class ActionBar:
         info_y = self.screen_height - self.bar_height + 10
 
         # Or du joueur (ligne 1)
-        current_gold = get_player_gold(self.current_camp == Team.ENEMY)
+        current_gold = self._get_player_gold_direct(self.current_camp == Team.ENEMY)
         try:
             gold_icon = sprite_manager.load_sprite(SpriteID.UI_BITCOIN)
         except Exception:
@@ -999,7 +1029,7 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     # Ajouter de l'or pour tester
-                    current_gold = get_player_gold(action_bar.current_camp == Team.ENEMY)
+                    current_gold = action_bar._get_player_gold_direct(action_bar.current_camp == Team.ENEMY)
                     action_bar.update_player_gold(current_gold + 50)
                     print(f"Or ajouté! Total: {current_gold + 50}")
             
@@ -1019,7 +1049,7 @@ def main():
             "Barre d'action avec boutique intégrée",
             "Appuyez sur 'B' pour ouvrir/fermer la boutique",
             "Appuyez sur 'ESPACE' pour ajouter 50 pièces d'or",
-            f"Or actuel: {get_player_gold(action_bar.current_camp == Team.ENEMY)}",
+            f"Or actuel: {action_bar._get_player_gold_direct(action_bar.current_camp == Team.ENEMY)}",
             "Q/E: Buffs globaux | R: Capacité spéciale | A: Mode attaque",
             "Boutique: 3 onglets (Unités, Bâtiments, Améliorations)",
             "Toutes les unités s'achètent maintenant dans la boutique!"

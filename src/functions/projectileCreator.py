@@ -19,19 +19,31 @@ from src.managers.sprite_manager import SpriteID, sprite_manager
 import logging
 
 logger = logging.getLogger(__name__)
+from src.constants.team import Team
 
-def create_projectile(entity, type: str):
+def create_projectile(entity, type: str = "bullet"):
     pos = esper.component_for_entity(entity, PositionComponent)
     team = esper.component_for_entity(entity, TeamComponent)
     team_id = team.team_id
 
     # Récupère le radius pour savoir si on tire sur les côtés
-    if esper.has_component(entity, RadiusComponent):
-        radius = esper.component_for_entity(entity, RadiusComponent)
-        angles = [pos.direction]
-        if radius.can_shoot_from_side:
-            angles.append(pos.direction - radius.angle)
-            angles.append(pos.direction + radius.angle)
+    angles = []
+    # Mode normal / bullet: tirer selon la direction et éventuels tirs sur les côtés
+    if type == "bullet":
+        if esper.has_component(entity, RadiusComponent):
+            radius = esper.component_for_entity(entity, RadiusComponent)
+            angles = [pos.direction]
+            if radius.can_shoot_from_side:
+                angles.append(pos.direction - radius.angle)
+                angles.append(pos.direction + radius.angle)
+        else:
+            angles = [pos.direction]
+    # Mode Leviathan: tir omnidirectionnel (toutes les directions autour de l'entité)
+    elif type == "leviathan":
+        # Tir omnidirectionnel centré sur la direction actuelle de l'entité.
+        # Utiliser 8 projectiles espacés régulièrement (360/8 = 45 degrés).
+        angles = [pos.direction + i * (360.0 / 8.0) for i in range(8)]
+    # Mode vine ou autres: garder le comportement par défaut (direction actuelle)
     else:
         angles = [pos.direction]
 
@@ -54,7 +66,8 @@ def create_projectile(entity, type: str):
 
         esper.add_component(bullet_entity, CanCollideComponent())
 
-        if type == "bullet":
+        # Traiter 'leviathan' comme un 'bullet' pour les composants (vitesse, dégâts, sprite)
+        if type in ("bullet", "leviathan"):
             esper.add_component(bullet_entity, VelocityComponent(
                 currentSpeed=PROJECTILE_SPEED,
                 maxUpSpeed=PROJECTILE_SPEED,
@@ -69,8 +82,11 @@ def create_projectile(entity, type: str):
             # Identifier cette entité comme un projectile
             esper.add_component(bullet_entity, ProjectileComponent("bullet"))
 
-            # Utiliser le SpriteManager pour les projectiles (balle)
-            sprite_id = SpriteID.PROJECTILE_BULLET
+            # Choisir le sprite selon la team (ennemi -> fireball)
+            if team_id == Team.ENEMY:
+                sprite_id = SpriteID.PROJECTILE_FIREBALL
+            else:
+                sprite_id = SpriteID.PROJECTILE_BULLET
             size = sprite_manager.get_default_size(sprite_id)
 
         elif type == "vine":
@@ -81,7 +97,8 @@ def create_projectile(entity, type: str):
 
             esper.add_component(bullet_entity, LifetimeComponent(1.1))
             
-            esper.add_component(bullet_entity, VineComponent(DRUID_IMMOBILIZATION_DURATION))
+            # VineComponent.time is declared as int; cast the duration to int to match
+            esper.add_component(bullet_entity, VineComponent(int(DRUID_IMMOBILIZATION_DURATION)))
 
             # Identifier cette entité comme un projectile
             esper.add_component(bullet_entity, ProjectileComponent("vine"))

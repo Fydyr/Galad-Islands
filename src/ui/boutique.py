@@ -5,7 +5,11 @@ import pygame
 import math
 import os
 import random
+import esper
 from src.settings.localization import t
+from src.components.core.playerComponent import PlayerComponent
+from src.components.core.teamComponent import TeamComponent
+from src.components.core.team_enum import Team as TeamEnum
 from src.factory.unitFactory import (
     UnitFactory,
     iter_unit_shop_configs,
@@ -104,14 +108,14 @@ class ShopItem:
 class UnifiedShop:
     """Système de boutique unifié pour les factions alliées et ennemies."""
     
-    def __init__(self, screen_width: int, screen_height: int, faction: ShopFaction = ShopFaction.ALLY, get_player_gold: Callable[[], int] = lambda: 0, set_player_gold: Callable[[int], None] = lambda gold: None):
+    def __init__(self, screen_width: int, screen_height: int, faction: ShopFaction = ShopFaction.ALLY):
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.faction = faction
-        self._get_player_gold_callback = get_player_gold
-        self._set_player_gold_callback = set_player_gold
+        
+        # Initialiser l'or du joueur en accédant directement au composant
         try:
-            self.player_gold = int(get_player_gold())
+            self.player_gold = self._get_player_gold_direct()
         except Exception:
             self.player_gold = SHOP_DEFAULT_PLAYER_GOLD
         
@@ -128,8 +132,91 @@ class UnifiedShop:
         # Configuration de l'interface
         self.shop_width = SHOP_WIDTH
         self.shop_height = SHOP_HEIGHT
-        self.shop_x = (screen_width - self.shop_width) // 2
-        self.shop_y = (screen_height - self.shop_height) // 2
+        self.shop_x = (self.screen_width - self.shop_width) // 2
+        self.shop_y = (self.screen_height - self.shop_height) // 2
+        
+        # Polices
+        try:
+            self.font_title = pygame.font.Font(None, SHOP_FONT_SIZE_TITLE)
+            self.font_subtitle = pygame.font.Font(None, SHOP_FONT_SIZE_SUBTITLE)
+            self.font_normal = pygame.font.Font(None, SHOP_FONT_SIZE_NORMAL)
+            self.font_small = pygame.font.Font(None, SHOP_FONT_SIZE_SMALL)
+            self.font_tiny = pygame.font.Font(None, SHOP_FONT_SIZE_TINY)
+        except:
+            self.font_title = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_TITLE, bold=True)
+            self.font_subtitle = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_SUBTITLE, bold=True)
+            self.font_normal = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_NORMAL)
+            self.font_small = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_SMALL)
+            self.font_tiny = pygame.font.SysFont("Arial", SHOP_FONT_SIZE_TINY)
+        
+        # Items de la boutique
+        self.shop_items: Dict[ShopCategory, List[ShopItem]] = {
+            ShopCategory.UNITS: [],
+        }
+        
+        # Icônes chargées
+        self.icons: Dict[str, Optional[pygame.Surface]] = {}
+        self.tab_icons: Dict[str, Optional[pygame.Surface]] = {}
+        # Définition des onglets visibles (key, category)
+        # 'gold' n'est pas une catégorie de ShopCategory mais un onglet UI
+        self.tab_keys = ["units"]
+        self.tab_categories: List[Optional[ShopCategory]] = [ShopCategory.UNITS]
+
+        # Animation et feedback
+        self.purchase_feedback = ""
+        self.feedback_timer = 0.0
+        self.feedback_color = self.theme.PURCHASE_SUCCESS
+        
+        # Initialisation
+        self._initialize_items()
+        self._load_icons()
+        self._load_tab_icons()
+    
+    def _get_player_component(self) -> Optional[PlayerComponent]:
+        """Récupère le PlayerComponent du joueur selon la faction de la boutique."""
+        is_enemy = (self.faction == ShopFaction.ENEMY)
+        team_id = TeamEnum.ENEMY.value if is_enemy else TeamEnum.ALLY.value
+        
+        for entity, (player_comp, team_comp) in esper.get_components(PlayerComponent, TeamComponent):
+            if team_comp.team_id == team_id:
+                return player_comp
+        
+        # Si pas trouvé, créer l'entité joueur
+        from src.constants.gameplay import PLAYER_DEFAULT_GOLD
+        entity = esper.create_entity()
+        player_comp = PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD)
+        esper.add_component(entity, player_comp)
+        esper.add_component(entity, TeamComponent(team_id))
+        return player_comp
+    
+    def _get_player_gold_direct(self) -> int:
+        """Récupère l'or du joueur directement du composant."""
+        player_comp = self._get_player_component()
+        return player_comp.get_gold() if player_comp else 0
+    
+    def _set_player_gold_direct(self, gold: int) -> None:
+        """Définit l'or du joueur directement sur le composant."""
+        player_comp = self._get_player_component()
+        if player_comp:
+            player_comp.set_gold(gold)
+            self.player_gold = gold  # Synchroniser le cache local
+    
+    def set_faction(self, faction: ShopFaction) -> None:
+        """Change la faction de la boutique et met à jour le thème."""
+        if self.faction != faction:
+            self.faction = faction
+            self.theme = AllyTheme if faction == ShopFaction.ALLY else EnemyTheme
+            # Rafraîchir l'or du joueur pour la nouvelle faction
+            try:
+                self.player_gold = self._get_player_gold_direct()
+            except Exception:
+                self.player_gold = SHOP_DEFAULT_PLAYER_GOLD
+        
+        # Configuration de l'interface
+        self.shop_width = SHOP_WIDTH
+        self.shop_height = SHOP_HEIGHT
+        self.shop_x = (self.screen_width - self.shop_width) // 2
+        self.shop_y = (self.screen_height - self.shop_height) // 2
         
         # Polices
         try:
@@ -169,25 +256,7 @@ class UnifiedShop:
         self._load_icons()
         self._load_tab_icons()
     
-    def switch_faction(self, faction: ShopFaction):
-        """Change la faction de la boutique et recharge les items."""
-        if self.faction == faction:
-            return
-            
-        self.faction = faction
-        self.theme = AllyTheme if faction == ShopFaction.ALLY else EnemyTheme
-        self.feedback_color = self.theme.PURCHASE_SUCCESS
-        
-        # Vider les items existants
-        for category in self.shop_items:
-            self.shop_items[category].clear()
-        
-        # Recharger les items pour la nouvelle faction
-        self._initialize_items()
-        self._load_icons()
-        
-        print(f"Boutique changée vers la faction: {faction.value}")
-    
+
     def _initialize_items(self):
         """Initialise tous les items de la boutique selon la faction."""
         if self.faction == ShopFaction.ALLY:
@@ -476,7 +545,7 @@ class UnifiedShop:
             elif event.key == pygame.K_f:
                 # Basculer entre les factions (pour test)
                 new_faction = ShopFaction.ENEMY if self.faction == ShopFaction.ALLY else ShopFaction.ALLY
-                self.switch_faction(new_faction)
+                self.set_faction(new_faction)
         
         return True
     
@@ -616,23 +685,22 @@ class UnifiedShop:
         return True
     
     def get_player_gold(self) -> int:
-        """Retourne l'or courant du joueur en tenant compte des callbacks externes."""
-
+        """Retourne l'or courant du joueur en accédant directement au composant."""
         try:
-            value = int(self._get_player_gold_callback())
+            value = self._get_player_gold_direct()
             self.player_gold = value
             return value
         except Exception:
             return self.player_gold
 
     def set_player_gold(self, gold: int):
-        """Met à jour l'or du joueur et synchronise le callback associé."""
-
-        self.player_gold = gold
+        """Met à jour l'or du joueur directement sur le composant."""
         try:
-            self._set_player_gold_callback(gold)
+            self._set_player_gold_direct(gold)
         except Exception as error:
-            print(f"Impossible de propager la mise à jour de l'or: {error}")
+            print(f"Impossible de mettre à jour l'or: {error}")
+            # Fallback sur le cache local
+            self.player_gold = gold
     
     def update(self, dt: float):
         """Met à jour la boutique."""
@@ -851,10 +919,12 @@ class UnifiedShop:
 
         if gold_icon:
             icon_surface = pygame.transform.scale(gold_icon, (28, 28))
-            gold_text = self.font_subtitle.render(gold_str, True, self.theme.GOLD)
-            gold_line_width = icon_surface.get_width() + gold_text.get_width() + 16
+            # Surface rendue pour l'or
+            gold_surface = self.font_subtitle.render(gold_str, True, self.theme.GOLD)
+            gold_line_width = icon_surface.get_width() + gold_surface.get_width() + 16
         else:
-            gold_text = f"💰 {gold_str}"
+            # Fallback: utiliser un symbole monétaire générique rendu par la police
+            gold_text = f"¤ {gold_str}"
             gold_line_width = self.font_subtitle.size(gold_text)[0]
         
         # Position du texte
@@ -866,8 +936,8 @@ class UnifiedShop:
             icon_x = info_rect.x + (info_rect.width - gold_line_width) // 2
             icon_y = gold_y - icon_surface.get_height() // 2
             surface.blit(icon_surface, (icon_x, icon_y))
-            gold_rect = gold_text.get_rect(midleft=(icon_x + icon_surface.get_width() + 8, gold_y))
-            surface.blit(gold_text, gold_rect)
+            gold_rect = gold_surface.get_rect(midleft=(icon_x + icon_surface.get_width() + 8, gold_y))
+            surface.blit(gold_surface, gold_rect)
         else:
             # Créer le Surface rendu pour l'affichage
             gold_surface = self.font_subtitle.render(gold_text, True, self.theme.GOLD)
@@ -959,7 +1029,8 @@ class UnifiedShop:
             cost_x += SHOP_ICON_SIZE_TINY + 4
             cost_text = str(item.cost)
         else:
-            cost_text = f"💰 {item.cost}"
+            # Fallback: utiliser un symbole monétaire générique sans emoji
+            cost_text = f"¤ {item.cost}"
         
         cost_shadow = self.font_small.render(cost_text, True, (0, 0, 0))
         surface.blit(cost_shadow, (cost_x + 1, rect.y + 31))
@@ -983,7 +1054,8 @@ class UnifiedShop:
         
         # Indication si pas achetable
         if not can_purchase:
-            error_text = "💸" if self.get_player_gold() < item.cost else "🚫"
+            # Utiliser des symboles de police compatibles pour indiquer l'erreur
+            error_text = "⚠" if self.get_player_gold() < item.cost else "✖"
             error_surface = self.font_normal.render(error_text, True, self.theme.PURCHASE_ERROR)
             error_rect = error_surface.get_rect(bottomright=(rect.right - 5, rect.bottom - 5))
             surface.blit(error_surface, error_rect)
