@@ -1,5 +1,5 @@
 # Importations standard
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple
 
 import pygame
 
@@ -14,15 +14,13 @@ from src.settings import controls
 from src.constants.team import Team
 import logging
 
-from src.constants.gameplay import CHEST_SPAWN_INTERVAL
-
 logger = logging.getLogger(__name__)
 
 # Importations des processeurs
 from src.processeurs import movementProcessor, collisionProcessor, playerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
-from src.processeurs.resourceCollectionProcessor import ResourceCollectionProcessor
+from src.managers.flying_chest_manager import FlyingChestManager
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -55,12 +53,6 @@ from src.functions.baseManager import get_base_manager
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.exit_modal import ExitConfirmationModal
-
-
-if TYPE_CHECKING:
-    from src.managers.resource_manager import ResourceManager
-
-
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
 
@@ -245,7 +237,7 @@ class GameRenderer:
     def _render_game_world(self, window, grid, images, camera):
         """Rend la grille de jeu et les éléments du monde."""
         if grid is not None and images is not None and camera is not None:
-            game_map.afficher_grille(window, grid, images, camera, self.game_engine.resource_manager, self.game_engine.show_debug)
+            game_map.afficher_grille(window, grid, images, camera)
             
     def _render_sprites(self, window, camera):
         """Rendu manuel des sprites pour contrôler l'ordre d'affichage."""
@@ -429,7 +421,7 @@ class GameEngine:
         self.grid = None
         self.images = None
         self.camera = None
-        self.resource_manager = None
+        self.flying_chest_manager = FlyingChestManager()
         self.player = None
         
         # Processeurs ECS
@@ -438,7 +430,6 @@ class GameEngine:
         self.player_controls = None
         self.capacities_processor = None
         self.lifetime_processor = None
-        self.resource_processor = None
 
         # Gestion de la sélection des unités
         self.selected_unit_id = None
@@ -497,7 +488,8 @@ class GameEngine:
         self.grid = game_state["grid"]
         self.images = game_state["images"]
         self.camera = game_state["camera"]
-        self.resource_manager = game_state.get("resources")
+        if self.flying_chest_manager is not None and self.grid is not None:
+            self.flying_chest_manager.initialize_from_grid(self.grid)
         
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
@@ -524,14 +516,14 @@ class GameEngine:
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
-        self.resource_processor = ResourceCollectionProcessor()
-        es.add_processor(self.resource_processor, priority=5)
         es.add_processor(self.lifetime_processor, priority=10)
         
         # Configurer les handlers d'événements
         es.set_handler('attack_event', create_projectile)
         es.set_handler('special_vine_event', create_projectile)
         es.set_handler('entities_hit', entitiesHit)
+        if self.flying_chest_manager is not None:
+            es.set_handler('flying_chest_collision', self.flying_chest_manager.handle_collision)
         
     def _create_initial_entities(self):
         """Crée les entités initiales du jeu."""
@@ -1157,17 +1149,13 @@ class GameEngine:
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
 
+        if self.flying_chest_manager is not None:
+            self.flying_chest_manager.update(dt)
+
         # Synchroniser les informations affichées avec l'état courant
         self._refresh_selected_unit_info()
         
-        # Gérer le spawn de coffres
-        self.chest_spawn_timer += dt
-        if self.chest_spawn_timer >= CHEST_SPAWN_INTERVAL:
-            self.chest_spawn_timer = 0.0
-            if self.resource_manager is not None:
-                spawned = self.resource_manager.spawn_random_chests(self.grid)
-                if spawned > 0:
-                    print(f"Spawned {spawned} random chest(s)")
+        # Les coffres volants sont gérés par flying_chest_manager.update(dt) plus haut
         
     def _render_game(self, dt):
         """Effectue le rendu du jeu."""

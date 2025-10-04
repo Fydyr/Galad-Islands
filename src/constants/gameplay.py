@@ -222,20 +222,13 @@ BASE_MAX_HEALTH = 1000
 # CONSTANTES DE RESSOURCES
 # =============================================================================
 
-# Paramètres de génération initiale
-RESOURCE_NODE_DENSITY = 0.45            # Proportion cible des îles recevant une ressource
-RESOURCE_NODE_MIN_COUNT = 1             # Nombre minimal de gisements
-RESOURCE_NODE_MAX_COUNT = 6            # Nombre maximal de gisements
-RESOURCE_NODE_MIN_AMOUNT = 40           # Quantité minimale par gisement
-RESOURCE_NODE_MAX_AMOUNT = 120          # Quantité maximale par gisement
-RESOURCE_NODE_VARIANCE_EXPONENT = 1.4   # Pondération de distribution (1.0 = uniforme)
-RESOURCE_NODE_MIN_DISTANCE = 2          # Distance minimale (en tuiles) entre deux gisements
-
-# Paramètres de génération dynamique de coffres
-CHEST_SPAWN_INTERVAL = 15.0             # Intervalle en secondes entre les tentatives de spawn
-CHEST_SPAWN_PROBABILITY = 0.67          # Probabilité de spawn (67%)
-CHEST_SPAWN_MIN_COUNT = 1               # Nombre minimal de coffres à spawn
-CHEST_SPAWN_MAX_COUNT = 3               # Nombre maximal de coffres à spawn
+# Coffres volants
+FLYING_CHEST_SPAWN_INTERVAL = 20.0      # Intervalle d'apparition des coffres volants
+FLYING_CHEST_MAX_COUNT = 2              # Nombre maximum de coffres volants actifs
+FLYING_CHEST_GOLD_MIN = 60              # Gain minimal en or lors de la collecte
+FLYING_CHEST_GOLD_MAX = 150             # Gain maximal en or lors de la collecte
+FLYING_CHEST_LIFETIME = 25.0            # Durée avant la chute automatique dans l'océan
+FLYING_CHEST_SINK_DURATION = 3.0        # Durée de l'animation de chute avant disparition
 
 # =============================================================================
 # CONSTANTES DE POSITIONNEMENT
