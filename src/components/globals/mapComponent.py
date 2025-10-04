@@ -51,7 +51,8 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
     """
     Vérifie si un bloc de taille size*size peut être placé à partir de (x, y) sur la grille.
     Le bloc ne doit pas chevaucher d'autres éléments, ni être adjacent à une île générique,
-    ni (optionnellement) à un type donné, ni trop proche des bases (zone de sécurité).
+    ni (optionnellement) à un type donné, ni trop proche des bases (zone de sécurité),
+    ni dans les zones de spawn des druides.
     Args:
         grid (list[list[int]]): Grille de la carte
         x (int): Colonne de départ du bloc
@@ -78,6 +79,7 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
                     if avoid_type is not None and grid[ny][nx] == avoid_type:
                         return False
     if avoid_bases:
+        # Éviter les bases (zone 4x4 avec marge de sécurité)
         for bx, by in [(1, 1), (MAP_WIDTH-5, MAP_HEIGHT-5)]:
             for dy in range(-2, 6):
                 for dx in range(-2, 6):
@@ -86,6 +88,38 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
                         for bdx in range(size):
                             if nx == x+bdx and ny == y+bdy:
                                 return False
+        
+        # Éviter les zones de spawn des druides
+        # Calcul des positions de spawn basé sur la logique de BaseManager.get_spawn_position()
+        ally_base_center_x, ally_base_center_y = 3.0, 3.0  # Centre de la base alliée en coordonnées de grille
+        enemy_base_center_x, enemy_base_center_y = MAP_WIDTH - 3.0, MAP_HEIGHT - 2.8  # Centre de la base ennemie
+        
+        half_extent = 2.0  # 2 * TILE_SIZE en coordonnées de grille
+        safety_margin = 1.25  # 1.25 * TILE_SIZE en coordonnées de grille
+        max_jitter = 0.35  # Jitter maximal en coordonnées de grille
+        spawn_zone_radius = 1.5  # Rayon de la zone à éviter autour du spawn
+        
+        # Zone de spawn alliée (direction positive depuis la base)
+        ally_spawn_x = ally_base_center_x + (half_extent + safety_margin + max_jitter)
+        ally_spawn_y = ally_base_center_y + (half_extent + safety_margin + max_jitter)
+        
+        # Zone de spawn ennemie (direction négative depuis la base)
+        enemy_spawn_x = enemy_base_center_x - (half_extent + safety_margin + max_jitter)
+        enemy_spawn_y = enemy_base_center_y - (half_extent + safety_margin + max_jitter)
+        
+        # Vérifier si le bloc à placer interfère avec les zones de spawn
+        spawn_positions = [(ally_spawn_x, ally_spawn_y), (enemy_spawn_x, enemy_spawn_y)]
+        
+        for spawn_x_grid, spawn_y_grid in spawn_positions:
+            # Convertir les coordonnées du bloc en coordonnées de grille
+            block_center_x = x + size / 2.0
+            block_center_y = y + size / 2.0
+            
+            # Vérifier la distance entre le centre du bloc et la zone de spawn
+            distance = ((block_center_x - spawn_x_grid) ** 2 + (block_center_y - spawn_y_grid) ** 2) ** 0.5
+            if distance < spawn_zone_radius:
+                return False
+    
     return True
 
 def placer_bloc_aleatoire(grid, valeur, nombre, size=2, min_dist=2, avoid_bases=True, avoid_type=None):

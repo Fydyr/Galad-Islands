@@ -617,9 +617,9 @@ class GameEngine:
         if player_unit is not None:
             self._set_selected_entity(player_unit)
 
-        # Créer un druide ennemi
+        # Créer un druide ennemi à une position équivalente à celle du druid allié
         enemy_spawn_x, enemy_spawn_y = base_manager.get_spawn_position(
-            is_enemy=True, jitter=TILE_SIZE * 4)
+            is_enemy=True, jitter=TILE_SIZE * 0.1)  # Même jitter que l'allié
         enemy_druid = UnitFactory(
             UnitType.DRUID, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
         

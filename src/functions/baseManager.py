@@ -15,6 +15,8 @@ from src.components.core.positionComponent import PositionComponent
 from src.components.core.spriteComponent import SpriteComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.recentHitsComponent import RecentHitsComponent
+from src.components.core.classeComponent import ClasseComponent
+from src.settings.localization import t
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
 
 class BaseManager:
@@ -69,6 +71,12 @@ class BaseManager:
         esper.add_component(self.ally_base_entity, AttackComponent(hitPoints=50))  # Base inflige des dégâts au contact
         esper.add_component(self.ally_base_entity, CanCollideComponent())  # Les bases peuvent être touchées
         esper.add_component(self.ally_base_entity, RecentHitsComponent(cooldown_duration=1.0))  # Éviter dégâts continus
+        esper.add_component(self.ally_base_entity, ClasseComponent(
+            unit_type="ALLY_BASE",
+            shop_id="ally_base", 
+            display_name=t("base.ally_name"),
+            is_enemy=False
+        ))
         
         # Calculer la taille de hitbox basée sur la taille réelle du sprite (391x350)
         # Utilisons 75% de la taille du sprite pour une hitbox plus accessible  
@@ -104,6 +112,12 @@ class BaseManager:
         esper.add_component(self.enemy_base_entity, AttackComponent(hitPoints=50))  # Base inflige des dégâts au contact
         esper.add_component(self.enemy_base_entity, CanCollideComponent())  # Les bases peuvent être touchées
         esper.add_component(self.enemy_base_entity, RecentHitsComponent(cooldown_duration=1.0))  # Éviter dégâts continus
+        esper.add_component(self.enemy_base_entity, ClasseComponent(
+            unit_type="ENEMY_BASE",
+            shop_id="enemy_base",
+            display_name=t("base.enemy_name"), 
+            is_enemy=True
+        ))
         
         # Calculer la taille de hitbox basée sur la taille réelle du sprite (477x394)
         # Utilisons 60% de la taille du sprite pour une hitbox plus précise
