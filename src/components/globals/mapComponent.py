@@ -20,7 +20,7 @@ from src.settings.settings import (
     config_manager,
 )
 from src.settings.localization import t
-from src.components.cameraComponent import Camera
+from src.components.globals.cameraComponent import Camera
 from src.functions.resource_path import get_resource_path
 from src.managers.resource_manager import get_resource_manager
 

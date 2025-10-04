@@ -4,9 +4,9 @@ Physics System - Handles movement, collision detection, and physics calculations
 import math
 from typing import Tuple, Optional
 import esper
-from src.components.properties.positionComponent import PositionComponent
-from src.components.properties.velocityComponent import VelocityComponent
-from src.components.properties.canCollideComponent import CanCollideComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.velocityComponent import VelocityComponent
+from src.components.core.canCollideComponent import CanCollideComponent
 
 
 class PhysicsSystem:

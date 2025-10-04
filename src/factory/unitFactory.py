@@ -28,20 +28,20 @@ from src.constants.gameplay import (
     ARCHITECT_RADIUS, ARCHITECT_RELOAD_FACTOR, ARCHITECT_DURATION,
 )
 from src.managers.sprite_manager import SpriteID, sprite_manager
-from src.components.properties.positionComponent import PositionComponent
-from src.components.properties.velocityComponent import VelocityComponent
-from src.components.properties.spriteComponent import SpriteComponent
-from src.components.properties.teamComponent import TeamComponent
-from src.components.properties.radiusComponent import RadiusComponent
-from src.components.properties.attackComponent import AttackComponent
-from src.components.properties.healthComponent import HealthComponent
-from src.components.properties.canCollideComponent import CanCollideComponent
-from src.components.properties.ability.speDruidComponent import SpeDruid
-from src.components.properties.ability.speArchitectComponent import SpeArchitect
-from src.components.properties.classeComponent import ClasseComponent
-from src.components.properties.ability.speScoutComponent import SpeScout
-from src.components.properties.ability.speMaraudeurComponent import SpeMaraudeur
-from src.components.properties.ability.speLeviathanComponent import SpeLeviathan
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.velocityComponent import VelocityComponent
+from src.components.core.spriteComponent import SpriteComponent
+from src.components.core.teamComponent import TeamComponent
+from src.components.core.radiusComponent import RadiusComponent
+from src.components.core.attackComponent import AttackComponent
+from src.components.core.healthComponent import HealthComponent
+from src.components.core.canCollideComponent import CanCollideComponent
+from src.components.special.speDruidComponent import SpeDruid
+from src.components.special.speArchitectComponent import SpeArchitect
+from src.components.core.classeComponent import ClasseComponent
+from src.components.special.speScoutComponent import SpeScout
+from src.components.special.speMaraudeurComponent import SpeMaraudeur
+from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.settings.localization import t
 
 

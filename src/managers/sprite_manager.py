@@ -200,7 +200,7 @@ class SpriteManager:
     
     def create_sprite_component(self, sprite_id: SpriteID, width: Optional[int] = None, height: Optional[int] = None):
         """Create a SpriteComponent with the specified sprite ID."""
-        from src.components.properties.spriteComponent import SpriteComponent
+        from src.components.core.spriteComponent import SpriteComponent
         
         sprite_data = self.get_sprite_data(sprite_id)
         if not sprite_data:

@@ -2,10 +2,10 @@
 Fonctions utilitaires pour accéder aux entités joueur et gérer leur or.
 """
 import esper
-from src.components.properties.playerComponent import PlayerComponent
+from src.components.core.playerComponent import PlayerComponent
 from src.constants.gameplay import PLAYER_DEFAULT_GOLD
-from src.components.properties.teamComponent import TeamComponent
-from src.constants.team import Team
+from src.components.core.teamComponent import TeamComponent
+from src.components.core.team_enum import Team
 from typing import Optional
 
 def get_player_entity(is_enemy: bool = False) -> Optional[int]:

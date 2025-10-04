@@ -7,13 +7,13 @@ from typing import Tuple
 import esper
 import pygame
 
-from src.components.properties.attackComponent import AttackComponent
-from src.components.properties.baseComponent import BaseComponent
-from src.components.properties.canCollideComponent import CanCollideComponent
-from src.components.properties.healthComponent import HealthComponent
-from src.components.properties.positionComponent import PositionComponent
-from src.components.properties.spriteComponent import SpriteComponent
-from src.components.properties.teamComponent import TeamComponent
+from src.components.core.attackComponent import AttackComponent
+from src.components.core.baseComponent import BaseComponent
+from src.components.core.canCollideComponent import CanCollideComponent
+from src.components.core.healthComponent import HealthComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.spriteComponent import SpriteComponent
+from src.components.core.teamComponent import TeamComponent
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
 
 class BaseManager:
