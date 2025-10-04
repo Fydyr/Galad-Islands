@@ -1295,7 +1295,7 @@ class GameEngine:
 
     def _handle_game_over(self, defeated_team_id):
         """Gère la fin de partie quand une base est détruite."""
-        print(f"[GAME OVER] Base de l'équipe {defeated_team_id} détruite !")
+        print(t("game_over.debug_message", team_id=defeated_team_id))
         
         # Déterminer l'équipe gagnante (l'opposée de celle qui a perdu)
         self.winning_team = Team.ENEMY if defeated_team_id == Team.ALLY else Team.ALLY
@@ -1304,9 +1304,9 @@ class GameEngine:
         
         # Préparer le message de fin de partie
         if self.winning_team == Team.ALLY:
-            self.game_over_message = "🎉 VICTOIRE ! 🎉\nVous avez détruit la base ennemie !"
+            self.game_over_message = t("game_over.victory")
         else:
-            self.game_over_message = "💀 DÉFAITE 💀\nVotre base a été détruite..."
+            self.game_over_message = t("game_over.defeat")
 
 
 def game(window=None, bg_original=None, select_sound=None):

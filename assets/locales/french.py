@@ -280,6 +280,11 @@ TRANSLATIONS = {
     "system.main_loop_error": "Erreur dans la boucle principale: {error}",
     "system.game_launched": "Lancement du jeu...",
     
+    # Game Over
+    "game_over.victory": "VICTOIRE ! \nVous avez détruit la base ennemie !",
+    "game_over.defeat": "DÉFAITE \nVotre base a été détruite...",
+    "game_over.debug_message": "[GAME OVER] Base de l'équipe {team_id} détruite !",
+    
     # Debug/Développement
     "debug.camera_position": "Caméra: ({x:.1f}, {y:.1f})",
     "debug.zoom_level": "Zoom: {zoom:.2f}x",
