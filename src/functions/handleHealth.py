@@ -1,6 +1,8 @@
 import esper
 from src.components.core.healthComponent import HealthComponent as Health
 from src.components.core.attackComponent import AttackComponent as Attack
+from src.components.core.baseComponent import BaseComponent
+from src.components.core.teamComponent import TeamComponent
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speScoutComponent import SpeScout
 
@@ -33,6 +35,17 @@ def processHealth(entity, damage):
     # Supprimer l'entité si elle est morte
     try:
         if health.currentHealth <= 0:
+            # Vérifier si c'est une base qui meurt
+            if esper.has_component(entity, BaseComponent):
+                # Déterminer quelle équipe a perdu
+                team_id = 1  # Par défaut équipe alliée
+                if esper.has_component(entity, TeamComponent):
+                    team_comp = esper.component_for_entity(entity, TeamComponent)
+                    team_id = team_comp.team_id
+                
+                # Dispatcher l'événement de fin de partie AVANT de supprimer l'entité
+                esper.dispatch_event('game_over', team_id)
+            
             esper.delete_entity(entity)
     except Exception:
         pass

@@ -14,3 +14,4 @@ class ProjectileComponent:
             projectile_type (str): Type de projectile ("bullet", "missile", "magic", etc.)
         """
         self.projectile_type: str = projectile_type
+        self.hit_entities: set = set()  # Ensemble des IDs d'entités déjà touchées
