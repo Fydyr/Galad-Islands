@@ -19,6 +19,7 @@ from src.managers.sprite_manager import SpriteID, sprite_manager
 import logging
 
 logger = logging.getLogger(__name__)
+from src.constants.team import Team
 
 def create_projectile(entity, type: str):
     pos = esper.component_for_entity(entity, PositionComponent)
@@ -69,8 +70,11 @@ def create_projectile(entity, type: str):
             # Identifier cette entité comme un projectile
             esper.add_component(bullet_entity, ProjectileComponent("bullet"))
 
-            # Utiliser le SpriteManager pour les projectiles (balle)
-            sprite_id = SpriteID.PROJECTILE_BULLET
+            # Choisir le sprite selon la team (ennemi -> fireball)
+            if team_id == Team.ENEMY:
+                sprite_id = SpriteID.PROJECTILE_FIREBALL
+            else:
+                sprite_id = SpriteID.PROJECTILE_BULLET
             size = sprite_manager.get_default_size(sprite_id)
 
         elif type == "vine":

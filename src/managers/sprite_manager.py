@@ -40,6 +40,7 @@ class SpriteID(Enum):
     PROJECTILE_BULLET = "ball"
     PROJECTILE_CANNONBALL = "ball"
     PROJECTILE_ARROW = "ball"
+    PROJECTILE_FIREBALL = "fireball"
     PROJECTILE_VINE = "vine"
     
     # Effets
@@ -120,6 +121,8 @@ class SpriteManager:
             SpriteData(SpriteID.PROJECTILE_BULLET, "assets/sprites/projectile/ball.png", 20, 15, "Projectile standard"),
             SpriteData(SpriteID.PROJECTILE_CANNONBALL, "assets/sprites/projectile/ball.png", 20, 15, "Boulet de canon"),
             SpriteData(SpriteID.PROJECTILE_ARROW, "assets/sprites/projectile/ball.png", 20, 15, "Flèche"),
+            # Réutiliser explosion.png comme boule de feu ennemie (taille ajustée pour ressembler à une boule)
+            SpriteData(SpriteID.PROJECTILE_FIREBALL, "assets/sprites/projectile/explosion.png", 24, 24, "Boule de feu ennemie"),
             SpriteData(SpriteID.PROJECTILE_VINE, "assets/sprites/projectile/vine.png", 20, 20, "Boule de lierres"),
 
             # Effets
