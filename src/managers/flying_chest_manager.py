@@ -22,7 +22,9 @@ from src.constants.gameplay import (
 )
 from src.constants.map_tiles import TileType
 from src.constants.team import Team
-from src.functions.player_utils import add_player_gold
+from src.components.core.playerComponent import PlayerComponent
+from src.components.core.teamComponent import TeamComponent
+from src.components.core.team_enum import Team as TeamEnum
 from src.managers.sprite_manager import SpriteID, sprite_manager
 from src.settings.settings import TILE_SIZE
 
@@ -38,6 +40,28 @@ class FlyingChestManager:
     def configure_seed(self, seed: Optional[int]) -> None:
         """Définit la seed utilisée pour la génération pseudo-aléatoire."""
         self._rng = np.random.default_rng(seed)
+    
+    def _get_player_component(self, is_enemy: bool = False) -> Optional[PlayerComponent]:
+        """Récupère le PlayerComponent du joueur spécifié."""
+        team_id = TeamEnum.ENEMY.value if is_enemy else TeamEnum.ALLY.value
+        
+        for entity, (player_comp, team_comp) in esper.get_components(PlayerComponent, TeamComponent):
+            if team_comp.team_id == team_id:
+                return player_comp
+        
+        # Si pas trouvé, créer l'entité joueur
+        from src.constants.gameplay import PLAYER_DEFAULT_GOLD
+        entity = esper.create_entity()
+        player_comp = PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD)
+        esper.add_component(entity, player_comp)
+        esper.add_component(entity, TeamComponent(team_id))
+        return player_comp
+    
+    def _add_player_gold(self, amount: int, is_enemy: bool = False) -> None:
+        """Ajoute de l'or au joueur spécifié."""
+        player_comp = self._get_player_component(is_enemy)
+        if player_comp:
+            player_comp.add_gold(amount)
 
     def reset(self) -> None:
         """Réinitialise les minuteries internes du gestionnaire."""
@@ -88,7 +112,7 @@ class FlyingChestManager:
             team_component = None
 
         if team_component is not None and chest.gold_amount > 0:
-            add_player_gold(chest.gold_amount, is_enemy=gold_receiver_is_enemy)
+            self._add_player_gold(chest.gold_amount, is_enemy=gold_receiver_is_enemy)
 
         chest.gold_amount = 0
         chest.is_collected = True
