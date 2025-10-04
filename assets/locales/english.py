@@ -12,7 +12,16 @@ TRANSLATIONS = {
     "menu.scenario": "Scenario",
     "menu.quit": "Quit",
     
-    # Options
+      # Game Over
+    "game_over.victory": "VICTORY! \nYou destroyed the enemy base!",
+    "game_over.defeat": "DEFEAT \nYour base has been destroyed...",
+    "game_over.debug_message": "[GAME OVER] Team {team_id} base destroyed!",
+    
+    # Base names
+    "base.ally_name": "Allied Base",
+    "base.enemy_name": "Enemy Base",
+    
+    # Debug/Developmenttions
     "options.title": "Options",
     "options.display": "Display",
     "options.window_mode": "Window Mode",
