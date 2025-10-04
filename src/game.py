@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 from src.processeurs import movementProcessor, collisionProcessor, playerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
-from src.managers.flying_chest_manager import FlyingChestManager
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -41,6 +40,11 @@ from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.special.speDruidComponent import SpeDruid
 from src.components.special.speArchitectComponent import SpeArchitect
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
+
+# import event
+from src.managers.flying_chest_manager import FlyingChestManager
+from src.managers.storm_manager import StormManager
+
 
 # Importations des factories et fonctions utilitaires
 from src.factory.unitFactory import UnitFactory
@@ -422,6 +426,7 @@ class GameEngine:
         self.images = None
         self.camera = None
         self.flying_chest_manager = FlyingChestManager()
+        self.storm_manager = StormManager()
         self.player = None
         
         # Processeurs ECS
@@ -445,6 +450,8 @@ class GameEngine:
         
         # Timer pour le spawn de coffres
         self.chest_spawn_timer = 0.0
+        
+        # tempest manager
         
     def initialize(self):
         """Initialise tous les composants du jeu."""
@@ -488,9 +495,15 @@ class GameEngine:
         self.grid = game_state["grid"]
         self.images = game_state["images"]
         self.camera = game_state["camera"]
+        
+        # Initialize flying chest manager
         if self.flying_chest_manager is not None and self.grid is not None:
             self.flying_chest_manager.initialize_from_grid(self.grid)
-        
+
+        # Initialize storm manager
+        if self.storm_manager is not None and self.grid is not None:
+            self.storm_manager.initialize_from_grid(self.grid)
+
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
         # Nettoyer toutes les entités existantes
@@ -499,6 +512,7 @@ class GameEngine:
         
         # Nettoyer tous les processeurs existants
         es._processors.clear()
+        StormManager().clear_all_storms()
 
         # Réinitialiser les gestionnaires globaux dépendant du monde
         get_base_manager().reset()
@@ -1151,6 +1165,9 @@ class GameEngine:
 
         if self.flying_chest_manager is not None:
             self.flying_chest_manager.update(dt)
+            
+        if self.storm_manager is not None:
+            self.storm_manager.update(dt)
 
         # Synchroniser les informations affichées avec l'état courant
         self._refresh_selected_unit_info()
