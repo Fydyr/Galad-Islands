@@ -1,5 +1,5 @@
 # Importations standard
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import pygame
 
@@ -14,12 +14,15 @@ from src.settings import controls
 from src.constants.team import Team
 import logging
 
+from src.constants.gameplay import CHEST_SPAWN_INTERVAL
+
 logger = logging.getLogger(__name__)
 
 # Importations des processeurs
 from src.processeurs import movementProcessor, collisionProcessor, playerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
+from src.processeurs.resourceCollectionProcessor import ResourceCollectionProcessor
 
 # Importations des composants
 from src.components.properties.positionComponent import PositionComponent
@@ -53,6 +56,9 @@ from src.functions.baseManager import get_base_manager
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.exit_modal import ExitConfirmationModal
 
+
+if TYPE_CHECKING:
+    from src.managers.resource_manager import ResourceManager
 
 
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
@@ -242,7 +248,7 @@ class GameRenderer:
     def _render_game_world(self, window, grid, images, camera):
         """Rend la grille de jeu et les éléments du monde."""
         if grid is not None and images is not None and camera is not None:
-            game_map.afficher_grille(window, grid, images, camera)
+            game_map.afficher_grille(window, grid, images, camera, self.game_engine.resource_manager, self.game_engine.show_debug)
             
     def _render_sprites(self, window, camera):
         """Rendu manuel des sprites pour contrôler l'ordre d'affichage."""
@@ -330,7 +336,7 @@ class GameRenderer:
             return None
 
     def _draw_selection_highlight(self, window, screen_x, screen_y, display_width, display_height):
-        """Dessine un halo autour de l'unité contrôlée par le joueur."""
+        """Dessine un halo jaune autour de l'unité contrôlée par le joueur."""
         radius = max(display_width, display_height) // 2 + 6
         center = (int(screen_x), int(screen_y))
 
@@ -338,9 +344,6 @@ class GameRenderer:
             return
 
         pygame.draw.circle(window, SELECTION_COLOR, center, radius, width=3)
-        inner_radius = max(radius - 4, 0)
-        if inner_radius > 0:
-            pygame.draw.circle(window, (255, 255, 255), center, inner_radius, width=1)
             
     def _draw_health_bar(self, screen, x, y, health, sprite_width, sprite_height):
         """Dessine une barre de vie pour une entité."""
@@ -429,6 +432,7 @@ class GameEngine:
         self.grid = None
         self.images = None
         self.camera = None
+        self.resource_manager = None
         self.player = None
         
         # Processeurs ECS
@@ -437,18 +441,22 @@ class GameEngine:
         self.player_controls = None
         self.capacities_processor = None
         self.lifetime_processor = None
+        self.resource_processor = None
 
         # Gestion de la sélection des unités
         self.selected_unit_id = None
         self.camera_follow_enabled = False
-        self.camera_follow_target_id: Optional[int] = None
-        self.control_groups: Dict[int, int] = {}
+        self.camera_follow_target_id = None
+        self.control_groups = {}
         self.selection_team_filter = Team.ALLY
         
         # Gestionnaire d'événements et rendu
         self.event_handler = EventHandler(self)
         self.renderer = GameRenderer(self)
         self.exit_modal = ExitConfirmationModal()
+        
+        # Timer pour le spawn de coffres
+        self.chest_spawn_timer = 0.0
         
     def initialize(self):
         """Initialise tous les composants du jeu."""
@@ -492,6 +500,7 @@ class GameEngine:
         self.grid = game_state["grid"]
         self.images = game_state["images"]
         self.camera = game_state["camera"]
+        self.resource_manager = game_state.get("resources")
         
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
@@ -505,6 +514,9 @@ class GameEngine:
         # Réinitialiser les gestionnaires globaux dépendant du monde
         get_base_manager().reset()
         
+        # Créer le monde ECS
+        es._world = es
+        
         # Créer et ajouter les processeurs
         self.movement_processor = movementProcessor.MovementProcessor()
         self.collision_processor = collisionProcessor.CollisionProcessor(graph=self.grid)
@@ -515,6 +527,8 @@ class GameEngine:
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
+        self.resource_processor = ResourceCollectionProcessor()
+        es.add_processor(self.resource_processor, priority=5)
         es.add_processor(self.lifetime_processor, priority=10)
         
         # Configurer les handlers d'événements
@@ -1148,6 +1162,15 @@ class GameEngine:
 
         # Synchroniser les informations affichées avec l'état courant
         self._refresh_selected_unit_info()
+        
+        # Gérer le spawn de coffres
+        self.chest_spawn_timer += dt
+        if self.chest_spawn_timer >= CHEST_SPAWN_INTERVAL:
+            self.chest_spawn_timer = 0.0
+            if self.resource_manager is not None:
+                spawned = self.resource_manager.spawn_random_chests(self.grid)
+                if spawned > 0:
+                    print(f"Spawned {spawned} random chest(s)")
         
     def _render_game(self, dt):
         """Effectue le rendu du jeu."""

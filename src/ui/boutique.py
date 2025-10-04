@@ -840,30 +840,45 @@ class UnifiedShop:
         
         # Icône et texte de l'or
         player_gold = self.get_player_gold()
-        gold_text = f"{player_gold}"
+        gold_str = str(player_gold)
         text_x_offset = 0
         
-        if "gold" in self.tab_icons and self.tab_icons["gold"]:
-            icon = self.tab_icons["gold"]
-            icon_x = info_rect.x + 10
-            icon_y = info_rect.centery - SHOP_ICON_SIZE_SMALL // 2
-            surface.blit(icon, (icon_x, icon_y))
-            text_x_offset = SHOP_TEXT_X_OFFSET
+        # Charger l'icône d'or via sprite_manager
+        try:
+            gold_icon = sprite_manager.load_sprite(SpriteID.UI_BITCOIN)
+        except Exception:
+            gold_icon = None
+
+        if gold_icon:
+            icon_surface = pygame.transform.scale(gold_icon, (28, 28))
+            gold_text = self.font_subtitle.render(gold_str, True, self.theme.GOLD)
+            gold_line_width = icon_surface.get_width() + gold_text.get_width() + 16
         else:
-            gold_text = f"💰 {player_gold}"
+            gold_text = f"💰 {gold_str}"
+            gold_line_width = self.font_subtitle.size(gold_text)[0]
         
         # Position du texte
         text_center_x = info_rect.centerx + text_x_offset // 2
         
-        # Ombre du texte
-        shadow_surface = self.font_subtitle.render(gold_text, True, (0, 0, 0))
-        shadow_rect = shadow_surface.get_rect(center=(text_center_x + 1, info_rect.centery + 1))
-        surface.blit(shadow_surface, shadow_rect)
-        
-        # Texte principal
-        gold_surface = self.font_subtitle.render(gold_text, True, self.theme.GOLD)
-        gold_rect = gold_surface.get_rect(center=(text_center_x, info_rect.centery))
-        surface.blit(gold_surface, gold_rect)
+        # Affichage de l'or
+        gold_y = info_rect.centery
+        if gold_icon:
+            icon_x = info_rect.x + (info_rect.width - gold_line_width) // 2
+            icon_y = gold_y - icon_surface.get_height() // 2
+            surface.blit(icon_surface, (icon_x, icon_y))
+            gold_rect = gold_text.get_rect(midleft=(icon_x + icon_surface.get_width() + 8, gold_y))
+            surface.blit(gold_text, gold_rect)
+        else:
+            # Créer le Surface rendu pour l'affichage
+            gold_surface = self.font_subtitle.render(gold_text, True, self.theme.GOLD)
+            # Ombre du texte
+            shadow_surface = self.font_subtitle.render(gold_text, True, (0, 0, 0))
+            shadow_rect = shadow_surface.get_rect(center=(text_center_x + 1, gold_y + 1))
+            surface.blit(shadow_surface, shadow_rect)
+            
+            # Texte principal
+            gold_rect = gold_surface.get_rect(center=(text_center_x, gold_y))
+            surface.blit(gold_surface, gold_rect)
     
     def _draw_items(self, surface: pygame.Surface):
         """Dessine les items de la catégorie actuelle."""
@@ -932,10 +947,15 @@ class UnifiedShop:
         cost_color = self.theme.GOLD if can_purchase else self.theme.TEXT_DISABLED
         cost_x = text_x
         
-        if "gold" in self.tab_icons and self.tab_icons["gold"]:
-            icon = self.tab_icons["gold"]
-            small_icon = pygame.transform.scale(icon, (SHOP_ICON_SIZE_TINY, SHOP_ICON_SIZE_TINY))
-            surface.blit(small_icon, (cost_x, rect.y + 28))
+        # Charger l'icône d'or via sprite_manager pour le coût
+        try:
+            cost_gold_icon = sprite_manager.load_sprite(SpriteID.UI_BITCOIN)
+        except Exception:
+            cost_gold_icon = None
+
+        if cost_gold_icon:
+            cost_icon_surface = pygame.transform.scale(cost_gold_icon, (SHOP_ICON_SIZE_TINY, SHOP_ICON_SIZE_TINY))
+            surface.blit(cost_icon_surface, (cost_x, rect.y + 28))
             cost_x += SHOP_ICON_SIZE_TINY + 4
             cost_text = str(item.cost)
         else:

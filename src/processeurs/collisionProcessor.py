@@ -1,6 +1,7 @@
 import esper
 import numpy as np
 import pygame
+import math
 from src.components.properties.positionComponent import PositionComponent as Position
 from src.components.properties.spriteComponent import SpriteComponent as Sprite
 from src.components.properties.canCollideComponent import CanCollideComponent as CanCollide
@@ -10,8 +11,8 @@ from src.components.properties.healthComponent import HealthComponent as Health
 from src.components.properties.attackComponent import AttackComponent as Attack
 from src.components.properties.ability.VineComponent import VineComponent as Vine
 from src.components.properties.ability.isVinedComponent import isVinedComponent as IsVined
+from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
-import math
 from src.components.properties.lifetimeComponent import LifetimeComponent
 from src.components.properties.projectileComponent import ProjectileComponent
 from src.components.properties.ability.speScoutComponent import SpeScout
@@ -54,7 +55,7 @@ class CollisionProcessor(esper.Processor):
         
         for y in range(len(self.graph)):
             for x in range(len(self.graph[0])):
-                if self.graph[y][x] == 3:  # Mine
+                if self.graph[y][x] == TileType.MINE:  # Mine
                     # Calculer la position au centre de la tuile
                     world_x = (x + 0.5) * TILE_SIZE
                     world_y = (y + 0.5) * TILE_SIZE
@@ -286,8 +287,8 @@ class CollisionProcessor(esper.Processor):
                     # Vérifier les limites et détruire sur la grille
                     if (0 <= grid_y < len(self.graph) and 
                         0 <= grid_x < len(self.graph[0]) and
-                        self.graph[grid_y][grid_x] == 3):
-                        self.graph[grid_y][grid_x] = 0  # Remplacer par de l'eau
+                        self.graph[grid_y][grid_x] == TileType.MINE):
+                        self.graph[grid_y][grid_x] = int(TileType.SEA)  # Remplacer par de l'eau
                         
                         # Dispatcher événement d'explosion
                         esper.dispatch_event('mine_explosion', pos.x, pos.y)
@@ -304,8 +305,8 @@ class CollisionProcessor(esper.Processor):
         # Vérifier les limites et détruire sur la grille si c'est une mine
         if (0 <= grid_y < len(self.graph) and 
             0 <= grid_x < len(self.graph[0]) and
-            self.graph[grid_y][grid_x] == 3):
-            self.graph[grid_y][grid_x] = 0  # Remplacer par de l'eau
+            self.graph[grid_y][grid_x] == TileType.MINE):
+            self.graph[grid_y][grid_x] = int(TileType.SEA)  # Remplacer par de l'eau
             # Dispatcher événement d'explosion
             esper.dispatch_event('mine_explosion', x, y)
 
@@ -371,17 +372,17 @@ class CollisionProcessor(esper.Processor):
         # 4 = base alliée
         # 5 = base ennemie
         
-        if terrain_value == 0:
+        if terrain_value == TileType.SEA:
             return 'water'
-        elif terrain_value == 1:
+        elif terrain_value == TileType.CLOUD:
             return 'cloud'
-        elif terrain_value == 2:
+        elif terrain_value == TileType.GENERIC_ISLAND:
             return 'island'
-        elif terrain_value == 3:
+        elif terrain_value == TileType.MINE:
             return 'mine'
-        elif terrain_value == 4:
+        elif terrain_value == TileType.ALLY_BASE:
             return 'ally_base'
-        elif terrain_value == 5:
+        elif terrain_value == TileType.ENEMY_BASE:
             return 'enemy_base'
         else:
             # Valeur inconnue, traiter comme de l'eau

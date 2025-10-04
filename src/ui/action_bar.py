@@ -874,7 +874,7 @@ class ActionBar:
         
         # Nom de l'unité
         unit_name = self.font_normal.render(
-            f"🎯 {self.selected_unit.unit_type}", 
+            f"{self.selected_unit.unit_type}", 
             True, UIColors.TEXT_HIGHLIGHT
         )
         surface.blit(unit_name, (info_x + 5, info_y + 5))
@@ -894,7 +894,7 @@ class ActionBar:
         
         # Texte de vie
         health_text = self.font_small.render(
-            f"❤️{self.selected_unit.health}/{self.selected_unit.max_health}", 
+            f"{self.selected_unit.health}/{self.selected_unit.max_health}", 
             True, UIColors.TEXT_NORMAL
         )
         surface.blit(health_text, (info_x + 5, info_y + 45))
