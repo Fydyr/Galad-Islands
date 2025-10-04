@@ -777,8 +777,8 @@ class GameEngine:
                 pass
             # On désactive la capacité après usage (sécurité)
             leviathan_comp.is_active = False
-            # On relance une attaque sans attendre le cooldown
-            es.dispatch_event("attack_event", entity)
+            # On relance une attaque de type 'leviathan' (tir omnidirectionnel)
+            es.dispatch_event("attack_event", entity, "leviathan")
             # Le cooldown reste inchangé (déjà appliqué)
 
     def trigger_selected_special_ability(self):
@@ -829,8 +829,8 @@ class GameEngine:
                         logger.debug("trigger_selected_special_ability -> Leviathan activate & immediate shot for entity %s", entity)
                     except Exception:
                         pass
-                    # Dispatch d'un attack_event immédiat
-                    es.dispatch_event("attack_event", entity)
+                    # Dispatch d'un attack_event immédiat de type 'leviathan'
+                    es.dispatch_event("attack_event", entity, "leviathan")
                     # Jouer un son de feedback si disponible
                     try:
                         if getattr(self, 'select_sound', None):
