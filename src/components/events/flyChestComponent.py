@@ -1,9 +1,32 @@
+"""Composant marquant une entité comme coffre volant."""
+
 from dataclasses import dataclass as component
 
+
 @component
-class Fly_chest:
-    def __init__(self, coffre_gold_min=0, coffre_gold_max=0, coffre_nb_min=0, coffre_nb_max=0):
-        self.coffre_gold_min: int = coffre_gold_min
-        self.coffre_gold_max: int = coffre_gold_max
-        self.coffre_nb_min: int = coffre_nb_min
-        self.coffre_nb_max: int = coffre_nb_max
+class FlyingChestComponent:
+    """Stocke l'état d'un coffre volant présent sur la carte.
+
+    Attributs :
+        gold_amount : Gain d'or remis au premier navire entrant en collision.
+        max_lifetime : Durée maximale de vol avant de sombrer automatiquement.
+        sink_duration : Durée de l'animation de chute dans l'océan après expiration.
+    elapsed_time : Temps écoulé depuis l'apparition du coffre.
+    sink_elapsed_time : Durée passée depuis le début de la phase de chute.
+        is_collected : Indique si le coffre a déjà été récupéré.
+        is_sinking : Indique si le coffre est en phase de chute après expiration.
+    """
+
+    def __init__(
+        self,
+        gold_amount: int,
+        max_lifetime: float,
+        sink_duration: float,
+    ) -> None:
+        self.gold_amount: int = gold_amount
+        self.max_lifetime: float = max_lifetime
+        self.sink_duration: float = sink_duration
+        self.elapsed_time: float = 0.0
+        self.sink_elapsed_time: float = 0.0
+        self.is_collected: bool = False
+        self.is_sinking: bool = False
