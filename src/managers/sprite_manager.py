@@ -66,6 +66,8 @@ class SpriteID(Enum):
     # UI Elements
     UI_BITCOIN = "ui_bitcoin"
     UI_SWORDS = "ui_swords"
+    # Resources
+    GOLD_RESOURCE = "gold"
     
     # Terrain
     TERRAIN_WATER = "terrain_water"
@@ -151,6 +153,10 @@ class SpriteManager:
             # UI Elements
             SpriteData(SpriteID.UI_BITCOIN, "assets/image/StreamlineUltimateColorCryptoCurrencyBitcoinCircle.png", 32, 32, "Icône Bitcoin"),
             SpriteData(SpriteID.UI_SWORDS, "assets/image/TwemojiCrossedSwords.png", 32, 32, "Épées croisées"),
+            
+            # Resources
+            SpriteData(SpriteID.GOLD_RESOURCE, "assets/sprites/event/gold.png",
+                       32, 32, "Ressource d'or ramassable"),
             
             # Terrain
             SpriteData(SpriteID.TERRAIN_SEA, "assets/sprites/terrain/sea.png", 64, 64, "Mer"),

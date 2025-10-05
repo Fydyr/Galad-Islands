@@ -43,6 +43,7 @@ from src.components.special.speArchitectComponent import SpeArchitect
 
 # import event
 from src.managers.flying_chest_manager import FlyingChestManager
+from src.managers.island_resource_manager import IslandResourceManager
 from src.managers.stormManager import StormManager
 
 
@@ -496,6 +497,7 @@ class GameEngine:
         self.images = None
         self.camera = None
         self.flying_chest_manager = FlyingChestManager()
+        self.island_resource_manager = IslandResourceManager()
         self.stormManager = StormManager()
         self.player = None
         self.notification_system = get_notification_system()
@@ -583,6 +585,10 @@ class GameEngine:
         if self.flying_chest_manager is not None and self.grid is not None:
             self.flying_chest_manager.initialize_from_grid(self.grid)
 
+        # Initialize island resource manager
+        if self.island_resource_manager is not None and self.grid is not None:
+            self.island_resource_manager.initialize_from_grid(self.grid)
+
         # Initialize storm manager
         if self.stormManager is not None and self.grid is not None:
             self.stormManager.initializeFromGrid(self.grid)
@@ -626,6 +632,8 @@ class GameEngine:
         es.set_handler('game_over', self._handle_game_over)
         if self.flying_chest_manager is not None:
             es.set_handler('flying_chest_collision', self.flying_chest_manager.handle_collision)
+        if self.island_resource_manager is not None:
+            es.set_handler('island_resource_collision', self.island_resource_manager.handle_collision)
         
     def _create_initial_entities(self):
         """Crée les entités initiales du jeu."""
@@ -1293,6 +1301,8 @@ class GameEngine:
 
         if self.flying_chest_manager is not None:
             self.flying_chest_manager.update(dt)
+        if self.island_resource_manager is not None:
+            self.island_resource_manager.update(dt)
             
         if self.stormManager is not None:
             self.stormManager.update(dt)
