@@ -1,28 +1,109 @@
 import pygame
 from typing import Callable, Optional
-import esper
 import random
 
 from src.ui.generic_modal import GenericModal
 from src.settings.localization import t
 from src.settings.settings import ConfigManager
-from src.components.core.playerComponent import PlayerComponent
-from src.components.core.teamComponent import TeamComponent
-from src.components.core.team_enum import Team as TeamEnum
-from src.managers.stormManager import getStormManager
-from src.managers.flying_chest_manager import FlyingChestManager
-from src.managers.island_resource_manager import IslandResourceManager
-from src.components.events.krakenComponent import KrakenComponent
-from src.components.properties.eventsComponent import EventsComponent
-from src.components.events.flyChestComponent import FlyingChestComponent
-from src.components.events.krakenTentacleComponent import KrakenTentacleComponent
-from src.components.events.islandResourceComponent import IslandResourceComponent
-from src.components.core.attackComponent import AttackComponent
-from src.components.core.canCollideComponent import CanCollideComponent
-from src.components.core.positionComponent import PositionComponent
-from src.components.core.spriteComponent import SpriteComponent
-from src.managers.sprite_manager import SpriteID, sprite_manager
-from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
+
+# Optional imports that may depend on the runtime (esper, managers, etc.).
+try:
+    from src.components.core.playerComponent import PlayerComponent
+except Exception:
+    PlayerComponent = None
+
+try:
+    from src.components.core.teamComponent import TeamComponent
+except Exception:
+    TeamComponent = None
+
+try:
+    from src.components.core.team_enum import Team as TeamEnum
+except Exception:
+    TeamEnum = None
+
+try:
+    from src.managers.stormManager import getStormManager
+except Exception:
+    getStormManager = None
+
+try:
+    from src.managers.flying_chest_manager import FlyingChestManager
+except Exception:
+    FlyingChestManager = None
+
+try:
+    from src.managers.island_resource_manager import IslandResourceManager
+except Exception:
+    IslandResourceManager = None
+
+try:
+    from src.components.events.krakenComponent import KrakenComponent
+except Exception:
+    KrakenComponent = None
+
+try:
+    from src.components.properties.eventsComponent import EventsComponent
+except Exception:
+    EventsComponent = None
+
+try:
+    from src.components.events.flyChestComponent import FlyingChestComponent
+except Exception:
+    FlyingChestComponent = None
+
+try:
+    from src.components.events.krakenTentacleComponent import KrakenTentacleComponent
+except Exception:
+    KrakenTentacleComponent = None
+
+try:
+    from src.components.events.islandResourceComponent import IslandResourceComponent
+except Exception:
+    IslandResourceComponent = None
+
+try:
+    from src.components.core.attackComponent import AttackComponent
+except Exception:
+    AttackComponent = None
+
+try:
+    from src.components.core.canCollideComponent import CanCollideComponent
+except Exception:
+    CanCollideComponent = None
+
+try:
+    from src.components.core.positionComponent import PositionComponent
+except Exception:
+    PositionComponent = None
+
+try:
+    from src.components.core.spriteComponent import SpriteComponent
+except Exception:
+    SpriteComponent = None
+
+try:
+    from src.managers.sprite_manager import SpriteID, sprite_manager
+except Exception:
+    SpriteID = None
+    sprite_manager = None
+
+try:
+    from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
+except Exception:
+    TILE_SIZE = MAP_WIDTH = MAP_HEIGHT = None
+
+# Optional import of Bandits component for fallback spawning
+try:
+    from src.components.events.banditsComponent import Bandits
+except Exception:
+    Bandits = None
+
+# Optional import of esper (entity system) used by fallback spawner
+try:
+    import esper
+except Exception:
+    esper = None
 
 
 class DebugModal:
@@ -43,6 +124,7 @@ class DebugModal:
         debug_buttons = [
             ("give_gold", "debug.modal.give_gold"),
             ("spawn_storm", "debug.modal.spawn_storm"),
+            ("spawn_bandits", "debug.modal.spawn_bandits"),
             ("spawn_chest", "debug.modal.spawn_chest"),
             ("spawn_kraken", "debug.modal.spawn_kraken"),
             ("spawn_island_resources", "debug.modal.spawn_island_resources"),
@@ -92,6 +174,8 @@ class DebugModal:
             self._handle_spawn_island_resources()
         elif action == "clear_events":
             self._handle_clear_events()
+        elif action == "spawn_bandits":
+            self._handle_spawn_bandits()
         elif action == "close":
             self.close()
     
@@ -340,6 +424,49 @@ class DebugModal:
         
         print(f"[DEV] {cleared_count} événements nettoyés")
         self._show_feedback('success', t('debug.feedback.events_cleared', default=f'{cleared_count} events cleared'))
+
+    def _handle_spawn_bandits(self):
+        """Handle the spawn bandits action."""
+        # Check if game engine is available
+        if not self.game_engine:
+            self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+
+        # Check authorization via debug flag or config
+        cfg = ConfigManager()
+        dev_mode = cfg.get('dev_mode', False)
+
+        is_debug = getattr(self.game_engine, 'show_debug', False)
+        if not (dev_mode or is_debug):
+            self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
+            return
+
+        # Try to spawn bandits via existing bandits manager if present
+        if hasattr(self.game_engine, 'bandits_manager') and self.game_engine.bandits_manager is not None:
+            mgr = self.game_engine.bandits_manager
+            spawned = None
+            if hasattr(mgr, 'spawn_bandits_wave'):
+                try:
+                    spawned = mgr.spawn_bandits_wave()
+                except Exception:
+                    spawned = None
+
+            if spawned:
+                self._show_feedback('success', t('debug.feedback.bandits_spawned', default='Bandits spawned'))
+            else:
+                self._show_feedback('warning', t('debug.feedback.no_valid_position', default='No valid position found'))
+        else:
+            # Fallback: if no manager, attempt to create simple bandit entities via Bandits component
+            if Bandits is not None and 'esper' in globals():
+                try:
+                    e = esper.create_entity()
+                    esper.add_component(e, Bandits(1, 3))
+                    self._show_feedback('success', t('debug.feedback.bandits_spawned', default='Bandits spawned (simple)'))
+                except Exception as e:
+                    print(f"[DEV] Failed to spawn bandits fallback: {e}")
+                    self._show_feedback('warning', t('feedback.error', default='Error'))
+            else:
+                self._show_feedback('warning', t('feedback.error', default='Error'))
     
     def _find_sea_position(self):
         """Find a random sea position for spawning events."""
