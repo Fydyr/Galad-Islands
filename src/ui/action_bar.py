@@ -543,33 +543,21 @@ class ActionBar:
     def _build_defense_tower(self):
         """Callback: construit une tour d'attaque. L'utilisateur doit ensuite cliquer sur une île."""
         if not hasattr(self, 'game_engine') or self.game_engine is None:
-            if hasattr(self, 'shop') and self.shop is not None:
-                self.shop._show_purchase_feedback(t("shop.cannot_purchase"), False)
-            else:
-                self._show_feedback('warning', t('shop.cannot_purchase'))
+            self.notification_system.add_notification(t("shop.cannot_purchase"), NotificationType.ERROR)
             return
 
         # Vérifier qu'on a un Architecte sélectionné pour la team
         if self.selected_unit is None:
-            if hasattr(self, 'shop') and self.shop is not None:
-                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
-            else:
-                self._show_feedback("warning", t("tooltip.need_architect"))
+            self.notification_system.add_notification(t("tooltip.need_architect"), NotificationType.WARNING)
             return
 
         entity_id = self.game_engine.selected_unit_id
         if entity_id is None:
-            if hasattr(self, 'shop') and self.shop is not None:
-                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
-            else:
-                self._show_feedback('warning', t("tooltip.need_architect"))
+            self.notification_system.add_notification(t("tooltip.need_architect"), NotificationType.WARNING)
             return
 
         if not esper.has_component(entity_id, SpeArchitect):
-            if hasattr(self, 'shop') and self.shop is not None:
-                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
-            else:
-                self._show_feedback('warning', t("tooltip.need_architect"))
+            self.notification_system.add_notification(t("tooltip.need_architect"), NotificationType.WARNING)
             return
 
         team = esper.component_for_entity(entity_id, TeamComponent)
@@ -578,10 +566,7 @@ class ActionBar:
         current_gold = self._get_current_player_gold()
         cost = 150
         if current_gold < cost:
-            if hasattr(self, 'shop') and self.shop is not None:
-                self.shop._show_purchase_feedback(t('shop.insufficient_gold'), False)
-            else:
-                self._show_feedback('warning', t('shop.insufficient_gold'))
+            self.notification_system.add_notification(t('shop.insufficient_gold'), NotificationType.WARNING)
             return
 
         # Activer le mode de placement de tour
@@ -591,42 +576,27 @@ class ActionBar:
         self.game_engine.tower_cost = cost
         
         # Afficher un message d'instruction
-        if hasattr(self, 'shop') and self.shop is not None:
-            self.shop._show_purchase_feedback(t("tooltip.click_to_place_tower"), True)
-        else:
-            self._show_feedback('info', t("tooltip.click_to_place_tower"))
+        self.notification_system.add_notification(t("tooltip.click_to_place_tower"), NotificationType.INFO, duration=5.0)
 
 
     def _build_heal_tower(self):
         """Callback: construit une tour de soin. L'utilisateur doit ensuite cliquer sur une île."""
         if not hasattr(self, 'game_engine') or self.game_engine is None:
-            if hasattr(self, 'shop') and self.shop is not None:
-                self.shop._show_purchase_feedback(t("shop.cannot_purchase"), False)
-            else:
-                self._show_feedback('warning', t('shop.cannot_purchase'))
+            self.notification_system.add_notification(t("shop.cannot_purchase"), NotificationType.ERROR)
             return
 
         # Vérifier qu'on a un Architecte sélectionné pour la team
         if self.selected_unit is None:
-            if hasattr(self, 'shop') and self.shop is not None:
-                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
-            else:
-                self._show_feedback("warning", t("tooltip.need_architect"))
+            self.notification_system.add_notification(t("tooltip.need_architect"), NotificationType.WARNING)
             return
 
         entity_id = self.game_engine.selected_unit_id
         if entity_id is None:
-            if hasattr(self, 'shop') and self.shop is not None:
-                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
-            else:
-                self._show_feedback('warning', t("tooltip.need_architect"))
+            self.notification_system.add_notification(t("tooltip.need_architect"), NotificationType.WARNING)
             return
 
         if not esper.has_component(entity_id, SpeArchitect):
-            if hasattr(self, 'shop') and self.shop is not None:
-                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
-            else:
-                self._show_feedback('warning', t("tooltip.need_architect"))
+            self.notification_system.add_notification(t("tooltip.need_architect"), NotificationType.WARNING)
             return
 
         team = esper.component_for_entity(entity_id, TeamComponent)
@@ -635,10 +605,7 @@ class ActionBar:
         current_gold = self._get_current_player_gold()
         cost = 120
         if current_gold < cost:
-            if hasattr(self, 'shop') and self.shop is not None:
-                self.shop._show_purchase_feedback(t('shop.insufficient_gold'), False)
-            else:
-                self._show_feedback('warning', t('shop.insufficient_gold'))
+            self.notification_system.add_notification(t('shop.insufficient_gold'), NotificationType.WARNING)
             return
 
         # Activer le mode de placement de tour
@@ -648,10 +615,7 @@ class ActionBar:
         self.game_engine.tower_cost = cost
         
         # Afficher un message d'instruction
-        if hasattr(self, 'shop') and self.shop is not None:
-            self.shop._show_purchase_feedback(t("tooltip.click_to_place_tower"), True)
-        else:
-            self._show_feedback('info', t("tooltip.click_to_place_tower"))
+        self.notification_system.add_notification(t("tooltip.click_to_place_tower"), NotificationType.INFO, duration=5.0)
 
     def update_special_cooldowns(self, dt: float):
         """Met à jour les cooldowns des capacités spéciales."""

@@ -212,28 +212,6 @@ class EventHandler:
 
         return False
 
-    def _give_dev_gold(self, amount: int = 500) -> None:
-        """Ajoute de l'or au joueur local (outil de développement).
-        Cette fonction doit être appelée uniquement en mode debug/dev.
-        """
-        try:
-            # Trouver le PlayerComponent pour l'équipe alliée
-            from src.components.core.playerComponent import PlayerComponent
-            from src.components.core.teamComponent import TeamComponent
-            for ent, (pcomp, tcomp) in es.get_components(PlayerComponent, TeamComponent):
-                # ajouter à l'entité joueur contrôlée (si team id correct) ; sinon ajouter à la première
-                pcomp.add_gold(amount)
-                print(f"[DEV] Ajouté {amount} pièces d'or au joueur (ent {ent}). Nouveau solde: {pcomp.get_gold()}")
-                return
-            # Fallback: si aucun PlayerComponent trouvé, créer un joueur temporaire
-            ent = es.create_entity()
-            pc = PlayerComponent(stored_gold=amount)
-            es.add_component(ent, pc)
-            es.add_component(ent, TeamComponent(1))
-            print(f"[DEV] Créé un PlayerComponent temporaire avec {amount} or (ent {ent})")
-        except Exception as e:
-            print(f"[DEV] Échec de _give_dev_gold: {e}")
-
 
 class GameRenderer:
     """Classe responsable de tout le rendu du jeu."""
@@ -653,12 +631,19 @@ class GameEngine:
         
     def _create_initial_entities(self):
         """Crée les entités initiales du jeu."""
-        # Créer le joueur avec or initial
-        self.player = es.create_entity()
-        es.add_component(self.player, PlayerComponent(stored_gold=100))
+        # Créer les PlayerComponent pour CHAQUE équipe (alliés ET ennemis)
+        # Équipe Alliée (team_id = 1)
+        ally_player = es.create_entity()
+        es.add_component(ally_player, PlayerComponent(stored_gold=100))
+        es.add_component(ally_player, TeamComponent(Team.ALLY))
         
-        # Les entités joueur spécifiques aux factions seront créées 
-        # à la demande par les fonctions utilitaires
+        # Équipe Ennemie (team_id = 2)
+        enemy_player = es.create_entity()
+        es.add_component(enemy_player, PlayerComponent(stored_gold=100))
+        es.add_component(enemy_player, TeamComponent(Team.ENEMY))
+        
+        # Garder une référence au joueur allié par défaut
+        self.player = ally_player
         
         # Initialiser le gestionnaire de bases
         BaseComponent.initialize_bases()
@@ -688,36 +673,31 @@ class GameEngine:
         self.camera._constrain_camera()
 
     def _give_dev_gold(self, amount: int = 500) -> None:
-        """Ajoute de l'or au joueur local (outil de développement).
+        """Ajoute de l'or au joueur de la team active (outil de développement).
         Méthode exposée sur GameEngine pour être appelée par l'EventHandler.
         Cette fonction doit être appelée uniquement en mode debug/dev.
         """
         try:
-            # Importer les composants nécessaires
-            from src.components.core.playerComponent import PlayerComponent
-            from src.components.core.teamComponent import TeamComponent
-
-            # Si un PlayerEntity créé au démarrage est disponible, l'utiliser
-            if self.player is not None and es.has_component(self.player, PlayerComponent):
-                pcomp = es.component_for_entity(self.player, PlayerComponent)
-                pcomp.add_gold(amount)
-                print(f"[DEV] Ajouté {amount} pièces d'or au joueur (player entity {self.player}). Nouveau solde: {pcomp.get_gold()}")
-                return
-
-            # Sinon, chercher un PlayerComponent dans le monde
+            # Obtenir la team active depuis l'action_bar (source de vérité)
+            active_team = Team.ALLY  # Par défaut alliés
+            if hasattr(self, 'action_bar') and self.action_bar is not None:
+                active_team = self.action_bar.current_camp
+            
+            # Chercher le PlayerComponent de la team active
             for ent, (pcomp, tcomp) in es.get_components(PlayerComponent, TeamComponent):
-                pcomp.add_gold(amount)
-                print(f"[DEV] Ajouté {amount} pièces d'or au joueur (ent {ent}). Nouveau solde: {pcomp.get_gold()}")
-                return
-
-            # Fallback: si aucun PlayerComponent trouvé, créer un joueur temporaire
-            ent = es.create_entity()
-            pc = PlayerComponent(stored_gold=amount)
-            es.add_component(ent, pc)
-            es.add_component(ent, TeamComponent(1))
-            print(f"[DEV] Créé un PlayerComponent temporaire avec {amount} or (ent {ent})")
+                if tcomp.team_id == active_team:
+                    old_gold = pcomp.get_gold()
+                    pcomp.add_gold(amount)
+                    team_name = "Alliés" if active_team == Team.ALLY else "Ennemis"
+                    print(f"[DEV GOLD] {team_name} (team {active_team}): {old_gold} → {pcomp.get_gold()} (+{amount})")
+                    return
+            
+            # Si on arrive ici, aucun PlayerComponent trouvé (ne devrait jamais arriver)
+            print(f"[DEV GOLD] ❌ ERREUR: Aucun PlayerComponent trouvé pour team_id={active_team}")
         except Exception as e:
-            print(f"[DEV] Échec de _give_dev_gold: {e}")
+            import traceback
+            print(f"[DEV GOLD] ❌ Exception: {e}")
+            traceback.print_exc()
 
     def toggle_camera_follow_mode(self) -> None:
         """Bascule entre une caméra libre et le suivi de l'unité sélectionnée."""

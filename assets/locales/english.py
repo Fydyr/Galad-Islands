@@ -117,7 +117,7 @@ TRANSLATIONS = {
     
     # Tooltips for tower placement
     "tooltip.need_architect": "Select an Architect to build",
-    "tooltip.click_to_place_tower": "Click on an island to place the tower",
+    "tooltip.click_to_place_tower": "Click on an island to place your tower!",
     "tooltip.dev_give_gold": "Dev action not allowed",
     "placement.must_be_on_island": "Towers must be placed on an island",
     "placement.tower_already_here": "A tower is already present at this location",
