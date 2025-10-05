@@ -25,7 +25,7 @@
 #### **Zasper** (Scout Léger) - 10 Gold
 ![Zasper allié](/assets/docs/units/ally/Scout.png)
 ![Zasper ennemi](/assets/docs/units/enemy/Scout.png)
-- **Vitesse** : 5/s (Le plus rapide!)
+- **Vitesse** : 5/s 
 - **Dégâts** : 10-15
 - **Armure** : 60 PV
 - **Portée** : 5 cases
@@ -75,6 +75,15 @@
 - **Armure** : 100 PV
 - **Capacité spéciale** : _Rechargement automatique_ - Divise par 2 le cooldown des alliés (rayon 8 cases)
 - **Stratégie** : Peut construire des tours sur les îles pour défendre ou soigner.
+
+#### **Kamikase** - 30 Gold
+![Kamikase allié](/assets/docs/units/ally/Kamikase.png)
+![Kamikase ennemie](/assets/docs/units/enemy/kamikase.png)
+- **Vitesse** : 6/s (Le plus rapide!)
+- **Dégâts** : instantané (en une fois)
+- **Armure** : 60 PV
+- **Portée** : 0 case (collision)
+- **Stratégie** : Idéal pour les vaisseaux lourd ou pour les tours
 
 ## Structures
 
