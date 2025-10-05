@@ -16,9 +16,9 @@ from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
 
 class EventProcessor(esper.Processor):
     def __init__(self, eventCooldown: int = 0, maxEventCooldown: int = 0, krakenSpawn: int = 0):
-        self.eventCooldown = 0
+        self.eventCooldown = eventCooldown
         self.maxEventCooldown = maxEventCooldown
-        self.krakenSpawn = 15  # Réduit de 50% à 15% pour un gameplay plus équilibré
+        self.krakenSpawn = krakenSpawn
 
     def process(self, dt, grid):
         if esper.get_component(Event) != []:
