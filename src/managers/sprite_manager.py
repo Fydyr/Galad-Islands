@@ -59,9 +59,10 @@ class SpriteID(Enum):
     CHEST_CLOSE = "chest_close"
     CHEST_OPEN = "chest_open"
     KRAKEN = "kraken"
+    TENTACLE_IDLE = "tentacle_idle"
+    TENTACLE_LAYING = "tentacle_laying"
     PIRATE_SHIP = "pirate_ship"
     TEMPETE = "tempete"
-    TENTACULE_KRAKEN = "tentacule_kraken"
     
     # UI Elements
     UI_BITCOIN = "ui_bitcoin"
@@ -144,7 +145,8 @@ class SpriteManager:
             SpriteData(SpriteID.CHEST_CLOSE, "assets/event/chest_close.png", 50, 40, "Coffre fermé"),
             SpriteData(SpriteID.CHEST_OPEN, "assets/event/chest_open.png", 50, 40, "Coffre ouvert"),
             SpriteData(SpriteID.KRAKEN, "assets/event/kraken.png", 200, 200, "Kraken"),
-            SpriteData(SpriteID.TENTACULE_KRAKEN, "assets/event/tentacule_kraken.png", 60, 150, "Tentacule de Kraken"),
+            SpriteData(SpriteID.TENTACLE_IDLE, "assets/event/tentacle_idle.png", 60, 150, "Tentacule de Kraken"),
+            SpriteData(SpriteID.TENTACLE_LAYING, "assets/event/tentacle_laying.png", 60, 150, "Tentacule de Kraken"),
             SpriteData(SpriteID.PIRATE_SHIP, "assets/event/pirate_ship.png", 120, 80, "Navire pirate"),
             SpriteData(SpriteID.TEMPETE, "assets/event/tempete.png", 100, 100, "Tempête"),
             

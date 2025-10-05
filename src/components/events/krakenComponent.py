@@ -1,7 +1,8 @@
 from dataclasses import dataclass as component
 
 @component
-class Kraken:
-    def __init__(self, kraken_tentacules_min=0, kraken_tentacules_max=0):
-        self.kraken_tentacules_min: int = kraken_tentacules_min
-        self.kraken_tentacules_max: int = kraken_tentacules_max
+class KrakenComponent:
+    def __init__(self, krakenTentaclesMin: int = 0, krakenTentaclesMax: int = 0, idleTentacles: int = 0):
+        self.krakenTentaclesMin = krakenTentaclesMin
+        self.krakenTentaclesMax = krakenTentaclesMax
+        self.idleTentacles = idleTentacles
