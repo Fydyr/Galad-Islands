@@ -98,9 +98,13 @@ class DisplayManager:
             self.dirty = True
             changed = True
 
-        # Check resolution
+        # Check resolution (read dynamic config manager so changes are detected immediately)
         if not self.is_fullscreen:
-            config_resolution = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
+            try:
+                config_resolution = settings.config_manager.get_resolution()
+            except Exception:
+                config_resolution = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
+
             if config_resolution != (self.width, self.height):
                 self.width, self.height = config_resolution
                 self.dirty = True
