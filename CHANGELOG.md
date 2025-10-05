@@ -1,3 +1,100 @@
+## v0.5.0 (2025-10-05)
+
+### Feat
+
+- Change starting unit from Druid to Scout
+- Add descriptions to towers in ActionBar
+- **projectileCreator**: added healing to druids
+- help_en.md
+- ajout de la fonctionnalité de spawn de bandits dans le menu de debug
+- création de Galad Options Tool à partir du gestionnaire de résolutions personnalisé
+- ajout d'un gestionnaire de résolutions personnalisées et intégration dans les options
+- ajout contrôle debug pour ressources d'îles + améliorations UX
+- système de debug enrichi avec contrôles d'événements
+- added sprite affiliation method to sprite manager and fix tentacle sprites
+- Added kraken event with idle tentacles
+- **islandResources**: ajout du gestionnaire et du composant pour les ressources d'île
+- **sprites**: ajout de l'image du kamikaze ennemi
+- **towers**: système complet de tours de défence avec projectiles et notifications
+- implémentation complète du système de tours, ajout d'un debug menu et création de fenetre générique à utiliser in game
+- ajout des traductions pour les messages de fin de partie et les noms des bases fix: amélioration de la vérification des zones de spawn pour éviter les chevauchements refactor: ajout de la classe pour gérer les types de bases dans BaseManager
+- les bases attaquables et gestion de fin de partie
+- **event**: add storm event
+- réécriture de la capacité spéciale du Lévithan
+- ajout du sprite de boule de feu pour les projectiles de la faction ennemi
+- fix flying chest management system with spawning and collision handling
+- Implement centralized resource management and tile definitions
+- implémentation de la capacité spéciale du Leviathan
+- implémentation de la capacité spécial du Maraudeur
+- implémentation de la capacité spécial du Scout (déjà codé précédamment)
+- changement du projectile par une balle et ajout d'une explosion quand touché
+- refactorisation du système de capacités spéciales avec nommage cohérent
+- ajout des capacités spéciales de Barhamus, Zasper et Draupnir avec gestion des cooldowns et effets visuels (en attente d'approbation pour les implémenter en jeu)
+- update unit configurations and improve shop functionality, add mouvement and selection
+- ajout de fonctions utilitaires pour la gestion de l'or des joueurs et intégration dans la boutique et l'action bar
+
+### Fix
+
+- tentative de fix le fait que les bandits spawent mid-life (marche pas)
+- collisionProcessor.py
+- ajout du kamikase dans le help.md + image
+- la fenetre est à nouveau redimensionable
+- no bullets for druids and architects
+- banditsProcessor.py
+- merge
+- bandit event
+- main.py, game.py, eventProcessor.py, banditsProcessor.py
+- correction de l'indentation pour la clé 'options.custom_marker' dans les traductions
+- event chance and cooldown
+- réduction du taux d'apparition du kraken
+- **handleHealth**: ajouter protection pour les mines afin d'ignorer les dégâts feat(projectile) : tout ce qui est touché par le projectile a un impact d'explosion refactor(projectile): changement du sprite d'impact d'explosion
+- **stormManager**: correction du taux de spawn des tempêtes à 5%
+- mise à jour de la logique de distribution d'or dans le modal de débogage pour inclure l'équipe active
+- les message de fin de partie ne sont plus hardcodé
+- suppression des unités ennemis créé pour les tests
+- **storm**: update proba spawn storm
+- amélioration de l'affichage de l'or et des coûts dans la boutique avec des symboles monétaires compatibles
+- system.md, game.py
+- game.py
+- repaired vine events according to game design, and added vine sprite
+- CapacitiesSpecialesProcessor.py, VineProcessor.py
+- le cooldown de la capacité spécial ne s'affichait pas sur l'action bar
+- les mines disparait visuellement
+- ajuster la position d'ancrage du scout ennemi pour éviter de se retrouver dans la base et plus bouger
+- ajouter une équipe neutre aux mines pour permettre des collisions avec toutes les entités
+- corriger l'identifiant d'équipe des mines pour permettre les collisions appropriées pour toutes les entités
+- définir le facteur de zoom par défaut à ZOOM_MIN dans Camera et lors de l'initialisation de la carte
+- la faction ennemi est désormais affecté par les mines
+- les projectiles peuvent passer à travers les iles et ne ralentit plus en passant les nuages
+- added projectileComponent to all launched projectiles
+- les projectiles meurt désormais à la limite de la carte
+- unitType wrong name and moved to constants
+- unitType correct properties
+- le jeu prend en compte du volume audio enregistré au lancement
+- la pièce d'or s'affiche sur l'action bar
+- speArchitectComponent.py, unitFactory.py, CpacitiesSpecialesProcessor.py, playerControlProcessor.py
+- gestion des collisions entre projectiles et mines dans CollisionProcessor
+- attackComponent.py, baseComponent.py, canCollideComponent.py, classeComponent.py, eventsComponent.py, healComponent.py, healthComponent.py, playerComponent.py, playerSelectedComponent.py, positionComponent.py, projectileComponent.py, radiusComponent.py, ressourcesComponent.py, spriteComponent.py, teamComponent.py, velocityComponent.py, isVinedComponent.py, speArchitectComponent.py, speBarhamusComponent.py, speDraupnirComponent.py, speDruidComponent.py, speZasperComponant.py, VineComponent.py, banditsComponent.py, flyChestComponent.py, krakenComponent.py, stormComponent, unitFactory.py
+- currentSpeed into current_speed
+- isVinedComponent.py, speArchitectComponent.py, speBarhamusComponent.py, speDraupnirComponent.py, speDruidComponent.py, speZasperComponent.py, VineComponent.py
+- system.md, unitFactory.py, projectileCreator.py, collisionProcessor.py, playerControlProcessor.py
+
+### Refactor
+
+- intégrer le gestionnaire d'affichage pour une gestion centralisée des résolutions et des fenêtres
+- suppression des fonctions et callbacks liés aux bâtiments dans la boutique
+- déplacement des sprites d'événements, correction de l'emplacement du kamikaze et mise à jour du gestionnaire de sprites
+- Démantèlement de BaseManager et intégration dans BaseComponent
+- **storm**: update to camelCase
+- **player**: refactor gold management and integrate player component in shop
+- update sprite
+- déplacement du stormComponent
+- Suppresion des anciens composants qui étaient conservés au cas où
+- restructure component folders to enhance code clarity and maintainability
+- retrait de la catégorie bâtiments de la boutique et mise à jour des tests
+- input handling and UI components for improved key binding management
+- réimplémentation des constantes de gameplay et de l'utilisation du sprite manager
+
 ## v0.4.5 (2025-10-02)
 
 ### Fix
