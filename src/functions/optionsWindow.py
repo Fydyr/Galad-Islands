@@ -199,11 +199,23 @@ class OptionsWindow:
     """Fenêtre modale des options du jeu."""
     
     def __init__(self):
+        # Ensure font subsystem is initialized for safe instantiation in test contexts
+        try:
+            if not pygame.font.get_init():
+                pygame.font.init()
+        except Exception:
+            # If pygame is not fully initialized, attempt a minimal init
+            try:
+                pygame.init()
+            except Exception:
+                pass
+
         self.surface = pygame.display.get_surface()
         if self.surface is None:
             # Fallback si aucune surface n'existe
             current_res = config_manager.get_resolution()
-            pygame.display.set_mode(current_res)
+            # Ensure the fallback window is resizable so user can resize
+            pygame.display.set_mode(current_res, pygame.RESIZABLE)
             self.surface = pygame.display.get_surface()
         
         # Dimensions
@@ -647,11 +659,40 @@ class OptionsWindow:
     def _on_resolution_changed(self, resolution: Tuple[int, int, str]) -> None:
         """Callback pour le changement de résolution."""
         width, height = resolution[0], resolution[1]
-        apply_resolution(width, height)
+        # Save the resolution in config
+        saved = apply_resolution(width, height)
         self.state.selected_resolution = resolution
         self.state.custom_width = str(width)
         self.state.custom_height = str(height)
-        print(t("options.resolution_applied", width=width, height=height))
+
+        # Try to apply immediately to the display so the change is visible at once
+        try:
+            pygame.display.set_mode((width, height), pygame.RESIZABLE)
+            # Update internal surface and layout sizes
+            self.surface = pygame.display.get_surface()
+            if self.surface:
+                self.screen_width, self.screen_height = self.surface.get_size()
+
+            # Recompute modal sizes and surfaces to match new resolution
+            self.modal_width = max(UIConstants.MODAL_MIN_WIDTH,
+                                 min(UIConstants.MODAL_MAX_WIDTH,
+                                     int(self.screen_width * 0.7)))
+            self.modal_height = max(UIConstants.MODAL_MIN_HEIGHT,
+                                  min(UIConstants.MODAL_MAX_HEIGHT,
+                                      int(self.screen_height * 0.8)))
+            self.modal_surface = pygame.Surface((self.modal_width, self.modal_height))
+            self.modal_rect = self.modal_surface.get_rect(
+                center=(self.screen_width//2, self.screen_height//2)
+            )
+            self.content_rect = pygame.Rect(20, 50, self.modal_width - 40, self.modal_height - 70)
+
+            # Re-setup fonts and refresh state/components
+            self._setup_fonts()
+            self._refresh_state()
+
+            print(t("options.resolution_applied", width=width, height=height))
+        except Exception as e:
+            print(f"⚠️ Erreur lors de l'application de la résolution: {e}")
     
     def _on_volume_changed(self, volume: float) -> None:
         """Callback pour le changement de volume."""
