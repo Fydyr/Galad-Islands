@@ -39,10 +39,11 @@ class LocalizationManager:
             translation_module = importlib.import_module(module_name)
             self._translations = translation_module.TRANSLATIONS
             
-            print(f"✅ Traductions chargées pour la langue: {self._current_language}")
+            # Use ASCII-only logging to avoid encoding issues in frozen binaries
+            print(f"[OK] Translations loaded for language: {self._current_language}")
             
         except ImportError as e:
-            print(f"⚠️ Erreur lors du chargement des traductions: {e}")
+            print(f"[WARN] Error loading translations: {e}")
             # Fallback vers le français
             if self._current_language != "fr":
                 self._current_language = "fr"
