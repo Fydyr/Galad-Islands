@@ -304,7 +304,7 @@ class StormManager:
     def clearAllStorms(self):
         """Remove all active storms."""
         for stormEntity in list(self.activeStorms.keys()):
-            self._destroyStorm(stormEntity)
+            self.destroyStorm(stormEntity)
         self.activeStorms.clear()
 
 

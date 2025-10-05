@@ -20,6 +20,7 @@ from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.managers.sprite_manager import SpriteID, sprite_manager
 from src.components.events.flyChestComponent import FlyingChestComponent
+from src.components.events.islandResourceComponent import IslandResourceComponent
 from src.components.core.towerComponent import TowerComponent
 from src.functions.handleHealth import processHealth
 
@@ -212,12 +213,16 @@ class CollisionProcessor(esper.Processor):
                 recent_hits.cleanup_old_entries()
         
         # Détecter immédiatement les collisions impliquant un coffre volant
-        try:
-            if esper.has_component(entity1, FlyingChestComponent) or esper.has_component(entity2, FlyingChestComponent):
-                esper.dispatch_event("flying_chest_collision", entity1, entity2)
-        except Exception:
-            # En cas d'erreur dans le dispatch, ne pas bloquer les autres collisions
-            pass
+            try:
+                if esper.has_component(entity1, FlyingChestComponent) or esper.has_component(entity2, FlyingChestComponent):
+                    esper.dispatch_event("flying_chest_collision", entity1, entity2)
+
+                # Dispatch event for island resources as well
+                if esper.has_component(entity1, IslandResourceComponent) or esper.has_component(entity2, IslandResourceComponent):
+                    esper.dispatch_event("island_resource_collision", entity1, entity2)
+            except Exception:
+                # En cas d'erreur dans le dispatch, ne pas bloquer les autres collisions
+                pass
 
         # Vérifier si l'une des entités est un projectile et l'autre une mine
         is_projectile1 = esper.has_component(entity1, ProjectileComponent)

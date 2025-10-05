@@ -8,9 +8,11 @@ cache management, and retrieval of sprite metadata such as default size and
 description.
 """
 import pygame
+import esper
 from typing import Dict, Optional, Tuple
 from enum import Enum, auto
 from src.functions.resource_path import get_resource_path
+from src.components.core.spriteComponent import SpriteComponent as Sprite
 
 
 class SpriteID(Enum):
@@ -22,6 +24,7 @@ class SpriteID(Enum):
     ALLY_LEVIATHAN = "ally_leviathan"
     ALLY_DRUID = "ally_druid"
     ALLY_ARCHITECT = "ally_architect"
+    ALLY_KAMIKAZE = "ally_kamikaze"
     ALLY_ZASPER = "ally_zasper"
     ALLY_BARHAMUS = "ally_barhamus"
     ALLY_DRAUPNIR = "ally_draupnir"
@@ -63,10 +66,13 @@ class SpriteID(Enum):
     TENTACLE_LAYING = "tentacle_laying"
     PIRATE_SHIP = "pirate_ship"
     TEMPETE = "tempete"
+    STORM = "storm"  # Alias
     
     # UI Elements
     UI_BITCOIN = "ui_bitcoin"
     UI_SWORDS = "ui_swords"
+    # Resources
+    GOLD_RESOURCE = "gold"
     
     # Terrain
     TERRAIN_WATER = "terrain_water"
@@ -106,6 +112,7 @@ class SpriteManager:
             SpriteData(SpriteID.ALLY_LEVIATHAN, "assets/sprites/units/ally/Leviathan.png", 160, 200, "Léviathan allié"),
             SpriteData(SpriteID.ALLY_DRUID, "assets/sprites/units/ally/Druid.png", 130, 150, "Druide allié"),
             SpriteData(SpriteID.ALLY_ARCHITECT, "assets/sprites/units/ally/Architect.png", 130, 150, "Architecte allié"),
+            SpriteData(SpriteID.ALLY_KAMIKAZE, "assets/sprites/units/ally/Kamikaze.png", 100, 120, "Kamikaze allié"),
             SpriteData(SpriteID.ALLY_ZASPER, "assets/sprites/units/ally/Zasper.png", 120, 140, "Zasper allié"),
             SpriteData(SpriteID.ALLY_BARHAMUS, "assets/sprites/units/ally/Barhamus.png", 140, 160, "Barhamus allié"),
             SpriteData(SpriteID.ALLY_DRAUPNIR, "assets/sprites/units/ally/Draupnir.png", 150, 170, "Draupnir allié"),
@@ -142,17 +149,23 @@ class SpriteManager:
             SpriteData(SpriteID.ENEMY_HEAL_TOWER, "assets/sprites/buildings/enemy/enemy-heal-tower.png", 80, 120, "Tour de soin ennemie"),
 
             # Events
-            SpriteData(SpriteID.CHEST_CLOSE, "assets/event/chest_close.png", 50, 40, "Coffre fermé"),
-            SpriteData(SpriteID.CHEST_OPEN, "assets/event/chest_open.png", 50, 40, "Coffre ouvert"),
-            SpriteData(SpriteID.KRAKEN, "assets/event/kraken.png", 200, 200, "Kraken"),
-            SpriteData(SpriteID.TENTACLE_IDLE, "assets/event/tentacle_idle.png", 60, 150, "Tentacule de Kraken"),
-            SpriteData(SpriteID.TENTACLE_LAYING, "assets/event/tentacle_laying.png", 60, 150, "Tentacule de Kraken"),
-            SpriteData(SpriteID.PIRATE_SHIP, "assets/event/pirate_ship.png", 120, 80, "Navire pirate"),
-            SpriteData(SpriteID.TEMPETE, "assets/event/tempete.png", 100, 100, "Tempête"),
+            SpriteData(SpriteID.CHEST_CLOSE, "assets/sprites/event/chest_close.png", 50, 40, "Coffre fermé"),
+            SpriteData(SpriteID.CHEST_OPEN, "assets/sprites/event/chest_open.png", 50, 40, "Coffre ouvert"),
+            SpriteData(SpriteID.GOLD_RESOURCE, "assets/sprites/event/gold.png", 30, 30, "Or"),
+            SpriteData(SpriteID.KRAKEN, "assets/sprites/event/kraken.png", 200, 200, "Kraken"),
+            SpriteData(SpriteID.TENTACLE_IDLE, "assets/sprites/event/tentacle_idle.png", 80, 140, "Tentacule de Kraken"),
+            SpriteData(SpriteID.TENTACLE_LAYING, "assets/sprites/event/tentacle_laying.png", 80, 140, "Tentacule de Kraken"),
+            SpriteData(SpriteID.PIRATE_SHIP, "assets/sprites/event/pirate_ship.png", 120, 80, "Navire pirate"),
+            SpriteData(SpriteID.TEMPETE, "assets/sprites/event/storm.png", 100, 100, "Tempête"),
+            SpriteData(SpriteID.STORM, "assets/sprites/event/storm.png", 100, 100, "Tempête"),  # Alias
             
             # UI Elements
             SpriteData(SpriteID.UI_BITCOIN, "assets/image/StreamlineUltimateColorCryptoCurrencyBitcoinCircle.png", 32, 32, "Icône Bitcoin"),
             SpriteData(SpriteID.UI_SWORDS, "assets/image/TwemojiCrossedSwords.png", 32, 32, "Épées croisées"),
+            
+            # Resources
+            SpriteData(SpriteID.GOLD_RESOURCE, "assets/sprites/event/gold.png",
+                       32, 32, "Ressource d'or ramassable"),
             
             # Terrain
             SpriteData(SpriteID.TERRAIN_SEA, "assets/sprites/terrain/sea.png", 64, 64, "Mer"),
@@ -280,6 +293,20 @@ class SpriteManager:
             sprites_info.append(f"{status} {sprite_id.value} - {sprite_data.description}")
         
         return "Registered Sprites:\n" + "\n".join(sprites_info)
+    
+    def add_sprite_to_entity(self, ent, sprite_id):
+        size = sprite_manager.get_default_size(sprite_id)
+    
+        if size:
+            width, height = size
+            esper.add_component(ent, sprite_manager.create_sprite_component(sprite_id, width, height))
+        else:
+            # Fallback vers l'ancienne méthode
+            esper.add_component(ent, Sprite(
+                "assets/sprites/projectile/ball.png",
+                150,
+                30
+            ))
 
 
 # Global sprite manager instance
