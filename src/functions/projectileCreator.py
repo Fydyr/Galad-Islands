@@ -30,17 +30,27 @@ def create_projectile(entity, type: str = "bullet"):
 
     if not esper.has_component(entity, SpeArchitect) and not esper.has_component(entity, SpeDruid):
         # Récupère le radius pour savoir si on tire sur les côtés
-        angles = []
-        # Mode normal / bullet: tirer selon la direction et éventuels tirs sur les côtés
         if type == "bullet":
+            angles = []
+
             if esper.has_component(entity, RadiusComponent):
                 radius = esper.component_for_entity(entity, RadiusComponent)
-                angles = [pos.direction]
-                if radius.can_shoot_from_side:
-                    angles.append(pos.direction - radius.angle)
-                    angles.append(pos.direction + radius.angle)
+                base_angle = pos.direction
+                side_angle = getattr(radius, "angle", 45)  # Valeur par défaut : 45°
+
+                # Tir avant
+                angles.append(base_angle)
+
+                # Si tir latéral activé, ajoute gauche et droite
+                if getattr(radius, "can_shoot_from_side", False):
+                    angles.append(base_angle - side_angle)
+                    angles.append(base_angle + side_angle)
             else:
                 angles = [pos.direction]
+
+            # Normaliser les angles dans [0, 360)
+            angles = [a % 360 for a in angles]
+
         # Mode Leviathan: tir omnidirectionnel (toutes les directions autour de l'entité)
         elif type == "leviathan":
             # Tir omnidirectionnel centré sur la direction actuelle de l'entité.
