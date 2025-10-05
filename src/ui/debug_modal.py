@@ -442,31 +442,38 @@ class DebugModal:
             return
 
         # Try to spawn bandits via existing bandits manager if present
+        spawned = None
         if hasattr(self.game_engine, 'bandits_manager') and self.game_engine.bandits_manager is not None:
             mgr = self.game_engine.bandits_manager
-            spawned = None
-            if hasattr(mgr, 'spawn_bandits_wave'):
+            if hasattr(mgr, 'spawn_bandits_wave') and hasattr(self.game_engine, 'grid'):
                 try:
-                    spawned = mgr.spawn_bandits_wave()
+                    # pass the current grid and a reasonable default number of boats
+                    spawned = mgr.spawn_bandits_wave(self.game_engine.grid, 3)
                 except Exception:
                     spawned = None
 
-            if spawned:
-                self._show_feedback('success', t('debug.feedback.bandits_spawned', default='Bandits spawned'))
-            else:
-                self._show_feedback('warning', t('debug.feedback.no_valid_position', default='No valid position found'))
-        else:
-            # Fallback: if no manager, attempt to create simple bandit entities via Bandits component
-            if Bandits is not None and 'esper' in globals():
+        # If manager didn't spawn anything, try the processor fallback (if available)
+        if not spawned:
+            try:
+                from src.processeurs.events.banditsProcessor import BanditsProcessor
+            except Exception:
+                BanditsProcessor = None
+
+            if BanditsProcessor and hasattr(BanditsProcessor, 'spawn_bandits_wave') and hasattr(self.game_engine, 'grid'):
                 try:
-                    e = esper.create_entity()
-                    esper.add_component(e, Bandits(1, 3))
-                    self._show_feedback('success', t('debug.feedback.bandits_spawned', default='Bandits spawned (simple)'))
+                    spawned = BanditsProcessor.spawn_bandits_wave(self.game_engine.grid, 3)
                 except Exception as e:
-                    print(f"[DEV] Failed to spawn bandits fallback: {e}")
-                    self._show_feedback('warning', t('feedback.error', default='Error'))
+                    print(f"[DEV] Failed to spawn bandits via BanditsProcessor: {e}")
+                    spawned = None
             else:
-                self._show_feedback('warning', t('feedback.error', default='Error'))
+                # No fallback available — log and keep spawned as None
+                print("[DEV] Bandits manager and BanditsProcessor not available for spawning bandits.")
+                spawned = None
+
+        if spawned:
+            self._show_feedback('success', t('debug.feedback.bandits_spawned', default='Bandits spawned'))
+        else:
+            self._show_feedback('warning', t('debug.feedback.no_valid_position', default='No valid position found'))
     
     def _find_sea_position(self):
         """Find a random sea position for spawning events."""
