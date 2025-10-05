@@ -47,20 +47,8 @@ class EventProcessor(esper.Processor):
                 esper.add_component(krakenEnt, Event(0, 20, 20))
                 esper.add_component(krakenEnt, Kraken(0, 10, 3))
 
-                # Utiliser le SpriteManager pour les projectiles (balle)
-                sprite_id = SpriteID.KRAKEN
-                size = sprite_manager.get_default_size(sprite_id)
-            
-                if size:
-                    width, height = size
-                    esper.add_component(krakenEnt, sprite_manager.create_sprite_component(sprite_id, width, height))
-                else:
-                    # Fallback vers l'ancienne méthode
-                    esper.add_component(krakenEnt, Sprite(
-                        "assets/sprites/projectile/vine.png",
-                        150,
-                        30
-                    ))
+                sprite_manager.add_sprite_to_entity(krakenEnt, SpriteID.KRAKEN)    
+
 
     def _getNewPosition(self, grid):
         newPositiion = None
