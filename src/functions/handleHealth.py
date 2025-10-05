@@ -2,11 +2,24 @@ import esper
 from src.components.core.healthComponent import HealthComponent as Health
 from src.components.core.attackComponent import AttackComponent as Attack
 from src.components.core.baseComponent import BaseComponent
-from src.components.core.teamComponent import TeamComponent
+from src.components.core.teamComponent import TeamComponent, TeamComponent as Team
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speScoutComponent import SpeScout
+from src.components.core.attackComponent import AttackComponent as Attack
 
 def processHealth(entity, damage):
+    # Protection explicite : les mines (HP=1, team=0, attack=40) ne doivent jamais recevoir de dégâts
+    try:
+        if esper.has_component(entity, Health) and esper.has_component(entity, Team) and esper.has_component(entity, Attack):
+            h = esper.component_for_entity(entity, Health)
+            t = esper.component_for_entity(entity, Team)
+            a = esper.component_for_entity(entity, Attack)
+            if h.maxHealth == 1 and t.team_id == 0 and int(a.hitPoints) == 40:
+                # Mine : ignorer tout dégât
+                return
+    except Exception:
+        pass
+
     health = esper.component_for_entity(entity, Health)
     
     # Vérifie si l'entité possède le bouclier de Barhamus
