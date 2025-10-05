@@ -113,12 +113,23 @@ TRANSLATIONS = {
     "debug.modal.title": "Debug Menu",
     "debug.modal.message": "Select a debug action:",
     "debug.modal.give_gold": "Give Gold",
+    "debug.modal.spawn_storm": "Spawn Storm",
+    "debug.modal.spawn_chest": "Spawn Chests",
+    "debug.modal.spawn_kraken": "Spawn Kraken",
+    "debug.modal.clear_events": "Clear Events",
     "debug.modal.close": "Close",
     
     # Tooltips for tower placement
     "tooltip.need_architect": "Select an Architect to build",
     "tooltip.click_to_place_tower": "Click on an island to place your tower!",
     "tooltip.dev_give_gold": "Dev action not allowed",
+    
+    # Debug feedback messages
+    "debug.feedback.storm_spawned": "Storm spawned successfully",
+    "debug.feedback.chests_spawned": "Chests spawned successfully",
+    "debug.feedback.kraken_spawned": "Kraken spawned successfully",
+    "debug.feedback.events_cleared": "Events cleared successfully",
+    "debug.feedback.no_valid_position": "No valid position found",
     "placement.must_be_on_island": "Towers must be placed on an island",
     "placement.tower_already_here": "A tower is already present at this location",
     

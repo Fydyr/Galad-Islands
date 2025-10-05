@@ -1,6 +1,7 @@
 import pygame
 from typing import Callable, Optional
 import esper
+import random
 
 from src.ui.generic_modal import GenericModal
 from src.settings.localization import t
@@ -8,6 +9,18 @@ from src.settings.settings import ConfigManager
 from src.components.core.playerComponent import PlayerComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.team_enum import Team as TeamEnum
+from src.managers.stormManager import getStormManager
+from src.managers.flying_chest_manager import FlyingChestManager
+from src.components.events.krakenComponent import KrakenComponent
+from src.components.properties.eventsComponent import EventsComponent
+from src.components.events.flyChestComponent import FlyingChestComponent
+from src.components.events.krakenTentacleComponent import KrakenTentacleComponent
+from src.components.core.attackComponent import AttackComponent
+from src.components.core.canCollideComponent import CanCollideComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.spriteComponent import SpriteComponent
+from src.managers.sprite_manager import SpriteID, sprite_manager
+from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
 
 
 class DebugModal:
@@ -27,13 +40,18 @@ class DebugModal:
         # Configure the modal
         debug_buttons = [
             ("give_gold", "debug.modal.give_gold"),
+            ("spawn_storm", "debug.modal.spawn_storm"),
+            ("spawn_chest", "debug.modal.spawn_chest"),
+            ("spawn_kraken", "debug.modal.spawn_kraken"),
+            ("clear_events", "debug.modal.clear_events"),
             ("close", "debug.modal.close"),
         ]
         self.modal = GenericModal(
             title_key="debug.modal.title",
             message_key="debug.modal.message", 
             buttons=debug_buttons,
-            callback=self._handle_debug_action
+            callback=self._handle_debug_action,
+            vertical_layout=True
         )
     
     def open(self):
@@ -61,6 +79,14 @@ class DebugModal:
         """Handle debug actions."""
         if action == "give_gold":
             self._handle_give_gold()
+        elif action == "spawn_storm":
+            self._handle_spawn_storm()
+        elif action == "spawn_chest":
+            self._handle_spawn_chest()
+        elif action == "spawn_kraken":
+            self._handle_spawn_kraken()
+        elif action == "clear_events":
+            self._handle_clear_events()
         elif action == "close":
             self.close()
     
@@ -99,6 +125,193 @@ class DebugModal:
         if not player_found:
             print(f"[DEV] Player not found for team {active_team}")
             self._show_feedback('warning', t('feedback.error', default='Error'))
+    
+    def _handle_spawn_storm(self):
+        """Handle the spawn storm action."""
+        # Check if game engine is available
+        if not self.game_engine:
+            self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+        
+        # Check authorization via debug flag or config
+        cfg = ConfigManager()
+        dev_mode = cfg.get('dev_mode', False)
+        
+        is_debug = getattr(self.game_engine, 'show_debug', False)
+        if not (dev_mode or is_debug):
+            self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
+            return
+        
+        # Get storm manager and force spawn a storm
+        storm_manager = getStormManager()
+        if storm_manager and hasattr(self.game_engine, 'grid'):
+            storm_manager.initializeFromGrid(self.game_engine.grid)
+            
+            # Find a valid spawn position
+            position = storm_manager.findValidSpawnPosition()
+            if position:
+                storm_entity = storm_manager.createStormEntity(position)
+                if storm_entity:
+                    # Initialize storm state in manager
+                    storm_manager.activeStorms[storm_entity] = {
+                        'elapsed_time': 0.0,
+                        'move_timer': 0.0,
+                        'entity_attacks': {}
+                    }
+                    print(f"[DEV] Tempête forcée à la position {position}")
+                    self._show_feedback('success', t('debug.feedback.storm_spawned', default='Storm spawned'))
+                else:
+                    self._show_feedback('warning', t('feedback.error', default='Error creating storm'))
+            else:
+                self._show_feedback('warning', t('debug.feedback.no_valid_position', default='No valid position found'))
+        else:
+            self._show_feedback('warning', t('feedback.error', default='Storm manager not available'))
+    
+    def _handle_spawn_chest(self):
+        """Handle the spawn chest action."""
+        # Check if game engine is available
+        if not self.game_engine:
+            self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+        
+        # Check authorization via debug flag or config
+        cfg = ConfigManager()
+        dev_mode = cfg.get('dev_mode', False)
+        
+        is_debug = getattr(self.game_engine, 'show_debug', False)
+        if not (dev_mode or is_debug):
+            self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
+            return
+        
+        # Get flying chest manager and force spawn chests
+        if hasattr(self.game_engine, 'flying_chest_manager') and hasattr(self.game_engine, 'grid'):
+            chest_manager = self.game_engine.flying_chest_manager
+            chest_manager.initialize_from_grid(self.game_engine.grid)
+            
+            # Force spawn multiple chests (2-4)
+            num_chests = random.randint(2, 4)
+            spawned = 0
+            for _ in range(num_chests):
+                position = chest_manager._choose_spawn_position()
+                if position:
+                    chest_manager._create_chest_entity(position)
+                    spawned += 1
+            
+            if spawned > 0:
+                print(f"[DEV] {spawned} coffres forcés")
+                self._show_feedback('success', t('debug.feedback.chests_spawned', default=f'{spawned} chests spawned'))
+            else:
+                self._show_feedback('warning', t('debug.feedback.no_valid_position', default='No valid position found'))
+        else:
+            self._show_feedback('warning', t('feedback.error', default='Chest manager not available'))
+    
+    def _handle_spawn_kraken(self):
+        """Handle the spawn kraken action."""
+        # Check if game engine is available
+        if not self.game_engine:
+            self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+        
+        # Check authorization via debug flag or config
+        cfg = ConfigManager()
+        dev_mode = cfg.get('dev_mode', False)
+        
+        is_debug = getattr(self.game_engine, 'show_debug', False)
+        if not (dev_mode or is_debug):
+            self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
+            return
+        
+        # Create kraken entity manually
+        if hasattr(self.game_engine, 'grid'):
+            # Find a valid position for kraken (at sea)
+            position = self._find_sea_position()
+            if position:
+                # Create kraken entity
+                kraken_entity = esper.create_entity()
+                esper.add_component(kraken_entity, AttackComponent(1))
+                esper.add_component(kraken_entity, CanCollideComponent())
+                esper.add_component(kraken_entity, PositionComponent(position[0], position[1]))
+                esper.add_component(kraken_entity, TeamComponent(0))  # Neutral team
+                esper.add_component(kraken_entity, EventsComponent(0.0, 20.0, 20.0))  # 20 seconds duration
+                esper.add_component(kraken_entity, KrakenComponent(2, 6, 1))  # 2-6 tentacles, 1 idle
+                
+                # Add sprite
+                sprite_id = SpriteID.KRAKEN
+                size = sprite_manager.get_default_size(sprite_id)
+                if size:
+                    width, height = size
+                    sprite_component = sprite_manager.create_sprite_component(sprite_id, width, height)
+                    esper.add_component(kraken_entity, sprite_component)
+                
+                print(f"[DEV] Kraken forcé à la position {position}")
+                self._show_feedback('success', t('debug.feedback.kraken_spawned', default='Kraken spawned'))
+            else:
+                self._show_feedback('warning', t('debug.feedback.no_valid_position', default='No valid position found'))
+        else:
+            self._show_feedback('warning', t('feedback.error', default='Grid not available'))
+    
+    def _handle_clear_events(self):
+        """Handle the clear all events action."""
+        # Check if game engine is available
+        if not self.game_engine:
+            self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+        
+        # Check authorization via debug flag or config
+        cfg = ConfigManager()
+        dev_mode = cfg.get('dev_mode', False)
+        
+        is_debug = getattr(self.game_engine, 'show_debug', False)
+        if not (dev_mode or is_debug):
+            self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
+            return
+        
+        cleared_count = 0
+        
+        # Clear storms
+        storm_manager = getStormManager()
+        if storm_manager:
+            storm_count = len(storm_manager.activeStorms)
+            storm_manager.clearAllStorms()
+            cleared_count += storm_count
+        
+        # Clear flying chests
+        for entity, chest in esper.get_component(FlyingChestComponent):
+            esper.delete_entity(entity)
+            cleared_count += 1
+        
+        # Clear krakens and tentacles
+        for entity, kraken in esper.get_component(KrakenComponent):
+            esper.delete_entity(entity)
+            cleared_count += 1
+        
+        # Clear tentacles (if any)
+        for entity, tentacle in esper.get_component(KrakenTentacleComponent):
+            esper.delete_entity(entity)
+            cleared_count += 1
+        
+        print(f"[DEV] {cleared_count} événements nettoyés")
+        self._show_feedback('success', t('debug.feedback.events_cleared', default=f'{cleared_count} events cleared'))
+    
+    def _find_sea_position(self):
+        """Find a random sea position for spawning events."""
+        if not self.game_engine or not hasattr(self.game_engine, 'grid'):
+            return None
+        
+        grid = self.game_engine.grid
+        max_attempts = 50
+        
+        for _ in range(max_attempts):
+            x = random.randint(0, MAP_WIDTH - 1)
+            y = random.randint(0, MAP_HEIGHT - 1)
+            
+            # Check if it's sea (value 1 based on the kraken processor)
+            if grid[y][x] == 1:
+                world_x = (x + 0.5) * TILE_SIZE
+                world_y = (y + 0.5) * TILE_SIZE
+                return (world_x, world_y)
+        
+        return None
     
     def _show_feedback(self, feedback_type: str, message: str):
         """Show feedback message."""

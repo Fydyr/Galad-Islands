@@ -114,12 +114,23 @@ TRANSLATIONS = {
     "debug.modal.title": "Menu de Debug",
     "debug.modal.message": "Sélectionnez une action de debug :",
     "debug.modal.give_gold": "Donner de l'or",
+    "debug.modal.spawn_storm": "Créer une tempête",
+    "debug.modal.spawn_chest": "Créer des coffres",
+    "debug.modal.spawn_kraken": "Créer un kraken",
+    "debug.modal.clear_events": "Nettoyer les événements",
     "debug.modal.close": "Fermer",
     
     # Tooltips pour le placement de tours
     "tooltip.need_architect": "Sélectionnez un Architecte pour construire",
     "tooltip.click_to_place_tower": "Cliquez sur une île pour placer votre tour !",
     "tooltip.dev_give_gold": "Action de développement non autorisée",
+    
+    # Messages de feedback pour le debug
+    "debug.feedback.storm_spawned": "Tempête créée avec succès",
+    "debug.feedback.chests_spawned": "Coffres créés avec succès",
+    "debug.feedback.kraken_spawned": "Kraken créé avec succès",
+    "debug.feedback.events_cleared": "Événements nettoyés avec succès",
+    "debug.feedback.no_valid_position": "Aucune position valide trouvée",
     "placement.must_be_on_island": "Les tours doivent être placées sur une île",
     "placement.tower_already_here": "Une tour est déjà présente à cet endroit",
     
