@@ -60,7 +60,7 @@ Le système de tours suit l'architecture ECS du projet :
 
 ### 1. TowerComponent (Base)
 
-**Fichier** : `src/components/buildings/towerComponent.py`
+**Fichier** : `src/components/core/towerComponent.py`
 
 Composant de base pour toutes les tours.
 
@@ -86,7 +86,7 @@ class TowerComponent:
 
 ### 2. DefenseTowerComponent
 
-**Fichier** : `src/components/buildings/defenseTowerComponent.py`
+**Fichier** : `src/components/core/defenseTowerComponent.py`
 
 Composant spécifique aux tours d'attaque.
 
@@ -106,7 +106,7 @@ class DefenseTowerComponent:
 
 ### 3. HealTowerComponent
 
-**Fichier** : `src/components/buildings/healTowerComponent.py`
+**Fichier** : `src/components/core/healTowerComponent.py`
 
 Composant spécifique aux tours de soin.
 
@@ -555,7 +555,7 @@ import math
 
 from src.components.core.positionComponent import PositionComponent
 from src.components.special.speArchitectComponent import SpeArchitect
-from src.components.buildings.towerComponent import TowerComponent
+from src.components.core.towerComponent import TowerComponent
 # ... autres imports
 ```
 
@@ -799,9 +799,9 @@ pygame.quit()
 
 | Fichier | Modifications |
 |---------|--------------|
-| `src/components/buildings/towerComponent.py` | ✨ Création du composant de base |
-| `src/components/buildings/defenseTowerComponent.py` | ✨ Création du composant défense |
-| `src/components/buildings/healTowerComponent.py` | ✨ Création du composant soin |
+| `src/components/core/towerComponent.py` | ✨ Création du composant de base |
+| `src/components/core/defenseTowerComponent.py` | ✨ Création du composant défense |
+| `src/components/core/healTowerComponent.py` | ✨ Création du composant soin |
 | `src/processeurs/towerProcessor.py` | ✨ Création du processeur |
 | `src/factory/buildingFactory.py` | ✨ Ajout des factories + 🔧 TowerComponent |
 | `src/managers/sprite_manager.py` | 🔧 Correction chemins sprites |
