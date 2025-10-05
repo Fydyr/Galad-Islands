@@ -8,7 +8,8 @@ class GenericModal:
     """Système modal générique réutilisable pour différents types de dialogues."""
 
     def __init__(self, title_key: str, message_key: str, buttons: List[Tuple[str, str]], 
-                 callback: Optional[Callable[[str], None]] = None) -> None:
+                 callback: Optional[Callable[[str], None]] = None, 
+                 vertical_layout: bool = False) -> None:
         """
         Initialise un modal générique.
         
@@ -17,11 +18,13 @@ class GenericModal:
             message_key: Clé de traduction pour le message  
             buttons: Liste de tuples (action_id, translation_key) pour les boutons
             callback: Fonction appelée avec l'action_id quand un bouton est cliqué
+            vertical_layout: Si True, les boutons sont arrangés verticalement
         """
         self.title_key = title_key
         self.message_key = message_key
         self.button_actions = buttons
         self.callback = callback
+        self.vertical_layout = vertical_layout
         
         self.active = False
         self.selected_index = 0
@@ -66,12 +69,22 @@ class GenericModal:
             self._ensure_layout(target_surface.get_size())
 
         if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_LEFT, pygame.K_a):
-                self._move_selection(-1)
-                return None
-            if event.key in (pygame.K_RIGHT, pygame.K_d):
-                self._move_selection(1)
-                return None
+            if self.vertical_layout:
+                # Navigation verticale
+                if event.key in (pygame.K_UP, pygame.K_w):
+                    self._move_selection(-1)
+                    return None
+                if event.key in (pygame.K_DOWN, pygame.K_s):
+                    self._move_selection(1)
+                    return None
+            else:
+                # Navigation horizontale classique
+                if event.key in (pygame.K_LEFT, pygame.K_a):
+                    self._move_selection(-1)
+                    return None
+                if event.key in (pygame.K_RIGHT, pygame.K_d):
+                    self._move_selection(1)
+                    return None
             if event.key in (pygame.K_TAB,):
                 delta = -1 if bool(event.mod & pygame.KMOD_SHIFT) else 1
                 self._move_selection(delta)
@@ -155,22 +168,43 @@ class GenericModal:
             return
 
         width, height = size
-        panel_width = max(360, min(520, int(width * 0.45)))
-        panel_height = 220
+        
+        if self.vertical_layout:
+            # Layout vertical : plus grand en hauteur pour plus de boutons
+            panel_width = max(400, min(580, int(width * 0.5)))
+            button_count = len(self.button_actions)
+            panel_height = max(300, 180 + button_count * 70)  # Hauteur dynamique
+        else:
+            # Layout horizontal classique
+            panel_width = max(360, min(520, int(width * 0.45)))
+            panel_height = 220
+            
         self.modal_rect = pygame.Rect(0, 0, panel_width, panel_height)
         self.modal_rect.center = (width // 2, height // 2)
 
-        button_width = 150
+        button_width = 200 if self.vertical_layout else 150
         button_height = 56
-        spacing = 30
-        total_width = len(self.button_actions) * button_width + (len(self.button_actions) - 1) * spacing
-        start_x = (panel_width - total_width) // 2
-        y = panel_height - button_height - 32
+        spacing = 20 if self.vertical_layout else 30
 
         self.button_rects = []
-        for i in range(len(self.button_actions)):
-            rect = pygame.Rect(start_x + i * (button_width + spacing), y, button_width, button_height)
-            self.button_rects.append(rect)
+        
+        if self.vertical_layout:
+            # Boutons arrangés verticalement
+            start_y = 140  # Commencer après le titre et message
+            for i in range(len(self.button_actions)):
+                x = (panel_width - button_width) // 2
+                y = start_y + i * (button_height + spacing)
+                rect = pygame.Rect(x, y, button_width, button_height)
+                self.button_rects.append(rect)
+        else:
+            # Boutons arrangés horizontalement (comportement original)
+            total_width = len(self.button_actions) * button_width + (len(self.button_actions) - 1) * spacing
+            start_x = (panel_width - total_width) // 2
+            y = panel_height - button_height - 32
+            
+            for i in range(len(self.button_actions)):
+                rect = pygame.Rect(start_x + i * (button_width + spacing), y, button_width, button_height)
+                self.button_rects.append(rect)
 
         self.cached_size = size
 

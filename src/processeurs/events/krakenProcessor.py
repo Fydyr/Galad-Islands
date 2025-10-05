@@ -40,21 +40,7 @@ def _createTentaclesEntities(nbLaying: int = 0, nbIdle: int = 0, grid = None):
             esper.add_component(tentacleIdle, Position(newPosition[0], newPosition[1], newPosition[2]))
             esper.add_component(tentacleIdle, Team(0))
             
-            # Utiliser le SpriteManager pour les projectiles (balle)
-            sprite_id = SpriteID.TENTACLE_IDLE
-            size = sprite_manager.get_default_size(sprite_id)
-        
-            if size:
-                width, height = size
-                esper.add_component(tentacleIdle, sprite_manager.create_sprite_component(sprite_id, width, height))
-            else:
-                # Fallback vers l'ancienne méthode
-                esper.add_component(tentacleIdle, Sprite(
-                    "assets/sprites/projectile/ball.png",
-                    150,
-                    30
-                ))
-    
+            sprite_manager.add_sprite_to_entity(tentacleIdle, SpriteID.TENTACLE_IDLE)    
 
 def _getNewPosition(grid):
     newPositiion = None

@@ -18,11 +18,10 @@ from src.managers.sprite_manager import SpriteID, sprite_manager
 from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
 
 class EventProcessor(esper.Processor):
-    def __init__(self, eventCooldown: int = 0, maxEventCooldown: int = 0, krakenSpawn: int = 0, banditsSpawn: int = 25):
+    def __init__(self, eventCooldown: int = 0, maxEventCooldown: int = 0, krakenSpawn: int = 0):
         self.eventCooldown = 0
         self.maxEventCooldown = maxEventCooldown
         self.krakenSpawn = 50
-        self.banditsSpawn = banditsSpawn
 
     def process(self, dt, grid):
         if esper.get_component(Event) != []:
@@ -68,13 +67,6 @@ class EventProcessor(esper.Processor):
                         150,
                         30
                     ))
-        elif pourcent <= self.krakenSpawn + self.banditsSpawn:
-            # Événement Bandits
-            num_boats = random.randint(1, 6)
-            print(f"[EVENT] Vague de {num_boats} navires bandits!")
-            created_entities = BanditsProcessor.spawn_bandits_wave(grid, num_boats)
-            if created_entities:
-                print(f"[EVENT] {len(created_entities)} navires bandits créés")
 
     def _getNewPosition(self, grid):
         newPositiion = None
