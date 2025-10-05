@@ -669,7 +669,7 @@ class GameEngine:
         
         # Créer les unités
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
-        player_unit = UnitFactory(UnitType.DRUID, False, PositionComponent(spawn_x, spawn_y))
+        player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
             self._set_selected_entity(player_unit)
 
@@ -677,7 +677,7 @@ class GameEngine:
         enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(
             is_enemy=True, jitter=TILE_SIZE * 0.1)  # Même jitter que l'allié
         enemy_druid = UnitFactory(
-            UnitType.DRUID, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
+            UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
