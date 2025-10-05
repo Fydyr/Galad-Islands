@@ -167,13 +167,25 @@ Le modal de debug offre maintenant plusieurs actions pour faciliter le développ
        esper.add_component(kraken_entity, EventsComponent(0.0, 20.0, 20.0))
    ```
 
-5. **Nettoyer les événements** : Supprime tous les événements actifs (tempêtes, coffres, krakens)
+5. **Créer des ressources d'îles** : Force l'apparition de 2-3 ressources d'or sur les îles
+
+   ```python
+   def _handle_spawn_island_resources(self):
+       resource_manager = self.game_engine.island_resource_manager
+       num_resources = random.randint(2, 3)
+       for _ in range(num_resources):
+           position = resource_manager._choose_spawn_position()
+           if position:
+               resource_manager._create_resource_entity(position)
+   ```
+
+6. **Nettoyer les événements** : Supprime tous les événements actifs (tempêtes, coffres, krakens, ressources)
 
    ```python
    def _handle_clear_events(self):
        # Nettoie les tempêtes
        storm_manager.clearAllStorms()
-       # Supprime les coffres volants, krakens et tentacules
+       # Supprime les coffres volants, krakens, tentacules et ressources d'îles
        for entity, component in esper.get_component(EventComponent):
            esper.delete_entity(entity)
    ```

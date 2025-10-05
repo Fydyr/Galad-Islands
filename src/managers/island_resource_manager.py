@@ -142,14 +142,22 @@ class IslandResourceManager:
         gold_amount = int(self._rng.integers(ISLAND_RESOURCE_GOLD_MIN, ISLAND_RESOURCE_GOLD_MAX + 1))
 
         entity = esper.create_entity()
-        esper.add_component(entity, PositionComponent(world_position[0], world_position[1], direction=0.0))
+        # Remonter le sprite de 0.3 tile pour un meilleur positionnement visuel
+        adjusted_y = world_position[1] - (TILE_SIZE * 0.3)
+        esper.add_component(entity, PositionComponent(world_position[0], adjusted_y, direction=0.0))
 
+        # Augmenter la taille du sprite et de la hitbox pour faciliter la collecte
         sprite_size = sprite_manager.get_default_size(SpriteID.GOLD_RESOURCE)
         if sprite_size is None:
-            sprite_size = (int(TILE_SIZE * 0.8), int(TILE_SIZE * 0.8))
+            sprite_size = (int(TILE_SIZE * 1.2), int(TILE_SIZE * 1.2))  # Plus gros pour être plus visible
+        else:
+            # Augmenter la taille par rapport à la taille par défaut
+            sprite_size = (int(sprite_size[0] * 1.5), int(sprite_size[1] * 1.5))
+        
         sprite_component = sprite_manager.create_sprite_component(SpriteID.GOLD_RESOURCE, sprite_size[0], sprite_size[1])
         esper.add_component(entity, sprite_component)
 
+        # Zone de collision standard - la taille plus grande du sprite améliore déjà la collecte
         esper.add_component(entity, CanCollideComponent())
         esper.add_component(entity, TeamComponent(team_id=0))
         esper.add_component(
@@ -186,13 +194,14 @@ class IslandResourceManager:
         height = int(sprite_component.height or sprite_component.original_height)
         replacement = sprite_manager.create_sprite_component(sprite_id, width, height)
 
-        sprite_component.image_path = replacement.image_path
-        sprite_component.width = replacement.width
-        sprite_component.height = replacement.height
-        sprite_component.original_width = replacement.original_width
-        sprite_component.original_height = replacement.original_height
-        sprite_component.image = replacement.image
-        sprite_component.surface = replacement.surface
+        if replacement:
+            sprite_component.image_path = replacement.image_path
+            sprite_component.width = replacement.width
+            sprite_component.height = replacement.height
+            sprite_component.original_width = replacement.original_width
+            sprite_component.original_height = replacement.original_height
+            sprite_component.image = replacement.image
+            sprite_component.surface = replacement.surface
 
     def _disable_collision(self, entity: int) -> None:
         if esper.has_component(entity, CanCollideComponent):

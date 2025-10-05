@@ -116,6 +116,7 @@ TRANSLATIONS = {
     "debug.modal.spawn_storm": "Spawn Storm",
     "debug.modal.spawn_chest": "Spawn Chests",
     "debug.modal.spawn_kraken": "Spawn Kraken",
+    "debug.modal.spawn_island_resources": "Spawn Island Resources",
     "debug.modal.clear_events": "Clear Events",
     "debug.modal.close": "Close",
     
@@ -128,6 +129,7 @@ TRANSLATIONS = {
     "debug.feedback.storm_spawned": "Storm spawned successfully",
     "debug.feedback.chests_spawned": "Chests spawned successfully",
     "debug.feedback.kraken_spawned": "Kraken spawned successfully",
+    "debug.feedback.island_resources_spawned": "Island resources spawned successfully",
     "debug.feedback.events_cleared": "Events cleared successfully",
     "debug.feedback.no_valid_position": "No valid position found",
     "placement.must_be_on_island": "Towers must be placed on an island",

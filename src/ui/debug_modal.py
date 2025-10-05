@@ -11,10 +11,12 @@ from src.components.core.teamComponent import TeamComponent
 from src.components.core.team_enum import Team as TeamEnum
 from src.managers.stormManager import getStormManager
 from src.managers.flying_chest_manager import FlyingChestManager
+from src.managers.island_resource_manager import IslandResourceManager
 from src.components.events.krakenComponent import KrakenComponent
 from src.components.properties.eventsComponent import EventsComponent
 from src.components.events.flyChestComponent import FlyingChestComponent
 from src.components.events.krakenTentacleComponent import KrakenTentacleComponent
+from src.components.events.islandResourceComponent import IslandResourceComponent
 from src.components.core.attackComponent import AttackComponent
 from src.components.core.canCollideComponent import CanCollideComponent
 from src.components.core.positionComponent import PositionComponent
@@ -43,6 +45,7 @@ class DebugModal:
             ("spawn_storm", "debug.modal.spawn_storm"),
             ("spawn_chest", "debug.modal.spawn_chest"),
             ("spawn_kraken", "debug.modal.spawn_kraken"),
+            ("spawn_island_resources", "debug.modal.spawn_island_resources"),
             ("clear_events", "debug.modal.clear_events"),
             ("close", "debug.modal.close"),
         ]
@@ -85,6 +88,8 @@ class DebugModal:
             self._handle_spawn_chest()
         elif action == "spawn_kraken":
             self._handle_spawn_kraken()
+        elif action == "spawn_island_resources":
+            self._handle_spawn_island_resources()
         elif action == "clear_events":
             self._handle_clear_events()
         elif action == "close":
@@ -250,6 +255,44 @@ class DebugModal:
         else:
             self._show_feedback('warning', t('feedback.error', default='Grid not available'))
     
+    def _handle_spawn_island_resources(self):
+        """Handle the spawn island resources action."""
+        # Check if game engine is available
+        if not self.game_engine:
+            self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+        
+        # Check authorization via debug flag or config
+        cfg = ConfigManager()
+        dev_mode = cfg.get('dev_mode', False)
+        
+        is_debug = getattr(self.game_engine, 'show_debug', False)
+        if not (dev_mode or is_debug):
+            self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
+            return
+        
+        # Get island resource manager and force spawn resources
+        if hasattr(self.game_engine, 'island_resource_manager') and hasattr(self.game_engine, 'grid'):
+            resource_manager = self.game_engine.island_resource_manager
+            resource_manager.initialize_from_grid(self.game_engine.grid)
+            
+            # Force spawn multiple resources (2-3)
+            num_resources = random.randint(2, 3)
+            spawned = 0
+            for _ in range(num_resources):
+                position = resource_manager._choose_spawn_position()
+                if position:
+                    resource_manager._create_resource_entity(position)
+                    spawned += 1
+            
+            if spawned > 0:
+                print(f"[DEV] {spawned} ressources d'îles forcées")
+                self._show_feedback('success', t('debug.feedback.island_resources_spawned', default=f'{spawned} island resources spawned'))
+            else:
+                self._show_feedback('warning', t('debug.feedback.no_valid_position', default='No valid position found'))
+        else:
+            self._show_feedback('warning', t('feedback.error', default='Island resource manager not available'))
+    
     def _handle_clear_events(self):
         """Handle the clear all events action."""
         # Check if game engine is available
@@ -287,6 +330,11 @@ class DebugModal:
         
         # Clear tentacles (if any)
         for entity, tentacle in esper.get_component(KrakenTentacleComponent):
+            esper.delete_entity(entity)
+            cleared_count += 1
+        
+        # Clear island resources
+        for entity, resource in esper.get_component(IslandResourceComponent):
             esper.delete_entity(entity)
             cleared_count += 1
         
