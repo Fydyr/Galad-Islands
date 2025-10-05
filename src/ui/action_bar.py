@@ -260,6 +260,7 @@ class ActionBar:
                 cost=150,
                 hotkey="",
                 visible=False,
+                tooltip=t("tooltip.build_defense", default=t("actionbar.build_defense")),
                 callback=self._build_defense_tower
             ),
             ActionButton(
@@ -269,6 +270,7 @@ class ActionBar:
                 cost=120,
                 hotkey="",
                 visible=False,
+                tooltip=t("tooltip.build_heal", default=t("actionbar.build_heal")),
                 callback=self._build_heal_tower
             )
         ]
@@ -1101,6 +1103,10 @@ class ActionBar:
             True, UIColors.TEXT_HIGHLIGHT
         )
         surface.blit(unit_name, (info_x + 5, info_y + 5))
+        # Description (si disponible)
+        if getattr(self.selected_unit, 'description', None):
+            desc_text = self.font_small.render(self.selected_unit.description, True, UIColors.TEXT_NORMAL)
+            surface.blit(desc_text, (info_x + 5, info_y + 28))
         
         # Barres de vie et mana côte à côte
         bar_width = 80
