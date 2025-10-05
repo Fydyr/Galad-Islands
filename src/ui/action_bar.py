@@ -1190,8 +1190,15 @@ def main():
     pygame.init()
     
     screen_width, screen_height = 1200, 800
-    screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Galad Islands - Action Bar + Boutique Demo")
+    try:
+        from src.managers.display import get_display_manager
+        dm = get_display_manager()
+        dm.apply_resolution_and_recreate(screen_width, screen_height)
+        screen = dm.surface
+        pygame.display.set_caption("Galad Islands - Action Bar + Boutique Demo")
+    except Exception:
+        screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
+        pygame.display.set_caption("Galad Islands - Action Bar + Boutique Demo")
     
     clock = pygame.time.Clock()
     action_bar = ActionBar(screen_width, screen_height)

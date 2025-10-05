@@ -6,7 +6,7 @@ import os
 import logging
 # Par défaut, ne pas afficher les DEBUG en production
 logging.basicConfig(level=logging.INFO)
-from src.managers.display import DisplayManager, LayoutManager
+from src.managers.display import DisplayManager, LayoutManager, get_display_manager
 from src.managers.audio import AudioManager, VolumeWatcher
 from src.menu.state import MenuState
 from src.ui.ui_component import Button, ParticleSystem
@@ -36,7 +36,8 @@ class MainMenu:
         pygame.init()
 
         # Managers
-        self.display_manager = DisplayManager()
+        # Use shared display manager singleton
+        self.display_manager = get_display_manager()
         self.audio_manager = AudioManager()
         self.volume_watcher = VolumeWatcher(self.audio_manager)
 

@@ -366,9 +366,17 @@ def map():
     """
     pygame.init()
     
-    # Utiliser la résolution d'écran définie dans settings
-    window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption(t("game.map_title"))
+    # Utiliser la résolution d'écran définie dans settings via le DisplayManager
+    try:
+        from src.managers.display import get_display_manager
+        dm = get_display_manager()
+        dm.apply_resolution_and_recreate(SCREEN_WIDTH, SCREEN_HEIGHT)
+        window = dm.surface
+        pygame.display.set_caption(t("game.map_title"))
+    except Exception:
+        # Fallback
+        window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+        pygame.display.set_caption(t("game.map_title"))
     
     game_state = init_game_map(SCREEN_WIDTH, SCREEN_HEIGHT)
     

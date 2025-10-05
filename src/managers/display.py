@@ -78,6 +78,22 @@ class DisplayManager:
         self.dirty = False
         return self.surface
 
+    def apply_resolution_and_recreate(self, width: int, height: int) -> pygame.Surface:
+        """Apply a new resolution (update config) and recreate the display surface.
+
+        This will update the persistent settings (via settings.apply_resolution), update
+        the local width/height and recreate the window immediately returning the new surface.
+        """
+        try:
+            settings.apply_resolution(width, height)
+        except Exception:
+            pass
+
+        self.width = int(width)
+        self.height = int(height)
+        self.dirty = True
+        return self.apply_changes()
+
     def update_from_config(self) -> bool:
         """
         Updates from external configuration.
@@ -184,3 +200,14 @@ class LayoutManager:
     def create_title_font(screen_width: int, screen_height: int) -> pygame.font.Font:
         """Creates an adaptive title font."""
         return LayoutManager.create_adaptive_font(screen_width, screen_height, size_ratio=0.05, bold=True)
+
+
+# Module-level singleton accessor for the display manager
+_global_display_manager: Optional[DisplayManager] = None
+
+def get_display_manager() -> DisplayManager:
+    """Return a shared DisplayManager instance (lazy-initialized)."""
+    global _global_display_manager
+    if _global_display_manager is None:
+        _global_display_manager = DisplayManager()
+    return _global_display_manager

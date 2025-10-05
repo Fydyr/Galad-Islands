@@ -547,8 +547,19 @@ class GameEngine:
         
         # Configuration de la fenêtre
         if self.window is None:
-            self.window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE))
-            pygame.display.set_caption(t("system.game_window_title"))
+            try:
+                from src.managers.display import get_display_manager
+                dm = get_display_manager()
+                # prefer to initialize with a sensible size based on the map
+                desired_w = MAP_WIDTH * TILE_SIZE
+                desired_h = MAP_HEIGHT * TILE_SIZE
+                dm.apply_resolution_and_recreate(desired_w, desired_h)
+                self.window = dm.surface
+                pygame.display.set_caption(t("system.game_window_title"))
+            except Exception:
+                # fallback to direct creation
+                self.window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE), pygame.RESIZABLE)
+                pygame.display.set_caption(t("system.game_window_title"))
             self.created_local_window = True
         
         self.clock = pygame.time.Clock()
@@ -1329,8 +1340,14 @@ class GameEngine:
     def _cleanup(self):
         """Nettoie les ressources avant de quitter."""
         if self.created_local_window:
-            pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
-            pygame.display.set_caption(t("system.main_window_title"))
+            try:
+                from src.managers.display import get_display_manager
+                dm = get_display_manager()
+                dm.apply_resolution_and_recreate(settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
+                pygame.display.set_caption(t("system.main_window_title"))
+            except Exception:
+                pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT), pygame.RESIZABLE)
+                pygame.display.set_caption(t("system.main_window_title"))
 
     def _update_camera_follow(self, dt: float, keys, modifiers_state: int) -> None:
         """Maintient la caméra centrée sur l'unité suivie."""
