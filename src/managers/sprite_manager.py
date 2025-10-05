@@ -8,9 +8,11 @@ cache management, and retrieval of sprite metadata such as default size and
 description.
 """
 import pygame
+import esper
 from typing import Dict, Optional, Tuple
 from enum import Enum, auto
 from src.functions.resource_path import get_resource_path
+from src.components.core.spriteComponent import SpriteComponent as Sprite
 
 
 class SpriteID(Enum):
@@ -59,9 +61,10 @@ class SpriteID(Enum):
     CHEST_CLOSE = "chest_close"
     CHEST_OPEN = "chest_open"
     KRAKEN = "kraken"
+    TENTACLE_IDLE = "tentacle_idle"
+    TENTACLE_LAYING = "tentacle_laying"
     PIRATE_SHIP = "pirate_ship"
     TEMPETE = "tempete"
-    TENTACULE_KRAKEN = "tentacule_kraken"
     
     # UI Elements
     UI_BITCOIN = "ui_bitcoin"
@@ -146,7 +149,8 @@ class SpriteManager:
             SpriteData(SpriteID.CHEST_CLOSE, "assets/event/chest_close.png", 50, 40, "Coffre fermé"),
             SpriteData(SpriteID.CHEST_OPEN, "assets/event/chest_open.png", 50, 40, "Coffre ouvert"),
             SpriteData(SpriteID.KRAKEN, "assets/event/kraken.png", 200, 200, "Kraken"),
-            SpriteData(SpriteID.TENTACULE_KRAKEN, "assets/event/tentacule_kraken.png", 60, 150, "Tentacule de Kraken"),
+            SpriteData(SpriteID.TENTACLE_IDLE, "assets/event/tentacle_idle.png", 80, 140, "Tentacule de Kraken"),
+            SpriteData(SpriteID.TENTACLE_LAYING, "assets/event/tentacle_laying.png", 80, 140, "Tentacule de Kraken"),
             SpriteData(SpriteID.PIRATE_SHIP, "assets/event/pirate_ship.png", 120, 80, "Navire pirate"),
             SpriteData(SpriteID.TEMPETE, "assets/event/tempete.png", 100, 100, "Tempête"),
             
@@ -284,6 +288,20 @@ class SpriteManager:
             sprites_info.append(f"{status} {sprite_id.value} - {sprite_data.description}")
         
         return "Registered Sprites:\n" + "\n".join(sprites_info)
+    
+    def add_sprite_to_entity(self, ent, sprite_id):
+        size = sprite_manager.get_default_size(sprite_id)
+    
+        if size:
+            width, height = size
+            esper.add_component(ent, sprite_manager.create_sprite_component(sprite_id, width, height))
+        else:
+            # Fallback vers l'ancienne méthode
+            esper.add_component(ent, Sprite(
+                "assets/sprites/projectile/ball.png",
+                150,
+                30
+            ))
 
 
 # Global sprite manager instance
