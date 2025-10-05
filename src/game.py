@@ -52,7 +52,7 @@ from src.factory.unitType import UnitType
 from src.functions.projectileCreator import create_projectile
 from src.functions.handleHealth import entitiesHit
 from src.functions.afficherModale import afficher_modale
-from src.functions.baseManager import get_base_manager
+from src.components.core.baseComponent import BaseComponent
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
@@ -573,7 +573,7 @@ class GameEngine:
         StormManager().clearAllStorms()
 
         # Réinitialiser les gestionnaires globaux dépendant du monde
-        get_base_manager().reset()
+        BaseComponent.reset()
         
         # Créer le monde ECS
         es._world = es
@@ -608,17 +608,16 @@ class GameEngine:
         # à la demande par les fonctions utilitaires
         
         # Initialiser le gestionnaire de bases
-        base_manager = get_base_manager()
-        base_manager.initialize_bases()
+        BaseComponent.initialize_bases()
         
         # Créer les unités
-        spawn_x, spawn_y = base_manager.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
+        spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
         player_unit = UnitFactory(UnitType.DRUID, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
             self._set_selected_entity(player_unit)
 
         # Créer un druide ennemi à une position équivalente à celle du druid allié
-        enemy_spawn_x, enemy_spawn_y = base_manager.get_spawn_position(
+        enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(
             is_enemy=True, jitter=TILE_SIZE * 0.1)  # Même jitter que l'allié
         enemy_druid = UnitFactory(
             UnitType.DRUID, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))

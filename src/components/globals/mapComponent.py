@@ -90,7 +90,7 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
                                 return False
         
         # Éviter les zones de spawn des druides
-        # Calcul des positions de spawn basé sur la logique de BaseManager.get_spawn_position()
+        # Calcul des positions de spawn basé sur la logique de BaseComponent.get_spawn_position()
         ally_base_center_x, ally_base_center_y = 3.0, 3.0  # Centre de la base alliée en coordonnées de grille
         enemy_base_center_x, enemy_base_center_y = MAP_WIDTH - 3.0, MAP_HEIGHT - 2.8  # Centre de la base ennemie
         
