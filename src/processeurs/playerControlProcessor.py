@@ -21,6 +21,7 @@ class PlayerControlProcessor(esper.Processor):
     def __init__(self):
         self.fire_event = False  # Initialisation de l'état de l'événement de tir
         self.slowing_down = False  # Indique si le frein est activé
+        self.attack_mode_pressed = False
         self.special_ability_pressed = False
 
     def process(self):
@@ -80,10 +81,22 @@ class PlayerControlProcessor(esper.Processor):
                     esper.dispatch_event("attack_event", entity, "bullet")
                     radius.cooldown = radius.bullet_cooldown
             # Changement du mode d'attaque avec Tab
+            # Changement du mode d'attaque avec Tab (1 toggle par appui)
             if controls.is_action_active(controls.ACTION_UNIT_ATTACK_MODE, keys, modifiers_state):
-                if esper.has_component(entity, RadiusComponent):
-                    radius = esper.component_for_entity(entity, RadiusComponent)
-                    radius.can_shoot_from_side = not radius.can_shoot_from_side
+                # on déclenche le toggle une seule fois au moment de l'appui
+                if not self.attack_mode_pressed:
+                    self.attack_mode_pressed = True
+                    if esper.has_component(entity, RadiusComponent):
+                        radius = esper.component_for_entity(entity, RadiusComponent)
+                        # utiliser getattr pour gérer le cas où l'attribut n'existe pas encore
+                        new_val = not getattr(radius, 'can_shoot_from_side', False)
+                        radius.can_shoot_from_side = new_val
+                        # debug console pour vérifier en runtime
+                        print(f"[DEBUG] entity={entity} attack_mode toggled -> can_shoot_from_side={radius.can_shoot_from_side}")
+            else:
+                # on remet le flag à False quand la touche est relâchée
+                self.attack_mode_pressed = False
+
     
             # GESTION DE LA CAPACITÉ SPÉCIALE
             if controls.is_action_active(controls.ACTION_UNIT_SPECIAL, keys, modifiers_state):
