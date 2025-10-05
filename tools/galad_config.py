@@ -6,7 +6,7 @@ marks custom entries, allows adding/removing custom resolutions, audio sliders,
 language selection and applying/reseting settings to `galad_config.json`.
 
 Run:
-    python tools/custom_resolution_manager.py
+    python tools/galad_config.py
 """
 from pathlib import Path
 import json
@@ -26,6 +26,7 @@ from src.settings.localization import get_available_languages, get_current_langu
 from src.settings.resolutions import load_custom_resolutions
 from src.settings import controls
 from src.functions.optionsWindow import KEY_BINDING_GROUPS, CONTROL_GROUP_ACTIONS
+import pygame # justte pour que ça se lance
 
 
 def load_config():
@@ -33,20 +34,26 @@ def load_config():
         if CONFIG_PATH.exists():
             return json.loads(CONFIG_PATH.read_text())
         else:
-            # Afficher un message d'avertissement dans une popup Tkinter
+            # Afficher un message d'avertissement bilingue (FR + EN) dans une popup Tkinter
             try:
-                messagebox.showwarning(
-                    "Fichier de configuration manquant",
-                    f"Le fichier de configuration n'a pas été trouvé :\n{CONFIG_PATH}\n\nUn nouveau fichier sera créé automatiquement lors de la première sauvegarde."
+                fr = (
+                    f"Fichier de configuration manquant:\n{CONFIG_PATH}\n\n"
+                    "Un nouveau fichier sera créé automatiquement lors de la première sauvegarde."
                 )
+                en = (
+                    f"Configuration file not found: {CONFIG_PATH}\n\n"
+                    "A new file will be created automatically on first save."
+                )
+                messagebox.showwarning("Fichier de configuration manquant / Missing configuration file", fr + "\n\n" + en)
             except:
                 pass  # Si Tkinter n'est pas encore initialisé
     except Exception as e:
         try:
-            messagebox.showerror(
-                "Erreur de configuration",
-                f"Erreur lors du chargement de la configuration :\n{str(e)}\n\nUtilisation des valeurs par défaut."
-            )
+            fr = (f"Erreur lors du chargement de la configuration :\n{str(e)}\n\n"
+                  "Utilisation des valeurs par défaut.")
+            en = (f"Error loading configuration: {str(e)}\n\n"
+                  "Using defaults.")
+            messagebox.showerror("Erreur de configuration / Configuration error", fr + "\n\n" + en)
         except:
             pass  # Si Tkinter n'est pas encore initialisé
     return {}
@@ -64,7 +71,7 @@ def save_resolutions_list(res_list):
 class GaladConfigApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Galad Options Tool")
+        self.title("Galad Config Tool")
         self.geometry("520x520")
         self.resizable(True, True)
 
