@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 from src.processeurs import movementProcessor, collisionProcessor, playerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
+from src.processeurs.eventProcessor import EventProcessor
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -615,6 +616,7 @@ class GameEngine:
         self.player_controls = playerControlProcessor.PlayerControlProcessor()
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
+        self.event_processor = EventProcessor(15, 5, 10)
         # Tower processor (gère tours de défense/soin)
         from src.processeurs.towerProcessor import TowerProcessor
         self.tower_processor = TowerProcessor()
@@ -1291,6 +1293,10 @@ class GameEngine:
         # Traiter les capacités spéciales d'abord (avec dt)
         if self.capacities_processor is not None:
             self.capacities_processor.process(dt)
+
+        # Traiter les événements d'abord (avec dt)
+        if self.event_processor is not None:
+            self.event_processor.process(dt, self.grid)
         
         # Traiter le TowerProcessor (avec dt)
         if self.tower_processor is not None:
