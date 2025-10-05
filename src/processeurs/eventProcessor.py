@@ -45,7 +45,7 @@ class EventProcessor(esper.Processor):
                 esper.add_component(krakenEnt, Position(newPosition[0], newPosition[1]))
                 esper.add_component(krakenEnt, Team(0))
                 esper.add_component(krakenEnt, Event(0, 20, 20))
-                esper.add_component(krakenEnt, Kraken(0, 10, 3))
+                esper.add_component(krakenEnt, Kraken(0, 20, 14))
 
                 sprite_manager.add_sprite_to_entity(krakenEnt, SpriteID.KRAKEN)    
 
