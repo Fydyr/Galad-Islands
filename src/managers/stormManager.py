@@ -159,6 +159,14 @@ class StormManager:
         for entity, (pos, health, team) in es.get_components(
             PositionComponent, HealthComponent, TeamComponent
         ):
+            # Skip bandit entities (they should resist storms)
+            try:
+                from src.components.events.banditsComponent import Bandits
+                if es.has_component(entity, Bandits):
+                    continue
+            except Exception:
+                # If the component can't be imported, ignore and continue
+                pass
             if entity == stormEntity:
                 continue
 
