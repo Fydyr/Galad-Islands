@@ -13,6 +13,7 @@ Les processeurs contiennent la logique métier du jeu et agissent sur les entit�
 | `PlayerControlProcessor` | 4 | Contrôles joueur et activation des capacités |
 | `CapacitiesSpecialesProcessor` | 5 | Mise à jour des cooldowns des capacités |
 | `LifetimeProcessor` | 10 | Suppression des entités temporaires |
+| `TowerProcessor` | 15 | Logique des tours défensives (attaque/soin) |
 
 ### Processeur de rendu
 
@@ -120,6 +121,56 @@ def process(self, dt=0.016):
         if lifetime.duration <= 0:
             esper.delete_entity(ent)
 ```
+
+### TowerProcessor
+
+**Fichier :** `src/processeurs/towerProcessor.py`
+
+**Responsabilité :** Gère la logique automatique des tours (détection de cibles, attaque, soin).
+
+> **📖 Documentation complète** : Voir [Système de Tours](../tower-system-implementation.md) pour tous les détails.
+
+**Composants utilisés :**
+- `TowerComponent` : Données de base (type, portée, cooldown)
+- `DefenseTowerComponent` : Propriétés d'attaque
+- `HealTowerComponent` : Propriétés de soin
+- `PositionComponent` : Position de la tour
+- `TeamComponent` : Équipe de la tour
+
+**Fonctionnalités :**
+
+1. **Gestion du cooldown** : Décrémente le timer entre chaque action
+2. **Détection de cibles** :
+   - Tours de défense : Cherche ennemis à portée
+   - Tours de soin : Cherche alliés blessés à portée
+3. **Actions automatiques** :
+   - Tours de défense : Crée un projectile vers la cible
+   - Tours de soin : Applique des soins sur la cible
+
+```python
+def process(self, dt: float):
+    for entity, (tower, pos, team) in esper.get_components(
+        TowerComponent, PositionComponent, TeamComponent
+    ):
+        # Mise à jour cooldown
+        if tower.current_cooldown > 0:
+            tower.current_cooldown -= dt
+            continue
+        
+        # Recherche de cible
+        target = self._find_target(entity, tower, pos, team)
+        
+        # Action selon le type de tour
+        if target:
+            if tower.tower_type == "defense":
+                self._attack_target(entity, target, pos)
+            elif tower.tower_type == "heal":
+                self._heal_target(entity, target)
+            
+            tower.current_cooldown = tower.cooldown
+```
+
+**Création de tours :** Via `buildingFactory.create_defense_tower()` ou `create_heal_tower()`.
 
 ### RenderingProcessor
 

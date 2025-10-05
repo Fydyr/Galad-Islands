@@ -105,6 +105,47 @@ class FlyingChestComponent:
         self.is_opened: bool = False
 ```
 
+### Composants de bâtiments (buildings/)
+
+Les bâtiments (tours défensives, structures) utilisent des composants dédiés.
+
+> **📖 Documentation complète** : Voir [Système de Tours](tower-system-implementation.md) pour l'implémentation détaillée.
+
+#### TowerComponent
+Composant de base pour toutes les tours :
+```python
+@dataclass
+class TowerComponent:
+    tower_type: str              # "defense" ou "heal"
+    range: float                 # Portée d'action en pixels
+    cooldown: float              # Temps entre deux actions (secondes)
+    current_cooldown: float = 0.0
+    target_entity: Optional[int] = None
+```
+
+#### DefenseTowerComponent
+Composant pour les tours qui attaquent :
+```python
+@dataclass
+class DefenseTowerComponent:
+    damage: float        # Dégâts infligés par attaque
+    attack_speed: float  # Multiplicateur de vitesse
+```
+
+#### HealTowerComponent
+Composant pour les tours qui soignent :
+```python
+@dataclass
+class HealTowerComponent:
+    heal_amount: float   # Points de vie restaurés
+    heal_speed: float    # Multiplicateur de vitesse
+```
+
+**Utilisation** :
+- Les tours sont créées via `buildingFactory.create_defense_tower()` ou `create_heal_tower()`
+- Le `TowerProcessor` gère la détection de cibles et les actions automatiques
+- Les tours nécessitent un Architecte pour être construites
+
 ## Processeurs (Processors)
 
 Les processeurs contiennent la **logique métier** et agissent sur les entités.
