@@ -264,8 +264,29 @@ def get_tile_size() -> int:
 # =============================================================================
 
 def get_available_resolutions() -> List[Tuple[int, int, str]]:
-    """Retourne la liste des résolutions disponibles."""
-    return AVAILABLE_RESOLUTIONS.copy()
+    """Retourne la liste des résolutions disponibles.
+
+    Combine les résolutions builtin et les résolutions personnalisées définies
+    par l'utilisateur via `galad_resolutions.json` (géré par
+    `src/settings/resolutions.py`). Retourne une liste de tuples
+    (width, height, label).
+    """
+    try:
+        # Import local helper to avoid circular import at module import time
+        from src.settings.resolutions import get_all_resolutions as _get_all
+
+        combined = []
+        for (w, h) in _get_all():
+            label = f"{w}x{h}"
+            combined.append((w, h, label))
+
+        # Ensure builtin fallbacks exist if helper failed to return anything
+        if not combined:
+            return AVAILABLE_RESOLUTIONS.copy()
+        return combined
+    except Exception:
+        # On any error, fall back to the static list
+        return AVAILABLE_RESOLUTIONS.copy()
 
 def apply_resolution(width: int, height: int) -> bool:
     """

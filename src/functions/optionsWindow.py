@@ -24,6 +24,14 @@ from src.settings.localization import (
 )
 from src.settings import controls
 
+# Charger l'utilitaire de résolutions personnalisées en niveau module
+try:
+    from src.settings.resolutions import load_custom_resolutions
+except Exception:
+    # Fallback : fonction qui retourne une liste vide
+    def load_custom_resolutions():
+        return []
+
 from src.ui.settings_ui_component import (
     UIComponent,
     Button,
@@ -305,8 +313,17 @@ class OptionsWindow:
         
         # Résolutions prédéfinies
         resolutions = get_available_resolutions()
+        # Charger la liste des résolutions personnalisées pour marquer les entrées
+        custom_list = set(load_custom_resolutions())
         for res in resolutions:
             width, height, label = res
+            # Marquer les résolutions venant du fichier utilisateur
+            if (width, height) in custom_list:
+                try:
+                    marker = t('options.custom_marker')
+                except Exception:
+                    marker = 'custom'
+                label = f"{label} ({marker})"
             is_selected = bool(self.state.selected_resolution and 
                          self.state.selected_resolution[0] == width and 
                          self.state.selected_resolution[1] == height)
