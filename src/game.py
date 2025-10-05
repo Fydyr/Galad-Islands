@@ -57,6 +57,7 @@ from src.components.core.baseComponent import BaseComponent
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.exit_modal import ExitConfirmationModal
+from src.ui.notification_system import get_notification_system
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
 
@@ -107,6 +108,19 @@ class EventHandler:
             self._show_help_modal()
         elif controls.matches_action(controls.ACTION_SYSTEM_DEBUG, event):
             self._toggle_debug()
+        # Dev cheat: give gold (F5) - only active when debug mode or dev flag enabled
+        elif event.key == pygame.K_F5:
+            # Allow only in debug mode or when configuration enables dev cheats
+            try:
+                from src.settings.settings import ConfigManager
+                cfg = ConfigManager()
+                dev_mode = cfg.get('dev_mode', False)
+            except Exception:
+                dev_mode = False
+
+            if self.game_engine.show_debug or dev_mode:
+                self.game_engine._give_dev_gold(500)
+            return
         elif controls.matches_action(controls.ACTION_SYSTEM_SHOP, event):
             self._open_shop()
         elif controls.matches_action(controls.ACTION_CAMERA_FOLLOW_TOGGLE, event):
@@ -196,6 +210,28 @@ class EventHandler:
             return True
 
         return False
+
+    def _give_dev_gold(self, amount: int = 500) -> None:
+        """Ajoute de l'or au joueur local (outil de développement).
+        Cette fonction doit être appelée uniquement en mode debug/dev.
+        """
+        try:
+            # Trouver le PlayerComponent pour l'équipe alliée
+            from src.components.core.playerComponent import PlayerComponent
+            from src.components.core.teamComponent import TeamComponent
+            for ent, (pcomp, tcomp) in es.get_components(PlayerComponent, TeamComponent):
+                # ajouter à l'entité joueur contrôlée (si team id correct) ; sinon ajouter à la première
+                pcomp.add_gold(amount)
+                print(f"[DEV] Ajouté {amount} pièces d'or au joueur (ent {ent}). Nouveau solde: {pcomp.get_gold()}")
+                return
+            # Fallback: si aucun PlayerComponent trouvé, créer un joueur temporaire
+            ent = es.create_entity()
+            pc = PlayerComponent(stored_gold=amount)
+            es.add_component(ent, pc)
+            es.add_component(ent, TeamComponent(1))
+            print(f"[DEV] Créé un PlayerComponent temporaire avec {amount} or (ent {ent})")
+        except Exception as e:
+            print(f"[DEV] Échec de _give_dev_gold: {e}")
 
 
 class GameRenderer:
@@ -386,6 +422,10 @@ class GameRenderer:
         """Rend l'interface utilisateur."""
         if action_bar is not None:
             action_bar.draw(window)
+        
+        # Rendre le système de notification
+        if self.game_engine.notification_system is not None:
+            self.game_engine.notification_system.render(window)
             
     def _render_debug_info(self, window, camera, dt):
         """Rend les informations de debug."""
@@ -480,6 +520,7 @@ class GameEngine:
         self.flying_chest_manager = FlyingChestManager()
         self.stormManager = StormManager()
         self.player = None
+        self.notification_system = get_notification_system()
         
         # Processeurs ECS
         self.movement_processor = None
@@ -494,6 +535,12 @@ class GameEngine:
         self.camera_follow_target_id = None
         self.control_groups = {}
         self.selection_team_filter = Team.ALLY
+        
+        # Gestion du placement de tours
+        self.tower_placement_mode = False
+        self.tower_type_to_place = None  # "defense" or "heal"
+        self.tower_team_id = None
+        self.tower_cost = 0
         
         # Gestionnaire d'événements et rendu
         self.event_handler = EventHandler(self)
@@ -527,7 +574,7 @@ class GameEngine:
         self.clock.tick(60)
         
         # Initialiser l'ActionBar
-        self.action_bar = ActionBar(self.window.get_width(), self.window.get_height())
+        self.action_bar = ActionBar(self.window.get_width(), self.window.get_height(), game_engine=self)
         self.action_bar.set_game_engine(self)  # Connecter la référence au moteur de jeu
         self.action_bar.on_camp_change = self._handle_action_bar_camp_change
         self.action_bar.set_camp(self.selection_team_filter, show_feedback=False)
@@ -584,10 +631,14 @@ class GameEngine:
         self.player_controls = playerControlProcessor.PlayerControlProcessor()
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
-        
+        # Tower processor (gère tours de défense/soin)
+        from src.processeurs.towerProcessor import TowerProcessor
+        self.tower_processor = TowerProcessor()
+
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
+        es.add_processor(self.tower_processor, priority=5)
         es.add_processor(self.lifetime_processor, priority=10)
         
         # Configurer les handlers d'événements
@@ -633,6 +684,38 @@ class GameEngine:
         self.camera.x = center_x - self.camera.screen_width / (2 * self.camera.zoom)
         self.camera.y = center_y - self.camera.screen_height / (2 * self.camera.zoom)
         self.camera._constrain_camera()
+
+    def _give_dev_gold(self, amount: int = 500) -> None:
+        """Ajoute de l'or au joueur local (outil de développement).
+        Méthode exposée sur GameEngine pour être appelée par l'EventHandler.
+        Cette fonction doit être appelée uniquement en mode debug/dev.
+        """
+        try:
+            # Importer les composants nécessaires
+            from src.components.core.playerComponent import PlayerComponent
+            from src.components.core.teamComponent import TeamComponent
+
+            # Si un PlayerEntity créé au démarrage est disponible, l'utiliser
+            if self.player is not None and es.has_component(self.player, PlayerComponent):
+                pcomp = es.component_for_entity(self.player, PlayerComponent)
+                pcomp.add_gold(amount)
+                print(f"[DEV] Ajouté {amount} pièces d'or au joueur (player entity {self.player}). Nouveau solde: {pcomp.get_gold()}")
+                return
+
+            # Sinon, chercher un PlayerComponent dans le monde
+            for ent, (pcomp, tcomp) in es.get_components(PlayerComponent, TeamComponent):
+                pcomp.add_gold(amount)
+                print(f"[DEV] Ajouté {amount} pièces d'or au joueur (ent {ent}). Nouveau solde: {pcomp.get_gold()}")
+                return
+
+            # Fallback: si aucun PlayerComponent trouvé, créer un joueur temporaire
+            ent = es.create_entity()
+            pc = PlayerComponent(stored_gold=amount)
+            es.add_component(ent, pc)
+            es.add_component(ent, TeamComponent(1))
+            print(f"[DEV] Créé un PlayerComponent temporaire avec {amount} or (ent {ent})")
+        except Exception as e:
+            print(f"[DEV] Échec de _give_dev_gold: {e}")
 
     def toggle_camera_follow_mode(self) -> None:
         """Bascule entre une caméra libre et le suivi de l'unité sélectionnée."""
@@ -718,6 +801,15 @@ class GameEngine:
 
     def handle_mouse_selection(self, mouse_pos: Tuple[int, int]) -> None:
         """Gère la sélection via un clic gauche."""
+        # Si on est en mode placement de tour, tenter de placer une tour
+        if self.tower_placement_mode:
+            # Convertir la position écran en position monde
+            if self.camera:
+                world_x, world_y = self.camera.screen_to_world(*mouse_pos)
+                if self.try_place_tower_at_position(world_x, world_y):
+                    return  # Tour placée avec succès
+            # Si on n'a pas pu placer la tour, continuer avec la sélection normale
+        
         entity = self._find_unit_at_screen_position(mouse_pos)
         self._set_selected_entity(entity)
 
@@ -1204,9 +1296,17 @@ class GameEngine:
         if self.action_bar is not None:
             self.action_bar.update(dt)
         
+        # Mettre à jour le système de notification
+        if self.notification_system is not None:
+            self.notification_system.update(dt)
+        
         # Traiter les capacités spéciales d'abord (avec dt)
         if self.capacities_processor is not None:
             self.capacities_processor.process(dt)
+        
+        # Traiter le TowerProcessor (avec dt)
+        if self.tower_processor is not None:
+            self.tower_processor.process(dt)
         
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
@@ -1306,6 +1406,118 @@ class GameEngine:
             self.game_over_message = t("game_over.victory")
         else:
             self.game_over_message = t("game_over.defeat")
+    
+    def try_place_tower_at_position(self, world_x: float, world_y: float) -> bool:
+        """
+        Tente de placer une tour à la position mondiale donnée.
+        La tour sera automatiquement positionnée au centre de la tuile la plus proche.
+        
+        Args:
+            world_x: Position X dans le monde
+            world_y: Position Y dans le monde
+            
+        Returns:
+            True si la tour a été placée avec succès, False sinon
+        """
+        if not self.tower_placement_mode:
+            return False
+        
+        # Snapper la position au centre de la tuile la plus proche
+        tile_x = int(world_x / TILE_SIZE)
+        tile_y = int(world_y / TILE_SIZE)
+        snapped_x = (tile_x + 0.5) * TILE_SIZE
+        snapped_y = (tile_y + 0.5) * TILE_SIZE
+        
+        # Vérifier si la position a été ajustée (notification seulement si déplacement significatif)
+        distance_moved = ((world_x - snapped_x) ** 2 + (world_y - snapped_y) ** 2) ** 0.5
+        position_was_adjusted = distance_moved > TILE_SIZE * 0.1  # Seuil de 10% de TILE_SIZE
+        
+        # Vérifier que la position est sur une île
+        from src.components.globals.mapComponent import is_tile_island
+        if not is_tile_island(self.grid, snapped_x, snapped_y):
+            if hasattr(self, 'action_bar') and self.action_bar:
+                self.action_bar._show_feedback('warning', t('placement.must_be_on_island'))
+            return False
+        
+        # Vérifier qu'il n'y a pas déjà une tour à cette position exacte (tolérance de 1 pixel)
+        from src.components.core.towerComponent import TowerComponent
+        for tower_ent, (tower_pos, tower_comp) in es.get_components(PositionComponent, TowerComponent):
+            distance = ((tower_pos.x - snapped_x) ** 2 + (tower_pos.y - snapped_y) ** 2) ** 0.5
+            if distance < 1.0:  # Moins d'1 pixel de distance
+                if hasattr(self, 'action_bar') and self.action_bar:
+                    self.action_bar._show_feedback('warning', t('placement.tower_already_here', default='Une tour est déjà présente ici'))
+                return False
+        
+        # Vérifier l'or du joueur
+        current_gold = self._get_current_player_gold()
+        if current_gold < self.tower_cost:
+            if hasattr(self, 'action_bar') and self.action_bar:
+                self.action_bar._show_feedback('warning', t('shop.insufficient_gold'))
+            return False
+        
+        # Vérifier que le team_id est valide
+        if self.tower_team_id is None:
+            return False
+        
+        # Créer la tour à la position snappée
+        try:
+            if self.tower_type_to_place == "defense":
+                from src.factory.buildingFactory import create_defense_tower
+                new_ent = create_defense_tower(snapped_x, snapped_y, team_id=self.tower_team_id)
+            elif self.tower_type_to_place == "heal":
+                from src.factory.buildingFactory import create_heal_tower
+                new_ent = create_heal_tower(snapped_x, snapped_y, team_id=self.tower_team_id)
+            else:
+                return False
+            
+            # Ajouter à la base
+            from src.components.core.baseComponent import BaseComponent
+            BaseComponent.add_unit_to_base(new_ent, is_enemy=(self.tower_team_id != 1))
+            
+            # Déduire le coût
+            self._set_current_player_gold(current_gold - self.tower_cost)
+            
+            # Afficher un message de succès
+            if hasattr(self, 'action_bar') and self.action_bar:
+                building_name = t(f'shop.{self.tower_type_to_place}_tower')
+                # Si la position a été ajustée de manière significative, informer l'utilisateur
+                if position_was_adjusted:
+                    self.action_bar._show_feedback('success', t('shop.buildings.built_snapped', building=building_name))
+                else:
+                    self.action_bar._show_feedback('success', t('shop.buildings.built', building=building_name))
+            
+            # Désactiver le mode de placement
+            self.tower_placement_mode = False
+            self.tower_type_to_place = None
+            self.tower_team_id = None
+            self.tower_cost = 0
+            
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to place tower: {e}")
+            if hasattr(self, 'action_bar') and self.action_bar:
+                self.action_bar._show_feedback('error', t('feedback.error', default='Error occurred'))
+            return False
+    
+    def _get_current_player_gold(self) -> int:
+        """Retourne la quantité d'or du joueur actuel."""
+        team_id = Team.ENEMY if self.selection_team_filter == Team.ENEMY else Team.ALLY
+        
+        for entity, (player_comp, team_comp) in es.get_components(PlayerComponent, TeamComponent):
+            if team_comp.team_id == team_id:
+                return player_comp.stored_gold
+        
+        return 0
+    
+    def _set_current_player_gold(self, amount: int):
+        """Définit la quantité d'or du joueur actuel."""
+        team_id = Team.ENEMY if self.selection_team_filter == Team.ENEMY else Team.ALLY
+        
+        for entity, (player_comp, team_comp) in es.get_components(PlayerComponent, TeamComponent):
+            if team_comp.team_id == team_id:
+                player_comp.stored_gold = max(0, amount)
+                return
 
 
 def game(window=None, bg_original=None, select_sound=None):

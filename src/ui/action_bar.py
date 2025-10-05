@@ -1,20 +1,31 @@
-import pygame
-import os
-import pygame
-import os
 import math
+import os
 from typing import Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
+
+import pygame
+import esper
+
 from src.ui.boutique import Shop, ShopFaction
 from src.settings.localization import t
+from src.ui.debug_modal import DebugModal
+from src.ui.notification_system import get_notification_system, NotificationType
 from src.constants.team import Team
-import esper
 from src.components.core.playerComponent import PlayerComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.team_enum import Team as TeamEnum
 from src.settings import controls
 from src.managers.sprite_manager import sprite_manager, SpriteID
+from src.components.special.speArchitectComponent import SpeArchitect
+
+# Imports moved from inline positions for better code quality
+from src.constants.gameplay import PLAYER_DEFAULT_GOLD
+from src.settings.settings import ConfigManager, TILE_SIZE
+from src.components.core.positionComponent import PositionComponent
+from src.components.globals.mapComponent import is_tile_island
+from src.factory.buildingFactory import create_defense_tower
+from src.components.core.baseComponent import BaseComponent
 
 
 # Couleurs de l'interface améliorées
@@ -68,6 +79,7 @@ class ActionType(Enum):
     BUILD_HEAL_TOWER = "build_heal_tower"
     GLOBAL_ATTACK = "global_attack"
     GLOBAL_DEFENSE = "global_defense"
+    DEV_GIVE_GOLD = "dev_give_gold"
     SWITCH_CAMP = "switch_camp"
     OPEN_SHOP = "open_shop"
 
@@ -102,9 +114,13 @@ class UnitInfo:
 class ActionBar:
     """Barre d'action principale du jeu."""
     
-    def __init__(self, screen_width: int, screen_height: int):
+    def __init__(self, screen_width: int, screen_height: int, game_engine=None):
         self.screen_width = screen_width
         self.screen_height = screen_height
+        self.game_engine = game_engine
+        
+        # Système de notification
+        self.notification_system = get_notification_system()
         
         # Configuration de la barre d'action
         self.bar_height = 120
@@ -113,16 +129,10 @@ class ActionBar:
                                   self.bar_width, self.bar_height)
         
         # Polices
-        try:
-            self.font_normal = pygame.font.Font(None, 24)
-            self.font_small = pygame.font.Font(None, 18)
-            self.font_large = pygame.font.Font(None, 32)
-            self.font_title = pygame.font.Font(None, 28)
-        except:
-            self.font_normal = pygame.font.SysFont("Arial", 24, bold=True)
-            self.font_small = pygame.font.SysFont("Arial", 18)
-            self.font_large = pygame.font.SysFont("Arial", 32, bold=True)
-            self.font_title = pygame.font.SysFont("Arial", 28, bold=True)
+        self.font_normal = pygame.font.Font(None, 24)
+        self.font_small = pygame.font.Font(None, 18)
+        self.font_large = pygame.font.Font(None, 32)
+        self.font_title = pygame.font.Font(None, 28)
         
         # État du jeu
         self.selected_unit: Optional[UnitInfo] = None
@@ -136,6 +146,11 @@ class ActionBar:
         # Animation et effets
         self.button_glow_timer = 0
         self.tooltip_text = ""
+        # Modal de debug
+        self.debug_modal = DebugModal(
+            game_engine=self.game_engine,
+            feedback_callback=self._show_feedback
+        )
         self.tooltip_timer = 0
         
         # Boutons d'action
@@ -168,6 +183,12 @@ class ActionBar:
     def set_game_engine(self, game_engine):
         """Définit la référence vers le moteur de jeu."""
         self.game_engine = game_engine
+        # Propagate game_engine to embedded shop so it can access the grid and other state
+        try:
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop.game_engine = game_engine
+        except Exception:
+            pass
     
     def _get_player_component(self, is_enemy: bool = False) -> Optional[PlayerComponent]:
         """Récupère le PlayerComponent du joueur spécifié."""
@@ -178,7 +199,7 @@ class ActionBar:
                 return player_comp
         
         # Si pas trouvé, créer l'entité joueur
-        from src.constants.gameplay import PLAYER_DEFAULT_GOLD
+
         entity = esper.create_entity()
         player_comp = PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD)
         esper.add_component(entity, player_comp)
@@ -230,6 +251,27 @@ class ActionBar:
                 callback=self._open_shop
             )
         ]
+        # Boutons de construction (l'Architect peut les activer quand sélectionné)
+        build_buttons = [
+            ActionButton(
+                action_type=ActionType.BUILD_DEFENSE_TOWER,
+                icon_path="assets/sprites/ui/build_defense.png",
+                text=t("actionbar.build_defense"),
+                cost=150,
+                hotkey="",
+                visible=False,
+                callback=self._build_defense_tower
+            ),
+            ActionButton(
+                action_type=ActionType.BUILD_HEAL_TOWER,
+                icon_path="assets/sprites/ui/build_heal.png",
+                text=t("actionbar.build_heal"),
+                cost=120,
+                hotkey="",
+                visible=False,
+                callback=self._build_heal_tower
+            )
+        ]
         
         # Boutons globaux
         global_buttons = [
@@ -252,10 +294,27 @@ class ActionBar:
                 tooltip=t("tooltip.global_defense"),
                 is_global=True,
                 callback=self._activate_global_defense
-            )
+            ),
+            
         ]
         
+        # Vérifier si le mode debug ou dev_mode est activé pour afficher le bouton
+        if ConfigManager().get('dev_mode', True):
+            global_buttons.append(
+                ActionButton(
+                    action_type=ActionType.DEV_GIVE_GOLD,
+                    icon_path="assets/sprites/ui/dev_give_gold.png",
+                    text=t("actionbar.debug_menu"),
+                    cost=0,
+                    hotkey="",
+                    tooltip=t("debug.modal.title"),
+                    is_global=True,
+                    callback=self._toggle_debug_menu
+                )
+            )
+        
         self.action_buttons.extend(special_buttons)
+        self.action_buttons.extend(build_buttons)
         self.action_buttons.extend(global_buttons)
         self._update_button_positions()
     
@@ -284,19 +343,13 @@ class ActionBar:
         self._update_button_positions()
         
         # Recréer les polices adaptées à la nouvelle résolution
-        try:
-            font_scale = min(new_width, new_height) / 800  # Base sur 800px
-            font_scale = max(0.8, min(1.5, font_scale))  # Limiter l'échelle
-            
-            self.font_normal = pygame.font.Font(None, int(24 * font_scale))
-            self.font_small = pygame.font.Font(None, int(18 * font_scale))
-            self.font_large = pygame.font.Font(None, int(32 * font_scale))
-            self.font_title = pygame.font.Font(None, int(28 * font_scale))
-        except:
-            self.font_normal = pygame.font.SysFont("Arial", int(24 * font_scale), bold=True)
-            self.font_small = pygame.font.SysFont("Arial", int(18 * font_scale))
-            self.font_large = pygame.font.SysFont("Arial", int(32 * font_scale), bold=True)
-            self.font_title = pygame.font.SysFont("Arial", int(28 * font_scale), bold=True)
+        font_scale = min(new_width, new_height) / 800  # Base sur 800px
+        font_scale = max(0.8, min(1.5, font_scale))  # Limiter l'échelle
+        
+        self.font_normal = pygame.font.Font(None, int(24 * font_scale))
+        self.font_small = pygame.font.Font(None, int(18 * font_scale))
+        self.font_large = pygame.font.Font(None, int(32 * font_scale))
+        self.font_title = pygame.font.Font(None, int(28 * font_scale))
     
     def _create_placeholder_icon(self, text: str, is_global: bool = False) -> pygame.Surface:
         """Crée une icône de remplacement avec du texte."""
@@ -345,6 +398,18 @@ class ActionBar:
         start_y = self.screen_height - self.bar_height + 10
         
         # Boutons normaux (à gauche)
+        # Si une unité est sélectionnée et que c'est un Architect allié, activer les boutons build
+        is_architect_selected = False
+        if self.selected_unit and hasattr(self, 'game_engine') and self.game_engine:
+            sel_id = self.game_engine.selected_unit_id
+            if sel_id is not None and esper.has_component(sel_id, SpeArchitect):
+                is_architect_selected = True
+
+        # Mettre à jour visibilité des boutons de construction
+        for btn in self.action_buttons:
+            if btn.action_type in (ActionType.BUILD_DEFENSE_TOWER, ActionType.BUILD_HEAL_TOWER):
+                btn.visible = is_architect_selected
+
         normal_buttons = [btn for btn in self.action_buttons if btn.visible and not btn.is_global]
         for i, button in enumerate(normal_buttons):
             x = start_x + i * (button_size + button_spacing)
@@ -354,6 +419,15 @@ class ActionBar:
         
         # Boutons globaux (à droite, plus espacés du bord)
         global_buttons = [btn for btn in self.action_buttons if btn.is_global]
+        # Gérer la visibilité spéciale pour le bouton dev : n'afficher que si mode debug ou dev_mode config
+        cfg = ConfigManager()
+        dev_mode = cfg.get('dev_mode', False)
+
+        for btn in global_buttons:
+            if btn.action_type == ActionType.DEV_GIVE_GOLD:
+                # Visible si le moteur de jeu est en debug ou si dev_mode est activé
+                is_debug = hasattr(self, 'game_engine') and self.game_engine and getattr(self.game_engine, 'show_debug', False)
+                btn.visible = bool(dev_mode or is_debug)
         global_start_x = self.screen_width - len(global_buttons) * (button_size + button_spacing) - 10
         for i, button in enumerate(global_buttons):
             x = global_start_x + i * (button_size + button_spacing)
@@ -396,7 +470,7 @@ class ActionBar:
 
         self.current_camp = team
         # Mettre à jour la faction de la boutique
-        from src.ui.boutique import ShopFaction
+
         new_faction = ShopFaction.ALLY if team == Team.ALLY else ShopFaction.ENEMY
         self.shop.set_faction(new_faction)
 
@@ -437,9 +511,24 @@ class ActionBar:
         else:
             self._show_feedback("warning", t("feedback.already_active"))
     
-    def _show_feedback(self, type: str, message: str):
-        """Affiche un message de feedback."""
-        print(f"[{type.upper()}] {message}")
+    def _show_feedback(self, feedback_type: str, message: str):
+        """
+        Affiche un message de feedback via le système de notification.
+        
+        Args:
+            feedback_type: Type de feedback ("success", "warning", "error", "info")
+            message: Le message à afficher
+        """
+        # Mapping des types de feedback vers NotificationType
+        type_mapping = {
+            "success": NotificationType.SUCCESS,
+            "warning": NotificationType.WARNING,
+            "error": NotificationType.ERROR,
+            "info": NotificationType.INFO
+        }
+        
+        notification_type = type_mapping.get(feedback_type, NotificationType.INFO)
+        self.notification_system.add_notification(message, notification_type)
     
     def _use_special_ability(self):
         """Déclenche la capacité spéciale de l'unité sélectionnée."""
@@ -448,6 +537,121 @@ class ActionBar:
             self.game_engine.trigger_selected_special_ability()
         else:
             print("Moteur de jeu non disponible pour déclencher la capacité spéciale")
+
+
+
+    def _build_defense_tower(self):
+        """Callback: construit une tour d'attaque. L'utilisateur doit ensuite cliquer sur une île."""
+        if not hasattr(self, 'game_engine') or self.game_engine is None:
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop._show_purchase_feedback(t("shop.cannot_purchase"), False)
+            else:
+                self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+
+        # Vérifier qu'on a un Architecte sélectionné pour la team
+        if self.selected_unit is None:
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
+            else:
+                self._show_feedback("warning", t("tooltip.need_architect"))
+            return
+
+        entity_id = self.game_engine.selected_unit_id
+        if entity_id is None:
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
+            else:
+                self._show_feedback('warning', t("tooltip.need_architect"))
+            return
+
+        if not esper.has_component(entity_id, SpeArchitect):
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
+            else:
+                self._show_feedback('warning', t("tooltip.need_architect"))
+            return
+
+        team = esper.component_for_entity(entity_id, TeamComponent)
+
+        # Vérifier l'or
+        current_gold = self._get_current_player_gold()
+        cost = 150
+        if current_gold < cost:
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop._show_purchase_feedback(t('shop.insufficient_gold'), False)
+            else:
+                self._show_feedback('warning', t('shop.insufficient_gold'))
+            return
+
+        # Activer le mode de placement de tour
+        self.game_engine.tower_placement_mode = True
+        self.game_engine.tower_type_to_place = "defense"
+        self.game_engine.tower_team_id = team.team_id
+        self.game_engine.tower_cost = cost
+        
+        # Afficher un message d'instruction
+        if hasattr(self, 'shop') and self.shop is not None:
+            self.shop._show_purchase_feedback(t("tooltip.click_to_place_tower"), True)
+        else:
+            self._show_feedback('info', t("tooltip.click_to_place_tower"))
+
+
+    def _build_heal_tower(self):
+        """Callback: construit une tour de soin. L'utilisateur doit ensuite cliquer sur une île."""
+        if not hasattr(self, 'game_engine') or self.game_engine is None:
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop._show_purchase_feedback(t("shop.cannot_purchase"), False)
+            else:
+                self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+
+        # Vérifier qu'on a un Architecte sélectionné pour la team
+        if self.selected_unit is None:
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
+            else:
+                self._show_feedback("warning", t("tooltip.need_architect"))
+            return
+
+        entity_id = self.game_engine.selected_unit_id
+        if entity_id is None:
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
+            else:
+                self._show_feedback('warning', t("tooltip.need_architect"))
+            return
+
+        if not esper.has_component(entity_id, SpeArchitect):
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop._show_purchase_feedback(t("tooltip.need_architect"), False)
+            else:
+                self._show_feedback('warning', t("tooltip.need_architect"))
+            return
+
+        team = esper.component_for_entity(entity_id, TeamComponent)
+
+        # Vérifier l'or
+        current_gold = self._get_current_player_gold()
+        cost = 120
+        if current_gold < cost:
+            if hasattr(self, 'shop') and self.shop is not None:
+                self.shop._show_purchase_feedback(t('shop.insufficient_gold'), False)
+            else:
+                self._show_feedback('warning', t('shop.insufficient_gold'))
+            return
+
+        # Activer le mode de placement de tour
+        self.game_engine.tower_placement_mode = True
+        self.game_engine.tower_type_to_place = "heal"
+        self.game_engine.tower_team_id = team.team_id
+        self.game_engine.tower_cost = cost
+        
+        # Afficher un message d'instruction
+        if hasattr(self, 'shop') and self.shop is not None:
+            self.shop._show_purchase_feedback(t("tooltip.click_to_place_tower"), True)
+        else:
+            self._show_feedback('info', t("tooltip.click_to_place_tower"))
 
     def update_special_cooldowns(self, dt: float):
         """Met à jour les cooldowns des capacités spéciales."""
@@ -488,6 +692,12 @@ class ActionBar:
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Gère les événements pour la barre d'action."""
+        # Le modal debug a la priorité absolue sur les événements
+        if self.debug_modal.is_active():
+            result = self.debug_modal.handle_event(event)
+            if result is not None:
+                return True
+        
         # La boutique a la priorité sur les événements
         if self.shop.handle_event(event):
             return True
@@ -545,6 +755,12 @@ class ActionBar:
     
     def _handle_mouse_click(self, mouse_pos: Tuple[int, int]) -> bool:
         """Gère les clics sur les boutons."""
+        # Gestion prioritaire du modal debug s'il est ouvert
+        if self.debug_modal.is_active():
+            # Laisser le modal gérer l'événement
+            return False
+        
+        # Si clic en dehors des zones d'interface, ignorer
         if not self.bar_rect.collidepoint(mouse_pos) and not (self.camp_button_rect and self.camp_button_rect.collidepoint(mouse_pos)):
             return False
         
@@ -572,6 +788,15 @@ class ActionBar:
                     return True
         
         return False
+
+    def _toggle_debug_menu(self):
+        """Ouvre/ferme le modal de debug."""
+        if self.debug_modal.is_active():
+            self.debug_modal.close()
+        else:
+            self.debug_modal.open()
+
+
     
     def _handle_keypress(self, key: int) -> bool:
         """Gère les raccourcis clavier."""
@@ -681,6 +906,10 @@ class ActionBar:
         
         # Dessiner la boutique par-dessus tout
         self.shop.draw(surface)
+        
+        # Dessiner le modal debug par-dessus tout si actif
+        if self.debug_modal.is_active():
+            self.debug_modal.render(surface)
     
     def _draw_background(self, surface: pygame.Surface):
         """Dessine le fond avec dégradé."""

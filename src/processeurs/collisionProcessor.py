@@ -20,6 +20,7 @@ from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.managers.sprite_manager import SpriteID, sprite_manager
 from src.components.events.flyChestComponent import FlyingChestComponent
+from src.components.core.towerComponent import TowerComponent
 
 class CollisionProcessor(esper.Processor):
     def __init__(self, graph=None):
@@ -123,6 +124,15 @@ class CollisionProcessor(esper.Processor):
                 if rect1.colliderect(rect2):
                     already_hit.append((ent, other_ent))
                     already_hit.append((other_ent, ent))
+                    
+                    # Ignorer les collisions entre tours et coffres volants
+                    is_tower1 = esper.has_component(ent, TowerComponent)
+                    is_tower2 = esper.has_component(other_ent, TowerComponent)
+                    is_chest1 = esper.has_component(ent, FlyingChestComponent)
+                    is_chest2 = esper.has_component(other_ent, FlyingChestComponent)
+                    
+                    if (is_tower1 and is_chest2) or (is_tower2 and is_chest1):
+                        continue
                     
                     # Si c'est la même équipe, ignorer SAUF si une des deux est une mine (team_id=0)
                     if team.team_id == other_team.team_id and team.team_id != 0 and other_team.team_id != 0:

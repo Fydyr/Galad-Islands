@@ -109,6 +109,19 @@ TRANSLATIONS = {
     "game.exit_modal.stay": "Stay",
     "game.exit_modal.quit": "Quit",
     
+    # Debug modal
+    "debug.modal.title": "Debug Menu",
+    "debug.modal.message": "Select a debug action:",
+    "debug.modal.give_gold": "Give Gold",
+    "debug.modal.close": "Close",
+    
+    # Tooltips for tower placement
+    "tooltip.need_architect": "Select an Architect to build",
+    "tooltip.click_to_place_tower": "Click on an island to place the tower",
+    "tooltip.dev_give_gold": "Dev action not allowed",
+    "placement.must_be_on_island": "Towers must be placed on an island",
+    "placement.tower_already_here": "A tower is already present at this location",
+    
     # Tips
     "tip.0": "Tip: Controlling a single zeppelin can turn the tide of battle at the right moment.",
     "tip.1": "Quote: 'He who masters the wind, masters war.'",
@@ -184,9 +197,11 @@ TRANSLATIONS = {
     
     # Building descriptions
     "shop.defense_tower": "Defense Tower",
-    "shop.defense_tower_desc": "Automatic attack tower",
+    "shop.defense_tower_desc": "Automatic defense tower",
     "shop.heal_tower": "Healing Tower",
     "shop.heal_tower_desc": "Allied regeneration tower",
+    "shop.buildings.built": "{building} built!",
+    "shop.buildings.built_snapped": "{building} built (snapped to grid)!",
     
     # Action bar interface
     "actionbar.special_ability": "Special Ability",
@@ -201,6 +216,9 @@ TRANSLATIONS = {
     "actionbar.mana": "Mana", 
     "actionbar.position": "Position",
     "actionbar.cooldown": "Cooldown",
+    "actionbar.build_defense": "Defense Tower",
+    "actionbar.build_heal": "Heal Tower",
+    "actionbar.debug_menu": "Debug",
     
     # Tooltips
     "tooltip.special_ability": "Unit's special ability\nHotkey: R",
@@ -208,6 +226,7 @@ TRANSLATIONS = {
     "tooltip.shop": "Open shop\nHotkey: B", 
     "tooltip.global_attack": "Attack boost for all units\nCost: 50 gold\nDuration: 30s\nHotkey: Q",
     "tooltip.global_defense": "Defense boost for all units\nCost: 50 gold\nDuration: 30s\nHotkey: E",
+  "placement.must_be_on_island": "Buildings must be placed on island tiles!",
     
     # Feedback messages
     "feedback.unit_created": "{} created (camp {})!",
@@ -217,6 +236,8 @@ TRANSLATIONS = {
     "feedback.ability_cooldown": "Ability on cooldown: {:.1f}s",
     "feedback.already_active": "Already active!",
     "feedback.no_unit_selected": "No unit selected!",
+    "feedback.dev_gold_given": "500 gold added (debug mode)",
+    "feedback.error": "Error",
     
     # Camps
     "camp.ally": "Ally",
@@ -241,7 +262,7 @@ TRANSLATIONS = {
     "enemy_shop.shaman_desc": "Healer and evil support",
     "enemy_shop.engineer": "Enemy Engineer",
     "enemy_shop.engineer_desc": "Trap constructor",
-    "enemy_shop.attack_tower": "Attack Tower",
+    "enemy_shop.attack_tower": "Defense Tower",
     "enemy_shop.attack_tower_desc": "Formidable offensive tower",
     "enemy_shop.heal_tower": "Regeneration Tower",
     "enemy_shop.heal_tower_desc": "Evil support tower",
