@@ -118,7 +118,7 @@ TRANSLATIONS = {
     
     # Tooltips pour le placement de tours
     "tooltip.need_architect": "Sélectionnez un Architecte pour construire",
-    "tooltip.click_to_place_tower": "Cliquez sur une île pour placer la tour",
+    "tooltip.click_to_place_tower": "Cliquez sur une île pour placer votre tour !",
     "tooltip.dev_give_gold": "Action de développement non autorisée",
     "placement.must_be_on_island": "Les tours doivent être placées sur une île",
     "placement.tower_already_here": "Une tour est déjà présente à cet endroit",

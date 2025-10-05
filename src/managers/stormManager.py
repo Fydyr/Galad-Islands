@@ -20,7 +20,7 @@ class StormManager:
 
     def __init__(self):
         self.grid = None
-        self.spawn_chance = 0.10  # 10%
+        self.spawn_chance = 0.05  # 5%
         self.check_interval = 5.0  # Check every 5 seconds
         self.time_since_check = 0.0
 
