@@ -27,6 +27,8 @@ def create_projectile(entity, type: str = "bullet"):
     pos = esper.component_for_entity(entity, PositionComponent)
     team = esper.component_for_entity(entity, TeamComponent)
     team_id = team.team_id
+    druidMaxX = 150
+    druidMaxY = 150
 
     if not esper.has_component(entity, SpeArchitect) and not esper.has_component(entity, SpeDruid):
         # Récupère le radius pour savoir si on tire sur les côtés
@@ -133,3 +135,21 @@ def create_projectile(entity, type: str = "bullet"):
                     PROJECTILE_HEIGHT
                 ))
         
+    elif esper.has_component(entity, SpeDruid):
+        current_healing_target = None
+
+        for target_ent, (target_pos, target_health, target_team) in esper.get_components(PositionComponent, HealthComponent, TeamComponent):
+            if target_team.team_id == team_id and target_ent != entity:
+                if target_health.currentHealth < target_health.maxHealth:
+                    if abs(target_pos.x - pos.x) <= druidMaxX and abs(target_pos.y - pos.y) <= druidMaxY:
+                        if current_healing_target is None:
+                            current_healing_target = target_health
+                        elif current_healing_target.currentHealth < target_health.maxHealth:
+                            current_healing_target = target_health
+
+        if current_healing_target is not None:
+            print(current_healing_target.currentHealth)
+            if (target_health.currentHealth + 20) > target_health.maxHealth:
+                current_healing_target.currentHealth = current_healing_target.maxHealth
+            else:
+                current_healing_target.currentHealth += 20
