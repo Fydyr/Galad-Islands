@@ -25,7 +25,7 @@
 #### **Zasper** (Light Scout) - 10 Gold
 ![Allied Zasper](/assets/docs/units/ally/Scout.png)
 ![Enemy Zasper](/assets/docs/units/enemy/Scout.png)
-- **Speed** : 5/s (Fastest!)
+- **Speed** : 5/s
 - **Damage** : 10-15
 - **Armor** : 60 HP
 - **Range** : 5 tiles
@@ -75,6 +75,15 @@
 - **Armor** : 100 HP
 - **Special Ability** : _Auto-Reload_ - Halves cooldown of allies (8-tile radius)
 - **Strategy** : Can build towers on islands for defense or healing.
+
+#### **Kamikase** - 30 Gold
+![Kamikase allié](/assets/docs/units/ally/Kamikase.png)
+![Kamikase ennemie](/assets/docs/units/enemy/kamikase.png)
+- **Speed** : 6/s (Fastest!)
+- **Damage** : instantaneous (at once)
+- **Armor** : 60 PV
+- **Range** : 0 case (collision)
+- **Strategy** : Ideal for heavy vessels or towers
 
 ## Structures
 
