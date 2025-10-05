@@ -38,6 +38,17 @@ class BanditsProcessor:
                 esper.delete_entity(entity)
             return
         
+        # Vérifier si le bandit est sorti de la carte
+        if esper.has_component(entity, Position):
+            pos = esper.component_for_entity(entity, Position)
+            # Détruire le bandit s'il est trop loin de la carte
+            margin = TILE_SIZE * 3  # Marge de 3 tuiles
+            if (pos.x < -margin or pos.x > (MAP_WIDTH * TILE_SIZE + margin) or
+                pos.y < -margin or pos.y > (MAP_HEIGHT * TILE_SIZE + margin)):
+                if esper.entity_exists(entity):
+                    esper.delete_entity(entity)
+                return
+        
         # Attaquer les entités à proximité de manière continue (toutes les 2 secondes)
         if bandits.bandits_nb_min == 0:  # Utiliser bandits_nb_min comme compteur de cooldown
             bandits.bandits_nb_min = 2.0
@@ -102,25 +113,28 @@ class BanditsProcessor:
         # Choisir un côté aléatoire (0 = gauche, 1 = droite, 2 = haut, 3 = bas)
         side = random.randint(0, 3)
         
+        # Marge de spawn en dehors de la carte (en nombre de tuiles)
+        spawn_margin = 2
+        
         # Déterminer la position de spawn et la direction
-        if side == 0:  # Gauche
-            spawn_x = -TILE_SIZE
-            spawn_y = random.randint(0, MAP_HEIGHT - 1) * TILE_SIZE
+        if side == 0:  # Gauche - entrent vers la droite
+            spawn_x = -spawn_margin * TILE_SIZE
+            spawn_y = random.randint(1, MAP_HEIGHT - 2) * TILE_SIZE
             velocity_x = 100  # Vitesse vers la droite
             velocity_y = 0
-        elif side == 1:  # Droite
-            spawn_x = MAP_WIDTH * TILE_SIZE
-            spawn_y = random.randint(0, MAP_HEIGHT - 1) * TILE_SIZE
+        elif side == 1:  # Droite - entrent vers la gauche
+            spawn_x = (MAP_WIDTH + spawn_margin) * TILE_SIZE
+            spawn_y = random.randint(1, MAP_HEIGHT - 2) * TILE_SIZE
             velocity_x = -100  # Vitesse vers la gauche
             velocity_y = 0
-        elif side == 2:  # Haut
-            spawn_x = random.randint(0, MAP_WIDTH - 1) * TILE_SIZE
-            spawn_y = -TILE_SIZE
+        elif side == 2:  # Haut - entrent vers le bas
+            spawn_x = random.randint(1, MAP_WIDTH - 2) * TILE_SIZE
+            spawn_y = -spawn_margin * TILE_SIZE
             velocity_x = 0
             velocity_y = 100  # Vitesse vers le bas
-        else:  # Bas
-            spawn_x = random.randint(0, MAP_WIDTH - 1) * TILE_SIZE
-            spawn_y = MAP_HEIGHT * TILE_SIZE
+        else:  # Bas - entrent vers le haut
+            spawn_x = random.randint(1, MAP_WIDTH - 2) * TILE_SIZE
+            spawn_y = (MAP_HEIGHT + spawn_margin) * TILE_SIZE
             velocity_x = 0
             velocity_y = -100  # Vitesse vers le haut
         
@@ -128,11 +142,11 @@ class BanditsProcessor:
         for i in range(num_boats):
             # Calculer un décalage perpendiculaire à la direction
             if side in (0, 1):  # Horizontal
-                offset_x = i * TILE_SIZE * 2
-                offset_y = random.randint(-2, 2) * TILE_SIZE
+                offset_x = i * TILE_SIZE * 1.5
+                offset_y = random.randint(-1, 1) * TILE_SIZE
             else:  # Vertical
-                offset_x = random.randint(-2, 2) * TILE_SIZE
-                offset_y = i * TILE_SIZE * 2
+                offset_x = random.randint(-1, 1) * TILE_SIZE
+                offset_y = i * TILE_SIZE * 1.5
             
             pos_x = spawn_x + offset_x
             pos_y = spawn_y + offset_y
@@ -147,8 +161,8 @@ class BanditsProcessor:
             esper.add_component(bandit_ent, Attack(20))
             esper.add_component(bandit_ent, CanCollide())
             esper.add_component(bandit_ent, Team(0))  # Team neutre
-            esper.add_component(bandit_ent, Event(0, 30, 0))  # event_chance=0, event_duration=30s, current_time=0
-            esper.add_component(bandit_ent, Bandits(1, 6))  # min et max de bandits
+            esper.add_component(bandit_ent, Event(0, 60, 0))  # event_chance=0, event_duration=60s, current_time=0
+            esper.add_component(bandit_ent, Bandits(2.0, 6))  # cooldown_timer=2.0, max_bandits=6
             
             # Ajouter le sprite
             sprite_id = SpriteID.PIRATE_SHIP
@@ -160,7 +174,7 @@ class BanditsProcessor:
             else:
                 # Fallback vers une image par défaut
                 esper.add_component(bandit_ent, Sprite(
-                    "assets/sprites/events/bandits.png",
+                    "assets/sprites/event/pirate_ship.png",
                     64,
                     64
                 ))
