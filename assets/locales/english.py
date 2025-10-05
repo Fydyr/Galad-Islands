@@ -117,6 +117,7 @@ TRANSLATIONS = {
     "debug.modal.spawn_chest": "Spawn Chests",
     "debug.modal.spawn_kraken": "Spawn Kraken",
     "debug.modal.spawn_island_resources": "Spawn Island Resources",
+  "debug.modal.spawn_bandits": "Spawn Bandits",
     "debug.modal.clear_events": "Clear Events",
     "debug.modal.close": "Close",
     
@@ -132,6 +133,7 @@ TRANSLATIONS = {
     "debug.feedback.island_resources_spawned": "Island resources spawned successfully",
     "debug.feedback.events_cleared": "Events cleared successfully",
     "debug.feedback.no_valid_position": "No valid position found",
+  "debug.feedback.bandits_spawned": "Bandits spawned successfully",
     "placement.must_be_on_island": "Towers must be placed on an island",
     "placement.tower_already_here": "A tower is already present at this location",
     
@@ -308,8 +310,7 @@ TRANSLATIONS = {
     "options.info_custom_resolution": "• Custom resolutions are saved automatically",
     "options.info_resize_window": "• Resizing the window saves the new resolution",
     "options.info_resolution_warning": "• Resolutions larger than the screen may cause display problems.",
-    "options.info_manual_fix": "If this happens to you, go to the galad_config.json file and set a smaller resolution",
-    "options.info_manual_fix2": "by manually changing the 'width' and 'height' values.",
+    "options.info_manual_fix": "If this happens to you, launch Galad Config Tool and set a smaller resolution",
     "options.custom_resolution_format": "Custom ({width}x{height})",
     "options.custom_resolution_applied": "✅ Custom resolution applied: {width}x{height}",
     "options.custom_resolution_invalid": "⚠️ Invalid resolution: non-numeric values",

@@ -70,6 +70,9 @@ cd galad-islands
 > - Lancement immédiat après extraction
 > - Pas de configuration supplémentaire
 
+!!! tip "Note"
+    Vous pouvez également utiliser l'outil de configuration `galad-config-tool` inclus dans les releases pour ajuster les paramètres avant de lancer le jeu. Pour plus d'informations, consultez le [guide de l'outil de configuration](galad-config-tool.md).
+
 ### Méthode 2 : Installation depuis les sources (Développeurs)
 
 **Cette méthode est recommandée pour les développeurs ou utilisateurs avancés souhaitant contribuer au projet.**

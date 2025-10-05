@@ -38,27 +38,35 @@ jobs:
         run: |
           # Détection du séparateur selon l'OS
           if [ "$RUNNER_OS" = "Windows" ]; then SEP=';'; else SEP=':'; fi
+          # Build main game
           pyinstaller --onefile main.py --name galad-islands \
             --add-data "assets${SEP}assets"
+          # Build config tool
+          pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
+            --add-data "assets/locales${SEP}assets/locales" \
+            --add-data "src${SEP}src"
 
       - name: Archive build
         if: runner.os == 'Windows'
         run: |
           mkdir -p galad-islands-windows
           copy dist\galad-islands.exe galad-islands-windows\
+          copy dist\galad-config-tool.exe galad-islands-windows\
           xcopy /E /I assets galad-islands-windows\assets
           copy RELEASE_README.md galad-islands-windows\README.md
           Compress-Archive -Path galad-islands-windows\* -DestinationPath galad-islands-windows.zip
         shell: pwsh
 
-      - name: Archive build (Linux/Mac)
+      - name: Archive build (Linux/Mac)  
         if: runner.os != 'Windows'
         run: |
           mkdir -p galad-islands-${{ runner.os }}
           cp dist/galad-islands galad-islands-${{ runner.os }}/
+          cp dist/galad-config-tool galad-islands-${{ runner.os }}/
           cp -r assets galad-islands-${{ runner.os }}/
           cp RELEASE_README.md galad-islands-${{ runner.os }}/README.md
           chmod +x galad-islands-${{ runner.os }}/galad-islands
+          chmod +x galad-islands-${{ runner.os }}/galad-config-tool
           zip -r galad-islands-${{ runner.os }}.zip galad-islands-${{ runner.os }}
 
       - name: Upload Release Asset
@@ -73,6 +81,10 @@ jobs:
             - **Windows** : `galad-islands-windows.zip`
             - **Linux** : `galad-islands-Linux.zip` 
             - **macOS** : `galad-islands-macOS.zip`
+            
+            Chaque archive contient :
+            - `galad-islands` : Le jeu principal
+            - `galad-config-tool` : Outil de configuration autonome (Tkinter)
             
             📖 Consultez le fichier `README.md` inclus dans l'archive pour les instructions d'installation.
             

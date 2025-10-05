@@ -118,6 +118,7 @@ TRANSLATIONS = {
     "debug.modal.spawn_chest": "Créer des coffres",
     "debug.modal.spawn_kraken": "Créer un kraken",
     "debug.modal.spawn_island_resources": "Créer ressources d'îles",
+    "debug.modal.spawn_bandits": "Créer une vague de bandits",
     "debug.modal.clear_events": "Nettoyer les événements",
     "debug.modal.close": "Fermer",
     
@@ -133,6 +134,7 @@ TRANSLATIONS = {
     "debug.feedback.island_resources_spawned": "Ressources d'îles créées avec succès",
     "debug.feedback.events_cleared": "Événements nettoyés avec succès",
     "debug.feedback.no_valid_position": "Aucune position valide trouvée",
+    "debug.feedback.bandits_spawned": "Vague de bandits créée avec succès",
     "placement.must_be_on_island": "Les tours doivent être placées sur une île",
     "placement.tower_already_here": "Une tour est déjà présente à cet endroit",
     
@@ -309,8 +311,7 @@ TRANSLATIONS = {
     "options.info_custom_resolution": "• Les résolutions personnalisées sont sauvegardées automatiquement",
     "options.info_resize_window": "• Redimensionner la fenêtre sauvegarde la nouvelle résolution",
     "options.info_resolution_warning": "• Les résolutions plus grandes que l'écran risquent de provoquer des problèmes d'affichage.",
-    "options.info_manual_fix": "Si cela vous arrive, allez dans le fichier galad_config.json et remettez une résolution plus petite",
-    "options.info_manual_fix2": "en changant les valeurs 'width' et 'height' manuellement.",
+    "options.info_manual_fix": "Si cela vous arrive, lancer Galad Config Tool et remettez une résolution plus petite",
     "options.custom_resolution_format": "Personnalisée ({width}x{height})",
     "options.custom_resolution_applied": "✅ Résolution personnalisée appliquée: {width}x{height}",
     "options.custom_resolution_invalid": "⚠️ Résolution invalide: valeurs non numériques",

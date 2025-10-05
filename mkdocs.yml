@@ -34,6 +34,7 @@ nav:
   - Accueil: index.md
   - 📖 Documentation Utilisateur:
     - Installation et Configuration: user/installation.md
+    - Outil de configuration: user/galad-config-tool.md
     - Guide de démarrage: user/getting-started.md
     - Gameplay:
       - Contrôles: user/controls.md
@@ -65,6 +66,7 @@ nav:
       - Mode debug: dev/debug-mode.md
     - Localisation: dev/localization.md
     - Configuration: dev/configuration.md
+    - Galad Config Tool: dev/galad-config-tool-technical.md
     - Système et Déploiement:
       - Paramètres système critiques: dev/systeme.md
       - Exigences matérielles: dev/requirements.md
