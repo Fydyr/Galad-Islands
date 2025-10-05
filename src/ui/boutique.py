@@ -171,6 +171,9 @@ class UnifiedShop:
         self._initialize_items()
         self._load_icons()
         self._load_tab_icons()
+
+        # Référence au moteur de jeu (sera définie par ActionBar)
+        self.game_engine = None
     
     def _get_player_component(self) -> Optional[PlayerComponent]:
         """Récupère le PlayerComponent du joueur selon la faction de la boutique."""
@@ -267,13 +270,13 @@ class UnifiedShop:
     def _initialize_ally_items(self):
         """Initialise les items pour la faction alliée."""
         self._populate_unit_items(is_enemy=False)
-        # (Les bâtiments ont été retirés de la boutique)
+        # Les bâtiments ne sont pas disponibles dans la boutique ; l'Architect les construit en jeu
     
     def _initialize_enemy_items(self):
         """Initialise les items pour la faction ennemie."""
 
         self._populate_unit_items(is_enemy=True)
-        # (Les bâtiments ennemis retirés de la boutique)
+        # Les bâtiments ennemis ne sont pas disponibles dans la boutique
     
     def _populate_unit_items(self, is_enemy: bool):
         """Ajoute les unités disponibles en se basant sur le catalogue de la factory."""
@@ -300,6 +303,15 @@ class UnifiedShop:
         """Calcule une position de spawn praticable selon la faction."""
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=is_enemy)
         return PositionComponent(spawn_x, spawn_y)
+
+    def _get_game_grid(self):
+        """Retourne la grille du jeu depuis le game_engine si disponible, sinon None."""
+        try:
+            if self.game_engine is not None:
+                return self.game_engine.grid
+        except Exception:
+            pass
+        return None
     
     def _map_boutique_id_to_unit_type(self, unit_id: str):
         """Mappe un identifiant boutique vers le type d'unité constant exposé par la factory."""
@@ -497,9 +509,58 @@ class UnifiedShop:
     def _create_building_purchase_callback(self, building_id: str):
         """Crée le callback d'achat pour un bâtiment."""
         def callback():
-            print(f"Achat de bâtiment: {building_id}")
-            self._show_purchase_feedback(f"Bâtiment {building_id} acheté!", True)
-            return True
+            try:
+                print(f"Achat de bâtiment: {building_id}")
+                # Déterminer la faction (team id)
+                is_enemy = (self.faction == ShopFaction.ENEMY)
+                team_id = TeamEnum.ENEMY.value if is_enemy else TeamEnum.ALLY.value
+
+                # Récupérer la position de spawn cible (proche de la base)
+                spawn_pos = self._get_base_spawn_position(is_enemy=is_enemy)
+
+                # Valider que la tuile de placement est une île
+                from src.components.globals.mapComponent import is_tile_island
+                if not is_tile_island(self._get_game_grid(), spawn_pos.x, spawn_pos.y):
+                    # Si la position par défaut n'est pas une île, on cherche une tuile d'île proche
+                    # essayer quelques offsets simples en grille
+                    found = False
+                    offsets = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,1),(-2,0),(2,0)]
+                    for ox, oy in offsets:
+                        try_x = spawn_pos.x + ox * TILE_SIZE
+                        try_y = spawn_pos.y + oy * TILE_SIZE
+                        if is_tile_island(self._get_game_grid(), try_x, try_y):
+                            spawn_pos = PositionComponent(try_x, try_y)
+                            found = True
+                            break
+                    if not found:
+                        self._show_purchase_feedback(t("placement.must_be_on_island"), False)
+                        return False
+
+                # Appeler la factory pour créer le bâtiment
+                from src.factory.buildingFactory import create_defense_tower, create_heal_tower
+                if building_id == "defense_tower":
+                    entity = create_defense_tower(spawn_pos.x, spawn_pos.y, team_id=team_id)
+                elif building_id == "heal_tower":
+                    entity = create_heal_tower(spawn_pos.x, spawn_pos.y, team_id=team_id)
+                else:
+                    # fallback
+                    self._show_purchase_feedback(t("shop.buildings.unknown"), False)
+                    return False
+
+                # Lier l'entité à la base
+                BaseComponent.add_unit_to_base(entity, is_enemy=is_enemy)
+
+                # Message localisé pour la construction
+                try:
+                    building_name = t(f"shop.buildings.{building_id}")
+                except Exception:
+                    building_name = building_id
+                self._show_purchase_feedback(t("shop.buildings.built", building=building_name), True)
+                return True
+            except Exception as e:
+                print(f"Erreur lors de l'achat du bâtiment {building_id}: {e}")
+                self._show_purchase_feedback(f"Erreur: {e}", False)
+                return False
         return callback
     
     def _show_purchase_feedback(self, message: str, success: bool):
@@ -590,18 +651,18 @@ class UnifiedShop:
                 if i < len(self.tab_categories) and self.tab_categories[i] is not None:
                     self.current_category = self.tab_categories[i]
                 return True
-        
         # Items
         item_rects = self._get_item_rects()
-        current_items = self.shop_items[self.current_category]
-        
+        key = self.current_category if self.current_category in self.shop_items else ShopCategory.UNITS
+        current_items = self.shop_items[key]
+
         for i, rect in enumerate(item_rects):
             if rect.collidepoint(mouse_pos) and i < len(current_items):
                 item = current_items[i]
                 if self._can_purchase_item(item):
                     self._purchase_item(item)
                 return True
-        
+
         return True
     
     def _get_tab_rects(self) -> List[pygame.Rect]:

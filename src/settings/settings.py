@@ -25,6 +25,7 @@ DEFAULT_CONFIG = {
     "volume_effects": 0.7,
     "vsync": True,
     "show_fps": False,
+    "dev_mode": False,  # Mode développement pour les actions debug
     "language": "fr",
     "camera_sensitivity": 1.0,
     "camera_fast_multiplier": 2.5,

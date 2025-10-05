@@ -177,6 +177,24 @@ def placer_elements(grid):
     # Mines
     placer_bloc_aleatoire(grid, TileType.MINE, MINE_RATE, size=1, min_dist=2, avoid_bases=True)
 
+
+def is_tile_island(grid, world_x: float, world_y: float) -> bool:
+    """
+    Vérifie si la position donnée (coordonnées monde en pixels) correspond à une tuile d'île.
+    Retourne True si la tuile est une île (GENERIC_ISLAND, ALLY_BASE ou ENEMY_BASE).
+    """
+    try:
+        grid_x = int(world_x // TILE_SIZE)
+        grid_y = int(world_y // TILE_SIZE)
+    except Exception:
+        return False
+
+    if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
+        tile_type = grid[grid_y][grid_x]
+        # Utiliser la méthode is_island() de TileType pour vérifier tous les types d'îles
+        return TileType(tile_type).is_island()
+    return False
+
 def afficher_grille(window, grid, images, camera):
     """
     Affiche la grille de jeu dans la fenêtre pygame, avec tous les éléments graphiques.

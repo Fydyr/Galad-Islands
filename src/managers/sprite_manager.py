@@ -50,9 +50,11 @@ class SpriteID(Enum):
     
     # Buildings
     BUILDING_CONSTRUCTION = "building_construction"
-    ATTACK_TOWER = "attack_tower"
-    HEAL_TOWER = "heal_tower"
-    
+    ALLY_DEFENCE_TOWER = "ally_defence_tower"
+    ALLY_HEAL_TOWER = "ally_heal_tower"
+    ENEMY_DEFENCE_TOWER = "enemy_defence_tower"
+    ENEMY_HEAL_TOWER = "enemy_heal_tower"
+
     # Événements
     CHEST_CLOSE = "chest_close"
     CHEST_OPEN = "chest_open"
@@ -132,9 +134,12 @@ class SpriteManager:
             
             # Buildings
             SpriteData(SpriteID.BUILDING_CONSTRUCTION, "assets/image/FluentEmojiFlatBuildingConstruction.png", 64, 64, "Bâtiment en construction"),
-            SpriteData(SpriteID.ATTACK_TOWER, "assets/sprites/buildings/attack_tower.png", 80, 120, "Tour d'attaque"),
-            SpriteData(SpriteID.HEAL_TOWER, "assets/sprites/buildings/heal_tower.png", 80, 120, "Tour de soin"),
-            
+            SpriteData(SpriteID.ALLY_DEFENCE_TOWER,
+                       "assets/sprites/buildings/ally/ally-defence-tower.png", 80, 120, "Tour de défense"),
+            SpriteData(SpriteID.ALLY_HEAL_TOWER, "assets/sprites/buildings/ally/ally-heal-tower.png", 80, 120, "Tour de soin"),
+            SpriteData(SpriteID.ENEMY_DEFENCE_TOWER, "assets/sprites/buildings/enemy/enemy-defence-tower.png", 80, 120, "Tour de défense ennemie"),
+            SpriteData(SpriteID.ENEMY_HEAL_TOWER, "assets/sprites/buildings/enemy/enemy-heal-tower.png", 80, 120, "Tour de soin ennemie"),
+
             # Events
             SpriteData(SpriteID.CHEST_CLOSE, "assets/event/chest_close.png", 50, 40, "Coffre fermé"),
             SpriteData(SpriteID.CHEST_OPEN, "assets/event/chest_open.png", 50, 40, "Coffre ouvert"),
@@ -214,6 +219,16 @@ class SpriteManager:
         final_width = width or sprite_data.default_width
         final_height = height or sprite_data.default_height
         
+        # Load the actual image surface so SpriteComponent has it available
+        image_surface = self.load_sprite(sprite_id)
+        if image_surface is not None:
+            return SpriteComponent(
+                image_path=sprite_data.file_path,
+                width=float(final_width),
+                height=float(final_height),
+                image=image_surface
+            )
+        # Fallback: return component with only path so it can try to load itself
         return SpriteComponent(
             image_path=sprite_data.file_path,
             width=float(final_width),

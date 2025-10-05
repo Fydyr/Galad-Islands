@@ -110,6 +110,19 @@ TRANSLATIONS = {
     "game.exit_modal.stay": "Continuer",
     "game.exit_modal.quit": "Quitter",
     
+    # Debug modal
+    "debug.modal.title": "Menu de Debug",
+    "debug.modal.message": "Sélectionnez une action de debug :",
+    "debug.modal.give_gold": "Donner de l'or",
+    "debug.modal.close": "Fermer",
+    
+    # Tooltips pour le placement de tours
+    "tooltip.need_architect": "Sélectionnez un Architecte pour construire",
+    "tooltip.click_to_place_tower": "Cliquez sur une île pour placer la tour",
+    "tooltip.dev_give_gold": "Action de développement non autorisée",
+    "placement.must_be_on_island": "Les tours doivent être placées sur une île",
+    "placement.tower_already_here": "Une tour est déjà présente à cet endroit",
+    
     # Conseils
     "tip.0": "Astuce : Contrôler un seul zeppelin peut renverser le cours d'une bataille au bon moment.",
     "tip.1": "Citation : 'Celui qui maîtrise le vent, maîtrise la guerre.'",
@@ -185,7 +198,9 @@ TRANSLATIONS = {
     
     # Descriptions des bâtiments
     "shop.defense_tower": "Tour de Défense",
-    "shop.defense_tower_desc": "Tour d'attaque automatique",
+    "shop.defense_tower_desc": "Tour de défense automatique",
+    "shop.buildings.built": "{building} construite !",
+    "shop.buildings.built_snapped": "{building} construite (positionnée sur la grille) !",
     "shop.heal_tower": "Tour de Soin", 
     "shop.heal_tower_desc": "Tour de régénération alliée",
     
@@ -202,6 +217,9 @@ TRANSLATIONS = {
     "actionbar.mana": "Mana",
     "actionbar.position": "Position",
     "actionbar.cooldown": "Rechargement",
+    "actionbar.build_defense": "Tour de Défense",
+    "actionbar.build_heal": "Tour de Soin",
+    "actionbar.debug_menu": "Debug",
     
     # Tooltips
     "tooltip.special_ability": "Capacité spéciale de l'unité\nRaccourci: R",
@@ -209,6 +227,7 @@ TRANSLATIONS = {
     "tooltip.shop": "Ouvrir la boutique\nRaccourci: B",
     "tooltip.global_attack": "Boost d'attaque pour toutes les unités\nCoût: 50 or\nDurée: 30s\nRaccourci: Q",
     "tooltip.global_defense": "Boost de défense pour toutes les unités\nCoût: 50 or\nDurée: 30s\nRaccourci: E",
+    "placement.must_be_on_island": "Les bâtiments doivent être construits sur des tuiles îles !",
     
     # Messages de feedback
     "feedback.unit_created": "{} créé (camp {})!",
@@ -218,6 +237,8 @@ TRANSLATIONS = {
     "feedback.ability_cooldown": "Capacité en cooldown: {:.1f}s",
     "feedback.already_active": "Déjà actif!",
     "feedback.no_unit_selected": "Aucune unité sélectionnée!",
+    "feedback.dev_gold_given": "500 or ajoutés (mode debug)",
+    "feedback.error": "Erreur",
     
     # Camps
     "camp.ally": "Allié",
@@ -242,7 +263,7 @@ TRANSLATIONS = {
     "enemy_shop.shaman_desc": "Soigneur et soutien maléfique",
     "enemy_shop.engineer": "Ingénieur Ennemi",
     "enemy_shop.engineer_desc": "Constructeur de pièges",
-    "enemy_shop.attack_tower": "Tour d'Attaque",
+    "enemy_shop.attack_tower": "Tour de Défense",
     "enemy_shop.attack_tower_desc": "Tour offensive redoutable",
     "enemy_shop.heal_tower": "Tour de Régénération", 
     "enemy_shop.heal_tower_desc": "Tour de soutien maléfique",
