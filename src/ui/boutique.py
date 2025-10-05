@@ -16,8 +16,8 @@ from src.factory.unitFactory import (
     resolve_unit_type_from_shop_id,
 )
 from src.components.core.positionComponent import PositionComponent
+from src.components.core.baseComponent import BaseComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
-from src.functions.baseManager import get_base_manager
 from src.managers.sprite_manager import sprite_manager, SpriteID
 from src.constants.gameplay import (
         COLOR_WHITE, COLOR_GOLD, COLOR_BLACK, COLOR_GREEN_SUCCESS, COLOR_RED_ERROR,
@@ -298,8 +298,7 @@ class UnifiedShop:
 
     def _get_base_spawn_position(self, is_enemy=False):
         """Calcule une position de spawn praticable selon la faction."""
-        base_manager = get_base_manager()
-        spawn_x, spawn_y = base_manager.get_spawn_position(is_enemy=is_enemy)
+        spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=is_enemy)
         return PositionComponent(spawn_x, spawn_y)
     
     def _map_boutique_id_to_unit_type(self, unit_id: str):
@@ -466,8 +465,7 @@ class UnifiedShop:
                 
                 if entity:
                     # Ajouter l'unité à la liste des troupes de la base appropriée
-                    base_manager = get_base_manager()
-                    base_manager.add_unit_to_base(entity, is_enemy)
+                    BaseComponent.add_unit_to_base(entity, is_enemy)
                     
                     faction_name = "ennemie" if is_enemy else "alliée"
                     unit_name = unit_id  # Par défaut
@@ -478,8 +476,8 @@ class UnifiedShop:
                             break
                     
                     # Afficher le statut des bases pour debug
-                    ally_units = len(base_manager.get_base_units(is_enemy=False))
-                    enemy_units = len(base_manager.get_base_units(is_enemy=True))
+                    ally_units = len(BaseComponent.get_base_units(is_enemy=False))
+                    enemy_units = len(BaseComponent.get_base_units(is_enemy=True))
                     print(f"Unité {unit_name} ({faction_name}) créée en ({spawn_position.x:.1f}, {spawn_position.y:.1f})")
                     print(f"Status bases: Alliés={ally_units} unités, Ennemis={enemy_units} unités")
                     
