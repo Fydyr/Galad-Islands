@@ -114,7 +114,7 @@ class BanditsProcessor:
         side = random.randint(0, 3)
         
         # Marge de spawn en dehors de la carte (en nombre de tuiles)
-        spawn_margin = 2
+        spawn_margin = 0
         
         # Déterminer la position de spawn et la direction
         if side == 0:  # Gauche - entrent vers la droite
