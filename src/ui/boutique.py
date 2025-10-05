@@ -20,8 +20,8 @@ from src.components.core.baseComponent import BaseComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 from src.managers.sprite_manager import sprite_manager, SpriteID
 from src.constants.gameplay import (
-        COLOR_WHITE, COLOR_GOLD, COLOR_BLACK, COLOR_GREEN_SUCCESS, COLOR_RED_ERROR,
-        COLOR_PLACEHOLDER_UNIT, COLOR_PLACEHOLDER_BUILDING, COLOR_PLACEHOLDER_UPGRADE,
+    COLOR_WHITE, COLOR_GOLD, COLOR_BLACK, COLOR_GREEN_SUCCESS, COLOR_RED_ERROR,
+    COLOR_PLACEHOLDER_UNIT,
         SHOP_WIDTH, SHOP_HEIGHT, SHOP_TAB_WIDTH, SHOP_TAB_HEIGHT, SHOP_TAB_SPACING,
         SHOP_ITEM_WIDTH, SHOP_ITEM_HEIGHT, SHOP_ITEMS_PER_ROW, SHOP_ITEM_SPACING_X,
         SHOP_ITEM_SPACING_Y, SHOP_ICON_SIZE_LARGE, SHOP_ICON_SIZE_MEDIUM,
@@ -332,10 +332,6 @@ class UnifiedShop:
         
         return short_desc
     
-    def _create_building_description(self, config: Dict) -> str:
-        """Crée une description formatée pour les statistiques d'un bâtiment."""
-        return f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')} | {t('shop.stats.range')}: {config.get('radius_action', 'N/A')}"
-    
     def _get_sprite_id_for_unit(self, unit_id: str, is_enemy: bool = False) -> Optional[SpriteID]:
         """Mappe un ID d'unité de la boutique vers un SpriteID."""
         # Mapping des unités alliées
@@ -361,15 +357,8 @@ class UnifiedShop:
         else:
             return ally_mapping.get(unit_id)
     
-    def _get_sprite_id_for_building(self, building_id: str) -> Optional[SpriteID]:
-        """Mappe un ID de bâtiment de la boutique vers un SpriteID."""
-        building_mapping = {
-            "defense_tower": SpriteID.ATTACK_TOWER,
-            "heal_tower": SpriteID.HEAL_TOWER,
-            "enemy_attack_tower": SpriteID.ATTACK_TOWER,
-            "enemy_heal_tower": SpriteID.HEAL_TOWER
-        }
-        return building_mapping.get(building_id)
+    # Les fonctions et mappings relatifs aux bâtiments/tours ont été retirés
+    # car la boutique ne gère plus les constructions.
     
     def _get_sprite_id_for_ui(self, ui_element: str) -> Optional[SpriteID]:
         """Mappe un élément UI vers un SpriteID."""
@@ -506,62 +495,8 @@ class UnifiedShop:
                 return False
         return callback
     
-    def _create_building_purchase_callback(self, building_id: str):
-        """Crée le callback d'achat pour un bâtiment."""
-        def callback():
-            try:
-                print(f"Achat de bâtiment: {building_id}")
-                # Déterminer la faction (team id)
-                is_enemy = (self.faction == ShopFaction.ENEMY)
-                team_id = TeamEnum.ENEMY.value if is_enemy else TeamEnum.ALLY.value
-
-                # Récupérer la position de spawn cible (proche de la base)
-                spawn_pos = self._get_base_spawn_position(is_enemy=is_enemy)
-
-                # Valider que la tuile de placement est une île
-                from src.components.globals.mapComponent import is_tile_island
-                if not is_tile_island(self._get_game_grid(), spawn_pos.x, spawn_pos.y):
-                    # Si la position par défaut n'est pas une île, on cherche une tuile d'île proche
-                    # essayer quelques offsets simples en grille
-                    found = False
-                    offsets = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,1),(-2,0),(2,0)]
-                    for ox, oy in offsets:
-                        try_x = spawn_pos.x + ox * TILE_SIZE
-                        try_y = spawn_pos.y + oy * TILE_SIZE
-                        if is_tile_island(self._get_game_grid(), try_x, try_y):
-                            spawn_pos = PositionComponent(try_x, try_y)
-                            found = True
-                            break
-                    if not found:
-                        self._show_purchase_feedback(t("placement.must_be_on_island"), False)
-                        return False
-
-                # Appeler la factory pour créer le bâtiment
-                from src.factory.buildingFactory import create_defense_tower, create_heal_tower
-                if building_id == "defense_tower":
-                    entity = create_defense_tower(spawn_pos.x, spawn_pos.y, team_id=team_id)
-                elif building_id == "heal_tower":
-                    entity = create_heal_tower(spawn_pos.x, spawn_pos.y, team_id=team_id)
-                else:
-                    # fallback
-                    self._show_purchase_feedback(t("shop.buildings.unknown"), False)
-                    return False
-
-                # Lier l'entité à la base
-                BaseComponent.add_unit_to_base(entity, is_enemy=is_enemy)
-
-                # Message localisé pour la construction
-                try:
-                    building_name = t(f"shop.buildings.{building_id}")
-                except Exception:
-                    building_name = building_id
-                self._show_purchase_feedback(t("shop.buildings.built", building=building_name), True)
-                return True
-            except Exception as e:
-                print(f"Erreur lors de l'achat du bâtiment {building_id}: {e}")
-                self._show_purchase_feedback(f"Erreur: {e}", False)
-                return False
-        return callback
+    # Les callbacks et la logique de construction de bâtiments ont été retirés
+    # car les tours ne sont plus gérées via la boutique.
     
     def _show_purchase_feedback(self, message: str, success: bool):
         """Affiche un feedback d'achat."""
@@ -1139,55 +1074,4 @@ class UnifiedShop:
 # Créer un alias pour la compatibilité
 Shop = UnifiedShop
 
-# Exemple d'utilisation
-def main():
-    """Exemple d'utilisation de la boutique unifiée."""
-    pygame.init()
-    
-    screen_width, screen_height = 1200, 800
-    screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Galad Islands - Boutique Unifiée")
-    
-    clock = pygame.time.Clock()
-    shop = UnifiedShop(screen_width, screen_height, ShopFaction.ALLY)
-    
-    # Ouvrir la boutique pour le test
-    shop.open()
-    
-    running = True
-    while running:
-        dt = clock.tick(60) / 1000.0
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_b:
-                    shop.toggle()
-            
-            # Transmettre l'événement à la boutique
-            shop.handle_event(event)
-        
-        # Mise à jour
-        shop.update(dt)
-        
-        # Rendu
-        screen.fill((30, 30, 40))  # Fond sombre
-        
-        # Dessiner des éléments de jeu simulés
-        info_text = pygame.font.Font(None, 36).render("B: Boutique | F: Changer faction | 1/2: Catégories", True, (255, 255, 255))
-        screen.blit(info_text, (50, 50))
-        
-        faction_text = f"Faction actuelle: {shop.faction.value.upper()}"
-        faction_surface = pygame.font.Font(None, 24).render(faction_text, True, (200, 200, 200))
-        screen.blit(faction_surface, (50, 90))
-        
-        # Dessiner la boutique
-        shop.draw(screen)
-        
-        pygame.display.flip()
-    
-    pygame.quit()
-
-if __name__ == "__main__":
-    main()
+# (exemple d'utilisation retiré — placé dans tests/test_boutique_example.py)
