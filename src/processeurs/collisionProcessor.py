@@ -21,6 +21,7 @@ from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.managers.sprite_manager import SpriteID, sprite_manager
 from src.components.events.flyChestComponent import FlyingChestComponent
 from src.components.core.towerComponent import TowerComponent
+from src.functions.handleHealth import processHealth
 
 class CollisionProcessor(esper.Processor):
     def __init__(self, graph=None):
@@ -162,6 +163,35 @@ class CollisionProcessor(esper.Processor):
                 return
             # Marquer cette entité comme touchée par ce projectile
             projectile_comp.hit_entities.add(target_entity)
+
+            # Application immédiate des effets pour les projectiles :
+            # - Si la cible est une mine, NE PAS lui infliger de dégâts (comportement voulu),
+            #   détruire seulement le projectile et créer une explosion d'impact.
+            # - Sinon, appliquer les dégâts via processHealth si le projectile a un Attack.
+            try:
+                # Détecter mine
+                is_mine_target = self._is_mine_entity(target_entity)
+                if is_mine_target:
+                    # Explosion d'impact et suppression du projectile (la mine reste intacte)
+                    self._create_explosion_at_entity(projectile_entity)
+                    if esper.entity_exists(projectile_entity):
+                        esper.delete_entity(projectile_entity)
+                    return
+
+                # Cible non-mine : appliquer dégâts si possible
+                if esper.has_component(projectile_entity, Attack) and esper.has_component(target_entity, Health):
+                    attack_comp = esper.component_for_entity(projectile_entity, Attack)
+                    dmg = int(attack_comp.hitPoints) if attack_comp is not None else 0
+                    if dmg > 0:
+                        processHealth(target_entity, dmg)
+                        # Explosion d'impact et suppression du projectile
+                        self._create_explosion_at_entity(projectile_entity)
+                        if esper.entity_exists(projectile_entity):
+                            esper.delete_entity(projectile_entity)
+                        return
+            except Exception:
+                # En cas d'erreur, laisser le flux normal gérer via entities_hit fallback
+                pass
         
         # Si ce n'est pas un projectile, vérifier les cooldowns pour éviter les dégâts continus
         elif not projectile_entity:
@@ -279,26 +309,12 @@ class CollisionProcessor(esper.Processor):
 
         # Gestion des explosions pour les projectiles supprimés
         try:
+            # Si un projectile a été supprimé pendant le dispatch, créer une explosion d'impact
             if had_proj1 and entity1 not in esper._entities and pos1 is not None:
-                # créer une explosion à la position sauvegardée
-                explosion_entity = esper.create_entity()
-                esper.add_component(explosion_entity, Position(x=pos1[0], y=pos1[1], direction=0))
-                size = sprite_manager.get_default_size(SpriteID.EXPLOSION)
-                if size:
-                    esper.add_component(explosion_entity, sprite_manager.create_sprite_component(SpriteID.EXPLOSION, size[0], size[1]))
-                else:
-                    esper.add_component(explosion_entity, Sprite("assets/sprites/projectile/explosion.png", 32, 32))
-                esper.add_component(explosion_entity, LifetimeComponent(0.4))
+                self._create_explosion_at_position(pos1[0], pos1[1], impact=True)
 
             if had_proj2 and entity2 not in esper._entities and pos2 is not None:
-                explosion_entity = esper.create_entity()
-                esper.add_component(explosion_entity, Position(x=pos2[0], y=pos2[1], direction=0))
-                size = sprite_manager.get_default_size(SpriteID.EXPLOSION)
-                if size:
-                    esper.add_component(explosion_entity, sprite_manager.create_sprite_component(SpriteID.EXPLOSION, size[0], size[1]))
-                else:
-                    esper.add_component(explosion_entity, Sprite("assets/sprites/projectile/explosion.png", 32, 32))
-                esper.add_component(explosion_entity, LifetimeComponent(0.4))
+                self._create_explosion_at_position(pos2[0], pos2[1], impact=True)
         except Exception:
             pass
 
@@ -308,24 +324,35 @@ class CollisionProcessor(esper.Processor):
         if not esper.has_component(entity, Position) or esper.has_component(entity, Vine):
             return
         pos = esper.component_for_entity(entity, Position)
-        explosion_entity = esper.create_entity()
-        esper.add_component(explosion_entity, Position(x=pos.x, y=pos.y, direction=pos.direction if hasattr(pos, 'direction') else 0))
-        # Sprite d'explosion
-        sprite_id = SpriteID.EXPLOSION
-        size = sprite_manager.get_default_size(sprite_id)
-        if size:
-            width, height = size
-            esper.add_component(explosion_entity, sprite_manager.create_sprite_component(sprite_id, width, height))
-        else:
-            esper.add_component(explosion_entity, Sprite(
-                "assets/sprites/projectile/explosion.png",
-                32, 32
-            ))
-        # Durée de vie temporaire pour l'explosion (ex: 0.4s)
-        esper.add_component(explosion_entity, LifetimeComponent(0.4))
+        # Choisir le sprite : explosion d'impact si c'est un projectile, sinon explosion générique
+        is_proj = esper.has_component(entity, ProjectileComponent)
+        self._create_explosion_at_position(pos.x, pos.y, impact=is_proj)
         
         # Dispatcher l'événement original pour compatibilité
             # esper.dispatch_event('entities_hit', entity1, entity2)
+
+    def _create_explosion_at_position(self, x: float, y: float, impact: bool = False, duration: float = 0.4):
+        """Créer une explosion à une position donnée.
+
+        Si impact=True, utilise le sprite d'impact (`IMPACT_EXPLOSION`), sinon `EXPLOSION`.
+        """
+        explosion_entity = esper.create_entity()
+        esper.add_component(explosion_entity, Position(x=x, y=y, direction=0))
+        sprite_id = SpriteID.IMPACT_EXPLOSION if impact else SpriteID.EXPLOSION
+        # Taille plus grande pour meilleure visibilité (impact encore plus grand)
+        scale = 3.0 if impact else 2.5
+        size = sprite_manager.get_default_size(sprite_id)
+        if size:
+            width = int(size[0] * scale)
+            height = int(size[1] * scale)
+        else:
+            # Éviter les fallbacks sur des chemins d'assets bruts : utiliser des tailles par défaut
+            base = 20 if impact else 32
+            width = int(base * scale)
+            height = int(base * scale)
+        # Toujours créer le composant via le sprite_manager pour rester cohérent
+        esper.add_component(explosion_entity, sprite_manager.create_sprite_component(sprite_id, width, height))
+        esper.add_component(explosion_entity, LifetimeComponent(duration))
 
     def _destroy_mine_on_grid(self, entity):
         """Détruit la mine sur la grille si l'entité est une mine"""
