@@ -80,19 +80,24 @@ class DebugModal:
             self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
             return
         
-        # Donner directement de l'or au joueur comme le font les coffres volants
-        # (même logique mais sans passer par le manager)
-        # Trouver le joueur allié
+        # Donner de l'or à la team active (pas seulement les alliés !)
+        # Récupérer la team active depuis l'action_bar du game_engine
+        active_team = TeamEnum.ALLY.value  # Par défaut
+        if hasattr(self.game_engine, 'action_bar') and self.game_engine.action_bar is not None:
+            active_team = self.game_engine.action_bar.current_camp
+        
         player_found = False
         for entity, (player_comp, team_comp) in esper.get_components(PlayerComponent, TeamComponent):
-            if team_comp.team_id == TeamEnum.ALLY.value:
+            if team_comp.team_id == active_team:
                 player_comp.add_gold(500)
                 player_found = True
+                team_name = "Alliés" if active_team == TeamEnum.ALLY.value else "Ennemis"
+                print(f"[DEV] +500 or pour {team_name} (team {active_team})")
                 self._show_feedback('success', t('feedback.dev_gold_given', default='Dev gold granted'))
                 break
         
         if not player_found:
-            print("[DEV] Player not found for gold gift")
+            print(f"[DEV] Player not found for team {active_team}")
             self._show_feedback('warning', t('feedback.error', default='Error'))
     
     def _show_feedback(self, feedback_type: str, message: str):
