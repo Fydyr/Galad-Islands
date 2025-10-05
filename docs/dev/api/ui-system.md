@@ -249,6 +249,135 @@ class ExitConfirmationModal:
         """Gère les interactions. Retourne 'continue' ou 'quit'."""
 ```
 
+### GenericModal - Système de modale générique
+
+**Fichier :** `src/ui/generic_modal.py`
+
+**Responsabilité :** Système modal générique réutilisable pour différents types de dialogues.
+
+```python
+class GenericModal:
+    """Système modal générique réutilisable pour différents types de dialogues."""
+    
+    def __init__(self, title_key: str, message_key: str, 
+                 buttons: List[Tuple[str, str]], 
+                 callback: Optional[Callable[[str], None]] = None) -> None:
+        """
+        Initialise un modal générique.
+        
+        Args:
+            title_key: Clé de traduction pour le titre
+            message_key: Clé de traduction pour le message  
+            buttons: Liste de tuples (action_id, translation_key) pour les boutons
+            callback: Fonction appelée avec l'action_id quand un bouton est cliqué
+        """
+```
+
+#### Fonctionnalités principales
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Personnalisable** | Titre, message et boutons configurables via traductions |
+| **Navigation clavier** | Flèches gauche/droite, Tab, Enter, Escape |
+| **Navigation souris** | Hover et clic sur boutons |
+| **Callbacks** | Fonction de rappel avec action sélectionnée |
+| **Responsive** | Adaptation automatique à la taille d'écran |
+| **État visuel** | Indication du bouton sélectionné/survolé |
+
+#### Méthodes principales
+
+```python
+def open(self, surface: Optional[pygame.Surface] = None) -> None:
+    """Affiche la modale et prépare la mise en page."""
+
+def close(self) -> None:
+    """Ferme la modale."""
+
+def handle_event(self, event: pygame.event.Event, 
+                surface: Optional[pygame.Surface] = None) -> Optional[str]:
+    """
+    Traite un événement utilisateur pendant que la modale est active.
+    
+    Returns:
+        action_id du bouton cliqué, ou None
+    """
+
+def render(self, surface: pygame.Surface) -> None:
+    """Dessine la modale sur la surface fournie."""
+```
+
+#### Contrôles supportés
+
+| Touche/Action | Effet |
+|---------------|-------|
+| **Flèches ← →** | Naviguer entre les boutons |
+| **A / D** | Naviguer entre les boutons |
+| **Tab** | Bouton suivant (Shift+Tab pour précédent) |
+| **Enter / Space** | Valider le bouton sélectionné |
+| **Escape** | Activer le premier bouton (par défaut) |
+| **Clic souris** | Sélectionner et activer un bouton |
+| **Survol souris** | Mettre en surbrillance un bouton |
+
+#### Exemple d'utilisation
+
+```python
+# Créer une modale de confirmation
+modal = GenericModal(
+    title_key="confirm.title",
+    message_key="confirm.delete_save",
+    buttons=[
+        ("cancel", "button.cancel"),
+        ("confirm", "button.confirm")
+    ],
+    callback=lambda action: print(f"Action: {action}")
+)
+
+# Afficher la modale
+modal.open()
+
+# Dans la boucle de jeu
+for event in pygame.event.get():
+    if modal.is_active():
+        result = modal.handle_event(event)
+        if result == "confirm":
+            # Effectuer l'action de confirmation
+            delete_save_file()
+        elif result == "cancel":
+            # Annuler
+            pass
+
+# Rendu
+modal.render(screen)
+```
+
+#### Utilisation pour le mode debug
+
+Le `GenericModal` peut être utilisé pour créer des interfaces de debug :
+
+```python
+# Modale de debug avec options
+debug_modal = GenericModal(
+    title_key="debug.modal.title",
+    message_key="debug.modal.message",
+    buttons=[
+        ("give_gold", "debug.action.give_gold"),
+        ("close", "button.close")
+    ],
+    callback=self._handle_debug_action
+)
+
+def _handle_debug_action(self, action: str):
+    """Gère les actions de debug."""
+    if action == "give_gold":
+        self._give_gold(1000)
+    elif action == "heal_all":
+        self._heal_all_units()
+    elif action == "spawn_unit":
+        self._spawn_test_unit()
+```
+
+> **💡 Note** : Le `GenericModal` est particulièrement utile pour créer rapidement des interfaces de debug sans dupliquer le code UI. Voir [Mode Debug](../debug-mode.md) pour plus de détails.
+
 ### Système de modales avancé
 
 **Fichier :** `src/functions/afficherModale.py`

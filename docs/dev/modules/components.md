@@ -317,6 +317,70 @@ class FlyChest:
 
 **Usage :** Événement de collecte d'or temporaire.
 
+## Composants de bâtiments (buildings/)
+
+> **📖 Documentation complète** : Voir [Système de Tours](../tower-system-implementation.md) pour l'implémentation détaillée du système de tours défensives.
+
+### TowerComponent - Composant de base des tours
+**Fichier :** `src/components/buildings/towerComponent.py`
+
+```python
+@dataclass
+class TowerComponent:
+    tower_type: str              # Type de tour : "defense" ou "heal"
+    range: float                 # Portée d'action en pixels
+    cooldown: float              # Temps entre deux actions (secondes)
+    current_cooldown: float = 0.0  # Temps restant avant prochaine action
+    target_entity: Optional[int] = None  # Entité actuellement ciblée
+```
+
+**Usage :** Toutes les tours (défense et soin). Géré par le `TowerProcessor`.
+
+**Propriétés** :
+- `tower_type` : Détermine le comportement (attaque ou soin)
+- `range` : Distance de détection des cibles
+- `cooldown` : Fréquence d'action de la tour
+- `current_cooldown` : Compteur décrémenté à chaque frame
+- `target_entity` : ID de la cible en cours
+
+### DefenseTowerComponent - Tours d'attaque
+**Fichier :** `src/components/buildings/defenseTowerComponent.py`
+
+```python
+@dataclass
+class DefenseTowerComponent:
+    damage: float        # Dégâts infligés par attaque (défaut: 15.0)
+    attack_speed: float  # Multiplicateur de vitesse d'attaque (défaut: 1.0)
+```
+
+**Usage :** Tours qui attaquent automatiquement les ennemis à portée.
+
+**Création** : Via `buildingFactory.create_defense_tower()`
+- Coût : 150 gold
+- Portée : 200 pixels
+- Cooldown : 2 secondes
+- Dégâts : 15 par projectile
+
+### HealTowerComponent - Tours de soin
+**Fichier :** `src/components/buildings/healTowerComponent.py`
+
+```python
+@dataclass
+class HealTowerComponent:
+    heal_amount: float   # Points de vie restaurés par soin (défaut: 10.0)
+    heal_speed: float    # Multiplicateur de vitesse de soin (défaut: 1.0)
+```
+
+**Usage :** Tours qui soignent automatiquement les alliés blessés à portée.
+
+**Création** : Via `buildingFactory.create_heal_tower()`
+- Coût : 120 gold
+- Portée : 150 pixels
+- Cooldown : 3 secondes
+- Soin : 10 PV par cycle
+
+**Note** : Les tours nécessitent qu'un Architecte soit sélectionné et que le placement soit sur une île.
+
 ## Composants de rendu et interactions
 
 ### SpriteComponent - Affichage visuel
