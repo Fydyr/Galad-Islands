@@ -38,6 +38,8 @@ nav:
     - Gameplay:
       - Contrôles: user/controls.md
       - Unités: user/units.md
+      - Unités alliées: user/units_allies.md
+      - Unités ennemies: user/units_enemies.md
       - Bâtiments: user/buildings.md
       - Boutique: user/shop.md
     - Interface:
@@ -56,15 +58,23 @@ nav:
       - Processeurs: dev/modules/processors.md
       - Gestionnaires: dev/modules/managers.md
       - Composants: dev/modules/components.md
+      - Capacités spéciales: dev/modules/special-capacity-system.md
+      - Gestionnaire de sprites: dev/modules/sprite-manager.md
+    - Systèmes avancés:
+      - Système de tours: dev/tower-system-implementation.md
+      - Mode debug: dev/debug-mode.md
     - Localisation: dev/localization.md
     - Configuration: dev/configuration.md
     - Système et Déploiement:
       - Paramètres système critiques: dev/systeme.md
       - Exigences matérielles: dev/requirements.md
       - Opérations système: dev/operations.md
+      - Déploiement: dev/deployment.md
+      - Migration workflow: dev/workflow-migration.md
     - Maintenance: dev/maintenance.md
     - Contribution: dev/contributing.md
     - Gestion des versions: dev/versioning.md
+    - Résumé du refactoring: dev/refactoring-summary.md
   - 💬 Support et Contact:
     - Support: support.md
     - Contact: contact.md

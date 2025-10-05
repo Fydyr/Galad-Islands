@@ -123,6 +123,8 @@ class TowerComponent:
     target_entity: Optional[int] = None
 ```
 
+**Fichier** : `src/components/core/towerComponent.py`
+
 #### DefenseTowerComponent
 Composant pour les tours qui attaquent :
 ```python

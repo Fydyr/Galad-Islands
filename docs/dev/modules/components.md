@@ -322,7 +322,7 @@ class FlyChest:
 > **📖 Documentation complète** : Voir [Système de Tours](../tower-system-implementation.md) pour l'implémentation détaillée du système de tours défensives.
 
 ### TowerComponent - Composant de base des tours
-**Fichier :** `src/components/buildings/towerComponent.py`
+**Fichier :** `src/components/core/towerComponent.py`
 
 ```python
 @dataclass
@@ -344,7 +344,7 @@ class TowerComponent:
 - `target_entity` : ID de la cible en cours
 
 ### DefenseTowerComponent - Tours d'attaque
-**Fichier :** `src/components/buildings/defenseTowerComponent.py`
+**Fichier :** `src/components/core/defenseTowerComponent.py`
 
 ```python
 @dataclass
@@ -362,7 +362,7 @@ class DefenseTowerComponent:
 - Dégâts : 15 par projectile
 
 ### HealTowerComponent - Tours de soin
-**Fichier :** `src/components/buildings/healTowerComponent.py`
+**Fichier :** `src/components/core/healTowerComponent.py`
 
 ```python
 @dataclass

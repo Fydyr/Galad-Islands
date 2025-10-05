@@ -398,7 +398,7 @@ log_debug("Position de l'unité mise à jour")  # Visible seulement si dev_mode=
 
 - [Architecture](architecture.md) - Architecture globale du jeu
 - [Configuration](configuration.md) - Système de configuration complet
-- [UI System](modules/ui-system.md) - Système d'interface utilisateur
+- [UI System](api/ui-system.md) - Système d'interface utilisateur
 
 ---
 

@@ -19,7 +19,9 @@ Cette documentation est organisée en deux sections principales :
 - **[Installation](user/installation.md)** - Guide d'installation détaillé
 - **[Contrôles](user/controls.md)** - Mécaniques de jeu et contrôles
 - **[Unités](user/units.md)** - Guide des unités et leurs capacités
-- **[Stratégie](user/strategy.md)** - Tactiques avancées et conseils
+- **[Bâtiments](user/buildings.md)** - Constructions et défenses
+- **[Boutique](user/shop.md)** - Système d'achat et économie
+- **[Barre d'action](user/action-bar.md)** - Interface et raccourcis
 - **[FAQ](user/faq.md)** - Questions fréquentes et dépannage
 
 ### 🛠️ Documentation Technique  
