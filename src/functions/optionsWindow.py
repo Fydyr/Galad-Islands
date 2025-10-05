@@ -519,7 +519,6 @@ class OptionsWindow:
             t("options.info_resize_window"),
             t("options.info_resolution_warning"),
             t("options.info_manual_fix"),
-            t("options.info_manual_fix2"),
         ]
         
         for line in info_lines:

@@ -10,6 +10,7 @@ Bienvenue dans la documen## 📚 Pour aller plus loin
 
 ### Configuration et développement
 - [Configuration](configuration.md) - Installation et configuration
+- [Galad Config Tool](galad-config-tool-technical.md) - Détails techniques du tool
 - [Mode Debug](debug-mode.md) - Fonctionnalités de développement
 - [Guide de contribution](contributing.md) - Comment contribuer
 - [Maintenance du projet](maintenance.md) - Gestion du projet
