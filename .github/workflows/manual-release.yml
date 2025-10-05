@@ -1,5 +1,4 @@
 name: Release Manual
-description: For trigger a manual release build if needed
 
 on:
   workflow_dispatch:
