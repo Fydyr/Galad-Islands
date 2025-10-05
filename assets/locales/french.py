@@ -117,6 +117,7 @@ TRANSLATIONS = {
     "debug.modal.spawn_storm": "Créer une tempête",
     "debug.modal.spawn_chest": "Créer des coffres",
     "debug.modal.spawn_kraken": "Créer un kraken",
+    "debug.modal.spawn_island_resources": "Créer ressources d'îles",
     "debug.modal.clear_events": "Nettoyer les événements",
     "debug.modal.close": "Fermer",
     
@@ -129,6 +130,7 @@ TRANSLATIONS = {
     "debug.feedback.storm_spawned": "Tempête créée avec succès",
     "debug.feedback.chests_spawned": "Coffres créés avec succès",
     "debug.feedback.kraken_spawned": "Kraken créé avec succès",
+    "debug.feedback.island_resources_spawned": "Ressources d'îles créées avec succès",
     "debug.feedback.events_cleared": "Événements nettoyés avec succès",
     "debug.feedback.no_valid_position": "Aucune position valide trouvée",
     "placement.must_be_on_island": "Les tours doivent être placées sur une île",
