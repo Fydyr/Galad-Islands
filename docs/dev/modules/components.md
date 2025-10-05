@@ -98,6 +98,105 @@ class PlayerComponent:
         return False
 ```
 
+#### BaseComponent
+**Fichier :** `src/components/core/baseComponent.py`
+
+**Architecture hybride :** Composant ECS traditionnel + gestionnaire intégré pour les entités de bases.
+
+##### Données d'instance (composant classique)
+```python
+@component
+class BaseComponent:
+    def __init__(self, troopList=[], currentTroop=0):
+        self.troopList: list = troopList      # Troupes de la base
+        self.currentTroop: int = currentTroop # Index unité sélectionnée
+```
+
+##### Gestionnaire de classe intégré
+```python
+class BaseComponent:
+    # Variables de classe pour l'état global
+    _ally_base_entity: Optional[int] = None
+    _enemy_base_entity: Optional[int] = None
+    _initialized: bool = False
+```
+
+##### API du gestionnaire
+
+**Initialisation :**
+```python
+@classmethod
+def initialize_bases(cls):
+    """Crée les entités de bases avec tous leurs composants :
+    - PositionComponent (positionnement sur la carte)
+    - HealthComponent (1000 HP par défaut)
+    - AttackComponent (50 dégâts au contact)
+    - TeamComponent (équipe 1/2)
+    - CanCollideComponent + RecentHitsComponent (collision + cooldown)
+    - ClasseComponent (noms localisés)
+    - SpriteComponent (hitbox invisible optimisée)
+    """
+```
+
+**Accès aux entités :**
+```python
+@classmethod
+def get_ally_base(cls) -> Optional[int]:
+    """Retourne l'ID de l'entité base alliée."""
+
+@classmethod  
+def get_enemy_base(cls) -> Optional[int]:
+    """Retourne l'ID de l'entité base ennemie."""
+```
+
+**Gestion des troupes :**
+```python
+@classmethod
+def add_unit_to_base(cls, unit_entity: int, is_enemy: bool = False) -> bool:
+    """Ajoute une unité à la liste des troupes de la base."""
+
+@classmethod
+def get_base_units(cls, is_enemy: bool = False) -> list[int]:
+    """Retourne la liste des troupes d'une base."""
+```
+
+**Positionnement :**
+```python
+@classmethod  
+def get_spawn_position(cls, is_enemy=False, jitter=TILE_SIZE*0.35) -> Tuple[float, float]:
+    """Calcule une position de spawn près de la base avec jitter optionnel."""
+```
+
+**Maintenance :**
+```python
+@classmethod
+def reset(cls) -> None:
+    """Réinitialise le gestionnaire (changement de niveau)."""
+```
+
+##### Utilisation
+
+**Initialisation du jeu :**
+```python
+# Dans GameEngine._create_initial_entities()
+BaseComponent.initialize_bases()
+spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False)
+```
+
+**Achat d'unités :**
+```python
+# Dans boutique.py
+entity = UnitFactory(unit_type, is_enemy, spawn_position)
+BaseComponent.add_unit_to_base(entity, is_enemy)
+```
+
+**Migration depuis BaseManager :**
+- `get_base_manager().method()` → `BaseComponent.method()`
+- Même API, juste des appels directs
+- Performance identique, architecture simplifiée
+
+**Usage :** Composant hybride pour QG alliés/ennemis avec gestion centralisée.
+
 ## Énumérations importantes
 
 ### Team (Équipes)

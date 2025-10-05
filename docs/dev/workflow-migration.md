@@ -121,8 +121,8 @@ python setup_dev.py
 
 ## 📖 Documentation complémentaire
 
-- [Guide de gestion des versions](version-management.md)
-- [Configuration des hooks](../setup/README.md)
+- [Guide de gestion des versions](versioning.md)
+- [Configuration des hooks](../../setup/README.md)
 - [Guide de contribution](contributing.md)
 
 ## 🆘 Support et dépannage
