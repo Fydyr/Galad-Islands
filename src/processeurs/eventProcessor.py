@@ -11,20 +11,27 @@ from src.components.properties.eventsComponent import EventsComponent as Event
 from src.components.events.krakenComponent import KrakenComponent as Kraken
 from src.processeurs.events.krakenProcessor import KrakenProcessor
 
+from src.components.events.banditsComponent import Bandits
+from src.processeurs.events.banditsProcessor import BanditsProcessor
+
 from src.managers.sprite_manager import SpriteID, sprite_manager
 from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
 
 class EventProcessor(esper.Processor):
-    def __init__(self, eventCooldown: int = 0, maxEventCooldown: int = 0, krakenSpawn: int = 0):
+    def __init__(self, eventCooldown: int = 0, maxEventCooldown: int = 0, krakenSpawn: int = 0, banditSpawn: int = 0):
         self.eventCooldown = eventCooldown
         self.maxEventCooldown = maxEventCooldown
-        self.krakenSpawn = krakenSpawn
+        self.krakenSpawn = eventCooldown
+        self.banditSpawn = banditSpawn
 
     def process(self, dt, grid):
         if esper.get_component(Event) != []:
 
             for ent, (kraken, event) in esper.get_components(Kraken, Event):
                 KrakenProcessor.process(dt, ent, kraken, event, grid)
+
+            for ent, (bandits, event) in esper.get_components(Bandits, Event):
+                BanditsProcessor.process(dt, ent, bandits, event, grid)
 
         elif self.eventCooldown > 0:
             self.eventCooldown -= dt
@@ -34,7 +41,6 @@ class EventProcessor(esper.Processor):
 
     def _chooseEvent(self, grid):
         pourcent = random.randint(0, 100)
-        print(pourcent)
         self.eventCooldown = self.maxEventCooldown
         if pourcent <= self.krakenSpawn:
             newPosition = self._getNewPosition(grid)
@@ -45,10 +51,18 @@ class EventProcessor(esper.Processor):
                 esper.add_component(krakenEnt, Position(newPosition[0], newPosition[1]))
                 esper.add_component(krakenEnt, Team(0))
                 esper.add_component(krakenEnt, Event(0, 20, 20))
-                esper.add_component(krakenEnt, Kraken(0, 20, 14))
-
-                sprite_manager.add_sprite_to_entity(krakenEnt, SpriteID.KRAKEN)    
-
+                esper.add_component(krakenEnt, Kraken(0, 10, 3))
+                sprite_manager.add_sprite_to_entity(krakenEnt, SpriteID.KRAKEN)
+            return
+        
+        pourcent = random.randint(0, 100)
+        if pourcent <= self.banditSpawn:
+            # Événement Bandits
+            num_boats = random.randint(1, 6)
+            print(f"[EVENT] Vague de {num_boats} navires bandits!")
+            created_entities = BanditsProcessor.spawn_bandits_wave(grid, num_boats)
+            if created_entities:
+                print(f"[EVENT] {len(created_entities)} navires bandits créés")
 
     def _getNewPosition(self, grid):
         newPositiion = None
