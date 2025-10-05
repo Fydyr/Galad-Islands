@@ -261,7 +261,8 @@ class GenericModal:
     
     def __init__(self, title_key: str, message_key: str, 
                  buttons: List[Tuple[str, str]], 
-                 callback: Optional[Callable[[str], None]] = None) -> None:
+                 callback: Optional[Callable[[str], None]] = None,
+                 vertical_layout: bool = False) -> None:
         """
         Initialise un modal générique.
         
@@ -270,6 +271,7 @@ class GenericModal:
             message_key: Clé de traduction pour le message  
             buttons: Liste de tuples (action_id, translation_key) pour les boutons
             callback: Fonction appelée avec l'action_id quand un bouton est cliqué
+            vertical_layout: Si True, les boutons sont arrangés verticalement
         """
 ```
 
@@ -278,7 +280,9 @@ class GenericModal:
 | Fonctionnalité | Description |
 |----------------|-------------|
 | **Personnalisable** | Titre, message et boutons configurables via traductions |
-| **Navigation clavier** | Flèches gauche/droite, Tab, Enter, Escape |
+| **Layouts flexibles** | Support pour arrangements horizontal et vertical |
+| **Taille dynamique** | Hauteur s'adapte au nombre de boutons en layout vertical |
+| **Navigation clavier** | Flèches/WASD, Tab, Enter, Escape (adapté au layout) |
 | **Navigation souris** | Hover et clic sur boutons |
 | **Callbacks** | Fonction de rappel avec action sélectionnée |
 | **Responsive** | Adaptation automatique à la taille d'écran |
@@ -321,7 +325,7 @@ def render(self, surface: pygame.Surface) -> None:
 #### Exemple d'utilisation
 
 ```python
-# Créer une modale de confirmation
+# Créer une modale de confirmation simple (layout horizontal)
 modal = GenericModal(
     title_key="confirm.title",
     message_key="confirm.delete_save",
@@ -330,6 +334,22 @@ modal = GenericModal(
         ("confirm", "button.confirm")
     ],
     callback=lambda action: print(f"Action: {action}")
+)
+
+# Créer une modale avec plusieurs options (layout vertical)
+debug_modal = GenericModal(
+    title_key="debug.modal.title",
+    message_key="debug.modal.message",
+    buttons=[
+        ("give_gold", "debug.modal.give_gold"),
+        ("spawn_storm", "debug.modal.spawn_storm"),
+        ("spawn_chest", "debug.modal.spawn_chest"),
+        ("spawn_kraken", "debug.modal.spawn_kraken"),
+        ("clear_events", "debug.modal.clear_events"),
+        ("close", "debug.modal.close")
+    ],
+    callback=self._handle_debug_action,
+    vertical_layout=True  # Arrangement vertical pour plus de boutons
 )
 
 # Afficher la modale

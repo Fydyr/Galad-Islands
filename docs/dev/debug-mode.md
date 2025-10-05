@@ -123,12 +123,59 @@ class DebugModal:
 
 #### Actions disponibles
 
-1. **Donner de l'or** : Ajoute 1000 gold au joueur
+Le modal de debug offre maintenant plusieurs actions pour faciliter le développement et les tests :
+
+1. **Donner de l'or** : Ajoute 500 gold au joueur actif
+
    ```python
-   def _give_gold(self):
-       player = self._get_player_component()
-       if player:
-           player.add_gold(1000)
+   def _handle_give_gold(self):
+       # Donne de l'or à la team active (alliés ou ennemis)
+       active_team = self.game_engine.action_bar.current_camp
+       for entity, (player_comp, team_comp) in esper.get_components(PlayerComponent, TeamComponent):
+           if team_comp.team_id == active_team:
+               player_comp.add_gold(500)
+   ```
+
+2. **Créer une tempête** : Force l'apparition d'une tempête à une position aléatoire
+
+   ```python
+   def _handle_spawn_storm(self):
+       storm_manager = getStormManager()
+       position = storm_manager.findValidSpawnPosition()
+       if position:
+           storm_entity = storm_manager.createStormEntity(position)
+   ```
+
+3. **Créer des coffres** : Force l'apparition de 2-4 coffres volants
+
+   ```python
+   def _handle_spawn_chest(self):
+       chest_manager = self.game_engine.flying_chest_manager
+       num_chests = random.randint(2, 4)
+       for _ in range(num_chests):
+           position = chest_manager._choose_spawn_position()
+           if position:
+               chest_manager._create_chest_entity(position)
+   ```
+
+4. **Créer un kraken** : Force l'apparition d'un kraken avec 2-6 tentacules
+
+   ```python
+   def _handle_spawn_kraken(self):
+       kraken_entity = esper.create_entity()
+       esper.add_component(kraken_entity, KrakenComponent(2, 6, 1))
+       esper.add_component(kraken_entity, EventsComponent(0.0, 20.0, 20.0))
+   ```
+
+5. **Nettoyer les événements** : Supprime tous les événements actifs (tempêtes, coffres, krakens)
+
+   ```python
+   def _handle_clear_events(self):
+       # Nettoie les tempêtes
+       storm_manager.clearAllStorms()
+       # Supprime les coffres volants, krakens et tentacules
+       for entity, component in esper.get_component(EventComponent):
+           esper.delete_entity(entity)
    ```
 
 ---
