@@ -66,6 +66,7 @@ saves/
 *.save
 profiles/
 galad_config.json
+galad_resolutions.json
 
 # Instructions de développement
 .github/instructions/

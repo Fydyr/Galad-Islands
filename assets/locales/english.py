@@ -314,6 +314,7 @@ TRANSLATIONS = {
     "options.custom_resolution_applied": "✅ Custom resolution applied: {width}x{height}",
     "options.custom_resolution_invalid": "⚠️ Invalid resolution: non-numeric values",
     "options.resolution_applied": "✅ Resolution applied: {width}x{height}",
+  "options.custom_marker": "custom",
     
     # System messages
     "system.main_window_title": "Galad Islands",
