@@ -610,7 +610,7 @@ class GameEngine:
         self.player_controls = playerControlProcessor.PlayerControlProcessor()
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
-        self.event_processor = EventProcessor(15, 5, 10)
+        self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
         from src.processeurs.towerProcessor import TowerProcessor
         self.tower_processor = TowerProcessor()
