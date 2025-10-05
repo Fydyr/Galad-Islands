@@ -75,3 +75,6 @@ GameDesign.md
 
 # documentation hook
 HOOKS_UNIVERSAL.md
+
+# Fichiers générés par le build de Pyinstaller
+*.spec
