@@ -16,7 +16,9 @@ Cette documentation est organisée en deux sections principales :
 *Pour les joueurs qui veulent maîtriser le jeu*
 
 - **[Guide de démarrage](user/getting-started.md)** - Installation et premiers pas
-- **[Gameplay](user/controls.md)** - Mécaniques de jeu, unités, bâtiments
+- **[Installation](user/installation.md)** - Guide d'installation détaillé
+- **[Contrôles](user/controls.md)** - Mécaniques de jeu et contrôles
+- **[Unités](user/units.md)** - Guide des unités et leurs capacités
 - **[Stratégie](user/strategy.md)** - Tactiques avancées et conseils
 - **[FAQ](user/faq.md)** - Questions fréquentes et dépannage
 

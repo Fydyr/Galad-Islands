@@ -182,17 +182,29 @@ class CombatSystem:
 
 Les gestionnaires orchestrent les systèmes de haut niveau :
 
-### BaseManager
+### BaseComponent (Gestionnaire intégré)
 ```python
-class BaseManager:
-    """Gère les entités de base (QG allié/ennemi)."""
+@component
+class BaseComponent:
+    """Composant de base avec gestionnaire intégré pour les QG."""
     
-    def get_ally_base(self):
-        return self._ally_base_entity
+    @classmethod
+    def get_ally_base(cls):
+        """Retourne l'entité de base alliée."""
+        return cls._ally_base_entity
     
-    def get_enemy_base(self):
-        return self._enemy_base_entity
+    @classmethod
+    def get_enemy_base(cls):
+        """Retourne l'entité de base ennemie.""" 
+        return cls._enemy_base_entity
+    
+    @classmethod
+    def initialize_bases(cls):
+        """Initialise les entités de bases alliée et ennemie."""
+        # Logique d'initialisation...
 ```
+
+Pour en savoir plus, voir la documentation détaillée. [BaseComponent](./modules/components.md#basecomponent---gestionnaire-intégré-des-bases)
 
 ### FlyingChestManager
 ```python

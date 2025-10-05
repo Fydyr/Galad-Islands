@@ -6,7 +6,7 @@ Les gestionnaires centralisent la gestion des ressources et comportements de hau
 
 | Gestionnaire | Responsabilité | Fichier |
 |--------------|----------------|---------|
-| `BaseManager` | Gestion des QG alliés/ennemis | `src/functions/baseManager.py` |
+| `BaseComponent` | Gestion intégrée des QG alliés/ennemis | `src/components/core/baseComponent.py` |
 | `FlyingChestManager` | Gestion des coffres volants | `src/managers/flying_chest_manager.py` |
 | `StormManager` | Gestion des tempêtes | `src/managers/storm_manager.py` |
 | `DisplayManager` | Gestion de l'affichage | `src/managers/display.py` |
@@ -15,23 +15,15 @@ Les gestionnaires centralisent la gestion des ressources et comportements de hau
 
 ## Gestionnaires de gameplay
 
-### BaseManager
+### ⚠️ BaseManager → BaseComponent
 
-**Responsabilité :** Gère les entités de base (QG) alliées et ennemies.
+**Note :** `BaseManager` n'existe plus. Il a été fusionné dans `BaseComponent` pour simplifier l'architecture.
 
-```python
-class BaseManager:
-    def get_ally_base(self):
-        """Retourne l'entité de base alliée."""
-        return self._ally_base_entity
-    
-    def get_enemy_base(self):
-        """Retourne l'entité de base ennemie."""
-        return self._enemy_base_entity
-    
-    def initialize_bases(self):
-        """Crée les entités de base si elles n'existent pas."""
-```
+**Migration :** 
+- `get_base_manager().method()` → `BaseComponent.method()`
+- Toutes les fonctionnalités sont maintenant des méthodes de classe dans `BaseComponent`
+
+**Documentation complète :** Voir [BaseComponent](./components.md#basecomponent)
 
 ### FlyingChestManager
 
@@ -88,13 +80,15 @@ class SpriteSystem:
 
 ## Patterns d'utilisation
 
-### Singleton Pattern
+### Architecture ECS intégrée
 ```python
-def get_base_manager() -> BaseManager:
-    global _base_manager_instance
-    if _base_manager_instance is None:
-        _base_manager_instance = BaseManager()
-    return _base_manager_instance
+# Utilisation directe des méthodes de classe
+BaseComponent.initialize_bases()
+ally_base = BaseComponent.get_ally_base()
+enemy_base = BaseComponent.get_enemy_base()
+
+# Reset lors des changements de niveau
+BaseComponent.reset()
 ```
 
 ### Manager Lifecycle

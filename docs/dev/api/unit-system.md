@@ -46,7 +46,7 @@ Vous pouvez en savoir plus sur les capacités spéciales dans la [documentation 
 
 Chaque capacité spéciale est encapsulée dans un composant `SpeXxx`. Le code (GameEngine/UI/processors) attend une API légère et uniforme.
 
-> Voir la documentation détaillée des capacités : [Capacités spéciales (Spe*)](../modules/abilities.md)
+> Voir la documentation détaillée des capacités : [Système de capacités spéciales](../modules/special-capacity-system.md)
 
 ### Contrat recommandé
 
