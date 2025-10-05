@@ -304,6 +304,18 @@ class CollisionProcessor(esper.Processor):
                 health2.currentHealth -= int(attack1.hitPoints)
             if attack2 and health1:
                 health1.currentHealth -= int(attack2.hitPoints)
+        
+        # Si une mine touche une autre entité (par ex. un vaisseau), elle explose et disparaît
+        if is_mine1:
+            self._create_explosion_at_entity(entity1)
+            self._destroy_mine_on_grid_with_position(pos1)
+            esper.delete_entity(entity1)
+
+        if is_mine2:
+            self._create_explosion_at_entity(entity2)
+            self._destroy_mine_on_grid_with_position(pos2)
+            esper.delete_entity(entity2)
+
 
         # Après le dispatch, vérifier si des entités ont été supprimées et agir en conséquence
         # Gestion des mines - utiliser les positions sauvegardées car l'entité peut être supprimée
