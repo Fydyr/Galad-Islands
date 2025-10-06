@@ -669,7 +669,7 @@ class GameEngine:
         
         # Créer les unités
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
-        player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
+        player_unit = UnitFactory(UnitType.MARAUDEUR, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
             self._set_selected_entity(player_unit)
 
