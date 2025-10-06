@@ -1,3 +1,13 @@
+## v0.6.0 (2025-10-06)
+
+### Feat
+
+- ajouter un menu en jeu avec des options pour reprendre, paramètres et quitter
+
+### Refactor
+
+- corriger l'indentation de la clé 'spawn_bandits' dans les traductions
+
 ## v0.5.1 (2025-10-06)
 
 ### Fix
