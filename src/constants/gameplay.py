@@ -4,6 +4,20 @@ Centralise toutes les constantes magiques pour faciliter la maintenance et l'éq
 """
 
 # =============================================================================
+# CONSTANTES DE VISION ET BROUILLARD DE GUERRE
+# =============================================================================
+
+# Portée de vision des bases (en unités de grille)
+BASE_VISION_RANGE = 8.0
+
+# Portées de vision par type d'unité (en unités de grille)
+UNIT_VISION_SCOUT = 6.0
+UNIT_VISION_MARAUDEUR = 5.0
+UNIT_VISION_LEVIATHAN = 4.0
+UNIT_VISION_DRUID = 5.0
+UNIT_VISION_ARCHITECT = 4.0
+
+# =============================================================================
 # CONSTANTES DE PERFORMANCE ET RENDU
 # =============================================================================
 
@@ -259,3 +273,14 @@ TERRAIN_STOP_MODIFIER = 0.0  # Arrêt complet
 
 # Effets de pourcentage
 CLOUD_SPEED_REDUCTION = 100  # 100% pour debug print
+
+# =============================================================================
+# CONSTANTES DE VISION ET BROUILLARD DE GUERRE
+# =============================================================================
+
+# Portées de vision par type d'unité (en unités de grille)
+UNIT_VISION_SCOUT = 6.0
+UNIT_VISION_MARAUDEUR = 5.0
+UNIT_VISION_LEVIATHAN = 4.0
+UNIT_VISION_DRUID = 5.0
+UNIT_VISION_ARCHITECT = 4.0
