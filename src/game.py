@@ -58,7 +58,7 @@ from src.components.core.baseComponent import BaseComponent
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
-from src.ui.exit_modal import ExitConfirmationModal
+from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.notification_system import get_notification_system
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
@@ -79,6 +79,43 @@ class EventHandler:
         """Gère tous les événements pygame."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                # Ouvrir la modale de confirmation plutôt que quitter directement
+                self.game_engine.open_exit_modal()
+                continue
+
+            # Événement interne: changement de langue — demander aux UI de se rafraîchir
+            if event.type == pygame.USEREVENT and getattr(event, 'subtype', None) == 'language_changed':
+                lang = getattr(event, 'lang', None)
+                # Rafraîchir la barre d'action si présente
+                try:
+                    if getattr(self.game_engine, 'action_bar', None) is not None:
+                        if hasattr(self.game_engine.action_bar, 'refresh'):
+                            self.game_engine.action_bar.refresh()
+                        # forcer recalcul display texts if method exists
+                        if hasattr(self.game_engine.action_bar, '_refresh_texts'):
+                            self.game_engine.action_bar._refresh_texts()
+                except Exception:
+                    pass
+                # Rafraîchir la modale de sortie si elle est active so labels update
+                try:
+                    if getattr(self.game_engine, 'exit_modal', None) is not None:
+                        # Re-open layout to recalc labels next time it is shown
+                        if self.game_engine.exit_modal.is_active():
+                            target_surface = self.game_engine.window or pygame.display.get_surface()
+                            self.game_engine.exit_modal.open(target_surface)
+                except Exception:
+                    pass
+                # Rafraîchir notifications
+                try:
+                    ns = get_notification_system()
+                    if hasattr(ns, 'refresh'):
+                        ns.refresh()
+                except Exception:
+                    pass
+                # Continue to next event
+                continue
+            # Confirmed quit posted by an in-game confirmation dialog
+            if event.type == pygame.USEREVENT and getattr(event, 'subtype', None) == 'confirmed_quit':
                 self._handle_quit()
                 continue
 
@@ -526,7 +563,7 @@ class GameEngine:
         # Gestionnaire d'événements et rendu
         self.event_handler = EventHandler(self)
         self.renderer = GameRenderer(self)
-        self.exit_modal = ExitConfirmationModal()
+        self.exit_modal = InGameMenuModal()
         
         # Timer pour le spawn de coffres
         self.chest_spawn_timer = 0.0

@@ -6,104 +6,27 @@ from src.ui.generic_modal import GenericModal
 from src.settings.localization import t
 from src.settings.settings import ConfigManager
 
-# Optional imports that may depend on the runtime (esper, managers, etc.).
-try:
-    from src.components.core.playerComponent import PlayerComponent
-except Exception:
-    PlayerComponent = None
-
-try:
-    from src.components.core.teamComponent import TeamComponent
-except Exception:
-    TeamComponent = None
-
-try:
-    from src.components.core.team_enum import Team as TeamEnum
-except Exception:
-    TeamEnum = None
-
-try:
-    from src.managers.stormManager import getStormManager
-except Exception:
-    getStormManager = None
-
-try:
-    from src.managers.flying_chest_manager import FlyingChestManager
-except Exception:
-    FlyingChestManager = None
-
-try:
-    from src.managers.island_resource_manager import IslandResourceManager
-except Exception:
-    IslandResourceManager = None
-
-try:
-    from src.components.events.krakenComponent import KrakenComponent
-except Exception:
-    KrakenComponent = None
-
-try:
-    from src.components.properties.eventsComponent import EventsComponent
-except Exception:
-    EventsComponent = None
-
-try:
-    from src.components.events.flyChestComponent import FlyingChestComponent
-except Exception:
-    FlyingChestComponent = None
-
-try:
-    from src.components.events.krakenTentacleComponent import KrakenTentacleComponent
-except Exception:
-    KrakenTentacleComponent = None
-
-try:
-    from src.components.events.islandResourceComponent import IslandResourceComponent
-except Exception:
-    IslandResourceComponent = None
-
-try:
-    from src.components.core.attackComponent import AttackComponent
-except Exception:
-    AttackComponent = None
-
-try:
-    from src.components.core.canCollideComponent import CanCollideComponent
-except Exception:
-    CanCollideComponent = None
-
-try:
-    from src.components.core.positionComponent import PositionComponent
-except Exception:
-    PositionComponent = None
-
-try:
-    from src.components.core.spriteComponent import SpriteComponent
-except Exception:
-    SpriteComponent = None
-
-try:
-    from src.managers.sprite_manager import SpriteID, sprite_manager
-except Exception:
-    SpriteID = None
-    sprite_manager = None
-
-try:
-    from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
-except Exception:
-    TILE_SIZE = MAP_WIDTH = MAP_HEIGHT = None
-
-# Optional import of Bandits component for fallback spawning
-try:
-    from src.components.events.banditsComponent import Bandits
-except Exception:
-    Bandits = None
-
-# Optional import of esper (entity system) used by fallback spawner
-try:
-    import esper
-except Exception:
-    esper = None
+# Direct imports (no try/except) — expected to be available in the runtime
+from src.components.core.playerComponent import PlayerComponent
+from src.components.core.teamComponent import TeamComponent
+from src.components.core.team_enum import Team as TeamEnum
+from src.managers.stormManager import getStormManager
+from src.managers.flying_chest_manager import FlyingChestManager
+from src.managers.island_resource_manager import IslandResourceManager
+from src.components.events.krakenComponent import KrakenComponent
+from src.components.properties.eventsComponent import EventsComponent
+from src.components.events.flyChestComponent import FlyingChestComponent
+from src.components.events.krakenTentacleComponent import KrakenTentacleComponent
+from src.components.events.islandResourceComponent import IslandResourceComponent
+from src.components.core.attackComponent import AttackComponent
+from src.components.core.canCollideComponent import CanCollideComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.spriteComponent import SpriteComponent
+from src.managers.sprite_manager import SpriteID, sprite_manager
+from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
+from src.components.events.banditsComponent import Bandits
+import esper
+from src.processeurs.events.banditsProcessor import BanditsProcessor
 
 
 class DebugModal:

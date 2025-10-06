@@ -109,6 +109,13 @@ TRANSLATIONS = {
     "game.exit_modal.stay": "Stay",
     "game.exit_modal.quit": "Quit",
     
+    # In-game menu (pause/menu during play)
+    "game.menu.title": "Game Menu",
+    "game.menu.message": "Choose an action:",
+    "game.menu.stay": "Resume",
+    "game.menu.settings": "Settings",
+    "game.menu.quit": "Quit",
+    
     # Debug modal
     "debug.modal.title": "Debug Menu",
     "debug.modal.message": "Select a debug action:",
@@ -305,7 +312,7 @@ TRANSLATIONS = {
     "options.information_section": "Information",
     "options.button_default": "Default",
     "options.button_close": "Close",
-    "options.info_changes_immediate": "• All changes apply immediately except resolution which applies after closing the menu",
+  "options.info_changes_immediate": "• Most changes apply immediately. Window mode and resolution apply after returning to the main menu.",
     "options.info_window_mode": "• Windowed/fullscreen mode takes effect when closing the menu",
     "options.info_custom_resolution": "• Custom resolutions are saved automatically",
     "options.info_resize_window": "• Resizing the window saves the new resolution",
