@@ -110,6 +110,13 @@ TRANSLATIONS = {
     "game.exit_modal.stay": "Continuer",
     "game.exit_modal.quit": "Quitter",
     
+    # Menu en jeu (pause / menu pendant la partie)
+    "game.menu.title": "Menu de jeu",
+    "game.menu.message": "Choisissez une action :",
+    "game.menu.stay": "Reprendre",
+    "game.menu.settings": "Paramètres",
+    "game.menu.quit": "Quitter",
+    
     # Debug modal
     "debug.modal.title": "Menu de Debug",
     "debug.modal.message": "Sélectionnez une action de debug :",
@@ -306,7 +313,7 @@ TRANSLATIONS = {
     "options.information_section": "Informations",
     "options.button_default": "Défaut",
     "options.button_close": "Fermer",
-    "options.info_changes_immediate": "• Tous les changements s'appliquent immédiatement sauf la résolution qui s'applique après avoir fermé le menu",
+    "options.info_changes_immediate": "• La plupart des changements s'appliquent immédiatement. Mode fenêtre et résolution s'appliquent après retour au menu principal.",
     "options.info_window_mode": "• Le mode fenêtré/plein écran prend effet en fermant le menu",
     "options.info_custom_resolution": "• Les résolutions personnalisées sont sauvegardées automatiquement",
     "options.info_resize_window": "• Redimensionner la fenêtre sauvegarde la nouvelle résolution",

@@ -175,9 +175,10 @@ class GenericModal:
             button_count = len(self.button_actions)
             panel_height = max(300, 180 + button_count * 70)  # Hauteur dynamique
         else:
-            # Layout horizontal classique
-            panel_width = max(360, min(520, int(width * 0.45)))
-            panel_height = 220
+            # Layout horizontal classique — augmenter la largeur pour les menus
+            # Utiliser une proportion plus large et des bornes supérieures/inférieures accrues
+            panel_width = max(480, min(760, int(width * 0.6)))
+            panel_height = 240
             
         self.modal_rect = pygame.Rect(0, 0, panel_width, panel_height)
         self.modal_rect.center = (width // 2, height // 2)

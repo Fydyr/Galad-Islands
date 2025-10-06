@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from enum import Enum
 
 import pygame
-import esper
+try:
+    import esper
+except Exception:
+    esper = None
 
 from src.ui.boutique import Shop, ShopFaction
 from src.settings.localization import t
@@ -319,6 +322,57 @@ class ActionBar:
         self.action_buttons.extend(build_buttons)
         self.action_buttons.extend(global_buttons)
         self._update_button_positions()
+
+    def refresh(self) -> None:
+        """Public refresh entry: recompute layout and texts."""
+        # Recompute text labels (useful after a language change)
+        self._refresh_texts()
+        self._update_button_positions()
+
+    def _refresh_texts(self) -> None:
+        """Internal: refresh all texts that depend on translations.
+
+        Cette méthode est appelée par la boucle principale quand un événement
+        'language_changed' est posté pour que l'UI reflète immédiatement la nouvelle langue.
+        """
+        try:
+            # Mettre à jour les labels et tooltips traduits
+            for button in self.action_buttons:
+                # Recompute text and tooltip from translation keys when possible
+                if button.action_type == ActionType.SPECIAL_ABILITY:
+                    button.text = t("actionbar.special_ability")
+                    button.tooltip = t("tooltip.special_ability")
+                elif button.action_type == ActionType.ATTACK_MODE:
+                    button.text = t("actionbar.attack_mode")
+                    button.tooltip = t("tooltip.attack_mode")
+                elif button.action_type == ActionType.OPEN_SHOP:
+                    button.text = t("actionbar.shop")
+                    button.tooltip = t("tooltip.shop")
+                elif button.action_type == ActionType.BUILD_DEFENSE_TOWER:
+                    button.text = t("actionbar.build_defense")
+                    button.tooltip = t("tooltip.build_defense", default=t("actionbar.build_defense"))
+                elif button.action_type == ActionType.BUILD_HEAL_TOWER:
+                    button.text = t("actionbar.build_heal")
+                    button.tooltip = t("tooltip.build_heal", default=t("actionbar.build_heal"))
+                elif button.action_type == ActionType.GLOBAL_ATTACK:
+                    button.text = t("actionbar.global_attack")
+                    button.tooltip = t("tooltip.global_attack")
+                elif button.action_type == ActionType.GLOBAL_DEFENSE:
+                    button.text = t("actionbar.global_defense")
+                    button.tooltip = t("tooltip.global_defense")
+                elif button.action_type == ActionType.DEV_GIVE_GOLD:
+                    button.text = t("actionbar.debug_menu")
+                    button.tooltip = t("debug.modal.title")
+
+            # Recreate fonts if needed (keep sizes)
+            # Force re-render in draw cycle by updating fonts
+            self.font_normal = pygame.font.Font(None, self.font_normal.get_height())
+            self.font_small = pygame.font.Font(None, self.font_small.get_height())
+            self.font_large = pygame.font.Font(None, self.font_large.get_height())
+            self.font_title = pygame.font.Font(None, self.font_title.get_height())
+        except Exception:
+            # Silencieux : évite de faire planter la boucle principale
+            pass
     
     def _load_icons(self):
         """Charge les icônes des boutons."""

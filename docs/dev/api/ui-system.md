@@ -225,14 +225,14 @@ def _draw_unit_bars(self, surface, info_x, info_y):
 
 ## Modales et fenêtres
 
-### ExitConfirmationModal
+### InGameMenuModal
 
 **Fichier :** `src/ui/exit_modal.py`
 
 **Responsabilité :** Modale de confirmation de sortie.
 
 ```python
-class ExitConfirmationModal:
+class InGameMenuModal:
     """Modale de confirmation pour quitter le jeu."""
     
     def __init__(self):
