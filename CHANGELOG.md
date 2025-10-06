@@ -1,3 +1,11 @@
+## v0.5.1 (2025-10-06)
+
+### Fix
+
+- améliorer la gestion des fichiers de configuration manquants en créant un fichier avec des valeurs par défaut
+- mise à jour du fichier localisation qui pouvait casser Galad Settings Tool sur Windows
+- corriger le chemin d'exécution et améliorer les messages d'avertissement dans galad_config.py
+
 ## v0.5.0 (2025-10-05)
 
 ### Feat
