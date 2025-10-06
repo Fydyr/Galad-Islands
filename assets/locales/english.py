@@ -124,7 +124,7 @@ TRANSLATIONS = {
     "debug.modal.spawn_chest": "Spawn Chests",
     "debug.modal.spawn_kraken": "Spawn Kraken",
     "debug.modal.spawn_island_resources": "Spawn Island Resources",
-  "debug.modal.spawn_bandits": "Spawn Bandits",
+    "debug.modal.spawn_bandits": "Spawn Bandits",
     "debug.modal.clear_events": "Clear Events",
     "debug.modal.close": "Close",
     
