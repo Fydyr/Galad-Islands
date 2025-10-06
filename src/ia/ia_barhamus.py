@@ -73,11 +73,13 @@ class BarhamusAI:
 
     def _fire_salvo(self, world, pos, radius):
         """Tir en salve : avant + côtés"""
-        angles = [pos.direction, pos.direction - 45, pos.direction + 45]
-        for angle in angles:
-            # Ici, tu peux appeler la fonction de création de projectile adaptée
-            # world.dispatch_event("attack_event", self.entity)
-            pass  # ... à compléter selon ton système de tir
+        # Utiliser le système d'événements du jeu pour tirer
+        try:
+            world.dispatch_event("attack_event", self.entity)
+            print(f"Barhamus {self.entity} tire !")
+        except Exception as e:
+            print(f"Erreur lors du tir Barhamus: {e}")
+            pass
 
     def _activate_shield(self, spe):
         spe.mana_shield_active = True

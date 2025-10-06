@@ -56,6 +56,9 @@ from src.functions.handleHealth import entitiesHit
 from src.functions.afficherModale import afficher_modale
 from src.components.core.baseComponent import BaseComponent
 
+# Importations IA
+from src.ia.ia_barhamus import BarhamusAI
+
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.exit_modal import ExitConfirmationModal
@@ -671,7 +674,11 @@ class GameEngine:
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
         player_unit = UnitFactory(UnitType.MARAUDEUR, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
-            self._set_selected_entity(player_unit)
+            # Initialiser l'IA pour le Barhamus
+            self.barhamus_ai = BarhamusAI(player_unit)
+            print(f"IA Barhamus initialisée pour l'entité {player_unit}")
+            # Ne pas sélectionner l'unité pour laisser l'IA agir librement
+            # self._set_selected_entity(player_unit)
 
         # Créer un druide ennemi à une position équivalente à celle du druid allié
         enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(
@@ -1315,6 +1322,10 @@ class GameEngine:
         
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
+        
+        # Mettre à jour l'IA Barhamus
+        if hasattr(self, 'barhamus_ai') and self.barhamus_ai is not None:
+            self.barhamus_ai.update(es, dt)
 
         if self.flying_chest_manager is not None:
             self.flying_chest_manager.update(dt)
