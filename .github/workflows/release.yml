@@ -45,6 +45,7 @@ jobs:
             --add-data "src${SEP}src"
 
       - name: Detect if tag commit is in 'unstable' branch
+        shell: bash
         id: check
         run: |
           # fetch remote branches and check if the commit ($GITHUB_SHA) is contained in unstable
