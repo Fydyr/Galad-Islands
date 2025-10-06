@@ -96,7 +96,9 @@ class ConfigManager:
                                 self.config[key] = value
                 print(f"Configuration chargée depuis {self.path}")
             else:
-                print("Fichier de configuration non trouvé, utilisation des valeurs par défaut")
+                # Créer un fichier de config avec les valeurs par défaut
+                self.save_config()
+                print(f"Fichier de configuration non trouvé, création de {self.path} avec les valeurs par défaut")
         except Exception as e:
             print(f"Erreur lors du chargement de la configuration: {e}")
             print("Utilisation des valeurs par défaut")
