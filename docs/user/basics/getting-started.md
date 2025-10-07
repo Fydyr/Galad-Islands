@@ -19,7 +19,6 @@ Au lancement, vous arrivez sur le menu principal avec les options suivantes :
 
 !!! tip "Configuration recommandée"
     **Avant votre première partie**, visitez le menu **Options** pour :
-    
     - Ajuster la résolution à votre écran
     - Configurer les volumes (musique/effets)
     - Choisir votre langue (français/anglais)
@@ -56,21 +55,19 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 !!! example "Objectifs d'exploration"
     **🎯 Ce qu'il faut faire :**
-    
     1. **Explorez la carte** avec les flèches directionnelles
-    2. **Localisez vos unités** (votre éclaireur au centre)
+    2. **Localisez vos unités** (votre éclaireur à coté de votre base)
     3. **Repérez les îles** et points d'intérêt
-    4. **Identifiez les ennemis** (unités rouges)
-    5. **Trouvez les ressources** (coffres sur les îles)
+    4. **Identifiez les ennemis**
+    5. **Trouvez les ressources** (coffres volants et or sur les îles)
 
 ### Phase 2 : Premiers combats (5 minutes)
 
 !!! success "Stratégie de base"
     **⚔️ Comment engager le combat :**
-    
     - **Sélectionnez** votre unité (clic gauche)
     - **Approchez-vous** d'un ennemi isolé
-    - **L'attaque** se fait automatiquement
+    - **Engagez le combat** en vous rapprochant suffisamment et tirer avec la touche `A`.
     - **Surveillez** la barre de vie (au-dessus des unités)
     - **Reculez** si nécessaire pour éviter la destruction
 
@@ -78,7 +75,6 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 !!! info "Sources d'or"
     **💰 Comment collecter de l'or :**
-    
     - **🎁 Coffres** : Détruisez les coffres dispersés sur les îles
     - **🏝️ Ressources d'îles** : Explorez et récoltez sur les différentes îles
     - **⚔️ Combat** : Éliminez des unités ennemies pour gagner de l'or
@@ -86,7 +82,6 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 !!! tip "Économie intelligente"
     **🛒 Conseils d'achat :**
-    
     - **Boutique** : Accessible via la barre d'actions en bas d'écran
     - **Prix variables** : Chaque type d'unité a un coût différent
     - **Investissement** : Commencez par des unités polyvalentes
@@ -115,7 +110,6 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 !!! success "Stratégies gagnantes"
     **🏆 Techniques éprouvées :**
-    
     - **Reconnaissance d'abord** : Explorez avant d'attaquer
     - **Combat progressif** : Éliminez les unités isolées
     - **Gestion de l'or** : Investissez intelligemment
@@ -126,7 +120,6 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 !!! warning "Pièges courants"
     **❌ À ne pas faire :**
-    
     - Attaquer sans plan ni reconnaissance
     - Dépenser tout son or d'un coup
     - Négliger la défense de vos positions
@@ -153,6 +146,7 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
    - Maîtrise complète du gameplay
 
 > 📚 **Ressources d'apprentissage :**
+>
 > - [Types d'unités et leurs rôles](../units/units.md)
 > - [Guide stratégique avancé](../gameplay/strategy.md)
 > - [Interface et barre d'actions](../gameplay/action-bar.md)
@@ -161,7 +155,6 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 !!! success "Stratégie débutant"
     **Phase d'exploration (5 premières minutes)**
-    
     1. Explorez toute la carte
     2. Localisez les sources d'or
     3. Identifiez les positions ennemies
@@ -169,7 +162,6 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 !!! warning "Erreurs courantes"
     **À éviter :**
-    
     - Attaquer sans reconnaissance
     - Dépenser sans réfléchir
     - Oublier les capacités spéciales
@@ -181,26 +173,23 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 !!! bug "Solutions rapides"
     **🔧 Actions immédiates :**
-    
     1. **Redémarrez** votre ordinateur
     2. **Vérifiez** que vous avez téléchargé la bonne version (Windows/Linux/macOS)
-    3. **Testez** en tant qu'administrateur (Windows) 
+    3. **Testez** en tant qu'administrateur (Windows)
     4. **Consultez** le [guide de résolution de problèmes](installation.md#resolution-de-problemes)
 
 ### Problèmes d'affichage ou de performance
 
 !!! tip "Configuration optimale"
     **📺 Réglages recommandés :**
-    
-    - **Résolution** : Commencez par 1280x720
-    - **Mode** : Fenêtré pour débuter
-    - **Options** : Désactivez la V-Sync si vous avez des ralentissements
+
+    - **Résolution** : Commencez par 1280x720 puis agrandissez la fenêtre
+    - **Mode** : Fenêtré pour débuter et lire la documentation en même temps
 
 ### Besoin d'aide supplémentaire ?
 
 !!! info "Ressources d'aide"
     **📚 Où trouver de l'aide :**
-    
     - **[Guide d'installation complet](installation.md)** : Problèmes techniques
     - **[FAQ](faq.md)** : Questions les plus courantes  
     - **[Issues GitHub](https://github.com/Fydyr/Galad-Islands/issues)** : Signaler un bug

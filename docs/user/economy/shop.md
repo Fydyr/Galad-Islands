@@ -1,5 +1,9 @@
 # Boutique et économie
 
+!!! warning
+    Cette page contient des informations obsolètes ou incorrectes. Veuillez contacter l'équipe de développement pour plus de détails.
+
+
 ## 💰 Système économique
 
 ### Sources de revenus

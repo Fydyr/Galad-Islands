@@ -5,24 +5,19 @@
 ### Mécaniques de base
 
 **Prérequis pour construire**
+
 - Avoir un **Architect** dans votre armée
 - Contrôler une **île libre** (sans bâtiment existant)
 - Disposer de l'**or nécessaire** pour la construction
 
 **Processus de construction**
+
 1. Sélectionnez votre Architect
 2. Déplacez-le sur l'île cible
 3. Attendez qu'il atteigne la position
-4. Ouvrez la boutique (`B`) → Catégorie Bâtiments
+4. Cliquez sur l'icone `Tour de Défense` ou `Tour de Soin` en bas à gauche de l'écran
 5. Choisissez le bâtiment à construire
 6. Confirmez avec `Entrée`
-
-!!! tip "Astuce de placement"
-    **Les îles stratégiques :**
-    
-    - **Îles centrales** : Idéales pour les tours de défense
-    - **Îles minières** : Parfaites pour les générateurs d'or
-    - **Îles frontalières** : Optimales pour les avant-postes
 
 ## 🏰 Types de bâtiments
 
@@ -31,139 +26,72 @@
 #### Tour de Défense
 
 **Statistiques**
-- **Coût** : 100 pièces d'or
+
+- **Coût** : 150 pièces d'or
 - **Points de vie** : 300 PV
-- **Dégâts** : 40 DPS (dégâts par seconde)
-- **Portée d'attaque** : 150 pixels
-- **Cadence de tir** : 1 projectile/seconde
+- **Dégâts** : 25 par seconde
+- **Portée d'attaque** : 350 pixels
+- **Cadence de tir** : 1 tir/seconde
 
 **Comportement**
+
 - Cible automatiquement l'ennemi **le plus proche**
 - Priorise les unités sur les bâtiments
-- **Projectiles** : Boules d'énergie bleue
+- **Projectiles** : Attaque automatique dans la portée
 - **Animation** : Rotation vers la cible avant tir
 
 **Utilisation tactique**
+
 - **Défense de chokepoint** : Placez aux passages étroits
-- **Protection de base** : Encerclez vos générateurs d'or
+- **Protection de base** : Encerclez vos positions stratégiques
 - **Contrôle de zone** : Créez des zones dangereuses pour l'ennemi
-
-#### Tour de Guet (Avancée)
-
-**Statistiques**
-- **Coût** : 200 pièces d'or  
-- **Points de vie** : 200 PV
-- **Portée de détection** : 300 pixels
-- **Bonus** : Révèle les unités ennemies cachées
-
-**Capacités spéciales**
-- **Vision étendue** : Double la portée de vision normale
-- **Détection furtive** : Révèle les unités camouflées
-- **Alerte précoce** : Signal sonore à l'approche d'ennemis
 
 ### Bâtiments de soin
 
 #### Tour de Soin
 
 **Statistiques**
-- **Coût** : 125 pièces d'or
-- **Points de vie** : 250 PV
-- **Soin** : 15 PV/seconde
-- **Portée de soin** : 120 pixels
-- **Cibles** : 3 unités simultanément
 
-**Mécanisme de soin**
+- **Coût** : 120 pièces d'or
+- **Points de vie** : 200 PV
+- **Soin** : 10 PV/seconde
+- **Portée de soin** : 200 pixels
+- **Cibles** : Unités alliées dans la portée
+
+**Mécanique de soin**
+
 - Soin **automatique** et **continu**
 - Priorise les unités les **plus blessées**
-- **Effet visuel** : Particules vertes vers les cibles
-- **Zone de soin** : Cercle vert translucide
+- **Effet visuel** : Régénération des unités alliées
+- **Zone de soin** : Cercle de 200 pixels de rayon
 
 **Synergies tactiques**
-- **Avec Draupnir** : Tank quasi-immortel
-- **Avec Druid** : Soin cumulé très puissant  
+
+- **Avec Léviathan** : Tank quasi-immortel
+- **Avec Druid** : Soin cumulé très puissant
 - **En groupe** : Réseau de soin pour armée entière
-
-#### Centre de Régénération (Avancé)
-
-**Statistiques**
-- **Coût** : 300 pièces d'or
-- **Points de vie** : 400 PV
-- **Régénération** : 25 PV/seconde
-- **Portée** : 200 pixels
-- **Capacité spéciale** : Ressuscite les unités détruites
-
-### Bâtiments économiques
-
-#### Générateur d'Or
-
-**Production**
-- **Coût** : 200 pièces d'or
-- **Production** : +10 or/seconde
-- **Prérequis** : Île avec mine contrôlée
-- **Cumul maximum** : 3 par mine
-
-**Mécaniques avancées**
-- **Efficacité** : +2 or/seconde par générateur adjacent
-- **Protection** : 400 PV, résistant aux attaques
-- **Maintien** : Nécessite contrôle continu de l'île
-
-**Calcul de rentabilité**
-- **Retour sur investissement** : 20 secondes
-- **Profit net** : 600 or/minute par générateur  
-- **Profit optimisé** : 1000+ or/minute avec bonus adjacence
-
-#### Entrepôt de Ressources
-
-**Fonctionnalités**
-- **Coût** : 150 pièces d'or
-- **Capacité** : Stocke jusqu'à 500 or
-- **Protection** : L'or stocké survit à la mort des unités
-- **Récupération** : Or récupérable même après destruction
-
-### Bâtiments spéciaux
-
-#### Portail de Téléportation
-
-**Capacités**
-- **Coût** : 400 pièces d'or (paire)
-- **Fonction** : Téléportation instantanée d'unités
-- **Portée** : Illimitée sur la carte
-- **Cooldown** : 30 secondes entre téléportations
-
-**Utilisation stratégique**
-- **Mobilité tactique** : Déplacements rapides d'armée
-- **Défense réactive** : Renfort instantané des zones menacées
-- **Attaques surprise** : Flanquement imprévisible
-
-#### Arsenal de Guerre
-
-**Améliorations**
-- **Coût** : 500 pièces d'or
-- **Effet** : +25% dégâts pour toutes les unités dans un rayon de 200 pixels
-- **Bonus** : Débloque munitions spéciales
-- **Maintenance** : -5 or/seconde d'entretien
 
 ## 🔧 Stratégies de construction
 
 ### Développement économique
 
-**Phase 1 : Expansion (0-5 minutes)**
+#### Phase 1 : Expansion (0-5 minutes)
 
-1. **Architect** → Première île minière
-2. **Générateur d'or** → Production stable
-3. **Tour de défense** → Protection de l'investissement
-4. **Répéter** sur 2-3 mines supplémentaires
+1. **Architect** → Première île disponible
+2. **Tour de défense** → Sécurisation immédiate
+3. **Tour de soin** → Maintien des troupes
+4. **Répéter** sur d'autres îles stratégiques
 
-**Phase 2 : Consolidation (5-10 minutes)**
+#### Phase 2 : Consolidation (5-10 minutes)
 
-1. **2-3 générateurs** par mine contrôlée
-2. **Réseau de défense** interconnecté
-3. **Tours de soin** aux points stratégiques
-4. **Entrepôts** pour sécuriser les gains
+1. **Réseau défensif** interconnecté
+2. **Tours de soin** aux points stratégiques
+3. **Contrôle territorial** étendu
+4. **Défense en profondeur** des positions clés
 
 ### Défense territoriale
 
-**Principe du "Triangle défensif"**
+#### Principe du "Triangle défensif"
 
 ```
     Tour de Défense
@@ -175,22 +103,23 @@ Tour de    Tour de
 ```
 
 **Avantages :**
+
 - **Couverture totale** de la zone
-- **Soin mutuel** entre bâtiments  
+- **Soin mutuel** entre bâtiments
 - **Feu croisé** sur les assaillants
 - **Redondance** en cas de destruction
 
-### Construction offensive  
+### Construction offensive
 
-**Base avancée**
+#### Base avancée
 
 !!! warning "Tactique agressive"
     **Établir un avant-poste :**
-    
+
     1. **Architect + escorte** → Île proche de l'ennemi
     2. **Tour de défense** → Sécurisation immédiate
-    3. **Portail** → Renfort rapide depuis la base
-    4. **Arsenal** → Amplification des attaques
+    3. **Tour de soin** → Maintien des troupes avancées
+    4. **Expansion contrôlée** → Prise de territoire progressive
 
 ## 📊 Tableaux comparatifs
 
@@ -198,17 +127,15 @@ Tour de    Tour de
 
 | Bâtiment | DPS | PV | Coût | Ratio DPS/Or |
 |----------|-----|----|----- |-------------|
-| Tour de Défense | 40 | 300 | 100 | 0,40 |
-| Tour de Guet | 0 | 200 | 200 | 0 (utilitaire) |
-| Arsenal | +25% | 350 | 500 | Variable |
+| Tour de Défense | 25 | 300 | 150 | 0,17 |
+| Tour de Soin | 0 | 200 | 120 | 0 (utilitaire) |
 
 ### Efficacité économique
 
-| Bâtiment | Production | Coût | Rentabilité | ROI |
-|----------|-----------|------|-------------|-----|
-| Générateur | +10 or/s | 200 | 600 or/min | 20s |
-| Entrepôt | Sécurité | 150 | Protection | Variable |
-| Mine contrôlée | +10 or/s | 0 | Gratuit | Immédiat |
+| Bâtiment | Fonction | Coût | Rentabilité |
+|----------|----------|------|-------------|
+| Tour de Défense | Protection | 150 | Variable |
+| Tour de Soin | Maintien troupes | 120 | Variable |
 
 ## 🎯 Conseils de maîtrise
 
@@ -216,8 +143,8 @@ Tour de    Tour de
 
 !!! success "Règles de placement"
     **Principes fondamentaux :**
-    
-    - **Toujours** protéger l'économie en priorité
+
+    - **Toujours** protéger vos unités en priorité
     - **Éviter** les bâtiments isolés et vulnérables
     - **Prévoir** les angles morts et zones de faiblesse
     - **Créer** des synergies entre bâtiments adjacents
@@ -226,17 +153,17 @@ Tour de    Tour de
 
 **Ordre de construction recommandé :**
 
-1. **Économie** (générateurs) = Revenus futurs
-2. **Défense** (tours) = Protection des investissements  
-3. **Soin** (tours de soin) = Durabilité des unités
-4. **Spéciaux** (portails, arsenal) = Avantage tactique
+1. **Défense** (tours de défense) = Protection immédiate
+2. **Soin** (tours de soin) = Durabilité des unités
+3. **Expansion** = Contrôle territorial
+4. **Optimisation** = Placement tactique avancé
 
 ### Erreurs à éviter
 
 !!! danger "Pièges courants"
     **Ne jamais faire :**
-    
-    - Construire sans défense
+
+    - Construire sans protection défensive
     - Négliger l'entretien des bâtiments
     - Concentrer tous les bâtiments au même endroit
     - Oublier de diversifier les types de construction
@@ -244,5 +171,4 @@ Tour de    Tour de
 
 ---
 
-*Découvrez maintenant comment utiliser efficacement la [barre d'action](../gameplay/action-bar.md) pour coordonner vos 
-constructions !*
+*Maîtrisez l'art de la construction pour dominer les Galad Islands !*

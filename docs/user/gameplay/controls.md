@@ -11,13 +11,12 @@
 ### Barre d'outils latérale
 
 - **Sélection d'unité** : Boutons pour chaque type d'unité disponible
-- **Actions spéciales** : Capacités uniques (téléportation, soin de zone, etc.)
-- **Informations** : Or actuel, ressources, statistiques
+- **Actions spéciales** : Capacités spéciales
+- **Informations** : Or actuel
 
 ### Zone de jeu
 
 - **Carte** : Vue d'ensemble des îles et unités
-- **Minicarte** : Aperçu global avec brouillard de guerre
 - **Informations détaillées** : Stats des unités sélectionnées
 
 ## Contrôles de base
@@ -27,62 +26,51 @@
 - **Clic gauche** : Sélectionner une unité ou une île
 - **Clic droit** : Donner un ordre de mouvement
 - **Molette** : Zoom avant/arrière
-- **Maintenir clic droit** : Faire défiler la carte
+- **Flèches directionnelles** : Faire défiler la carte
 
-### Gestion des unités
-
-- **Clic gauche + Maj** : Sélection multiple
-- **Ctrl + numéro** : Grouper des unités (1-9)
-- **Numéro** : Sélectionner un groupe
-- **Espace** : Centrer la caméra sur les unités sélectionnées
 
 ### Actions spéciales
 
-- **A** : Attaquer automatiquement la cible la plus proche
-- **S** : Arrêter toutes les actions en cours
-- **H** : Soigner les unités alliées (pour les unités de soin)
-- **T** : Construire une tour de défense
+- **A** : Attaque automatique vers la cible la plus proche
+- **Espace** (ou **Ctrl**) : Arrêter toutes les actions en cours
+- **Tab** : Basculer le mode d'attaque
+- **E** : Capacité spéciale de l'unité sélectionnée
 
 ## Raccourcis clavier avancés
 
-### Gestion économique
+### Gestion des groupes d'unités
 
-- **B** : Ouvrir la boutique d'unités
-- **G** : Afficher/masquer les ressources d'or
-- **R** : Ramasser les ressources proches
+- **1-2** : Changer d'unité sélectionnée
+- **Ctrl+A** : Sélectionner toutes les unités
+- **T** : Changer d'équipe
+- **Ctrl+1-9** : Sélectionner le groupe d'unités
+- **Ctrl+Maj+1-9** : Assigner un groupe d'unités
 
-### Contrôle tactique
+### Contrôle de la caméra
 
-- **F** : Formation défensive automatique
-- **O** : Formation offensive automatique
-- **P** : Patrouille automatique
-- **Ctrl + S** : Sauvegarde rapide
+- **Flèches directionnelles** : Déplacer la caméra
+- **Ctrl + flèches** : Déplacement rapide de la caméra
+- **C** : Basculer le suivi automatique de l'unité
 
 ### Interface utilisateur
 
-- **Tab** : Changer de vue (carte complète/minicarte)
-- **F1-F12** : Raccourcis personnalisables
 - **Échap** : Menu pause/options
+- **F1** : Afficher l'aide
+- **F3** : Mode debug (développeur)
+
 
 ## Commandes spéciales
 
-### Téléportation (Architecte)
+### Capacités spéciales par unité
 
-- **Clic droit sur une île visible** : Téléportation instantanée
-- **Coût** : 50 or par téléportation
-- **Recharge** : 30 secondes
+- **Scout** : Manœuvre d'évasion (invincibilité temporaire)
+- **Maraudeur** : Réduction des boucliers ennemis
+- **Léviathan** : Double tir (deuxième projectile gratuit)
+- **Druid** : Projectile de liane immobilisant
+- **Architect** : Accélération du rechargement des Zeppelins alliés
 
-### Soin de zone (Druid)
-
-- **Clic droit sur une zone** : Soigne toutes les unités alliées dans un rayon
-- **Portée** : 3 cases autour du point ciblé
-- **Recharge** : 45 secondes
-
-### Attaque en chaîne (Draupnir)
-
-- **Clic gauche sur une unité ennemie** : Attaque normale
-- **Clic droit sur une unité ennemie** : Attaque chargée (dégâts doubles)
-- **Recharge attaque chargée** : 60 secondes
+!!! info "Activation des capacités"
+    Toutes les capacités spéciales s'activent avec la touche **E** quand l'unité correspondante est sélectionnée. Chaque capacité a son propre temps de recharge.
 
 ## Gestion des groupes
 
@@ -106,21 +94,6 @@
 - **Groupe 3** : Unités de soutien (Druid)
 - **Groupe 4** : Unités spéciales (Draupnir, Architecte)
 
-## Interface tactile (si supporté)
-
-### Gestes de base
-
-- **Toucher simple** : Sélection
-- **Toucher double** : Centrer la caméra
-- **Pincer** : Zoom
-- **Glisser** : Défilement
-
-### Commandes tactiles avancées
-
-- **Toucher long** : Menu contextuel
-- **Deux doigts** : Sélection de zone
-- **Trois doigts** : Menu principal
-
 ## Personnalisation des contrôles
 
 ### Modification des raccourcis
@@ -135,26 +108,6 @@
 - **Débutant** : Raccourcis simplifiés, aides visuelles
 - **Avancé** : Tous les raccourcis disponibles
 - **Expert** : Raccourcis personnalisés complets
-
-## Conseils d'utilisation
-
-### Pour débutants
-
-- Utilisez les groupes pour gérer plusieurs unités facilement
-- Le clic droit est votre ami : mouvement, attaque, etc.
-- N'oubliez pas la sauvegarde rapide (**Ctrl + S**)
-
-### Pour vétérans
-
-- Maîtrisez les formations automatiques (**F** et **O**)
-- Utilisez la patrouille (**P**) pour la défense passive
-- Les groupes permettent des manœuvres complexes
-
-### Optimisations
-
-- Pré-grouper vos unités avant le combat
-- Utiliser les raccourcis pour les actions répétitives
-- La minicarte aide à l'orientation rapide
 
 ---
 
