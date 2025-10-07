@@ -58,12 +58,6 @@ Votre objectif ultime est de **détruire la base ennemie** pour remporter la vic
 - **Supériorité économique totale** : L'adversaire n'a plus les moyens de se défendre
 - **Capitulation** : L'adversaire abandonne face à une situation désespérée
 
-### Modes de jeu
-
-- **Partie classique** : Combat équilibré entre deux équipes
-- **Mode défi** : Scénarios spéciaux avec conditions particulières
-- **Mode entraînement** : Apprentissage des mécaniques sans pression
-
 ## 🎨 Style de jeu
 
 Galad Islands offre une expérience stratégique riche et accessible :

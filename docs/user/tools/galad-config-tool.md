@@ -7,6 +7,7 @@
 ## 🚀 Fonctionnalités
 
 ### 🖥️ Onglet Affichage (Display)
+
 - **Mode fenêtre** : Basculer entre mode fenêtré et plein écran
 - **Résolutions** : 
   - Sélection parmi les résolutions prédéfinies
@@ -17,9 +18,11 @@
 - **Langue** : Changement de langue (Français/English) avec mise à jour immédiate de l'interface
 
 ### 🔊 Onglet Audio
+
 - **Volume musique** : Réglage avec slider et affichage du pourcentage en temps réel
 
 ### 🎮 Onglet Contrôles (Controls)
+
 - **Interface scrollable** : Navigation fluide dans tous les groupes de contrôles
 - **Groupes disponibles** :
   - Commandes d'unité (avancer, reculer, tourner, etc.)
@@ -31,6 +34,7 @@
 - **Sauvegarde automatique** : Application immédiate des changements
 
 ### ⚙️ Onglet Configuration
+
 - **Sélection des fichiers** :
   - Fichier de configuration principal (`galad_config.json`)
   - Fichier des résolutions personnalisées (`galad_resolutions.json`)
@@ -41,8 +45,7 @@
 
 ### Lancement
 
-- **Version compilée** : Double-clic sur `galad-config-tool` (inclus dans les releases)
-- **Version Python** : `python3 tools/galad_config.py` (pour les développeurs)
+Double-clic sur `galad-config-tool` (inclus dans les releases)
 
 ### Workflow typique
 
@@ -77,6 +80,7 @@ L'outil affiche des popups informatifs dans les cas suivants :
 
 ### `galad_config.json`
 Fichier principal contenant tous les paramètres du jeu :
+
 - Résolution et mode d'affichage
 - Volume audio
 - Sensibilité caméra
@@ -89,6 +93,7 @@ Fichier contenant uniquement vos résolutions personnalisées ajoutées via l'ou
 ## 🔧 Configuration avancée
 
 ### Onglet Configuration
+
 - **Changer l'emplacement des fichiers** : Utiliser les boutons "Parcourir..." 
 - **Chemins par défaut** : Répertoire du jeu (à côté de `main.py`)
 - **Validation** : Vérification automatique de l'accessibilité des dossiers

@@ -1,28 +1,16 @@
 # Crédits et remerciements
 
+!!! warning "Travail en cours"
+    **Note :** Cette page est en cours de rédaction et sera complétée prochainement.
+
 ## 👨‍💻 Équipe de développement
 
-### Développeur principal
-- **Rôle** : Programmation, game design, architecture
-- **Contribution** : Moteur de jeu, gameplay, interface utilisateur
-- **Technologies** : Python, Pygame, JSON
-
-### Contributions spécialisées
-
-**Intelligence artificielle**
-- Système de pathfinding des unités
-- Comportements automatiques des tours
-- IA des unités neutres et événements
-
-**Gameplay et équilibrage**
-- Balance des unités et économie
-- Progression des difficultés
-- Mécaniques de jeu et feedback
-
-**Interface utilisateur**
-- Design des menus et HUD
-- Système de configuration
-- Expérience utilisateur (UX)
+- Alluin Edouard - Développeur
+- Behani Julien - Développeur
+- Cailliau Ethann - Développeur
+- Damman Alexandre - Développeur
+- Fournier Enzo - Développeur
+- Lambert Romain - Développeur
 
 ## 🎨 Ressources artistiques
 
