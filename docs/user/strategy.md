@@ -8,7 +8,14 @@
 - **Objectif** : Victoire rapide par élimination
 - **Unités clés** : 3-4 Zasper + 1 Barhamus
 - **Timing** : Attaque dès 2-3 minutes
-- **Économie** : Minimale, focus sur le militaire
+- ### Gestion des risques économiques
+
+**Pièges économiques à éviter :**
+
+- Laisser l'adversaire contrôler les dépôts d'or
+- Manquer les coffres volants
+- Engager des combats non rentables
+- Gaspiller l'or en achats impulsifse** : Minimale, focus sur le militaire
 
 **L'Économiste patient**
 - **Objectif** : Domination par supériorité économique
@@ -110,21 +117,84 @@ Zasper  Zasper  Zasper
 - **Inconvénient** : Disputées en permanence
 - **Recommandation** : Fortifications lourdes
 
+### Système de vision et brouillard de guerre
+
+#### Principes fondamentaux
+
+**Vision des unités**
+
+- Chaque unité a une **portée de vision** spécifique
+- **Scout** : 5 tuiles (reconnaissance mobile)
+- **Maraudeur** : 4 tuiles (équilibre)
+- **Léviathan** : 3 tuiles (défense statique)
+- **Druid** : 4 tuiles (support)
+- **Architect** : 4 tuiles (construction)
+
+**États de visibilité**
+
+- **Visible** : Tuile découverte et dans portée d'une unité alliée
+- **Explorée** : Tuile déjà vue mais hors de portée actuelle
+- **Inconnue** : Tuile jamais découverte (couverte de brouillard)
+
+#### Brouillard de guerre
+
+**Nuages blanc** = Zones jamais explorées
+
+- **Impossibles** à voir le contenu sans exploration
+- **Cachent** unités, bâtiments et ressources
+- **Dissipés** uniquement par l'approche d'unités alliées
+
+**Brume grise** = Zones explorées mais hors de vue
+
+- **Accessibles** mais sans information actuelle
+- **Révèlent** la topographie de base
+
+#### Cercle de vision
+
+**Affichage sélectif**
+
+- **Cercle blanc** autour de l'unité sélectionnée uniquement
+- **Diamètre** proportionnel à la portée de vision
+- **Aide** à la planification des mouvements
+
+#### Implications stratégiques
+
+**Reconnaissance active**
+
+- **Scout** comme éclaireurs mobiles
+- **Placement** stratégique des unités pour maximiser la vision
+- **Surveillance** des mouvements ennemis
+
+**Contrôle d'information**
+
+- **Cachez** vos mouvements dans le brouillard
+- **Révélez** progressivement vos forces
+- **Tendez** des embuscades dans les zones grises
+
+**Économie et exploration**
+
+- **Explorez** méthodiquement pour découvrir les ressources
+- **Protégez** vos éclaireurs pendant l'expansion
+- **Utilisez** la vision pour anticiper les attaques
+
 ### Stratégies de contrôle territorial
 
 #### Expansion méthodique
 
 **Phase 1 (0-3 min) : Sécurisation**
+
 1. **Contrôler** 2-3 îles proches de votre base
 2. **Économie** prioritaire (mines + générateurs)
 3. **Défense** minimale mais présente
 
 **Phase 2 (3-6 min) : Expansion**
+
 1. **Étendre** vers les îles stratégiques
 2. **Réseau défensif** interconnecté
 3. **Pression** économique sur l'adversaire
 
 **Phase 3 (6+ min) : Domination**
+
 1. **Contrôle** de 50%+ de la carte
 2. **Supériorité** économique écrasante
 3. **Force** militaire irrésistible
@@ -134,47 +204,63 @@ Zasper  Zasper  Zasper
 **Principe :** Empêcher l'expansion adverse
 
 **Techniques :**
-- **Harcèlement** des Architects ennemis
+- **Harcèlement** des Scouts ennemis
 - **Destruction** des générateurs adverses
 - **Occupation** temporaire des îles clés
 - **Raids** sur les convois économiques
 
-## 💰 Optimisation économique
+## 💰 Gestion des ressources
 
-### Courbes de croissance
+### Sources d'or
 
-#### Croissance exponentielle
+#### Coffres volants
 
-**Principe :** Chaque or investi en génère plus
+**Apparition :** Périodiquement sur la carte
+**Quantité :** Variable (50-200 pièces)
+**Stratégie :** Positionnez vos unités pour les intercepter
 
-**Calcul exemple :**
-- **Générateur 1** (min 2) : +10 or/s = +600 or/min
-- **Générateur 2** (min 4) : +20 or/s total = +1200 or/min  
-- **Générateur 3** (min 6) : +30 or/s total = +1800 or/min
+#### Or sur les îles
 
-**Effet multiplicateur :**
-- **Minute 10** : ~3000+ or accumulé
-- **Minute 15** : ~8000+ or accumulé
-- **Supériorité** impossible à rattraper
+**Localisation :** Dépôts fixes sur certaines îles
+**Quantité :** Variable selon l'île
+**Stratégie :** Explorez méthodiquement pour découvrir les gisements
+
+#### Récompenses de combat
+
+**Source :** Élimination d'unités ennemies
+**Quantité :** Proportionnelle à la valeur de l'unité
+**Stratégie :** Combat efficace pour maximiser les gains
+
+### Optimisation économique
+
+#### Gestion des ressources
+
+**Principe :** L'or est limité et disputé
+
+**Stratégies clés :**
+
+- **Contrôle territorial** pour accéder aux dépôts d'or
+- **Interception** des coffres volants
+- **Combats sélectifs** pour maximiser les récompenses
 
 #### Seuils économiques critiques
 
-**500 or** : Premier Draupnir possible
-**1000 or** : Force militaire respectable  
-**2000 or** : Domination économique
-**3000+ or** : Victoire quasi-assurée
+**200 or** : Unité de base (Scout)
+**400 or** : Maraudeur ou tour de défense
+**600 or** : Léviathan ou capacités spéciales
+**800+ or** : Force militaire complète
 
 ### Gestion des risques économiques
 
 !!! warning "Pièges économiques"
     **Erreurs qui coûtent la partie :**
     
-    - **Surinvestir** en militaire trop tôt
-    - **Négliger** la protection des générateurs
-    - **Construire** sans plan de défense
-    - **Gaspiller** l'or en boosts inutiles
+    - Laisser l'adversaire contrôler les dépôts d'or
+    - Manquer les coffres volants
+    - Engager des combats non rentables
+    - Gaspiller l'or en achats impulsifs
 
-**Règle de sécurité :** Toujours garder 200+ or de réserve pour les urgences
+**Règle de sécurité :** Gardez toujours une réserve pour les urgences défensives
 
 ## 🎲 Adaptation situationnelle
 
@@ -183,7 +269,7 @@ Zasper  Zasper  Zasper
 #### Reconnaissance précoce
 
 **Indices stratégiques :**
-- **Beaucoup de Zasper** = Rush probable
+- **Beaucoup de Scouts** = Rush probable
 - **Architect rapide** = Stratégie économique
 - **Draupnir précoce** = Défense puis contre-attaque
 - **Réseau de tours** = Jeu territorial
@@ -191,7 +277,7 @@ Zasper  Zasper  Zasper
 #### Contre-stratégies
 
 **Contre Rush :**
-1. **1-2 Barhamus** + **Tour de défense** immédiate
+1. **1-2 Maraudeurs** + **Tour de défense** immédiate
 2. **Grouper** les unités près de la base
 3. **Druid** pour la survie en combat
 4. **Contre-attaque** une fois le rush repoussé

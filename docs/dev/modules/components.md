@@ -440,6 +440,22 @@ class ProjectileComponent:
 
 **Usage :** Projectiles d'attaque entre unités.
 
+### VisionComponent - Portée de vision
+**Fichier :** `src/components/core/visionComponent.py`
+
+```python
+@component
+class VisionComponent:
+    def __init__(self, range: float):
+        self.range: float = range  # Portée de vision en unités de grille
+```
+
+**Usage :** Unités avec capacité de vision.
+
+!!!tip
+    Voir [Système de vision et brouillard de guerre](vision-system.md) pour les détails d'implémentation.
+
+
 ## Types de terrain et génération
 
 ### Énumération TileType

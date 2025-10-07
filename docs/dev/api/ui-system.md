@@ -225,29 +225,80 @@ def _draw_unit_bars(self, surface, info_x, info_y):
 
 ## Modales et fenêtres
 
-### InGameMenuModal
+### ExitConfirmationModal
 
 **Fichier :** `src/ui/exit_modal.py`
 
-**Responsabilité :** Modale de confirmation de sortie.
+**Responsabilité :** Modale de confirmation de sortie du jeu.
+
+```python
+class ExitConfirmationModal:
+    """Gère l'affichage et les interactions de la modale de sortie."""
+```
+
+#### Fonctionnalités
+
+- **Boutons disponibles** : Rester, Quitter
+- **Utilisation** : Confirmée la volonté de l'utilisateur de quitter le jeu
+- **Retour** : Action sélectionnée ("stay" ou "quit")
+
+#### Interface publique
+
+```python
+def is_active(self) -> bool:
+    """Indique si la modale est visible."""
+
+def open(self, surface: Optional[pygame.Surface] = None) -> None:
+    """Affiche la modale."""
+
+def close(self) -> None:
+    """Ferme la modale."""
+
+def handle_event(self, event: pygame.event.Event, surface: Optional[pygame.Surface] = None) -> Optional[str]:
+    """Traite les événements utilisateur."""
+
+def render(self, surface: pygame.Surface) -> None:
+    """Dessine la modale."""
+```
+
+### InGameMenuModal
+
+**Fichier :** `src/ui/ingame_menu_modal.py`
+
+**Responsabilité :** Menu modal principal accessible en jeu (touche Échap).
 
 ```python
 class InGameMenuModal:
-    """Modale de confirmation pour quitter le jeu."""
-    
-    def __init__(self):
-        self.active = False
-        self.selected_option = 0  # 0=Continuer, 1=Quitter
-    
-    def is_active(self) -> bool:
-        """Vérifie si la modale est active."""
-        
-    def render(self, screen: pygame.Surface) -> None:
-        """Affiche la modale par-dessus le jeu."""
-        
-    def handle_event(self, event: pygame.event.Event) -> Optional[str]:
-        """Gère les interactions. Retourne 'continue' ou 'quit'."""
+    """Gère l'affichage et les interactions de la modale de menu en jeu."""
 ```
+
+#### Options du menu
+
+- **Boutons disponibles** :
+  - **Rester** : Ferme le menu et retourne au jeu
+  - **Paramètres** : Ouvre la fenêtre d'options
+  - **Quitter** : Lance la procédure de confirmation de sortie
+
+#### Gestion des actions
+
+```python
+def _on_action(self, action_id: str) -> None:
+    """Callback appelé lors du clic sur un bouton."""
+```
+
+- **settings** : Ouvre immédiatement la fenêtre d'options (`show_options_window()`)
+- **quit** : Affiche `ExitConfirmationModal` avec boucle bloquante, puis poste événement `confirmed_quit`
+
+#### Architecture
+
+- Utilise `GenericModal` comme base
+- Lazy loading pour éviter les dépendances lourdes
+- Boucle locale bloquante pour la confirmation de sortie
+- Communication avec la boucle principale via événements `USEREVENT`
+
+#### Méthodes publiques
+
+Identique à `ExitConfirmationModal` - toutes les méthodes délèguent à l'instance `GenericModal`.
 
 ### GenericModal - Système de modale générique
 

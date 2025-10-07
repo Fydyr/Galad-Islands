@@ -62,6 +62,7 @@ nav:
       - Capacités spéciales: dev/modules/special-capacity-system.md
       - Gestionnaire de sprites: dev/modules/sprite-manager.md
     - Systèmes avancés:
+      - Système de vision: dev/modules/vision-system.md
       - Système de tours: dev/tower-system-implementation.md
       - Mode debug: dev/debug-mode.md
     - Localisation: dev/localization.md
