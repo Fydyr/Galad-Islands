@@ -13,6 +13,7 @@ Galad Islands est un jeu de stratégie en temps réel qui vous plonge dans une g
 Cette documentation est organisée en deux sections principales :
 
 ### 📖 Documentation Utilisateur
+
 *Pour les joueurs qui veulent maîtriser le jeu*
 
 #### 🏁 Bases
@@ -105,7 +106,7 @@ Cette documentation est organisée en deux sections principales :
 
 ## 🚀 Démarrage rapide
 
-1. **Lancez le jeu** en exécutant `main.py`
+1. **Lancez le jeu** en exécutant `galad-islands.exe` ou `galad-islands`
 2. **Apprenez les contrôles** avec les flèches directionnelles
 3. **Sélectionnez vos unités** avec les touches numériques
 4. **Explorez la carte** et collectez de l'or
