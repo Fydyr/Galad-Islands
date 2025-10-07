@@ -57,7 +57,7 @@ from src.functions.afficherModale import afficher_modale
 from src.components.core.baseComponent import BaseComponent
 
 # Importations IA
-from src.ia.ia_barhamus import BarhamusAI
+from src.ia.ia_barhamus2 import BarhamusAI
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
