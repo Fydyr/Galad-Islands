@@ -1325,6 +1325,9 @@ class GameEngine:
         
         # Mettre à jour l'IA Barhamus
         if hasattr(self, 'barhamus_ai') and self.barhamus_ai is not None:
+            # Passer la grille à l'IA pour l'évitement d'obstacles
+            if hasattr(self, 'game_engine') and hasattr(self.game_engine, 'grid'):
+                self.barhamus_ai.grid = self.game_engine.grid
             self.barhamus_ai.update(es, dt)
 
         if self.flying_chest_manager is not None:
