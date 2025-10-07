@@ -4,7 +4,6 @@
 
 ### Configuration minimale requise
 - **Système d'exploitation** : Windows 10/11, macOS 10.14+, ou Linux (Ubuntu 18.04+)
-- **Python** : Version 3.8 ou supérieure (Python 3.11+ recommandé)
 - **RAM** : 4 GB minimum (8 GB recommandé)
 - **Espace disque** : 1 GB d'espace libre
 - **Résolution d'écran** : 1024x768 minimum (1920x1080 recommandé)
