@@ -4,8 +4,6 @@ import math
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
-from src.components.core.attackComponent import AttackComponent
-from src.components.core.canCollideComponent import CanCollideComponent
 from src.components.core.baseComponent import BaseComponent 
 from src.components.core.radiusComponent import RadiusComponent 
 from src.components.special.speDruidComponent import SpeDruid
@@ -14,11 +12,13 @@ from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.core.teamComponent import TeamComponent
+from src.functions.buildingCreator import createDefenseTower, createHealTower
 from src.settings import controls
 
 class PlayerControlProcessor(esper.Processor):
 
-    def __init__(self):
+    def __init__(self, grid = None):
+        self.grid = grid
         self.fire_event = False  # Initialisation de l'état de l'événement de tir
         self.slowing_down = False  # Indique si le frein est activé
         self.attack_mode_pressed = False
@@ -139,6 +139,19 @@ class PlayerControlProcessor(esper.Processor):
                             pass
             else:
                 self.special_ability_pressed = False
+
+
+            if esper.has_component(entity, SpeArchitect):
+                if controls.is_action_active(controls.ACTION_BUILD_DEFENSE_TOWER, keys, modifiers_state):
+                    pos = esper.component_for_entity(entity, PositionComponent)
+                    team = esper.component_for_entity(entity, TeamComponent)
+                    createDefenseTower(self.grid, pos, team)
+
+                if controls.is_action_active(controls.ACTION_BUILD_HEAL_TOWER, keys, modifiers_state):
+                    pos = esper.component_for_entity(entity, PositionComponent)
+                    team = esper.component_for_entity(entity, TeamComponent)
+                    createHealTower(self.grid, pos, team)
+
 
     def _activate_druid_ability(self, druid_entity, spe_druid):
         """Active la capacité Lierre volant du Druid"""

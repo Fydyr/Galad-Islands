@@ -40,6 +40,8 @@ DEFAULT_CONFIG = {
         "unit_special": ["e"],
         "unit_previous": ["1"],
         "unit_next": ["2"],
+        "build_defense_tower": ["f"],
+        "build_heal_tower": ["g"],
         "camera_move_left": ["left"],
         "camera_move_right": ["right"],
         "camera_move_up": ["up"],
