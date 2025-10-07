@@ -71,14 +71,20 @@ class BarhamusAI:
 
     def update(self, world, dt):
         """Mise à jour principale de l'IA avec apprentissage"""
-        # Récupérer les composants
-        pos = world.component_for_entity(self.entity, PositionComponent)
-        vel = world.component_for_entity(self.entity, VelocityComponent)
-        radius = world.component_for_entity(self.entity, RadiusComponent)
-        attack = world.component_for_entity(self.entity, AttackComponent)
-        health = world.component_for_entity(self.entity, HealthComponent)
-        team = world.component_for_entity(self.entity, TeamComponent)
-        spe = world.component_for_entity(self.entity, SpeMaraudeur)
+        try:
+            # Récupérer les composants
+            pos = world.component_for_entity(self.entity, PositionComponent)
+            vel = world.component_for_entity(self.entity, VelocityComponent)
+            radius = world.component_for_entity(self.entity, RadiusComponent)
+            attack = world.component_for_entity(self.entity, AttackComponent)
+            health = world.component_for_entity(self.entity, HealthComponent)
+            team = world.component_for_entity(self.entity, TeamComponent)
+            spe = world.component_for_entity(self.entity, SpeMaraudeur)
+            
+            print(f"Barhamus {self.entity}: Composants OK - pos={pos.x:.1f},{pos.y:.1f} vel={vel.currentSpeed}")
+        except Exception as e:
+            print(f"Erreur composants Barhamus {self.entity}: {e}")
+            return
 
         # Mettre à jour les statistiques de survie
         self.survival_time += dt
@@ -87,19 +93,37 @@ class BarhamusAI:
         if self.cooldown > 0:
             self.cooldown -= dt
 
-        # Analyser la situation actuelle
-        current_state = self._analyze_situation(world, pos, health, team)
-        
-        # Calculer la récompense de l'action précédente
-        if self.last_state is not None and self.last_action is not None:
-            reward = self._calculate_reward(current_state, health)
-            self._record_experience(self.last_state, self.last_action, reward, current_state)
-        
-        # Prédire la meilleure action avec l'IA
-        action = self._predict_best_action(current_state)
-        
-        # Exécuter l'action
-        self._execute_action(action, world, pos, vel, health, team, spe)
+        # Analyser la situation tactique
+        try:
+            current_state = self._analyze_situation(world, pos, health, team)
+            
+            # LOGIQUE TACTIQUE PRINCIPALE
+            base_position = self._find_team_base(world, team)
+            enemies_near_base = self._check_enemies_near_base(world, team, base_position)
+            
+            # Décision tactique: Défendre ou Attaquer
+            if enemies_near_base:
+                print(f"Barhamus {self.entity}: DÉFENSE - Ennemis détectés près de la base!")
+                action = self._decide_defensive_action(world, pos, team, base_position)
+            else:
+                print(f"Barhamus {self.entity}: ATTAQUE - Base sécurisée, mode offensif")
+                action = self._decide_offensive_action(world, pos, team)
+            
+            # Calculer la récompense de l'action précédente
+            if self.last_state is not None and self.last_action is not None:
+                reward = self._calculate_reward(current_state, health)
+                self._record_experience(self.last_state, self.last_action, reward, current_state)
+            
+            action_names = ["Approche", "Attaque", "Patrouille", "Évitement", "Bouclier", "Défensif", "Retraite", "Embuscade"]
+            print(f"Barhamus {self.entity}: Exécute action {action} ({action_names[action]})")
+            
+            # Exécuter l'action avec tir en salve si nécessaire
+            self._execute_action_with_combat(action, world, pos, vel, health, team, spe)
+            
+        except Exception as e:
+            print(f"Erreur IA Barhamus {self.entity}: {e}")
+            # Action par défaut: défendre la base
+            self._default_defense_behavior(world, pos, vel, team)
         
         # Sauvegarder l'état pour le prochain cycle
         self.last_state = current_state.copy()
@@ -195,34 +219,247 @@ class BarhamusAI:
         else:
             return 0  # Approche
     
-    def _execute_action(self, action, world, pos, vel, health, team, spe):
-        """Exécute l'action décidée par l'IA"""
-        # Actions possibles:
-        # 0: Approche agressive
-        # 1: Attaque
-        # 2: Patrouille
-        # 3: Évitement tactique
-        # 4: Activation bouclier
-        # 5: Position défensive
-        # 6: Retraite
-        # 7: Embuscade
+    def _execute_action_with_combat(self, action, world, pos, vel, health, team, spe):
+        """Exécute l'action avec gestion du combat tactique"""
+        # Exécuter l'action de mouvement
+        self._execute_movement_action(action, world, pos, vel, team, spe)
         
+        # Gestion spéciale du bouclier
+        if action == 4:
+            self._action_shield_management(spe, health)
+        
+        # Gestion du combat en parallèle
+        self._handle_tactical_combat(action, world, pos, team)
+    
+    def _execute_movement_action(self, action, world, pos, vel, team, spe):
+        """Exécute seulement la partie mouvement de l'action"""
         if action == 0:
             self._action_aggressive_approach(world, pos, vel, team)
         elif action == 1:
-            self._action_attack(world, pos, vel, team)
+            self._action_attack_movement(world, pos, vel, team)  # Mouvement d'attaque
         elif action == 2:
             self._action_patrol(pos, vel)
         elif action == 3:
             self._action_tactical_avoidance(world, pos, vel, team)
         elif action == 4:
-            self._action_shield_management(spe, health)
+            # Bouclier - pas de mouvement particulier
+            pass
         elif action == 5:
             self._action_defensive_position(world, pos, vel, team)
         elif action == 6:
             self._action_retreat(world, pos, vel, team)
         elif action == 7:
             self._action_ambush(world, pos, vel, team)
+    
+    def _handle_tactical_combat(self, action, world, pos, team):
+        """Gestion tactique du combat avec tir en salve"""
+        if self.cooldown > 0:
+            return  # En cooldown
+            
+        enemies = self._find_nearby_enemies(world, pos, team)
+        if not enemies:
+            return  # Pas d'ennemi
+        
+        # Trouver les ennemis à portée
+        enemies_in_range = []
+        for enemy_ent, distance, priority in enemies:
+            if distance <= 8 * TILE_SIZE:  # Portée de tir
+                enemies_in_range.append((enemy_ent, distance, priority))
+        
+        if not enemies_in_range:
+            return
+        
+        # TIR EN SALVE - Attaquer jusqu'à 3 ennemis simultanément
+        targets_to_attack = min(3, len(enemies_in_range))
+        
+        for i in range(targets_to_attack):
+            enemy_ent = enemies_in_range[i][0]
+            try:
+                # Calcul de l'angle vers la cible
+                enemy_pos = world.component_for_entity(enemy_ent, PositionComponent)
+                angle_to_target = self._angle_to(enemy_pos.x - pos.x, enemy_pos.y - pos.y)
+                
+                # Tir avec dispersion pour couvrir les flancs
+                if i == 0:  # Tir principal
+                    self._fire_at_angle(world, pos, angle_to_target)
+                elif i == 1:  # Tir côté droit
+                    self._fire_at_angle(world, pos, angle_to_target + 25)
+                elif i == 2:  # Tir côté gauche  
+                    self._fire_at_angle(world, pos, angle_to_target - 25)
+                    
+                print(f"Barhamus {self.entity}: Tir en salve #{i+1} vers angle {angle_to_target:.0f}°")
+                
+            except Exception as e:
+                print(f"Erreur tir salve: {e}")
+        
+        # Déclencher le cooldown après la salve
+        if targets_to_attack > 0:
+            self.cooldown = 2.0  # 2 secondes de cooldown
+            self.successful_attacks += targets_to_attack
+    
+    def _fire_at_angle(self, world, pos, angle):
+        """Tire un projectile dans la direction spécifiée"""
+        try:
+            # Utiliser le système d'événements du jeu pour tirer
+            world.dispatch_event("attack_event", self.entity)
+        except Exception as e:
+            print(f"Erreur tir: {e}")
+    
+    def _action_attack_movement(self, world, pos, vel, team):
+        """Mouvement d'attaque - se positionner pour tirer"""
+        enemies = self._find_nearby_enemies(world, pos, team)
+        if enemies:
+            target_pos = world.component_for_entity(enemies[0][0], PositionComponent)
+            
+            # Garder une distance optimale pour le tir (6-8 tiles)
+            distance = enemies[0][1]
+            if distance < 6 * TILE_SIZE:  # Trop proche, reculer
+                angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
+                vel.currentSpeed = 2.0
+            elif distance > 8 * TILE_SIZE:  # Trop loin, s'approcher
+                angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
+                vel.currentSpeed = 3.5
+            else:  # Distance parfaite, cercler
+                angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y) + 90
+                vel.currentSpeed = 2.5
+                
+            pos.direction = angle
+            print(f"Barhamus {self.entity}: Position d'attaque - distance {distance/TILE_SIZE:.1f} tiles")
+    
+    def _default_defense_behavior(self, world, pos, vel, team):
+        """Comportement de défense par défaut en cas d'erreur"""
+        try:
+            base_pos = self._find_team_base(world, team)
+            if base_pos:
+                # Retourner vers la base
+                angle = self._angle_to(base_pos[0] - pos.x, base_pos[1] - pos.y)
+                pos.direction = angle
+                vel.currentSpeed = 3.0
+                print(f"Barhamus {self.entity}: Retour défensif vers la base")
+        except:
+            # En dernier recours, patrouiller
+            vel.currentSpeed = 2.0
+            pos.direction = (pos.direction + 45) % 360
+    
+    def _find_team_base(self, world, team):
+        """Trouve la position de la base de l'équipe"""
+        try:
+            # Chercher les bâtiments de l'équipe (bases, tours)
+            for ent, (t_team, t_pos) in world.get_components(TeamComponent, PositionComponent):
+                if t_team.team_id == team.team_id:
+                    # Vérifier si c'est un bâtiment (a un BuildingComponent ou similaire)
+                    if (world.has_component(ent, AttackComponent) and 
+                        world.has_component(ent, HealthComponent)):
+                        attack_comp = world.component_for_entity(ent, AttackComponent)
+                        health_comp = world.component_for_entity(ent, HealthComponent)
+                        # Base/Tour = beaucoup de vie et immobile
+                        if health_comp.maxHealth > 200:  # Seuil pour identifier une base
+                            return (t_pos.x, t_pos.y)
+            
+            # Si pas de base trouvée, utiliser le centre de la carte
+            if self.grid:
+                center_x = len(self.grid[0]) * TILE_SIZE // 2
+                center_y = len(self.grid) * TILE_SIZE // 2
+                return (center_x, center_y)
+        except Exception:
+            pass
+        
+        return (500, 500)  # Position par défaut
+    
+    def _check_enemies_near_base(self, world, team, base_pos):
+        """Vérifie s'il y a des ennemis près de la base"""
+        if not base_pos:
+            return False
+            
+        threat_radius = 12 * TILE_SIZE  # 12 tiles de la base = zone de menace
+        
+        try:
+            for ent, (t_team, t_pos) in world.get_components(TeamComponent, PositionComponent):
+                if t_team.team_id != team.team_id:  # Ennemi
+                    distance = math.sqrt((t_pos.x - base_pos[0])**2 + (t_pos.y - base_pos[1])**2)
+                    if distance <= threat_radius:
+                        print(f"Barhamus {self.entity}: Ennemi {ent} détecté à {distance/TILE_SIZE:.1f} tiles de la base!")
+                        return True
+        except Exception as e:
+            print(f"Erreur détection ennemis base: {e}")
+        
+        return False
+    
+    def _decide_defensive_action(self, world, pos, team, base_pos):
+        """Décide de l'action défensive à prendre"""
+        if not base_pos:
+            return 2  # Patrouille par défaut
+            
+        # Distance à la base
+        base_distance = math.sqrt((pos.x - base_pos[0])**2 + (pos.y - base_pos[1])**2)
+        
+        # Si loin de la base, y retourner
+        if base_distance > 8 * TILE_SIZE:
+            return 0  # Approche (vers la base)
+        else:
+            # Près de la base, défendre activement
+            enemies = self._find_nearby_enemies(world, pos, team)
+            if enemies and enemies[0][1] <= 6 * TILE_SIZE:  # Ennemi proche
+                return 1  # Attaque
+            else:
+                return 5  # Position défensive
+    
+    def _decide_offensive_action(self, world, pos, team):
+        """Décide de l'action offensive à prendre"""
+        enemies = self._find_nearby_enemies(world, pos, team)
+        
+        # Si pas d'ennemis proches, aller attaquer la base ennemie
+        if not enemies:
+            enemy_base = self._find_enemy_base(world, team)
+            if enemy_base:
+                base_distance = math.sqrt((pos.x - enemy_base[0])**2 + (pos.y - enemy_base[1])**2)
+                if base_distance > 6 * TILE_SIZE:  # Loin de la base ennemie
+                    print(f"Barhamus {self.entity}: Attaque de la base ennemie à {base_distance/TILE_SIZE:.1f} tiles")
+                    return 0  # Approche vers la base ennemie
+                else:
+                    return 1  # Attaque la base ennemie
+            else:
+                return 2  # Patrouille pour chercher des ennemis
+        
+        closest_enemy = enemies[0]
+        distance = closest_enemy[1]
+        
+        # Logique offensive basée sur la distance
+        if distance <= 4 * TILE_SIZE:  # Très proche
+            return 1  # Attaque directe
+        elif distance <= 8 * TILE_SIZE:  # Portée moyenne
+            return 0  # Approche agressive
+        else:
+            return 7  # Embuscade pour se rapprocher
+    
+    def _find_enemy_base(self, world, team):
+        """Trouve la position de la base ennemie"""
+        try:
+            enemy_team_id = 2 if team.team_id == 1 else 1
+            
+            # Chercher les bâtiments ennemis (bases, tours)
+            for ent, (t_team, t_pos) in world.get_components(TeamComponent, PositionComponent):
+                if t_team.team_id == enemy_team_id:
+                    # Vérifier si c'est un bâtiment (a beaucoup de vie)
+                    if (world.has_component(ent, AttackComponent) and 
+                        world.has_component(ent, HealthComponent)):
+                        health_comp = world.component_for_entity(ent, HealthComponent)
+                        # Base/Tour = beaucoup de vie et immobile
+                        if health_comp.maxHealth > 200:  # Seuil pour identifier une base
+                            return (t_pos.x, t_pos.y)
+            
+            # Si pas de base trouvée, utiliser les positions par défaut
+            if enemy_team_id == 1:  # Base alliée
+                return (200, 200)  # Coin haut-gauche
+            else:  # Base ennemie
+                if self.grid:
+                    return (len(self.grid[0]) * TILE_SIZE - 200, len(self.grid) * TILE_SIZE - 200)  # Coin bas-droite
+                else:
+                    return (1800, 1800)  # Position par défaut
+        except Exception as e:
+            print(f"Erreur recherche base ennemie: {e}")
+        
+        return None
     
     def _find_nearby_enemies(self, world, pos, team):
         """Trouve tous les ennemis dans un rayon donné"""
@@ -281,8 +518,55 @@ class BarhamusAI:
         if current_state[7] < 0.2:  # Peu de mines autour
             reward += 3
         
+        # NOUVELLE: Pénalité pour position près des bords (encourage à rester au centre)
+        border_penalty = self._calculate_border_penalty(current_state)
+        if border_penalty > 0:
+            reward -= border_penalty
+            print(f"Barhamus {self.entity}: Pénalité bord de carte: -{border_penalty:.1f}")
+        
+        # NOUVELLE: Récompense pour attaquer la base ennemie
+        enemy_base_bonus = self._calculate_enemy_base_bonus(current_state)
+        if enemy_base_bonus > 0:
+            reward += enemy_base_bonus
+            print(f"Barhamus {self.entity}: Bonus attaque base ennemie: +{enemy_base_bonus:.1f}")
+        
         self.last_health = health.currentHealth
         return reward
+    
+    def _calculate_border_penalty(self, current_state):
+        """Calcule la pénalité pour être près des bords de la carte"""
+        if not self.grid or len(current_state) < 2:
+            return 0
+        
+        # Position normalisée (0-1)
+        norm_x = current_state[0]  # Position X normalisée
+        norm_y = current_state[1]  # Position Y normalisée
+        
+        # Distance aux bords (0 = sur le bord, 0.5 = au centre)
+        dist_to_edge_x = min(norm_x, 1.0 - norm_x)
+        dist_to_edge_y = min(norm_y, 1.0 - norm_y)
+        
+        # Pénalité si trop près des bords (moins de 15% de la carte)
+        edge_threshold = 0.15
+        penalty = 0
+        
+        if dist_to_edge_x < edge_threshold:
+            penalty += (edge_threshold - dist_to_edge_x) * 10  # Pénalité max = 1.5
+        
+        if dist_to_edge_y < edge_threshold:
+            penalty += (edge_threshold - dist_to_edge_y) * 10  # Pénalité max = 1.5
+        
+        return penalty
+    
+    def _calculate_enemy_base_bonus(self, current_state):
+        """Calcule le bonus pour s'approcher de la base ennemie"""
+        # Ce bonus est déjà intégré dans l'avantage tactique
+        # On peut ajouter un bonus supplémentaire si nécessaire
+        if len(current_state) >= 10:
+            tactical_advantage = current_state[9]  # Avantage tactique
+            if tactical_advantage > 0.7:  # Bonne position tactique
+                return 1.0  # Bonus pour bonne position offensive
+        return 0
     
     def _record_experience(self, state, action, reward, next_state):
         """Enregistre une expérience pour l'apprentissage"""
@@ -378,13 +662,29 @@ class BarhamusAI:
     
     # Actions spécifiques
     def _action_aggressive_approach(self, world, pos, vel, team):
-        """Action: Approche agressive vers l'ennemi"""
+        """Action: Approche agressive vers l'ennemi ou base ennemie"""
         enemies = self._find_nearby_enemies(world, pos, team)
+        
         if enemies:
+            # Attaquer l'ennemi le plus proche
             target_pos = world.component_for_entity(enemies[0][0], PositionComponent)
             angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
             pos.direction = angle
             vel.currentSpeed = 4.5  # Vitesse élevée
+            print(f"Barhamus {self.entity}: Approche agressive vers ennemi - angle={angle:.1f}°")
+        else:
+            # Pas d'ennemi, aller vers la base ennemie
+            enemy_base = self._find_enemy_base(world, team)
+            if enemy_base:
+                angle = self._angle_to(enemy_base[0] - pos.x, enemy_base[1] - pos.y)
+                pos.direction = angle
+                vel.currentSpeed = 4.0
+                print(f"Barhamus {self.entity}: Approche vers base ennemie - angle={angle:.1f}°")
+            else:
+                # Patrouiller
+                vel.currentSpeed = 2.5
+                pos.direction = (pos.direction + 30) % 360
+                print(f"Barhamus {self.entity}: Patrouille défensive")
     
     def _action_attack(self, world, pos, vel, team):
         """Action: Attaque si ennemi à portée"""
@@ -411,6 +711,7 @@ class BarhamusAI:
             self.patrol_direction = random.uniform(0, 360)
         pos.direction = self.patrol_direction
         vel.currentSpeed = 2.5
+        print(f"Barhamus {self.entity}: Patrouille - direction={pos.direction:.1f}°, vitesse={vel.currentSpeed}")
     
     def _action_tactical_avoidance(self, world, pos, vel, team):
         """Action: Évitement tactique intelligent"""
@@ -468,6 +769,41 @@ class BarhamusAI:
             angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
             pos.direction = angle
 
+    def _calculate_border_penalty(self, current_state):
+        """Calcule la pénalité pour être près des bords de la carte"""
+        if not self.grid or len(current_state) < 2:
+            return 0
+        
+        # Position normalisée (0-1)
+        norm_x = current_state[0]  # Position X normalisée
+        norm_y = current_state[1]  # Position Y normalisée
+        
+        # Distance aux bords (0 = sur le bord, 0.5 = au centre)
+        dist_to_edge_x = min(norm_x, 1.0 - norm_x)
+        dist_to_edge_y = min(norm_y, 1.0 - norm_y)
+        
+        # Pénalité si trop près des bords (moins de 15% de la carte)
+        edge_threshold = 0.15
+        penalty = 0
+        
+        if dist_to_edge_x < edge_threshold:
+            penalty += (edge_threshold - dist_to_edge_x) * 10  # Pénalité max = 1.5
+        
+        if dist_to_edge_y < edge_threshold:
+            penalty += (edge_threshold - dist_to_edge_y) * 10  # Pénalité max = 1.5
+        
+        return penalty
+    
+    def _calculate_enemy_base_bonus(self, current_state):
+        """Calcule le bonus pour s'approcher de la base ennemie"""
+        # Ce bonus est déjà intégré dans l'avantage tactique
+        # On peut ajouter un bonus supplémentaire si nécessaire
+        if len(current_state) >= 10:
+            tactical_advantage = current_state[9]  # Avantage tactique
+            if tactical_advantage > 0.7:  # Bonne position tactique
+                return 1.0  # Bonus pour bonne position offensive
+        return 0
+    
     # Méthodes utilitaires et d'analyse
     def _analyze_nearby_obstacles(self, pos):
         """Analyse les obstacles autour de la position"""
