@@ -1,318 +1,233 @@
-# Installation et Configuration
+# ⚙️ Configuration & Installation
 
-## 📋 Prérequis système
+## Prérequis système
 
-### Configuration minimale requise
-- **Système d'exploitation** : Windows 10/11, macOS 10.14+, ou Linux (Ubuntu 18.04+)
-- **RAM** : 4 GB minimum (8 GB recommandé)
-- **Espace disque** : 1 GB d'espace libre
-- **Résolution d'écran** : 1024x768 minimum (1920x1080 recommandé)
-- **Carte graphique** : Compatible OpenGL 2.1+
+### Configuration minimale
+
+- **OS** : Windows 10/11, macOS 10.15+, Linux (Ubuntu 18.04+)
+- **Processeur** : Intel Core i3 ou équivalent AMD
+- **Mémoire** : 4 GB RAM
+- **Stockage** : 2 GB d'espace libre
+- **Carte graphique** : Compatible OpenGL 3.3+
 
 ### Configuration recommandée
-- **Processeur** : Dual-core 2.0 GHz ou supérieur
-- **RAM** : 8 GB ou plus
-- **Résolution** : 1920x1080 ou supérieure
-- **Carte son** : Compatible DirectSound (Windows) ou ALSA (Linux)
 
-## 🚀 Installation
+- **OS** : Windows 10/11, macOS 12+, Linux (Ubuntu 20.04+)
+- **Processeur** : Intel Core i5 ou équivalent AMD
+- **Mémoire** : 8 GB RAM
+- **Stockage** : 5 GB d'espace libre
+- **Carte graphique** : GPU dédié avec 2 GB VRAM
 
-### Méthode 1 : Installation depuis les releases (Recommandée)
+## Installation automatique
 
-**Cette méthode est la plus simple et rapide pour la plupart des utilisateurs.**
+### Via l'installateur Windows
 
-#### 1. Télécharger la dernière version
+1. Télécharger `GaladIslands_Setup.exe` depuis le site officiel
+2. Double-cliquer sur l'installateur
+3. Suivre les instructions à l'écran
+4. Lancer le jeu depuis le raccourci créé
 
-Rendez-vous sur la [page des releases](https://github.com/Fydyr/Galad-Islands/releases) et téléchargez l'archive correspondant à votre système :
+### Via le package macOS
 
-- **Windows** : `galad-islands-windows.zip`
-- **Linux** : `galad-islands-linux.tar.gz` 
-- **macOS** : `galad-islands-macos.zip`
+1. Télécharger `GaladIslands.dmg` depuis le site officiel
+2. Ouvrir le fichier .dmg
+3. Glisser l'application dans le dossier Applications
+4. Lancer le jeu depuis le Launchpad
 
-#### 2. Extraire l'archive
+### Via les dépôts Linux
 
-**Sur Windows :**
 ```bash
-# Clic droit sur le fichier ZIP → "Extraire tout"
-# Ou via la ligne de commande :
-tar -xf galad-islands-windows.zip
+# Ubuntu/Debian
+sudo apt update
+sudo apt install galad-islands
+
+# Arch Linux
+sudo pacman -S galad-islands
+
+# Fedora
+sudo dnf install galad-islands
 ```
 
-**Sur Linux/macOS :**
+## Installation manuelle
+
+### Depuis les sources
+
 ```bash
-# Pour Linux (.tar.gz)
-tar -xzf galad-islands-linux.tar.gz
-
-# Pour macOS (.zip)
-unzip galad-islands-macos.zip
-```
-
-#### 3. Lancer le jeu
-
-**Sur Windows :**
-```bash
-# Double-cliquer sur galad-islands.exe
-# Ou via la ligne de commande :
+# Cloner le dépôt
+git clone https://github.com/votre-repo/galad-islands.git
 cd galad-islands
-galad-islands.exe
-```
 
-**Sur Linux/macOS :**
-```bash
-cd galad-islands
-./galad-islands
-```
-
-> **🎮 Avantages de cette méthode :**
-> - Aucune installation de Python requise
-> - Toutes les dépendances sont incluses
-> - Lancement immédiat après extraction
-> - Pas de configuration supplémentaire
-
-!!! tip "Note"
-    Vous pouvez également utiliser l'outil de configuration `galad-config-tool` inclus dans les releases pour ajuster les paramètres avant de lancer le jeu. Pour plus d'informations, consultez le [guide de l'outil de configuration](galad-config-tool.md).
-
-### Méthode 2 : Installation depuis les sources (Développeurs)
-
-**Cette méthode est recommandée pour les développeurs ou utilisateurs avancés souhaitant contribuer au projet.**
-
-#### 1. Prérequis
-
-Avant de commencer, assurez-vous d'avoir :
-- **Python 3.8+** installé sur votre système
-- **Git** pour cloner le dépôt
-
-#### 2. Cloner le dépôt
-```bash
-git clone https://github.com/Fydyr/Galad-Islands.git
-cd Galad-Islands
-```
-
-#### 3. Créer un environnement virtuel Python
-```bash
-# Créer l'environnement virtuel
-python -m venv venv
-
-# Activer l'environnement virtuel
-# Sur Windows :
-venv\Scripts\activate
-
-# Sur macOS/Linux :
-source venv/bin/activate
-```
-
-#### 4. Installer les dépendances
-```bash
-pip install --upgrade pip
+# Installer les dépendances Python
 pip install -r requirements.txt
-```
 
-#### 5. Vérifier l'installation
-```bash
-python -c "import pygame; print('Pygame version:', pygame.version.ver)"
-```
+# Installer les dépendances de développement (optionnel)
+pip install -r requirements-dev.txt
 
-#### 6. Lancer le jeu
-```bash
+# Lancer le jeu
 python main.py
 ```
 
-> **⚙️ Avantages de cette méthode :**
-> - Accès au code source complet
-> - Possibilité de contribuer au développement
-> - Mises à jour via Git
-> - Modification et personnalisation possible
+### Installation portable
 
-## ⚙️ Configuration
+1. Télécharger l'archive `galad-islands-portable.zip`
+2. Extraire dans le dossier de votre choix
+3. Lancer `galad_islands.exe` (Windows) ou `galad_islands` (Linux/macOS)
 
-### Fichiers de configuration
+## Configuration du jeu
 
-Le jeu utilise plusieurs fichiers de configuration :
+### Fichier de configuration principal
 
-#### `galad_config.json`
-Fichier principal de configuration du jeu :
+Le fichier `galad_config.json` contient tous les paramètres personnalisables :
+
 ```json
 {
-  "language": "fr",
-  "fullscreen": false,
-  "resolution": {
-    "width": 1920,
-    "height": 1080
+  "graphics": {
+    "resolution": "1920x1080",
+    "fullscreen": false,
+    "vsync": true,
+    "antialiasing": 4
   },
   "audio": {
     "master_volume": 0.8,
-    "music_volume": 0.7,
-    "sfx_volume": 0.9
+    "music_volume": 0.6,
+    "sfx_volume": 0.7,
+    "voice_volume": 1.0
   },
-  "graphics": {
-    "vsync": true,
-    "show_fps": false
+  "controls": {
+    "camera_speed": 200,
+    "zoom_speed": 0.1,
+    "camera_sensitivity": 1.0
+  },
+  "gameplay": {
+    "difficulty": "normal",
+    "auto_save": true,
+    "show_tips": true,
+    "language": "fr"
   }
 }
 ```
 
-#### Options de configuration disponibles
+### Paramètres graphiques
 
-| Paramètre | Description | Valeurs possibles |
-|-----------|-------------|-------------------|
-| `language` | Langue de l'interface | `"fr"`, `"en"` |
-| `fullscreen` | Mode plein écran | `true`, `false` |
-| `resolution.width` | Largeur de la fenêtre | Nombre entier (ex: 1920) |
-| `resolution.height` | Hauteur de la fenêtre | Nombre entier (ex: 1080) |
-| `audio.master_volume` | Volume général | 0.0 à 1.0 |
-| `audio.music_volume` | Volume de la musique | 0.0 à 1.0 |
-| `audio.sfx_volume` | Volume des effets sonores | 0.0 à 1.0 |
-| `graphics.vsync` | Synchronisation verticale | `true`, `false` |
-| `graphics.show_fps` | Affichage des FPS | `true`, `false` |
+- **Résolution** : 1280x720, 1920x1080, 2560x1440, 3840x2160
+- **Mode d'affichage** : Fenêtré, Plein écran, Plein écran fenêtré
+- **VSync** : Synchronisation verticale (recommandé)
+- **Anti-crénelage** : 0x, 2x, 4x, 8x
 
-### Personnalisation des contrôles
+### Paramètres audio
 
-Les contrôles peuvent être modifiés dans le fichier de configuration ou via le menu des paramètres :
+- **Volume principal** : 0.0 à 1.0
+- **Musique** : Volume de la bande-son
+- **Effets** : Volume des effets sonores
+- **Voix** : Volume des dialogues (si présents)
 
-#### Contrôles par défaut
-- **Déplacement de la caméra** : Flèches directionnelles ou WASD
-- **Zoom** : Molette de la souris
-- **Sélection d'unités** : Clic gauche de la souris
-- **Actions** : Barre d'actions en bas de l'écran
-- **Aide** : F1
-- **Debug** : F3
-- **Quitter** : Échap
+### Paramètres de jeu
 
-## 🛠️ Résolution de problèmes
+- **Difficulté** : Facile, Normal, Difficile, Expert
+- **Sauvegarde automatique** : Activée/Désactivée
+- **Astuces** : Afficher les conseils contextuels
+- **Langue** : Français, Anglais, Espagnol
 
-### Problèmes courants
+## Configuration avancée
 
-#### Le jeu ne se lance pas
+### Variables d'environnement
+
 ```bash
-# Vérifier que Python est installé
-python --version
+# Forcer l'utilisation d'un GPU spécifique
+export GALAD_GPU=1
 
-# Vérifier que pygame est installé
-python -c "import pygame"
+# Désactiver les optimisations
+export GALAD_NO_OPTIMIZATIONS=1
 
-# Réinstaller les dépendances
-pip install --force-reinstall -r requirements.txt
+# Chemin personnalisé pour les sauvegardes
+export GALAD_SAVE_PATH=/home/user/galad_saves
+
+# Mode debug
+export GALAD_DEBUG=1
 ```
 
-#### Erreur "ModuleNotFoundError"
-```bash
-# S'assurer que l'environnement virtuel est activé
-source venv/bin/activate  # Linux/macOS
-# ou
-venv\Scripts\activate     # Windows
+### Optimisations de performance
 
-# Réinstaller les dépendances
-pip install -r requirements.txt
-```
+- **CPU** : Fermer les autres applications gourmandes
+- **GPU** : Mettre à jour les pilotes graphiques
+- **RAM** : Fermer les onglets inutiles du navigateur
+- **Disque** : Défragmenter (Windows) ou optimiser (SSD)
+
+### Dépannage des problèmes courants
+
+#### Le jeu ne démarre pas
+
+1. Vérifier les prérequis système
+2. Mettre à jour les pilotes graphiques
+3. Réinstaller le jeu
+4. Vérifier les logs d'erreur
 
 #### Problèmes de performance
-1. **Réduire la résolution** dans `galad_config.json`
-2. **Désactiver la vsync** : `"vsync": false`
-3. **Fermer les autres applications** gourmandes en ressources
+
+1. Baisser les paramètres graphiques
+2. Fermer les autres applications
+3. Mettre à jour le système d'exploitation
+4. Vérifier la température du matériel
 
 #### Problèmes audio
-1. **Vérifier les pilotes audio** de votre système
-2. **Ajuster les volumes** dans la configuration
-3. **Redémarrer le jeu** après modification de la configuration
 
-#### Problèmes d'affichage
-1. **Mettre à jour les pilotes graphiques**
-2. **Essayer en mode fenêtré** : `"fullscreen": false`
-3. **Changer la résolution** vers une valeur supportée par votre écran
+1. Vérifier les paramètres audio du système
+2. Tester avec un autre périphérique
+3. Réinstaller les pilotes audio
+4. Vérifier le volume dans le jeu
 
-### Logs et débogage
+## Mise à jour du jeu
 
-#### Activer le mode debug
-Appuyez sur **F3** dans le jeu pour afficher les informations de débogage :
-- Position de la caméra
-- Niveau de zoom
-- FPS en temps réel
-- Résolution actuelle
+### Mise à jour automatique
 
-#### Fichiers de logs
-Les logs du jeu sont affichés dans la console. Pour sauvegarder les logs :
-```bash
-python main.py > game.log 2>&1
-```
+Le jeu vérifie automatiquement les mises à jour au démarrage. Accepter la mise à jour quand proposée.
 
-## 🔄 Mise à jour
+### Mise à jour manuelle
 
-### Depuis les releases (Recommandé)
+1. Télécharger la nouvelle version depuis le site officiel
+2. Fermer le jeu complètement
+3. Lancer le nouvel installateur
+4. Suivre les instructions de mise à jour
 
-**Pour les utilisateurs ayant installé le jeu via les versions précompilées :**
+### Gestion des sauvegardes
 
-1. **Sauvegarder votre configuration** (optionnel)
-   ```bash
-   # Copier le fichier de configuration si vous l'avez personnalisé
-   cp galad_config.json galad_config.json.backup
-   ```
-
-2. **Télécharger la nouvelle version** depuis [GitHub Releases](https://github.com/Fydyr/Galad-Islands/releases)
-
-3. **Remplacer l'installation**
-   - Supprimez l'ancien dossier du jeu
-   - Extrayez la nouvelle version
-   - Restaurez votre configuration si nécessaire
-
-4. **Vérifier la mise à jour**
-   - Lancez le jeu pour confirmer que tout fonctionne
-   - Vérifiez le numéro de version dans le menu
-
-### Depuis les sources (Développeurs)
-
-**Pour les utilisateurs ayant installé depuis le code source :**
+Les sauvegardes sont automatiquement préservées lors des mises à jour, mais il est recommandé de faire une sauvegarde manuelle :
 
 ```bash
-# Se placer dans le dossier du jeu
-cd Galad-Islands
+# Sauvegarder les fichiers de sauvegarde
+cp -r ~/.galad-islands/saves ~/galad_backups/
 
-# Récupérer les dernières modifications
-git pull origin main
-
-# Mettre à jour les dépendances si nécessaire
-pip install --upgrade -r requirements.txt
+# Sauvegarder la configuration
+cp ~/.galad-islands/config.json ~/galad_config_backup.json
 ```
 
-## 🗑️ Désinstallation
+## Désinstallation
 
-### Installation depuis les sources
+### Windows
+
+1. Aller dans Paramètres > Applications
+2. Rechercher "Galad Islands"
+3. Cliquer sur "Désinstaller"
+4. Suivre les instructions
+
+### macOS
+
+1. Ouvrir le Finder
+2. Aller dans le dossier Applications
+3. Glisser "Galad Islands" vers la corbeille
+4. Vider la corbeille
+
+### Linux
+
 ```bash
-# Supprimer le dossier du jeu
-rm -rf Galad-Islands
+# Via le gestionnaire de paquets
+sudo apt remove galad-islands
 
-# Supprimer l'environnement virtuel Python (optionnel)
-# Il se trouve dans le dossier venv/ du projet
+# Suppression manuelle
+rm -rf ~/.galad-islands
+rm -rf /opt/galad-islands
 ```
 
-### Installation depuis les releases
-Supprimer simplement le dossier d'installation du jeu.
+---
 
-### Nettoyage complet
-Pour supprimer complètement toutes les traces du jeu :
-```bash
-# Supprimer le dossier du jeu
-rm -rf Galad-Islands
-
-# Supprimer les fichiers de configuration (optionnel)
-# Ils se trouvent dans le dossier d'installation
-```
-
-## 📞 Support
-
-Si vous rencontrez des problèmes non couverts par ce guide :
-
-1. **Consultez la [FAQ](faq.md)**
-2. **Vérifiez les [issues GitHub](https://github.com/Fydyr/Galad-Islands/issues)**
-3. **Créez une nouvelle issue** avec :
-   - Votre système d'exploitation
-   - Version de Python
-   - Message d'erreur complet
-   - Étapes pour reproduire le problème
-
-## 📚 Prochaines étapes
-
-Une fois le jeu installé et configuré :
-- Consultez le [guide de prise en main](getting-started.md)
-- Apprenez les [contrôles de base](controls.md)
-- Découvrez les [unités disponibles](units.md) et leurs capacités
-- Explorez les [stratégies avancées](strategy.md)
+*Une configuration optimale garantit la meilleure expérience de jeu dans les Galad Islands !*

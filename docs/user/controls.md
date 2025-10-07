@@ -1,145 +1,161 @@
-# Contrôles du jeu
+# 🕹️ Commandes & Interfaces
 
-## 🎮 Contrôles principaux
+## Interface principale
 
-### Déplacement de la caméra
-| Touche | Action |
-|--------|--------|
-| `⬅️` ou `A` | Déplacer la caméra vers la gauche |
-| `➡️` ou `D` | Déplacer la caméra vers la droite |
-| `⬆️` ou `W` | Déplacer la caméra vers le haut |
-| `⬇️` ou `S` | Déplacer la caméra vers le bas |
-| `Molette ⬆️` | Zoom avant |
-| `Molette ⬇️` | Zoom arrière |
+### Barre de menu supérieure
 
-### Sélection d'unités
-| Touche | Unité |
-|--------|-------|
-| `1` | Première unité (Zasper) |
-| `2` | Deuxième unité (Barhamus) |
-| `3` | Troisième unité (Draupnir) |
-| `4` | Quatrième unité (Druid) |
-| `5` | Cinquième unité (Architect) |
-| `6-9` | Unités supplémentaires |
-| `Tab` | Unité suivante |
-| `Shift+Tab` | Unité précédente |
+- **Fichier** : Nouveau jeu, Charger, Sauvegarder, Quitter
+- **Options** : Paramètres audio, graphiques, contrôles
+- **Aide** : Tutoriels, raccourcis clavier, à propos
 
-## ⚔️ Contrôles de combat
+### Barre d'outils latérale
 
-### Actions d'unité
-| Touche | Action |
-|--------|--------|
-| `R` | Capacité spéciale de l'unité sélectionnée |
-| `A` | Mode attaque (cibler manuellement) |
-| `H` | Arrêter l'unité / Hold position |
-| `P` | Patrouille automatique |
+- **Sélection d'unité** : Boutons pour chaque type d'unité disponible
+- **Actions spéciales** : Capacités uniques (téléportation, soin de zone, etc.)
+- **Informations** : Or actuel, ressources, statistiques
 
-### Commandes globales
-| Touche | Action |
-|--------|--------|
-| `Q` | Boost d'attaque global (coût : 50 or) |
-| `E` | Boost de défense global (coût : 50 or) |
-| `T` | Changer de camp (Allié/Ennemi) |
+### Zone de jeu
 
-## 🛒 Interface et menus
+- **Carte** : Vue d'ensemble des îles et unités
+- **Minicarte** : Aperçu global avec brouillard de guerre
+- **Informations détaillées** : Stats des unités sélectionnées
+
+## Contrôles de base
 
 ### Navigation
-| Touche | Action |
-|--------|--------|
-| `B` | Ouvrir/Fermer la boutique |
-| `Échap` | Menu pause / Retour |
-| `F1` | Aide rapide |
-| `F3` | Mode debug (informations techniques) |
-| `Entrée` | Confirmer une action |
 
-### Raccourcis boutique
-| Touche | Action |
-|--------|--------|
-| `1-5` | Acheter l'unité correspondante |
-| `Échap` | Fermer la boutique |
-| `Flèches` | Navigation dans les catégories |
+- **Clic gauche** : Sélectionner une unité ou une île
+- **Clic droit** : Donner un ordre de mouvement
+- **Molette** : Zoom avant/arrière
+- **Maintenir clic droit** : Faire défiler la carte
 
-## 🎯 Contrôles avancés
+### Gestion des unités
 
-### Gestion de la caméra
-| Combinaison | Action |
-|-------------|--------|
-| `Ctrl + Flèches` | Déplacement rapide de la caméra |
-| `Shift + Molette` | Zoom précis |
-| `Espace` | Recentrer sur l'unité sélectionnée |
-| `C` | Basculer entre vue libre et suivi d'unité |
+- **Clic gauche + Maj** : Sélection multiple
+- **Ctrl + numéro** : Grouper des unités (1-9)
+- **Numéro** : Sélectionner un groupe
+- **Espace** : Centrer la caméra sur les unités sélectionnées
 
-### Groupes de contrôle
-| Combinaison | Action |
-|-------------|--------|
-| `Ctrl + Shift + 1-9` | Assigner l'unité courante au groupe |
-| `Ctrl + 1-9` | Rappeler un groupe enregistré |
-| `Ctrl + A` | Cibler l'unité principale de la faction active |
+### Actions spéciales
 
-## 📱 Interface tactile (si supportée)
+- **A** : Attaquer automatiquement la cible la plus proche
+- **S** : Arrêter toutes les actions en cours
+- **H** : Soigner les unités alliées (pour les unités de soin)
+- **T** : Construire une tour de défense
+
+## Raccourcis clavier avancés
+
+### Gestion économique
+
+- **B** : Ouvrir la boutique d'unités
+- **G** : Afficher/masquer les ressources d'or
+- **R** : Ramasser les ressources proches
+
+### Contrôle tactique
+
+- **F** : Formation défensive automatique
+- **O** : Formation offensive automatique
+- **P** : Patrouille automatique
+- **Ctrl + S** : Sauvegarde rapide
+
+### Interface utilisateur
+
+- **Tab** : Changer de vue (carte complète/minicarte)
+- **F1-F12** : Raccourcis personnalisables
+- **Échap** : Menu pause/options
+
+## Commandes spéciales
+
+### Téléportation (Architecte)
+
+- **Clic droit sur une île visible** : Téléportation instantanée
+- **Coût** : 50 or par téléportation
+- **Recharge** : 30 secondes
+
+### Soin de zone (Druid)
+
+- **Clic droit sur une zone** : Soigne toutes les unités alliées dans un rayon
+- **Portée** : 3 cases autour du point ciblé
+- **Recharge** : 45 secondes
+
+### Attaque en chaîne (Draupnir)
+
+- **Clic gauche sur une unité ennemie** : Attaque normale
+- **Clic droit sur une unité ennemie** : Attaque chargée (dégâts doubles)
+- **Recharge attaque chargée** : 60 secondes
+
+## Gestion des groupes
+
+### Création de groupes
+
+1. Sélectionner plusieurs unités (Maj + clic)
+2. Appuyer sur **Ctrl + numéro** (1-9)
+3. Le groupe est maintenant accessible via le numéro seul
+
+### Actions de groupe
+
+- **Clic droit** : Toutes les unités du groupe se déplacent
+- **A** : Toutes attaquent automatiquement
+- **S** : Toutes s'arrêtent
+- **F** : Formation défensive
+
+### Groupes prédéfinis
+
+- **Groupe 1** : Unités de mêlée (Barhamus)
+- **Groupe 2** : Unités à distance (Zasper)
+- **Groupe 3** : Unités de soutien (Druid)
+- **Groupe 4** : Unités spéciales (Draupnir, Architecte)
+
+## Interface tactile (si supporté)
 
 ### Gestes de base
-- **Glisser** : Déplacer la caméra
-- **Pincer** : Zoomer/Dézoomer
-- **Tap** : Sélectionner une unité
-- **Double tap** : Centrer sur une unité
-- **Long press** : Menu contextuel
 
-## ⚙️ Personnalisation des contrôles
+- **Toucher simple** : Sélection
+- **Toucher double** : Centrer la caméra
+- **Pincer** : Zoom
+- **Glisser** : Défilement
 
-!!! info "Configuration"
-    Les contrôles peuvent être personnalisés dans le fichier `config.json` du jeu. Modifiez les valeurs suivantes :
-    
-    ```json
-    {
-      "controls": {
-        "camera_speed": 200,
-        "zoom_speed": 0.1,
-        "camera_sensitivity": 1.0
-      }
-    }
-    ```
+### Commandes tactiles avancées
 
-### Paramètres ajustables
-- **camera_speed** : Vitesse de déplacement de la caméra (pixels/seconde)
-- **zoom_speed** : Vitesse du zoom (0.1 = lent, 0.5 = rapide)
-- **camera_sensitivity** : Sensibilité générale (0.5 = moins sensible, 2.0 = plus sensible)
+- **Toucher long** : Menu contextuel
+- **Deux doigts** : Sélection de zone
+- **Trois doigts** : Menu principal
 
-## 🔧 Contrôles spéciaux par unité
+## Personnalisation des contrôles
 
-### Zasper (Scout)
-- `R` : **Vision étendue** - Révèle une large zone pendant 10s
-- **Mouvement** : 2x plus rapide que les autres unités
+### Modification des raccourcis
 
-### Barhamus (Maraudeur)
-- `R` : **Charge** - Attaque rapide avec dégâts augmentés
-- **Défense** : Résistance accrue aux projectiles
+1. Aller dans **Options > Contrôles**
+2. Sélectionner la commande à modifier
+3. Appuyer sur la nouvelle touche
+4. Sauvegarder les changements
 
-### Draupnir (Léviathan)
-- `R` : **Bombardement** - Attaque de zone dévastatrice
-- **Mouvement** : Plus lent mais très résistant
+### Profils de contrôles
 
-### Druid (Soigneur)
-- `R` : **Soin de groupe** - Soigne toutes les unités alliées proches
-- **Support** : Pas d'attaque directe
+- **Débutant** : Raccourcis simplifiés, aides visuelles
+- **Avancé** : Tous les raccourcis disponibles
+- **Expert** : Raccourcis personnalisés complets
 
-### Architect (Constructeur)
-- `R` : **Construction rapide** - Construit instantanément une tour
-- **Bâtiment** : Peut construire des défenses
+## Conseils d'utilisation
 
-## 🆘 Raccourcis d'urgence
+### Pour débutants
 
-| Touche | Action |
-|--------|--------|
-| `Alt + F4` | Fermer le jeu immédiatement |
-| `F11` | Basculer plein écran / fenêtré |
-| `Ctrl + R` | Redémarrer la partie actuelle |
-| `Ctrl + S` | Sauvegarder la partie |
-| `Ctrl + Q` | Quitter vers le menu principal |
+- Utilisez les groupes pour gérer plusieurs unités facilement
+- Le clic droit est votre ami : mouvement, attaque, etc.
+- N'oubliez pas la sauvegarde rapide (**Ctrl + S**)
 
-!!! warning "Attention"
-    Certains raccourcis d'urgence peuvent faire perdre la progression non sauvegardée !
+### Pour vétérans
+
+- Maîtrisez les formations automatiques (**F** et **O**)
+- Utilisez la patrouille (**P**) pour la défense passive
+- Les groupes permettent des manœuvres complexes
+
+### Optimisations
+
+- Pré-grouper vos unités avant le combat
+- Utiliser les raccourcis pour les actions répétitives
+- La minicarte aide à l'orientation rapide
 
 ---
 
-*Maintenant que vous maîtrisez les contrôles, découvrez le [guide des unités](units.md) !*
+*Maîtrisez ces contrôles et l'interface deviendra une extension naturelle de votre stratégie !*
