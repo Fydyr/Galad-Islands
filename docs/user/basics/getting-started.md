@@ -48,7 +48,7 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 | **F3** | Informations de debug |
 | **Échap** | Retour au menu |
 
-> 📖 **Pour plus de détails**, consultez le [guide des contrôles](controls.md)
+> 📖 **Pour plus de détails**, consultez le [guide des contrôles](../gameplay/controls.md)
 
 ## ⚔️ Vos premiers pas dans le jeu
 
@@ -153,9 +153,9 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
    - Maîtrise complète du gameplay
 
 > 📚 **Ressources d'apprentissage :**
-> - [Types d'unités et leurs rôles](units.md)
-> - [Guide stratégique avancé](strategy.md)
-> - [Interface et barre d'actions](action-bar.md)
+> - [Types d'unités et leurs rôles](../units/units.md)
+> - [Guide stratégique avancé](../gameplay/strategy.md)
+> - [Interface et barre d'actions](../gameplay/action-bar.md)
 
 ## 🎯 Conseils pour débuter
 
@@ -208,4 +208,4 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 ---
 
-🎮 **Prêt à jouer ?** Découvrez maintenant les [contrôles détaillés](controls.md) et les [stratégies avancées](strategy.md) !
+🎮 **Prêt à jouer ?** Découvrez maintenant les [contrôles détaillés](../gameplay/controls.md) et les [stratégies avancées](../gameplay/strategy.md) !
