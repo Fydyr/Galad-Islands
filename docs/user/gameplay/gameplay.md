@@ -9,8 +9,6 @@ Votre mission dans **Galad Islands** est de **détruire la base ennemie** pour r
 ### Conditions de victoire
 
 - **Destruction de la base** : Éliminez complètement le bâtiment principal adverse
-- **Supériorité écrasante** : L'adversaire n'a plus les moyens de se défendre
-- **Capitulation** : L'adversaire abandonne face à une situation désespérée
 
 ### Durée moyenne d'une partie
 
@@ -26,7 +24,7 @@ Votre mission dans **Galad Islands** est de **détruire la base ennemie** pour r
 
 **Style** : Attaque précoce et décisive
 - **Objectif** : Victoire rapide par élimination directe
-- **Unités clés** : 3-4 Zasper + 1 Barhamus
+- **Unités clés** : 3-4 Scouts + 1 Maraudeur
 - **Timing** : Attaque dès 2-3 minutes de jeu
 - **Économie** : Minimale, focus sur le militaire
 
@@ -41,31 +39,13 @@ Votre mission dans **Galad Islands** est de **détruire la base ennemie** pour r
 - Facilement contrable avec des défenses
 - Échec coûteux si l'attaque rate
 
-#### L'Économiste patient 💰
-
-**Style** : Développement méthodique et domination économique
-- **Objectif** : Supériorité écrasante par les ressources
-- **Priorité** : Contrôler les dépôts d'or et coffres volants
-- **Unités** : 1-2 unités + focus sur l'Architect
-- **Timing** : Puissance maximale à 8-10 minutes
-
-**Avantages** :
-
-- Difficile à rattraper une fois en tête
-- Résistance aux attaques précoces
-- Victoire assurée à long terme
-
-**Risques** :
-
-- Vulnérable aux rushes précoces
-- Temps d'attente frustrant
 
 #### Le Défenseur territorial 🛡️
 
 **Style** : Contrôle territorial par les défenses
 
 - **Objectif** : Imprenable une fois établi
-- **Stratégie** : Réseau de tours + Draupnir
+- **Stratégie** : Réseau de tours + Leviathan
 - **Forces** : Quasi-invulnérable en position défensive
 - **Faiblesses** : Vulnérable aux attaques surprises
 
@@ -104,34 +84,34 @@ Votre mission dans **Galad Islands** est de **détruire la base ennemie** pour r
 
 - Regroupez vos unités (`Ctrl+Maj+numéro`)
 - Ciblez les menaces prioritaires
-- Éliminez dans l'ordre : Druid → Draupnir → Architect
+- Éliminez dans l'ordre : Druid → Leviathan → Architect
 
 #### Formations tactiques
 
 **Phalange défensive** :
 
 ```text
-    Draupnir
-Barhamus  Barhamus
+    Leviathan
+Maraudeur  Maraudeur
     Druid
 ```
 
-- Draupnir absorbe les dégâts frontaux
-- Barhamus protègent les flancs
+- Leviathan absorbe les dégâts frontaux
+- Maraudeur protègent les flancs
 - Druid maintient les PV
 - Idéale pour contrôler les passages
 
 **Essaim offensif** :
 
 ```text
-Zasper  Zasper  Zasper
-  Zasper  Zasper
-    Barhamus
+Scout  Scout  Scout
+  Scout  Scout
+    Maraudeur
 ```
 
-- Zasper harcèlent en meute
+- Scout harcèlent en meute
 - Mobilité pour les flanquements
-- Barhamus en soutien
+- Maraudeur en soutien
 
 ## 💰 Systèmes économiques et de progression
 
@@ -171,71 +151,107 @@ Zasper  Zasper  Zasper
 - Protégez vos sources de revenus
 - Interceptez les coffres volants
 
-## 🗺️ Contrôle territorial
+## 🗺️ Contrôle territorial et stratégie
 
-### Analyse du terrain
+### Les îles : centres stratégiques
 
-**Îles centrales** : Contrôle des routes, mais cibles prioritaires
-**Îles périphériques** : Sécurisées mais peu influentes
-**Îles de passage** : Chokepoints stratégiques disputés
+**Rôle des îles** : Les îles sont les points clés du contrôle territorial. Elles permettent de :
 
-### Expansion méthodique
+- **Construire des tours** : Défense et soin automatiques
+- **Collecter des ressources** : Or apparaissent périodiquement
+- **Contrôler les routes** : Bloquer les mouvements ennemis
 
-**Phase 1 (0-3 min)** : Sécurisation
 
-- Contrôlez 2-3 îles proches de votre base
-- Établissez une économie de base
-- Défense minimale mais présente
+### Système de construction
 
-**Phase 2 (3-6 min)** : Expansion
+**Tours de défense** (150 or) :
+- **PV** : 300 | **Dégâts** : 25 | **Portée** : 350
+- Attaque automatiquement les ennemis à proximité
+- Rechargement : 1 seconde entre les tirs
 
-- Étendez vers les îles stratégiques
-- Construisez un réseau défensif
-- Exercer une pression économique
+**Tours de soin** (120 or) :
+- **PV** : 200 | **Soin** : 10 PV | **Portée** : 350
+- Régénère automatiquement les alliés proches
+- Rechargement : 1 seconde entre les soins
 
-**Phase 3 (6+ min)** : Domination
+**Construction** :
+1. Sélectionner un Architecte
+2. Cliquer sur "Tour de Défense" ou "Tour de Soin" dans la barre d'action
+3. Cliquer sur une île vide pour placer la tour
+4. Une seule tour par île possible
 
-- Contrôlez 50%+ de la carte
+### Expansion territoriale
+
+#### Phase 1 (0-3 min) : Sécurisation
+
+- Contrôler 2-3 îles proches de votre base
+- Établir une économie stable via les coffres
+- Placer une tour de défense minimale
+
+#### Phase 2 (3-6 min) : Développement
+
+- Étendre vers les îles stratégiques
+- Construire un réseau défensif coordonné
+- Maintenir la pression économique
+
+#### Phase 3 (6+ min) : Domination
+
+- Contrôler la majorité des îles
 - Supériorité économique écrasante
-- Force militaire irrésistible
+- Défense impénétrable
 
-### Contre-stratégies
+### Stratégies adaptatives
 
-**Contre les rushes** :
+**Contre les attaques précoces** :
 
-1. Barhamus + tour de défense immédiate
-2. Regroupez vos unités près de la base
-3. Utilisez le terrain à votre avantage
+1. Construire immédiatement une tour de défense près de la base
+2. Regrouper vos unités en position défensive
+3. Utiliser le terrain (îles) comme couverture
 
-**Contre l'économie** :
+**Contre l'économie adverse** :
 
-1. Harcelez constamment ses sources d'or
-2. Contrôlez les dépôts stratégiques
-3. Lancez des raids sur ses lignes
+1. Harceler constamment ses sources de coffres
+2. Contrôler les îles riches en ressources
+3. Lancer des raids sur ses lignes d'approvisionnement
 
-**Contre la défense** :
+**Contre la stratégie défensive** :
 
-1. Expansion périphérique
-2. Supériorité économique
-3. Victoire par étouffement
+1. Expansion périphérique pour contourner
+2. Supériorité économique pour submerger
+3. Victoire par asphyxie économique
 
-## 🎲 Adaptation situationnelle
+## 🎲 Lecture du jeu adverse
 
-### Lecture de l'adversaire
+### Indices stratégiques
 
-**Indices stratégiques** :
+**Signes d'une stratégie agressive** :
 
-- Beaucoup de Zasper = Rush probable
-- Architect précoce = Stratégie économique
-- Tours nombreuses = Défense territoriale
-- Peu d'activité = Développement patient
+- Production massive de Zasper (reconnaissance offensive)
+- Peu de constructions défensives
+- Attaques précoces et répétées
 
-### Gestion du stress
+**Signes d'une stratégie économique** :
 
-- Restez calme face aux imprévus
-- Adaptez-vous plutôt que de paniquer
-- Chaque défaite est une leçon
-- La patience récompense souvent
+- Architecte produit en priorité
+- Construction rapide de tours
+- Expansion méthodique et patiente
+
+**Signes d'une stratégie défensive** :
+
+- Nombreuses tours de défense
+- Peu d'activité offensive
+- Contrôle territorial maximal
+
+### Gestion psychologique
+
+- Garder son calme face aux imprévus
+- S'adapter plutôt que paniquer
+- Chaque défaite apporte des leçons
+- La patience est souvent récompensée
+
+---
+
+*Maîtrisez ces mécaniques territoriales et vous deviendrez un stratège accompli dans les Galad Islands !*
 
 ---
 

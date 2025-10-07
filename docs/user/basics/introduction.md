@@ -12,11 +12,7 @@
 
 ### L'archipel mystique
 
-Vous évoluez dans un **vaste archipel** composé de nombreuses îles interconnectées par des ponts et des passages marins. Chaque île offre des opportunités stratégiques uniques :
-
-- **Îles centrales** : Points de contrôle cruciaux pour dominer les routes commerciales
-- **Îles périphériques** : Positions défensives idéales mais moins influentes
-- **Îles de passage** : Chokepoints stratégiques où se déroulent les batailles décisives
+Vous évoluez dans un **vaste archipel** composé de nombreuses îles volants et de zones océaniques. Chaque île offre des ressources précieuses, des points stratégiques et des opportunités de combat.
 
 ### Système de brouillard de guerre
 
@@ -38,9 +34,9 @@ L'or est la ressource vitale qui détermine votre puissance :
 
 Cinq types d'unités aux rôles distincts :
 
-- **Zasper** : Éclaireur rapide et mobile
-- **Barhamus** : Tank défensif et résistant
-- **Draupnir** : Géant lent mais destructeur
+- **Scout** : Éclaireur rapide et mobile
+- **Marandeur** : Tank défensif et résistant
+- **Leviathan** : Géant lent mais destructeur
 - **Druid** : Support de soin et protection
 - **Architect** : Bâtisseur et constructeur de défenses
 
@@ -51,7 +47,7 @@ Cinq types d'unités aux rôles distincts :
 Votre objectif ultime est de **détruire la base ennemie** pour remporter la victoire. Pour cela, vous devrez :
 
 1. **Explorer** l'archipel pour découvrir les ressources
-2. **Construire** une économie solide avec des générateurs d'or
+2. **Trouver de l'or** dans les coffres volants et l'or sur l'île pour financer vos opérations
 3. **Produire** des unités pour renforcer votre armée
 4. **Établir** des défenses stratégiques
 5. **Lancer** des offensives coordonnées pour éliminer l'adversaire
@@ -73,7 +69,6 @@ Votre objectif ultime est de **détruire la base ennemie** pour remporter la vic
 Galad Islands offre une expérience stratégique riche et accessible :
 
 - **Approche tactique** : Chaque décision compte dans le placement des unités
-- **Gestion économique** : Balance délicate entre investissement militaire et développement
 - **Exploration progressive** : Découverte graduelle du monde et des stratégies
 - **Combats dynamiques** : Unités aux capacités uniques créant des synergies
 
