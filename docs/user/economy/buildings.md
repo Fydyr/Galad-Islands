@@ -244,4 +244,5 @@ Tour de    Tour de
 
 ---
 
-*Découvrez maintenant comment utiliser efficacement la [barre d'action](action-bar.md) pour coordonner vos constructions !*
+*Découvrez maintenant comment utiliser efficacement la [barre d'action](../gameplay/action-bar.md) pour coordonner vos 
+constructions !*

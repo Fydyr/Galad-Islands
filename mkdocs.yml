@@ -33,22 +33,27 @@ theme:
 nav:
   - Accueil: index.md
   - 📖 Documentation Utilisateur:
-    - Introduction & Présentation: user/introduction.md
-    - Configuration & Installation: user/installation.md
-    - Commandes & Interfaces: user/controls.md
-    - Gameplay & Progression: user/gameplay.md
-    - Description Sprites & Conseils: user/units.md
-    - Ressources supplémentaires:
-      - Outil de configuration: user/galad-config-tool.md
-      - Guide de démarrage: user/getting-started.md
-      - Unités alliées: user/units_allies.md
-      - Unités ennemies: user/units_enemies.md
-      - Bâtiments: user/buildings.md
-      - Boutique: user/shop.md
-      - Barre d'action: user/action-bar.md
-      - Stratégie: user/strategy.md
-      - FAQ: user/faq.md
-      - Crédits: user/credits.md
+    - 🏁 Bases:
+      - Introduction: user/basics/introduction.md
+      - Guide de démarrage: user/basics/getting-started.md
+      - Installation: user/basics/installation.md
+    - 🎮 Gameplay:
+      - Contrôles: user/gameplay/controls.md
+      - Gameplay: user/gameplay/gameplay.md
+      - Stratégie: user/gameplay/strategy.md
+      - Barre d'action: user/gameplay/action-bar.md
+    - ⚔️ Unités:
+      - Unités: user/units/units.md
+      - Unités alliées: user/units/units_allies.md
+      - Unités ennemies: user/units/units_enemies.md
+    - 🏗️ Économie:
+      - Bâtiments: user/economy/buildings.md
+      - Boutique: user/economy/shop.md
+    - 🛠️ Outils:
+      - Outil de configuration: user/tools/galad-config-tool.md
+    - ❓ Aide:
+      - FAQ: user/help/faq.md
+      - Crédits: user/help/credits.md
   - 🛠️ Documentation Technique:
     - Vue d'ensemble: dev/overview.md
     - Architecture: dev/architecture.md

@@ -361,4 +361,4 @@ Zasper  Zasper  Zasper
 
 ---
 
-*Vous maîtrisez maintenant les concepts avancés ! Consultez la [FAQ](faq.md) pour les questions spécifiques.*
+*Vous maîtrisez maintenant les concepts avancés ! Consultez la [FAQ](../help/faq.md) pour les questions spécifiques.*

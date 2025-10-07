@@ -240,4 +240,4 @@
 
 ---
 
-*Maintenant que vous maîtrisez l'économie, découvrez les [stratégies avancées](strategy.md) !*
+*Maintenant que vous maîtrisez l'économie, découvrez les [stratégies avancées](../gameplay/strategy.md) !*

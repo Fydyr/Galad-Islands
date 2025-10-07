@@ -15,25 +15,52 @@ Cette documentation est organisée en deux sections principales :
 ### 📖 Documentation Utilisateur
 *Pour les joueurs qui veulent maîtriser le jeu*
 
-- **[Guide de démarrage](user/getting-started.md)** - Installation et premiers pas
-- **[Installation](user/installation.md)** - Guide d'installation détaillé
-- **[Contrôles](user/controls.md)** - Mécaniques de jeu et contrôles
-- **[Unités](user/units.md)** - Guide des unités et leurs capacités
-- **[Bâtiments](user/buildings.md)** - Constructions et défenses
-- **[Boutique](user/shop.md)** - Système d'achat et économie
-- **[Barre d'action](user/action-bar.md)** - Interface et raccourcis
-- **[FAQ](user/faq.md)** - Questions fréquentes et dépannage
+#### 🏁 Bases
 
-### 🛠️ Documentation Technique  
-*Pour les développeurs et contributeurs*
+- **[Introduction](user/basics/introduction.md)** - Présentation du jeu
+- **[Guide de démarrage](user/basics/getting-started.md)** - Installation et premiers pas
+- **[Installation](user/basics/installation.md)** - Guide d'installation détaillé
 
-#### Développement
+#### 🎮 Gameplay
+
+- **[Contrôles](user/gameplay/controls.md)** - Mécaniques de jeu et contrôles
+- **[Gameplay](user/gameplay/gameplay.md)** - Principes de jeu généraux
+- **[Stratégie](user/gameplay/strategy.md)** - Conseils stratégiques
+- **[Barre d'action](user/gameplay/action-bar.md)** - Interface et raccourcis
+
+#### ⚔️ Unités
+
+- **[Unités](user/units/units.md)** - Guide des unités et leurs capacités
+- **[Unités alliées](user/units/units_allies.md)** - Détail des unités alliées
+- **[Unités ennemies](user/units/units_enemies.md)** - Détail des unités ennemies
+
+#### 🏗️ Économie
+
+- **[Bâtiments](user/economy/buildings.md)** - Constructions et défenses
+- **[Boutique](user/economy/shop.md)** - Système d'achat et économie
+
+#### 🛠️ Outils
+
+- **[Outil de configuration Galad](user/tools/galad-config-tool.md)** - Configuration du jeu
+
+#### ❓ Aide
+
+- **[FAQ](user/help/faq.md)** - Questions fréquentes et dépannage
+- **[Crédits](user/help/credits.md)** - Équipe et remerciements
+
+### 🛠️ Documentation Technique
+
+#### Pour les développeurs et contributeurs
+
+##### Développement
+
 - **[Vue d'ensemble](dev/overview.md)** - Architecture générale du projet
 - **[API](dev/api/game-engine.md)** - Documentation des interfaces de programmation
 - **[Modules](dev/modules/processors.md)** - Structure interne du code
 - **[Contribution](dev/contributing.md)** - Guide pour contribuer au projet
 
 #### Système et déploiement
+
 - **[Paramètres système critiques](dev/systeme.md)** - Configuration et optimisation des performances
 - **[Exigences matérielles](dev/requirements.md)** - Hardware/software requis et dépendances
 - **[Opérations système](dev/operations.md)** - Monitoring, sauvegarde, sécurité et maintenance
