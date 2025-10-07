@@ -16,11 +16,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Importations des systèmes
+from src.systems.vision_system import vision_system
+
 # Importations des processeurs
-from src.processeurs import movementProcessor, collisionProcessor, playerControlProcessor
+from src.processeurs.movementProcessor import MovementProcessor
+from src.processeurs.collisionProcessor import CollisionProcessor
+from src.processeurs.playerControlProcessor import PlayerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
+from src.processeurs.towerProcessor import TowerProcessor
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -723,6 +729,9 @@ class GameEngine:
         # Configurer la caméra
         self._setup_camera()
         
+        # Réinitialiser le système de vision après l'initialisation complète
+        vision_system.reset()
+        
     def _initialize_game_map(self):
         """Initialise la carte du jeu."""
         if self.window is None:
@@ -762,14 +771,13 @@ class GameEngine:
         es._world = es
         
         # Créer et ajouter les processeurs
-        self.movement_processor = movementProcessor.MovementProcessor()
-        self.collision_processor = collisionProcessor.CollisionProcessor(graph=self.grid)
-        self.player_controls = playerControlProcessor.PlayerControlProcessor()
+        self.movement_processor = MovementProcessor()
+        self.collision_processor = CollisionProcessor(graph=self.grid)
+        self.player_controls = PlayerControlProcessor()
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
-        from src.processeurs.towerProcessor import TowerProcessor
         self.tower_processor = TowerProcessor()
 
         es.add_processor(self.collision_processor, priority=2)
@@ -822,7 +830,6 @@ class GameEngine:
             UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
         
         # Initialiser la visibilité pour l'équipe actuelle
-        from src.systems.vision_system import vision_system
         from src.constants.team import Team
         vision_system.update_visibility(Team.ALLY)
         
@@ -938,7 +945,12 @@ class GameEngine:
         result = self.exit_modal.handle_event(event, target_surface)
 
         if result == "quit":
-            self._quit_game()
+            # Pour InGameMenuModal, "quit" ouvre une modale de confirmation, ne pas quitter directement
+            from src.ui.ingame_menu_modal import InGameMenuModal
+            if not isinstance(self.exit_modal, InGameMenuModal):
+                self._quit_game()
+                return True
+            # Pour InGameMenuModal, continuer normalement (le callback a ouvert la modale de confirmation)
             return True
 
         if result == "stay":
@@ -1680,6 +1692,4 @@ def game(window=None, bg_original=None, select_sound=None):
     """
     engine = GameEngine(window, bg_original, select_sound)
     engine.run()
-
-from src.systems.vision_system import vision_system
 

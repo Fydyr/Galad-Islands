@@ -211,6 +211,12 @@ class VisionSystem:
 
         return overlay_rects
 
+    def reset(self):
+        """Réinitialise complètement le système de vision pour une nouvelle partie."""
+        self.visible_tiles.clear()
+        self.explored_tiles.clear()
+        self.current_team = 1
+
 
 # Instance globale du système de vision
 vision_system = VisionSystem()

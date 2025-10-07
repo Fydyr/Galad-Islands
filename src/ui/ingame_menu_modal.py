@@ -27,12 +27,13 @@ class InGameMenuModal:
         """Callback appelé par GenericModal lors du clic sur un bouton.
 
         Si l'utilisateur choisit 'settings', on ouvre la fenêtre d'options.
-        L'import est fait en lazy pour éviter les dépendances lourdes à l'import du module.
+        Pour 'stay', on ne fait rien (la modale se ferme automatiquement).
+        Si l'utilisateur choisit 'quit', on ouvre une modale de confirmation.
         """
         if action_id == "settings":
             show_options_window()
         elif action_id == "quit":
-            # Ouvrir une modale de confirmation avant de poster un event de quit
+            # Ouvrir une modale de confirmation qui gérera elle-même l'événement de quit
             surface = pygame.display.get_surface()
             confirm = ExitConfirmationModal()
             confirm.open(surface)
@@ -42,21 +43,13 @@ class InGameMenuModal:
             while confirm.is_active():
                 for ev in pygame.event.get():
                     # Transmettre l'événement à la modale de confirmation
-                    res = confirm.handle_event(ev, surface)
-                    # Si la modale renvoie directement 'quit', on peut interrompre
-                    if res == 'quit':
-                        confirm.close()
-                        break
+                    confirm.handle_event(ev, surface)
                 # Rendre la modale
                 if surface is not None:
                     surface.fill((0, 0, 0))
                     confirm.render(surface)
                     pygame.display.flip()
                 clock.tick(60)
-
-            # Après fermeture, poster un event 'confirmed_quit' afin que la boucle principale gère la fermeture propre
-            ev = pygame.event.Event(pygame.USEREVENT, {"subtype": "confirmed_quit"})
-            pygame.event.post(ev)
 
     def is_active(self) -> bool:
         """Indique si la modale est visible."""
