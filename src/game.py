@@ -773,7 +773,7 @@ class GameEngine:
         # Créer et ajouter les processeurs
         self.movement_processor = MovementProcessor()
         self.collision_processor = CollisionProcessor(graph=self.grid)
-        self.player_controls = PlayerControlProcessor()
+        self.player_controls = PlayerControlProcessor(self.grid)
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
