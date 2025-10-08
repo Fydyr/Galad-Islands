@@ -8,15 +8,31 @@
 
 ### Sources de revenus
 
-**Or sur la carte**
-- Les coffres dorés éparpillés donnent **25-50 pièces d'or**
-- Les mines produisent **10 or/seconde** quand contrôlées
-- Les îles spéciales peuvent contenir des trésors cachés
+#### Coffres volants
 
-**Revenus passifs**
-- Base de départ : **+5 or/seconde**
-- Tours économiques : **+3 or/seconde** chacune
-- Bonus de territoire : **+1 or/seconde** par zone contrôlée
+- Les coffres volants peuvent apparaître aléatoirement sur la carte
+- Contiennent entre **60-150 pièces d'or**
+- Stratégie : Positionnez vos unités pour les intercepter rapidement
+
+#### Or sur les îles
+
+- Certaines îles peuvent voir apparaître des dépôts d'or
+- Contient entre **200-500 pièces d'or**
+- Stratégie : Explorez méthodiquement pour découvrir les gisements
+
+!!! warning
+    Les dépôts d'or et les coffres volants sont limités dans le temps et peuvent disparaître.
+
+#### Récompenses de combat
+
+- Gagnez de l'or en éliminant des unités ennemies
+- La quantité correspond à la moitié du coût de l'unité éliminée
+- **Zasper** : 10 or → **5 or**
+- **Barhamus** : 20 or → **10 or**
+- **Draupnir** : 40 or → **20 or**
+- **Druid** : 30 or → **15 or**
+- **Architect** : 30 or → **15 or**
+- Stratégie : Tuez des unités coûteuses pour maximiser les gains
 
 ### Gestion des ressources
 
@@ -24,9 +40,9 @@
     **Priorités en début de partie :**
     
     1. Explorez pour trouver l'or facile
-    2. Sécurisez au moins 2-3 mines
-    3. N'achetez que l'essentiel
-    4. Investissez dans l'économie long terme
+    2. Conservez toujours une réserve d'urgence
+    3. Détruisez les unités ennemies pour de l'or
+    4. Ne pas perdre des unités inutilement (surtout dans des combats contre votre ennemi)
 
 ## 🛒 Interface de la boutique
 
@@ -35,65 +51,56 @@
 - **Alternative** : Clic sur l'icône boutique
 - **Disponible** : En permanence pendant le jeu
 
-### Navigation
-| Contrôle | Action |
-|----------|--------|
-| `1-5` | Achat direct de l'unité correspondante |
-| `Flèches ⬅️➡️` | Naviguer entre les catégories |
-| `Flèches ⬆️⬇️` | Naviguer dans une catégorie |
-| `Entrée` | Confirmer l'achat |
-| `Échap` | Fermer la boutique |
-
 ## 👥 Catégorie : Unités
 
 ### Unités de combat
 
 #### Zasper - Scout Léger
-- **Prix** : 50 pièces d'or
+- **Prix** : 10 pièces d'or
 - **Description** : "Scout rapide et polyvalent"
 - **Statistiques** :
-  - Vie : 100 PV
-  - Attaque : 25 dégâts
-  - Vitesse : Très rapide
-  - Portée : 75 pixels
+  - Vie : 60 PV
+  - Attaque : 10 dégâts
+  - Vitesse : 5.0
+  - Portée de vision : 6.0
 
 #### Barhamus - Maraudeur Moyen  
-- **Prix** : 100 pièces d'or
+- **Prix** : 20 pièces d'or
 - **Description** : "Guerrier robuste avec bouclier"
 - **Statistiques** :
-  - Vie : 200 PV
-  - Attaque : 50 dégâts
-  - Vitesse : Normale
-  - Portée : 100 pixels
+  - Vie : 130 PV
+  - Attaque : 20 dégâts
+  - Vitesse : 3.5
+  - Portée de vision : 5.0
 
 #### Draupnir - Léviathan Lourd
-- **Prix** : 300 pièces d'or
+- **Prix** : 40 pièces d'or
 - **Description** : "Léviathan lourd destructeur"  
 - **Statistiques** :
-  - Vie : 500 PV
-  - Attaque : 150 dégâts
-  - Vitesse : Lente
-  - Portée : 150 pixels
+  - Vie : 300 PV
+  - Attaque : 30 dégâts
+  - Vitesse : 2.0
+  - Portée de vision : 4.0
 
 ### Unités de support
 
 #### Druid - Soigneur
-- **Prix** : 150 pièces d'or
+- **Prix** : 30 pièces d'or
 - **Description** : "Soigneur et support magique"
 - **Statistiques** :
-  - Vie : 150 PV
+  - Vie : 130 PV
   - Soin : 20 PV/seconde
-  - Vitesse : Lente
-  - Portée soin : 100 pixels
+  - Vitesse : 3.5
+  - Portée de vision : 5.0
 
 #### Architect - Constructeur
-- **Prix** : 200 pièces d'or
+- **Prix** : 30 pièces d'or
 - **Description** : "Constructeur de défenses"
 - **Statistiques** :
-  - Vie : 180 PV
-  - Attaque : 30 dégâts
-  - Vitesse : Lente
-  - Capacité : Construction
+  - Vie : 130 PV
+  - Attaque : 20 dégâts
+  - Vitesse : 3.5
+  - Portée de vision : 4.0
 
 ## 🏰 Catégorie : Bâtiments
 
@@ -119,16 +126,11 @@
   - Portée : 120 pixels
   - Cibles : Unités alliées
 
-### Économie
-
-#### Générateur d'Or
-- **Prix** : 200 pièces d'or
-- **Prérequis** : Architect + Mine contrôlée
-- **Description** : "Augmente la production d'or"
-- **Effet** : +10 or/seconde
-- **Cumul** : Jusqu'à 3 par mine
 
 ## ⚡ Catégorie : Améliorations
+
+!!! info
+    Les boosts ne sont pas disponibles dans la boutique mais sur la barre d'action. (Voir [Barre d'action](../gameplay/action-bar.md) pour plus de détails.)
 
 ### Améliorations globales
 
@@ -146,25 +148,6 @@
 - **Cooldown** : 60 secondes
 - **Visual** : Aura bleue autour des unités
 
-#### Boost de Vitesse
-- **Prix** : 75 pièces d'or
-- **Durée** : 20 secondes
-- **Effet** : +50% vitesse de déplacement
-- **Cooldown** : 45 secondes
-- **Visual** : Traînées lumineuses
-
-### Améliorations permanentes
-
-#### Technologie avancée
-- **Prix** : 500 pièces d'or (une fois)
-- **Effet** : Débloque les unités améliorées
-- **Bonus** : -10% sur tous les coûts futurs
-
-#### Maîtrise tactique  
-- **Prix** : 300 pièces d'or (une fois)
-- **Effet** : -25% cooldown sur toutes les capacités spéciales
-- **Bonus** : +1 sélection simultanée d'unités
-
 ## 💡 Conseils d'achat
 
 ### Début de partie (0-500 or)
@@ -172,17 +155,18 @@
 !!! tip "Build d'exploration"
     **Achat recommandé :**
     
-    1. **2x Zasper** (100 or) - Reconnaissance
-    2. **1x Barhamus** (100 or) - Protection  
+    1. **2x Scout** (100 or) - Reconnaissance
+    2. **1x Maraudeur** (100 or) - Protection  
     3. **1x Druid** (150 or) - Soutien
-    4. **Économiser** le reste pour les opportunités
+    4. **1x Architect** (200 or) - Construction
+    5. **Économiser** le reste pour les opportunités
 
 ### Milieu de partie (500-1500 or)
 
 !!! success "Build équilibré"
     **Développement recommandé :**
     
-    1. **1x Draupnir** (300 or) - Puissance
+    1. **1x Leviathan** (300 or) - Puissance
     2. **1x Architect** (200 or) - Défenses
     3. **2x Tours de défense** (200 or) - Sécurité
     4. **Boost d'attaque** au besoin (50 or)
@@ -191,34 +175,11 @@
 
 !!! warning "Build de domination"
     **Formation finale :**
-    
-    1. **2x Draupnir** (600 or) - Destruction
-    2. **Technologies avancées** (500 or) - Économies
-    3. **Réseau de défenses** (300+ or) - Contrôle
-    4. **Boosts permanents** selon situation
 
-## 🎯 Optimisation des achats
-
-### Calcul de rentabilité
-
-**Unités offensives**
-- **Zasper** : 2 dégâts/or (fragile mais rapide)
-- **Barhamus** : 0.5 dégâts/or (équilibré)
-- **Draupnir** : 0.5 dégâts/or (lourd et résistant)
-
-**Unités défensives**  
-- **Tour défense** : 0.4 dégâts/or (permanente)
-- **Tour soin** : 0.12 soin/or (support continu)
-
-### Synergies d'achat
-
-!!! info "Combos efficaces"
-    **Combinaisons recommandées :**
-    
-    - **Druid + Draupnir** = Tank imbattable
-    - **Architect + Mines** = Économie sécurisée  
-    - **2x Zasper + Boost vitesse** = Harcèlement éclair
-    - **Barhamus + Tour défense** = Contrôle de zone
+    1. **2x Leviathan** (600 or) - Destruction
+    2. **Réseau de tour de soin** (400 or) - Soutien
+    3. **Réseau de tour de défense** (300+ or) - Contrôle
+    4. **Boost de défense** au besoin (50 or)
 
 ## 🚫 Erreurs d'achat courantes
 
@@ -236,6 +197,7 @@
 ### Gestion des priorités
 
 **Toujours priorité à :**
+
 1. La survie (avoir au moins 1 unité)
 2. L'économie (sécuriser les mines)  
 3. L'exploration (connaître la carte)
@@ -243,5 +205,3 @@
 5. L'expansion (contrôler plus de territoire)
 
 ---
-
-*Maintenant que vous maîtrisez l'économie, découvrez les [stratégies avancées](../gameplay/strategy.md) !*
