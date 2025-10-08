@@ -11,7 +11,7 @@ L'interface de Galad Islands est conçue pour être intuitive et accessible, ave
 - **Zone de jeu** : Centre de l'écran (vue de la carte)
 - **Barre d'action** : En bas à gauche de l'écran
 - **Or** : En bas au centre
-- **Informations des unités** : En haut à droite
+- **Informations des unités** : En bas au centre (à côté de l'or)
 
 ## 🔧 Barre d'action détaillée
 
@@ -55,12 +55,9 @@ L'interface de Galad Islands est conçue pour être intuitive et accessible, ave
 
 **Panneau d'information (bas à droite)**
 
-- **Portrait** : Image de l'unité
 - **Nom** : Type d'unité (Scout, Maraudeur, etc.)
 - **Statistiques** :
   - Barre de vie (PV actuels/PV maximum)
-  - Niveau d'expérience (si applicable)
-  - État actuel (En mouvement, Au combat, Inactif)
 
 **Capacités disponibles (bas à gauche)**
 
