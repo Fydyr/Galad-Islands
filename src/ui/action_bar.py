@@ -80,8 +80,6 @@ class ActionType(Enum):
     MOVE_MODE = "move_mode"
     BUILD_DEFENSE_TOWER = "build_defense_tower"
     BUILD_HEAL_TOWER = "build_heal_tower"
-    GLOBAL_ATTACK = "global_attack"
-    GLOBAL_DEFENSE = "global_defense"
     DEV_GIVE_GOLD = "dev_give_gold"
     SWITCH_CAMP = "switch_camp"
     OPEN_SHOP = "open_shop"
@@ -140,10 +138,6 @@ class ActionBar:
         # État du jeu
         self.selected_unit: Optional[UnitInfo] = None
         self.current_mode = "normal"  # normal, attack, move, build
-        self.global_attack_active = False
-        self.global_defense_active = False
-        self.global_attack_timer = 0.0
-        self.global_defense_timer = 0.0
         self.current_camp = Team.ALLY  # Team.ALLY ou Team.ENEMY pour le spawn
         
         # Animation et effets
@@ -280,26 +274,6 @@ class ActionBar:
         
         # Boutons globaux
         global_buttons = [
-            ActionButton(
-                action_type=ActionType.GLOBAL_ATTACK,
-                icon_path="assets/sprites/ui/global_attack.png",
-                text=t("actionbar.global_attack"),
-                cost=50,
-                hotkey="Q",
-                tooltip=t("tooltip.global_attack"),
-                is_global=True,
-                callback=self._activate_global_attack
-            ),
-            ActionButton(
-                action_type=ActionType.GLOBAL_DEFENSE,
-                icon_path="assets/sprites/ui/global_defense.png",
-                text=t("actionbar.global_defense"),
-                cost=50,
-                hotkey="E",
-                tooltip=t("tooltip.global_defense"),
-                is_global=True,
-                callback=self._activate_global_defense
-            ),
             
         ]
         
@@ -354,12 +328,6 @@ class ActionBar:
                 elif button.action_type == ActionType.BUILD_HEAL_TOWER:
                     button.text = t("actionbar.build_heal")
                     button.tooltip = t("tooltip.build_heal", default=t("actionbar.build_heal"))
-                elif button.action_type == ActionType.GLOBAL_ATTACK:
-                    button.text = t("actionbar.global_attack")
-                    button.tooltip = t("tooltip.global_attack")
-                elif button.action_type == ActionType.GLOBAL_DEFENSE:
-                    button.text = t("actionbar.global_defense")
-                    button.tooltip = t("tooltip.global_defense")
                 elif button.action_type == ActionType.DEV_GIVE_GOLD:
                     button.text = t("actionbar.debug_menu")
                     button.tooltip = t("debug.modal.title")
@@ -544,28 +512,6 @@ class ActionBar:
             self.on_camp_change(new_team)
         else:
             self.set_camp(new_team, show_feedback=True)
-    
-    def _activate_global_attack(self):
-        """Active le boost d'attaque global (placeholder)."""
-        print("[PLACEHOLDER] Demande d'activation du buff d'attaque global")
-        if not self.global_attack_active:
-            self.global_attack_active = True
-            self.global_attack_timer = 30.0  # 30 secondes
-            self._show_feedback("success", t("feedback.global_attack_activated"))
-            print("[PLACEHOLDER] Effet visuel de buff d'attaque pour 30 secondes")
-        else:
-            self._show_feedback("warning", t("feedback.already_active"))
-    
-    def _activate_global_defense(self):
-        """Active le boost de défense global (placeholder)."""
-        print("[PLACEHOLDER] Demande d'activation du buff de défense global")
-        if not self.global_defense_active:
-            self.global_defense_active = True
-            self.global_defense_timer = 30.0  # 30 secondes
-            self._show_feedback("success", t("feedback.global_defense_activated"))
-            print("[PLACEHOLDER] Effet visuel de buff de défense pour 30 secondes")
-        else:
-            self._show_feedback("warning", t("feedback.already_active"))
     
     def _show_feedback(self, feedback_type: str, message: str):
         """
@@ -870,31 +816,11 @@ class ActionBar:
         if self.selected_unit and self.selected_unit.special_cooldown > 0:
             self.selected_unit.special_cooldown = max(0, self.selected_unit.special_cooldown - dt)
         
-        # Timer des buffs globaux
-        if self.global_attack_active:
-            self.global_attack_timer -= dt
-            if self.global_attack_timer <= 0:
-                self.global_attack_active = False
-                self.global_attack_timer = 0.0
-                print("[PLACEHOLDER] Buff d'attaque global expiré")
-                
-        if self.global_defense_active:
-            self.global_defense_timer -= dt
-            if self.global_defense_timer <= 0:
-                self.global_defense_active = False
-                self.global_defense_timer = 0.0
-                print("[PLACEHOLDER] Buff de défense global expiré")
-        
         # Mise à jour de l'état des boutons (pas de vérification d'or pour les placeholders)
         for button in self.action_buttons:
             if button.action_type in self.unit_configs:
                 # Toujours actif pour les placeholders (pas de déduction d'or)
                 button.enabled = True
-            elif button.is_global:
-                if button.action_type == ActionType.GLOBAL_ATTACK:
-                    button.enabled = not self.global_attack_active
-                elif button.action_type == ActionType.GLOBAL_DEFENSE:
-                    button.enabled = not self.global_defense_active
     
     def draw(self, surface: pygame.Surface):
         """Dessine la barre d'action."""
@@ -1000,29 +926,15 @@ class ActionBar:
         if not button.enabled:
             color = UIColors.BUTTON_DISABLED
         elif is_hovered:
-            if is_global:
-                if button.action_type == ActionType.GLOBAL_ATTACK:
-                    color = UIColors.ATTACK_HOVER
-                else:
-                    color = UIColors.DEFENSE_HOVER
-            else:
-                color = UIColors.BUTTON_HOVER
+            color = UIColors.BUTTON_HOVER
         else:
-            if is_global:
-                if button.action_type == ActionType.GLOBAL_ATTACK:
-                    color = UIColors.ATTACK_BUTTON
-                else:
-                    color = UIColors.DEFENSE_BUTTON
-            else:
-                color = UIColors.BUTTON_NORMAL
+            color = UIColors.BUTTON_NORMAL
         
-        # Effet de lueur si bouton global actif
-        if is_global:
-            if ((button.action_type == ActionType.GLOBAL_ATTACK and self.global_attack_active) or
-                (button.action_type == ActionType.GLOBAL_DEFENSE and self.global_defense_active)):
-                glow_size = int(5 + 3 * math.sin(self.button_glow_timer * 3))
-                glow_rect = rect.inflate(glow_size, glow_size)
-                pygame.draw.rect(surface, UIColors.GLOW[:3], glow_rect, border_radius=12)
+        # Effet de lueur si bouton global actif (désactivé pour éviter la surbrillance inutile)
+        # if is_global:
+        #     glow_size = int(5 + 3 * math.sin(self.button_glow_timer * 3))
+        #     glow_rect = rect.inflate(glow_size, glow_size)
+        #     pygame.draw.rect(surface, UIColors.GLOW[:3], glow_rect, border_radius=12)
         
         # Fond du bouton avec dégradé
         for y in range(rect.height):
@@ -1122,19 +1034,6 @@ class ActionBar:
         mode_y = gold_y + 32
         mode_rect = mode_text_colored.get_rect(center=(center_x, mode_y + 10))
         surface.blit(mode_text_colored, mode_rect)
-
-        # Ligne 3 : buffs globaux
-        if self.global_attack_active or self.global_defense_active:
-            buffs = []
-            if self.global_attack_active:
-                buffs.append("⚔️ ATK")
-            if self.global_defense_active:
-                buffs.append("🛡️ DEF")
-            buff_text = " | ".join(buffs)
-            buff_color = UIColors.WARNING
-            buff_surface = self.font_small.render(buff_text, True, buff_color)
-            buff_rect = buff_surface.get_rect(center=(center_x, mode_y + 28))
-            surface.blit(buff_surface, buff_rect)
     
     def _draw_selected_unit_info(self, surface: pygame.Surface):
         """Dessine les informations de l'unité sélectionnée à droite."""
