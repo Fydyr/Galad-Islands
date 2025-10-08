@@ -6,7 +6,7 @@
 
 **Solutions courantes :**
 
-1. **Mettre à jour le jeu** : Télécharger la dernière version depuis la [page des releases](
+1. **Mettre à jour le jeu** : Télécharger la dernière version depuis la [page des releases]
 2. **Vérifier la structure des fichiers** : Le dossier `assets/` doit être au même niveau que l'exécutable `galad-islands`.
 3. **Retélécharger le jeu** : Le fichier peut être corrompu.
 4. **Lancer le jeu via terminal/console pour savoir plus sur l'erreur** :
@@ -45,42 +45,6 @@
 3. Choisir la résolution
 4. Cliquer "Appliquer" puis lancer le jeu
 
-## 🎮 Gameplay et mécaniques
-
-### Q: Quelle est la meilleure composition d'armée ?
-
-**Début de partie (0-5 min) :**
-
-- **2x Scout** + **1x Maraudeur** + **1x Druid**
-- Coût : 400 or
-- Polyvalent et efficace
-
-**Milieu de partie (5-10 min) :**
-
-- **1x Leviathan** + **2x Maraudeur** + **1x Druid** + **1x Architect**
-- Focus : Contrôle territorial + économie
-
-**Fin de partie (10+ min) :**
-
-- **2x Leviathan** + **3x Maraudeur** + **2x Druid**
-- Armée quasi-invincible
-
-### Q: Mes unités ne suivent pas mes ordres
-
-**Problèmes courants :**
-
-1. **Sélection incorrecte** : Vérifiez que vos unités sont bien sélectionnées
-2. **Pathfinding** : Parfois l'IA ne trouve pas le chemin
-3. **Combat en cours** : Les unités terminent leur action actuelle
-4. **Ile inaccessible** : Pas de passage disponible
-
-**Solutions :**
-
-- **Utiliser** les groupes (`Ctrl + numéro`) pour rappeler rapidement l'unité voulue
-- **Double-clic** pour déplacer en force
-- **Attendre** la fin des animations
-- **Vérifier** les connexions entre îles
-
 ## 🏗️ Construction et bâtiments
 
 ### Q: Pourquoi je ne peux pas construire ?
@@ -88,7 +52,7 @@
 **Vérifications essentielles :**
 
 1. **Architect présent** : Au moins 1 dans l'armée
-2. **Sur une île** : L'Architect doit être positionné
+2. **Sur une île** : L'Architect doit être positionné près d'une île d'au moins 4 cases
 3. **Île libre** : Pas de bâtiment existant
 4. **Or suffisant** : Coût affiché dans la boutique
 
@@ -157,22 +121,6 @@
 - **Isoler** les unités
 - **Négliger** les soins
 - **Sous-estimer** la portée ennemie
-
-### Q: Comment gérer plusieurs fronts ?
-
-**Multi-tasking stratégique :**
-
-1. **Prioriser** : Front principal vs secondaire
-2. **Défense mobile** : Unités rapides entre zones
-3. **Téléporation** : Pour renforcer rapidement
-4. **Économie solide** : Pour remplacer les pertes
-
-**Organisation :**
-
-- **Groupes de contrôle** : `Ctrl + 1-9`
-- **Rotation** rapide entre zones
-- **Anticipation** des menaces
-- **Communication** avec votre équipe (si applicable)
 
 ## 🔧 Paramètres et performance
 
