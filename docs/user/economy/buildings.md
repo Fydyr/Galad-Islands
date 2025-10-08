@@ -1,5 +1,8 @@
 # Bâtiments et constructions
 
+!!! warning "Note"
+    Cette partie demande vérification et complétion. Certaines informations peuvent être incomplètes ou obsolètes.
+
 ## 🏗️ Système de construction
 
 ### Mécaniques de base

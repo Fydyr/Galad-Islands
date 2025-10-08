@@ -26,7 +26,6 @@ Cette documentation est organisée en deux sections principales :
 
 - **[Contrôles](user/gameplay/controls.md)** - Mécaniques de jeu et contrôles
 - **[Gameplay](user/gameplay/gameplay.md)** - Principes de jeu généraux
-- **[Stratégie](user/gameplay/strategy.md)** - Conseils stratégiques
 - **[Barre d'action](user/gameplay/action-bar.md)** - Interface et raccourcis
 
 #### ⚔️ Unités
@@ -118,15 +117,14 @@ Cette documentation est organisée en deux sections principales :
 
 ## 📚 Navigation de ce guide
 
-- **[Guide de démarrage](getting-started.md)** : Premiers pas
-- **[Installation et Configuration](installation.md)** : Comment installer et configurer le jeu
-- **[Contrôles](controls.md)** : Toutes les commandes du jeu
-- **[Unités](units.md)** : Guide détaillé de chaque type d'unité
-- **[Stratégie](strategy.md)** : Conseils tactiques avancés
+- **[Guide de démarrage](user/basics/getting-started.md)** : Premiers pas
+- **[Installation et Configuration](user/basics/installation.md)** : Comment installer et configurer le jeu
+- **[Contrôles](user/gameplay/controls.md)** : Toutes les commandes du jeu
+- **[Unités](user/units/units.md)** : Guide détaillé de chaque type d'unité
 
 ## 🎵 Ambiance
 
-Galad Islands vous plonge dans un univers steampunk avec :
+Galad Islands vous plonge dans un univers fantastique avec :
 
 - Musique épique et immersive
 - Graphismes détaillés en pixel art
