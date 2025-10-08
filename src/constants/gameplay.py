@@ -244,6 +244,13 @@ FLYING_CHEST_GOLD_MAX = 150             # Gain maximal en or lors de la collecte
 FLYING_CHEST_LIFETIME = 25.0            # Durée avant la chute automatique dans l'océan
 FLYING_CHEST_SINK_DURATION = 3.0        # Durée de l'animation de chute avant disparition
 
+# Ressources d'îles (plus rares, récompenses plus importantes)
+ISLAND_RESOURCE_GOLD_MIN = 200
+ISLAND_RESOURCE_GOLD_MAX = 500
+ISLAND_RESOURCE_LIFETIME = 120.0  # 2 minutes
+ISLAND_RESOURCE_MAX_COUNT = 3
+ISLAND_RESOURCE_SPAWN_INTERVAL = 180.0  # every 3 minutes on average
+
 # =============================================================================
 # CONSTANTES DE POSITIONNEMENT
 # =============================================================================

@@ -18,12 +18,14 @@ from src.components.core.playerComponent import PlayerComponent
 from src.managers.sprite_manager import SpriteID, sprite_manager
 from src.settings.settings import TILE_SIZE
 
-# Local gameplay tuning for island resources (rarer, larger rewards)
-ISLAND_RESOURCE_GOLD_MIN = 200
-ISLAND_RESOURCE_GOLD_MAX = 500
-ISLAND_RESOURCE_LIFETIME = 120.0  # 2 minutes
-ISLAND_RESOURCE_MAX_COUNT = 3
-ISLAND_RESOURCE_SPAWN_INTERVAL = 180.0  # every 3 minutes on average
+# Import gameplay constants
+from src.constants.gameplay import (
+    ISLAND_RESOURCE_GOLD_MIN,
+    ISLAND_RESOURCE_GOLD_MAX,
+    ISLAND_RESOURCE_LIFETIME,
+    ISLAND_RESOURCE_MAX_COUNT,
+    ISLAND_RESOURCE_SPAWN_INTERVAL,
+)
 
 
 class IslandResourceManager:
