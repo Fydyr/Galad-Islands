@@ -23,7 +23,11 @@ from src.managers.sprite_manager import sprite_manager, SpriteID
 from src.components.special.speArchitectComponent import SpeArchitect
 
 # Imports moved from inline positions for better code quality
-from src.constants.gameplay import PLAYER_DEFAULT_GOLD
+from src.constants.gameplay import (
+    PLAYER_DEFAULT_GOLD,
+    UNIT_COST_SCOUT, UNIT_COST_MARAUDEUR, UNIT_COST_LEVIATHAN,
+    UNIT_COST_DRUID, UNIT_COST_ARCHITECT, UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER
+)
 from src.settings.settings import ConfigManager, TILE_SIZE
 from src.components.core.positionComponent import PositionComponent
 from src.components.globals.mapComponent import is_tile_island
@@ -167,11 +171,11 @@ class ActionBar:
         
         # Configurations des unités (placeholder)
         self.unit_configs = {
-            ActionType.CREATE_ZASPER: {'name': 'Zasper', 'cost': 10},
-            ActionType.CREATE_BARHAMUS: {'name': 'Barhamus', 'cost': 20},
-            ActionType.CREATE_DRAUPNIR: {'name': 'Draupnir', 'cost': 40},
-            ActionType.CREATE_DRUID: {'name': 'Druid', 'cost': 30},
-            ActionType.CREATE_ARCHITECT: {'name': 'Architect', 'cost': 30},
+            ActionType.CREATE_ZASPER: {'name': 'Zasper', 'cost': UNIT_COST_SCOUT},
+            ActionType.CREATE_BARHAMUS: {'name': 'Barhamus', 'cost': UNIT_COST_MARAUDEUR},
+            ActionType.CREATE_DRAUPNIR: {'name': 'Draupnir', 'cost': UNIT_COST_LEVIATHAN},
+            ActionType.CREATE_DRUID: {'name': 'Druid', 'cost': UNIT_COST_DRUID},
+            ActionType.CREATE_ARCHITECT: {'name': 'Architect', 'cost': UNIT_COST_ARCHITECT},
         }
         
         self._initialize_buttons()
@@ -254,7 +258,7 @@ class ActionBar:
                 action_type=ActionType.BUILD_DEFENSE_TOWER,
                 icon_path="assets/sprites/ui/build_defense.png",
                 text=t("actionbar.build_defense"),
-                cost=150,
+                cost=UNIT_COST_ATTACK_TOWER,
                 hotkey="",
                 visible=False,
                 tooltip=t("tooltip.build_defense", default=t("actionbar.build_defense")),
@@ -264,7 +268,7 @@ class ActionBar:
                 action_type=ActionType.BUILD_HEAL_TOWER,
                 icon_path="assets/sprites/ui/build_heal.png",
                 text=t("actionbar.build_heal"),
-                cost=120,
+                cost=UNIT_COST_HEAL_TOWER,
                 hotkey="",
                 visible=False,
                 tooltip=t("tooltip.build_heal", default=t("actionbar.build_heal")),
@@ -566,7 +570,7 @@ class ActionBar:
 
         # Vérifier l'or
         current_gold = self._get_current_player_gold()
-        cost = 150
+        cost = UNIT_COST_ATTACK_TOWER
         if current_gold < cost:
             self.notification_system.add_notification(t('shop.insufficient_gold'), NotificationType.WARNING)
             return
@@ -605,7 +609,7 @@ class ActionBar:
 
         # Vérifier l'or
         current_gold = self._get_current_player_gold()
-        cost = 120
+        cost = UNIT_COST_HEAL_TOWER
         if current_gold < cost:
             self.notification_system.add_notification(t('shop.insufficient_gold'), NotificationType.WARNING)
             return
