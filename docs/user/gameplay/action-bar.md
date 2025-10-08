@@ -32,23 +32,6 @@ L'interface de Galad Islands est conçue pour être intuitive et accessible, ave
 - **Raccourci** : Touche `B`
 - **État** : Toujours disponible
 
-#### Boosts temporaires
-
-!!! info
-    Les boosts ne sont pas encore implémentés dans le jeu.
-
-**Boost d'Attaque**
-
-- **Coût** : 50 pièces d'or
-- **Durée** : 30 secondes
-- **Effet** : Augmente l'attaque de toutes les unités alliées
-
-**Boost de Défense**
-
-- **Coût** : 50 pièces d'or
-- **Durée** : 30 secondes
-- **Effet** : Augmente la défense de toutes les unités alliées
-
 ### Informations de sélection
 
 #### Unité sélectionnée

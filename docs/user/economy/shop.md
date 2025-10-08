@@ -127,27 +127,6 @@
   - Cibles : Unités alliées
 
 
-## ⚡ Catégorie : Améliorations
-
-!!! info
-    Les boosts ne sont pas disponibles dans la boutique mais sur la barre d'action. (Voir [Barre d'action](../gameplay/action-bar.md) pour plus de détails.)
-
-### Améliorations globales
-
-#### Boost d'Attaque (`Q`)
-- **Prix** : 50 pièces d'or
-- **Durée** : 30 secondes
-- **Effet** : +25% dégâts pour toutes les unités
-- **Cooldown** : 60 secondes
-- **Visual** : Aura rouge autour des unités
-
-#### Boost de Défense (`E`)
-- **Prix** : 50 pièces d'or
-- **Durée** : 30 secondes  
-- **Effet** : +25% résistance pour toutes les unités
-- **Cooldown** : 60 secondes
-- **Visual** : Aura bleue autour des unités
-
 ## 💡 Conseils d'achat
 
 ### Début de partie (0-500 or)
@@ -169,7 +148,6 @@
     1. **1x Leviathan** (300 or) - Puissance
     2. **1x Architect** (200 or) - Défenses
     3. **2x Tours de défense** (200 or) - Sécurité
-    4. **Boost d'attaque** au besoin (50 or)
 
 ### Fin de partie (1500+ or)
 
@@ -179,7 +157,6 @@
     1. **2x Leviathan** (600 or) - Destruction
     2. **Réseau de tour de soin** (400 or) - Soutien
     3. **Réseau de tour de défense** (300+ or) - Contrôle
-    4. **Boost de défense** au besoin (50 or)
 
 ## 🚫 Erreurs d'achat courantes
 
@@ -189,9 +166,7 @@
     **Ne faites jamais ça :**
     
     - Acheter un Draupnir sans protection
-    - Négliger l'économie pour le militaire  
     - Construire des tours sans les défendre
-    - Gaspiller l'or en boosts inutiles
     - Oublier de diversifier son armée
 
 ### Gestion des priorités
