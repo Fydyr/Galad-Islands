@@ -25,7 +25,7 @@ from src.settings.settings import config_manager, get_available_resolutions, app
 from src.settings.localization import get_available_languages, get_current_language, set_language, t
 from src.settings.resolutions import load_custom_resolutions
 from src.settings import controls
-from src.functions.optionsWindow import KEY_BINDING_GROUPS, CONTROL_GROUP_ACTIONS
+from src.functions.optionsWindow import KEY_BINDING_GROUPS
 import pygame # justte pour que ça se lance
 
 
@@ -375,7 +375,7 @@ class GaladConfigApp(tk.Tk):
         """Create editable controls bindings UI: label + combobox for each action."""
         # possible keys choices (simple list of common tokens)
         possible_keys = [
-            'z','s','q','d','a','e','tab','space','enter','escape',
+            'z','s','q','d','a','b','e','tab','space','enter','escape',
             'left','right','up','down','1','2','3','4','5','ctrl','shift','alt'
         ]
 
@@ -400,25 +400,6 @@ class GaladConfigApp(tk.Tk):
                 cb.grid(row=row, column=1, sticky=tk.W, padx=(6, 0))
                 self.control_widgets[action] = cb
                 self.control_label_widgets[action] = (lbl, label_key)
-                row += 1
-
-        # control groups (prefix + slots)
-        grp_lbl = ttk.Label(parent, text=t('options.binding_group.control_groups'))
-        grp_lbl.grid(row=row, column=0, sticky=tk.W, pady=(6, 0))
-        self.control_group_labels['options.binding_group.control_groups'] = grp_lbl
-        row += 1
-        for label_key, prefix in CONTROL_GROUP_ACTIONS:
-            for slot in controls.CONTROL_GROUP_SLOTS:
-                action_name = controls.get_group_action_name(prefix, slot)
-                lbl = ttk.Label(parent, text=t(label_key, slot=slot))
-                lbl.grid(row=row, column=0, sticky=tk.W, padx=(6, 0))
-                cb = ttk.Combobox(parent, values=possible_keys, width=12)
-                current = config_manager.get_key_bindings().get(action_name)
-                if current:
-                    cb.set(current[0] if isinstance(current, list) else current)
-                cb.grid(row=row, column=1, sticky=tk.W, padx=(6, 0))
-                self.control_widgets[action_name] = cb
-                self.control_label_widgets[action_name] = (lbl, label_key)
                 row += 1
 
         return row

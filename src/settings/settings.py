@@ -52,17 +52,10 @@ DEFAULT_CONFIG = {
         "selection_cycle_team": ["t"],
         "system_pause": ["escape"],
         "system_help": ["f1"],
-        "system_debug": ["f3"]
+        "system_debug": ["f3"],
+        "system_shop": ["b"]
     }
 }
-
-for _slot in range(1, 10):
-    DEFAULT_CONFIG["key_bindings"].setdefault(
-        f"selection_group_assign_{_slot}", [f"ctrl+shift+{_slot}"]
-    )
-    DEFAULT_CONFIG["key_bindings"].setdefault(
-        f"selection_group_select_{_slot}", [f"ctrl+{_slot}"]
-    )
 
 AVAILABLE_RESOLUTIONS = [
     (800, 600, "800x600"),
