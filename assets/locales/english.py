@@ -124,6 +124,7 @@ TRANSLATIONS = {
     "debug.modal.spawn_island_resources": "Spawn Island Resources",
     "debug.modal.spawn_bandits": "Spawn Bandits",
     "debug.modal.clear_events": "Clear Events",
+    "debug.modal.reveal_map": "Reveal Map",
     "debug.modal.close": "Close",
     
     # Tooltips for tower placement
