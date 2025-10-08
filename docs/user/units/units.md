@@ -22,7 +22,7 @@ Les unités alliées et ennemies dans **Galad Islands** partagent les mêmes rô
 - **Vitesse** : ⭐⭐⭐⭐⭐ (Très rapide)
 - **Résistance** : ⭐⭐ (Fragile)
 - **Attaque** : ⭐⭐ (Légère)
-- **Capacité spéciale** : Vision étendue (révèle une large zone temporairement)
+- **Capacité spéciale** : Invincibilité temporaire
 - **Utilisation tactique** :
   - Exploration rapide
   - Harcèlement des unités lentes
@@ -36,7 +36,7 @@ Les unités alliées et ennemies dans **Galad Islands** partagent les mêmes rô
 - **Vitesse** : ⭐⭐⭐ (Normale)
 - **Résistance** : ⭐⭐⭐⭐ (Robuste)
 - **Attaque** : ⭐⭐⭐ (Équilibrée)
-- **Capacité spéciale** : Charge (attaque rapide avec bonus de dégâts)
+- **Capacité spéciale** : Bouclier amélioré
 - **Utilisation tactique** :
   - Défense de positions stratégiques
   - Protection des unités fragiles
@@ -50,7 +50,7 @@ Les unités alliées et ennemies dans **Galad Islands** partagent les mêmes rô
 - **Vitesse** : ⭐ (Très lent)
 - **Résistance** : ⭐⭐⭐⭐⭐ (Blindé)
 - **Attaque** : ⭐⭐⭐⭐⭐ (Dévastatrice)
-- **Capacité spéciale** : Bombardement (attaque de zone massive)
+- **Capacité spéciale** : Salve tirée de chaque côtés
 - **Utilisation tactique** :
   - Contrôle des points stratégiques
   - Élimination des groupes d'unités
@@ -64,7 +64,7 @@ Les unités alliées et ennemies dans **Galad Islands** partagent les mêmes rô
 - **Vitesse** : ⭐⭐ (Lent)
 - **Résistance** : ⭐⭐⭐ (Moyenne)
 - **Attaque** : ⭐ (Aucune attaque directe)
-- **Capacité spéciale** : Soin de groupe (guérit les unités alliées proches)
+- **Capacité spéciale** : Lance du lierre qui bloque une unité ennemie
 - **Utilisation tactique** :
   - Maintien des unités en vie
   - Soutien dans les combats prolongés
@@ -78,51 +78,11 @@ Les unités alliées et ennemies dans **Galad Islands** partagent les mêmes rô
 - **Vitesse** : ⭐⭐ (Lent)
 - **Résistance** : ⭐⭐⭐ (Moyenne)
 - **Attaque** : ⭐⭐ (Faible)
-- **Capacité spéciale** : Construction rapide (bâtit instantanément des structures défensives)
+- **Capacité spéciale** : Vitesse de rechargement des unités accrue
 - **Utilisation tactique** :
   - Création de points de défense
   - Contrôle des passages étroits
   - Soutien des sièges prolongés
-
----
-
-## Stratégies générales
-
-### Composition d'armée équilibrée
-
-- **Début de partie** :
-  - 2-3 Scout pour l'exploration
-  - 1 Maraudeur pour la protection
-  - 1 Druid pour le soutien
-
-- **Milieu de partie** :
-  - 4-6 Scout pour le harcèlement
-  - 2-3 Maraudeur comme tanks
-  - 1-2 Druid pour les soins
-  - 1 Architect pour la mobilité
-
-- **Fin de partie** :
-  - 1-2 Léviathan comme force principale
-  - Maraudeur en soutien
-  - Druid pour maintenir les PV
-  - Tours de défense nombreuses
-
-### Adaptation à l'adversaire
-
-- **Contre un joueur agressif** :
-  - Plus de Barhamus et tours
-  - Défense statique
-  - Contre-attaques ciblées
-
-- **Contre un joueur économique** :
-  - Harcèlement constant avec Zasper
-  - Raids sur ses sources d'or
-  - Expansion rapide
-
-- **Contre un joueur défensif** :
-  - Utilisez Architect pour les contourner
-  - Attaques surprises
-  - Supériorité numérique
 
 ---
 
