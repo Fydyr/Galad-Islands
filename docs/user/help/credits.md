@@ -15,7 +15,7 @@
 
 **Sprites d'unités**
 
-- Zasper, Barhamus, Draupnir : Création originale
+- Scout, Mauradeur, Léviathan : Création originale
 - Druid, Architect : Design personnalisé
 - Animations de mouvement et combat
 
