@@ -29,9 +29,6 @@
   - Contrôles caméra (déplacement, vitesse)
   - Sélection (cibler unités, changer de faction)
   - Système (pause, aide, debug, boutique)
-  - Groupes de contrôle (assignation et sélection des groupes 1-9)
-- **Modification des touches** : Comboboxes avec touches prédéfinies pour chaque action
-- **Sauvegarde automatique** : Application immédiate des changements
 
 ### ⚙️ Onglet Configuration
 
