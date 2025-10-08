@@ -52,6 +52,7 @@ class DebugModal:
             ("spawn_kraken", "debug.modal.spawn_kraken"),
             ("spawn_island_resources", "debug.modal.spawn_island_resources"),
             ("clear_events", "debug.modal.clear_events"),
+            ("reveal_map", "debug.modal.reveal_map"),
             ("close", "debug.modal.close"),
         ]
         self.modal = GenericModal(
@@ -99,6 +100,8 @@ class DebugModal:
             self._handle_clear_events()
         elif action == "spawn_bandits":
             self._handle_spawn_bandits()
+        elif action == "reveal_map":
+            self._handle_reveal_map()
         elif action == "close":
             self.close()
     
@@ -397,6 +400,34 @@ class DebugModal:
             self._show_feedback('success', t('debug.feedback.bandits_spawned', default='Bandits spawned'))
         else:
             self._show_feedback('warning', t('debug.feedback.no_valid_position', default='No valid position found'))
+    
+    def _handle_reveal_map(self):
+        """Handle the reveal map action."""
+        # Check if game engine is available
+        if not self.game_engine:
+            self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+        
+        # Check authorization via debug flag or config
+        cfg = ConfigManager()
+        dev_mode = cfg.get('dev_mode', False)
+        
+        is_debug = getattr(self.game_engine, 'show_debug', False)
+        if not (dev_mode or is_debug):
+            self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
+            return
+        
+        # Reveal the entire map for the current team
+        from src.systems.vision_system import vision_system
+        
+        # Get current team from action bar
+        current_team = 1  # Default to allies
+        if hasattr(self.game_engine, 'action_bar') and self.game_engine.action_bar is not None:
+            current_team = self.game_engine.action_bar.current_camp
+        
+        vision_system.reveal_all_map(current_team)
+        print(f"[DEV] Map revealed for team {current_team}")
+        self._show_feedback('success', t('debug.feedback.map_revealed', default='Map revealed'))
     
     def _find_sea_position(self):
         """Find a random sea position for spawning events."""

@@ -125,6 +125,7 @@ TRANSLATIONS = {
     "debug.modal.spawn_island_resources": "Créer ressources d'îles",
     "debug.modal.spawn_bandits": "Créer une vague de bandits",
     "debug.modal.clear_events": "Nettoyer les événements",
+    "debug.modal.reveal_map": "Révéler la carte",
     "debug.modal.close": "Fermer",
     
     # Tooltips pour le placement de tours
