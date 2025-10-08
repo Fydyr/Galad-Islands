@@ -119,11 +119,6 @@ KEY_BINDING_GROUPS: List[Tuple[str, List[Tuple[str, str]]]] = [
     ("options.binding_group.system", SYSTEM_BINDINGS),
 ]
 
-CONTROL_GROUP_ACTIONS: Tuple[Tuple[str, str], ...] = (
-    ("options.binding.selection_group_assign", controls.ACTION_SELECTION_GROUP_ASSIGN_PREFIX),
-    ("options.binding.selection_group_select", controls.ACTION_SELECTION_GROUP_SELECT_PREFIX),
-)
-
 MODIFIER_NAMES: Tuple[Tuple[int, str], ...] = (
     (pygame.KMOD_CTRL, "ctrl"),
     (pygame.KMOD_SHIFT, "shift"),
@@ -490,30 +485,6 @@ class OptionsWindow:
                 y_pos += UIConstants.LINE_HEIGHT
 
             y_pos += 15
-
-        group_title = self.font_normal.render(t("options.binding_group.control_groups"), True, Colors.GOLD)
-        surface.blit(group_title, (0, y_pos))
-        y_pos += UIConstants.LINE_HEIGHT
-
-        for label_key, prefix in CONTROL_GROUP_ACTIONS:
-            for slot in controls.CONTROL_GROUP_SLOTS:
-                action_name = controls.get_group_action_name(prefix, slot)
-                label = t(label_key, slot=slot)
-                row_rect = pygame.Rect(0, y_pos, self.modal_width - 60, UIConstants.LINE_HEIGHT)
-                row = KeyBindingRow(
-                    rect=row_rect,
-                    action=action_name,
-                    label=label,
-                    label_font=self.font_normal,
-                    binding_font=self.font_small,
-                    binding_text=self._get_binding_display_text(action_name),
-                    on_rebind=self._start_binding_capture,
-                    capturing=(self.capturing_action == action_name),
-                )
-                self.components.append(row)
-                y_pos += UIConstants.LINE_HEIGHT
-
-            y_pos += 10
 
         return y_pos
     
