@@ -3,14 +3,16 @@
 > 🚧 **Section en cours de rédaction**
 
 ## Création d'un environnement virtuel
+
 Un environnement virtuel permet d'exécuter un programme avec des dépendences, ainsi que leur versions précises, peut importe celles déjà installées sur le système.
 Cela permet d'empêcher tout problème d'incompatibilité.
 
-```cd emplacement/du/dossier```<br/>
+```cd emplacement/du/dossier```
 ```bash python -m venv myenv```
-<br/>*'myenv' est le nom du fichier contenant l'environnement virtuel.<br/>(venv) est maintenant afficher dans l'invité de commande*
+*'myenv' est le nom du fichier contenant l'environnement virtuel.(venv) est maintenant afficher dans l'invité de commande*
 
-Pour activer le venv, il existe plusieurs moyens en fonction de l'invité de commande utilisé.<br/>
+Pour activer le venv, il existe plusieurs moyens en fonction de l'invité de commande utilisé.
+
 - Windows (Command Prompt)
 ```myenv\Scripts\activate.bat```
 
@@ -24,9 +26,10 @@ Pour quitter l'environnement virtuel et revenir à l'invité de commande de base
 
 
 ## Fichier de dépendences
-Le fichier **requirements.txt** contient toutes les dépendances nécessaires au bon fonctionnement du jeu.<br/>
-Pour installer celle-ci, il faut simplement entrer cette commande dans l'invité de commande à l'emplacement de la racine du jeu:<br/>
-```cd emplacement/du/dossier```<br/>
+
+Le fichier **requirements.txt** contient toutes les dépendances nécessaires au bon fonctionnement du jeu.
+Pour installer celle-ci, il faut simplement entrer cette commande dans l'invité de commande à l'emplacement de la racine du jeu:
+```cd emplacement/du/dossier```
 ```pip install -r requirements.txt```
 
 ## Configuration du jeu
@@ -52,10 +55,12 @@ Le paramètre `dev_mode` contrôle l'activation des fonctionnalités de debug et
 > **📖 Documentation complète** : Voir [Mode Debug](debug-mode.md) pour tous les détails sur le mode développeur.
 
 **Activation** :
+
 - Modifier `"dev_mode": false` en `"dev_mode": true` dans `galad_config.json`
 - Relancer le jeu
 
 **Fonctionnalités activées** :
+
 - Bouton debug dans l'ActionBar
 - Modale de triche (gold, heal, spawn)
 - Logs de développement supplémentaires

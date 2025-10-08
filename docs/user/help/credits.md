@@ -13,44 +13,51 @@
 
 ### Graphismes et sprites
 
-**Sprites d'unités** <br/>
-- Zasper, Barhamus, Draupnir : Création originale <br/>
-- Druid, Architect : Design personnalisé <br/>
-- Animations de mouvement et combat <br/>
+**Sprites d'unités**
 
-**Éléments d'interface** <br/>
-- Icônes de l'interface utilisateur <br/>
-- Boutons et éléments interactifs <br/>
-- Barres de progression et indicateurs <br/>
+- Zasper, Barhamus, Draupnir : Création originale
+- Druid, Architect : Design personnalisé
+- Animations de mouvement et combat
 
-**Environnement** <br/>
-- Textures d'îles et terrain <br/>
-- Backgrounds et décors <br/>
-- Effets visuels et particules <br/>
+**Éléments d'interface**
+
+- Icônes de l'interface utilisateur
+- Boutons et éléments interactifs
+- Barres de progression et indicateurs
+
+**Environnement**
+
+- Textures d'îles et terrain
+- Backgrounds et décors
+- Effets visuels et particules
 
 ### Assets externes utilisés
 
-**Émojis et icônes** <br/>
-- FluentEmoji : Microsoft (licence MIT) <br/>
-- Twemoji : Twitter (licence CC-BY 4.0) <br/>
-- Streamline Icons : Iconsets partiels <br/>
+**Émojis et icônes**
 
-**Sources graphiques** <br/>
-- Certains éléments de base sous licence Creative Commons <br/>
-- Modifications et adaptations pour le jeu <br/>
-- Respect des licences d'attribution <br/>
+- FluentEmoji : Microsoft (licence MIT)
+- Twemoji : Twitter (licence CC-BY 4.0)
+- Streamline Icons : Iconsets partiels
+
+**Sources graphiques**
+
+- Certains éléments de base sous licence Creative Commons
+- Modifications et adaptations pour le jeu
+- Respect des licences d'attribution
 
 ## 🎵 Audio et musique
 
 ### Musiques originales
 
-**xDeviruchi - Compositeur** <br/>
-- "[And The Journey Begins](https://soundcloud.com/xdeviruchi/and-the-journey-begins)" : Thème d'exploration <br/>
-- "[Title Theme](https://soundcloud.com/xdeviruchi/title-theme-1)" : Musique du menu principal <br/>
-- Style : Orchestral/Epic fantasy <br/>
-- Licence : Libre d'utilisation avec attribution <br/>
+**xDeviruchi - Compositeur**
+
+- "[And The Journey Begins](https://soundcloud.com/xdeviruchi/and-the-journey-begins)" : Thème d'exploration
+- "[Title Theme](https://soundcloud.com/xdeviruchi/title-theme-1)" : Musique du menu principal
+- Style : Orchestral/Epic fantasy
+- Licence : Libre d'utilisation avec attribution
 
 **Crédits complets :**
+
 ```
 Music by xDeviruchi
 Available on: https://xdeviruchi.itch.io/
@@ -59,158 +66,179 @@ Used under Creative Commons license
 
 ### Effets sonores
 
-**Sons d'interface** <br/>
-- `select_sound.mp3` : Clic et sélection <br/>
-- `select_sound_2.mp3` : Confirmation d'action <br/>
-- Création : Synthèse audio personnalisée <br/>
+**Sons d'interface**
 
-**Ambiances de jeu** <br/>
-- Sons de combat et déplacements <br/>
-- Feedbacks audio des actions <br/>
-- Intégration harmonieuse avec la musique <br/>
+- `select_sound.mp3` : Clic et sélection
+- `select_sound_2.mp3` : Confirmation d'action
+- Création : Synthèse audio personnalisée
+
+**Ambiances de jeu**
+
+- Sons de combat et déplacements
+- Feedbacks audio des actions
+- Intégration harmonieuse avec la musique
 
 ## 🛠️ Technologies et outils
 
 ### Langages et frameworks
 
-**Python 3.13** <br/>
-- Langage principal du projet <br/>
-- Bibliothèques standard utilisées <br/>
-- Performance et compatibilité optimisées <br/>
+**Python 3.13**
 
-**Pygame 2.6.1** <br/>
-- Moteur graphique et audio <br/>
-- Gestion des événements <br/>
-- Rendu 2D et gestion des sprites <br/>
+- Langage principal du projet
+- Bibliothèques standard utilisées
+- Performance et compatibilité optimisées
+
+**Pygame 2.6.1**
+
+- Moteur graphique et audio
+- Gestion des événements
+- Rendu 2D et gestion des sprites
 
 ### Outils de développement
 
-**Environnement de développement** <br/>
-- VS Code : Éditeur principal <br/>
-- Git : Gestion de versions <br/>
-- GitHub : Hébergement du code source <br/>
+**Environnement de développement**
 
-**Outils graphiques** <br/>
-- Manipulation d'images et sprites <br/>
-- Optimisation des ressources <br/>
-- Création des assets personnalisés <br/>
+- VS Code : Éditeur principal
+- Git : Gestion de versions
+- GitHub : Hébergement du code source
 
-**Debugging et testing** <br/>
-- Outils de profilage Python <br/>
-- Tests d'intégration et performance <br/>
-- Validation cross-platform <br/>
+**Outils graphiques**
+
+- Manipulation d'images et sprites
+- Optimisation des ressources
+- Création des assets personnalisés
+
+**Debugging et testing**
+
+- Outils de profilage Python
+- Tests d'intégration et performance
+- Validation cross-platform
 
 ## 🌟 Contributions communautaires
 
 ### Traductions et localisation
 
-**Langues supportées** <br/>
-- **Français** : Langue principale, traduction complète <br/>
-- **Anglais** : Traduction partielle en cours <br/>
-- Interface et documentation bilingues <br/>
+**Langues supportées**
 
-**Contributeurs linguistiques** <br/>
-- Révision des textes français <br/>
-- Traduction vers l'anglais <br/>
+- **Français** : Langue principale, traduction complète
+- **Anglais** : Traduction partielle en cours
+- Interface et documentation bilingues
+
+**Contributeurs linguistiques**
+
+- Traduction fait par Copilot
+- Relecture des textes anglais par l'équipe
 
 ## 📚 Documentation
 
 ### Rédaction technique
 
-**Documentation utilisateur** <br/>
-- Guide d'installation et configuration <br/>
-- Manuel de gameplay complet <br/>
-- FAQ et résolution de problèmes <br/>
+**Documentation utilisateur**
 
-**Documentation développeur** <br/>
-- Architecture du code <br/>
-- API interne et modules <br/>
-- Guides de contribution <br/>
+- Guide d'installation et configuration
+- Manuel de gameplay complet
+- FAQ et résolution de problèmes
+
+**Documentation développeur**
+
+- Architecture du code
+- API interne et modules
+- Guides de contribution
 
 ### Outils de documentation
 
-**MkDocs + Material Theme** <br/>
-- Génération de documentation statique <br/>
-- Navigation intuitive et responsive <br/>
-- Recherche intégrée et indexation <br/>
+**MkDocs + Material Theme**
+
+- Génération de documentation statique
+- Navigation intuitive et responsive
+- Recherche intégrée et indexation
 
 ## 🙏 Remerciements spéciaux
 
 ### Communauté open source
 
-**Pygame Community** <br/>
-- Ressources d'apprentissage <br/>
-- Exemples de code et tutoriels <br/>
-- Support technique et forums <br/>
+**Pygame Community**
 
-**Python Software Foundation** <br/>
-- Langage Python et écosystème <br/>
-- Documentation de référence <br/>
-- Outils de développement <br/>
+- Ressources d'apprentissage
+- Exemples de code et tutoriels
+- Support technique et forums
+
+**Python Software Foundation**
+
+- Langage Python et écosystème
+- Documentation de référence
+- Outils de développement
 
 ### Influences et inspirations
 
-**Jeux de stratégie classiques** <br/>
-- Age of Empires : Mécaniques RTS <br/>
-- Warcraft : Interface utilisateur <br/>
-- Command & Conquer : Rythme de jeu <br/>
+**Jeux de stratégie classiques**
 
-**Game design moderne** <br/>
-- Accessibilité et apprentissage progressif <br/>
-- Interface claire et intuitive <br/>
-- Équilibrage minutieux des mécaniques <br/>
+- Age of Empires : Mécaniques RTS
+- Warcraft : Interface utilisateur
+- Command & Conquer : Rythme de jeu
+
+**Game design moderne**
+
+- Accessibilité et apprentissage progressif
+- Interface claire et intuitive
+- Équilibrage minutieux des mécaniques
 
 ## 📄 Licences et droits
 
 ### Code source
 
-**Licence du projet** <br/>
-- Code disponible sous licence MIT <br/>
-- Libre utilisation, modification, distribution <br/>
-- Attribution requise lors de redistribution <br/>
+**Licence du projet**
+
+- Code disponible sous licence MIT
+- Libre utilisation, modification, distribution
+- Attribution requise lors de redistribution
 
 ### Assets et contenus
 
-**Ressources graphiques** <br/>
-- Créations originales : Tous droits réservés <br/>
-- Assets externes : Respect des licences d'origine <br/>
-- Attribution complète dans les fichiers sources <br/>
+**Ressources graphiques**
 
-**Contenu musical** <br/>
-- Musiques xDeviruchi : Creative Commons <br/>
-- Effets sonores : Création originale <br/>
-- Usage libre avec attribution appropriée <br/>
+- Créations originales : Tous droits réservés
+- Assets externes : Respect des licences d'origine
+- Attribution complète dans les fichiers sources
+
+**Contenu musical**
+
+- Musiques xDeviruchi : Creative Commons
+- Effets sonores : Création originale
+- Usage libre avec attribution appropriée
 
 ## 📞 Contact et support
 
-### Développeur principal
+**Communication**
 
-**Communication** <br/>
-- GitHub Issues : Rapports de bugs et suggestions <br/>
-- Discussions communautaires <br/>
-- Contributions et pull requests bienvenus <br/>
+- GitHub Issues : Rapports de bugs et suggestions
+- Discussions communautaires
+- Contributions et pull requests bienvenus
 
 ### Communauté
 
-**Canaux officiels** <br/>
-- Repository GitHub : Code source et releases <br/>
-- Documentation en ligne : Guides et tutoriels <br/>
-- Wiki communautaire : Stratégies et astuces <br/>
+**Canaux officiels**
+
+- Repository GitHub : Code source et releases
+- Documentation en ligne : Guides et tutoriels
+- Wiki communautaire : Stratégies et astuces
 
 ### Contributions futures
 
-**Comment contribuer** <br/>
-1. Fork du repository GitHub <br/>
-2. Création d'une branche pour vos modifications <br/>
-3. Tests et validation des changements <br/>
-4. Pull request avec description détaillée <br/>
+**Comment contribuer**
 
-**Types de contributions recherchées** <br/>
-- Corrections de bugs et optimisations <br/>
-- Nouvelles fonctionnalités de jeu <br/>
-- Améliorations d'interface <br/>
-- Traductions et documentation <br/>
-- Tests et feedback de qualité <br/>
+1. Fork du repository GitHub
+2. Création d'une branche pour vos modifications
+3. Tests et validation des changements
+4. Pull request avec description détaillée
+
+**Types de contributions recherchées**
+
+- Corrections de bugs et optimisations
+- Nouvelles fonctionnalités de jeu
+- Améliorations d'interface
+- Traductions et documentation
+- Tests et feedback de qualité
 
 Plus d'information [ici](/Galad-Islands/dev/contributing/)
 
