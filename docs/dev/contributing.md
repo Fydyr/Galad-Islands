@@ -73,33 +73,35 @@ Le projet utilise la spécification [Conventional Commits 1.0.0](https://www.con
 
 ### Exemples
 
-=== "Commit simple"
+=== "Nouvelle unité"
 
     ```bash
-    feat(auth): add OAuth2 authentication support
+    feat(units): add Leviathan unit with siege capabilities
+    
+    Add the Leviathan unit with high health and powerful attacks.
+    Includes new sprite assets and unit factory integration.
+    
+    Closes: #156
     ```
 
-=== "Avec scope et body"
+=== "Correction de bug de combat"
 
     ```bash
-    fix(api): handle null response in user endpoint
-
-    The user endpoint was throwing an error when the database
-    returned null. Added proper null checking and error handling.
-
-    Closes: #142
+    fix(combat): prevent units from attacking through obstacles
+    
+    Fixed pathfinding issue where units could attack targets
+    through solid terrain. Added line-of-sight validation.
+    
+    Refs: #203
     ```
 
-=== "Breaking change"
+=== "Refactorisation de la boutique"
 
     ```bash
-    refactor(api)!: change authentication token format
-
-    BREAKING CHANGE: The authentication token format has changed
-    from JWT to custom format. Clients must update their token
-    parsing logic.
-
-    Refs: #234
+    refactor(shop): extract unit pricing logic to gameplay constants
+    
+    Moved hardcoded unit costs to centralized constants in gameplay.py.
+    Improves maintainability and prevents pricing inconsistencies.
     ```
 
 ---
@@ -186,10 +188,10 @@ git rebase --continue
 ```bash
 # Push vers le fork
 git push origin <branch-name>
-
-# En cas de rebase, force push
-git push --force-with-lease origin <branch-name>
 ```
+
+!!! note En cas de rebase
+    Vérifier si vos modifications ne risquent pas d'écraser des changements des autres contributeurs.
 
 !!! note Création de la Pull Request
     1. Ouvrir l'interface GitHub
@@ -199,6 +201,7 @@ git push --force-with-lease origin <branch-name>
         - **Description** : Contexte et détails techniques
         - **Type de changement** : Feature, Bug fix, etc.
         - **Issues liées** : Références (#123)
+
 
 ---
 
