@@ -47,18 +47,8 @@ Cette page décrit les bonnes pratiques et procédures pour assurer la pérennit
 
 ---
 
-## 📈 Surveillance et optimisation
-
-- Surveillez les performances avec des outils comme `cProfile`, `Py-Spy`, etc.
-- Identifiez et optimisez les goulets d’étranglement.
-- Mettez en place des tests de performance pour détecter les régressions.
-- Refactorisez régulièrement pour améliorer la lisibilité et la maintenabilité.
-
----
-
 ## ✅ Bonnes pratiques de maintenance
 
-- **Documentez** chaque modification dans le fichier `CHANGELOG.md`.
 - **Communiquez** avec l’équipe pour coordonner la maintenance et éviter les conflits.
 - **Automatisez** les tâches répétitives avec des scripts ou outils adaptés.
 - **Intégration continue** : utilisez des outils de CI pour automatiser tests et déploiements.
