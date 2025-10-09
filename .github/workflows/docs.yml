@@ -2,12 +2,12 @@ name: Deploy Documentation
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, unstable ]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
   pull_request:
-    branches: [ main ]
+    branches: [ main, unstable ]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
