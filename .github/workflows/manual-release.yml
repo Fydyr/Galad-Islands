@@ -43,7 +43,8 @@ jobs:
           if [ "$RUNNER_OS" = "Windows" ]; then SEP=';'; else SEP=':'; fi
           # Build main game
           pyinstaller --onefile main.py --name galad-islands \
-            --add-data "assets${SEP}assets"
+            --add-data "assets${SEP}assets" \
+            --add-data "pyproject.toml${SEP}."
           # Build config tool
           pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
             --add-data "assets/locales${SEP}assets/locales" \
