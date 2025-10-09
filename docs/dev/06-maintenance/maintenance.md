@@ -8,7 +8,7 @@ Cette page décrit les bonnes pratiques et procédures pour assurer la pérennit
 
 - **Mises à jour fréquentes** : chaque nouvelle fonctionnalité ou correction de bug doit donner lieu à un commit. Privilégiez de petits commits fréquents pour faciliter le suivi et la restauration.
 - **Branches dédiées** : pour toute fonctionnalité majeure, créez une branche dédiée avant de fusionner dans la branche principale.
-- **Commits clairs** : les messages de commit doivent être explicites et suivre la [convention de commit](contributing.md#conventions-de-commit).
+- **Commits clairs** : les messages de commit doivent être explicites et suivre la [convention de commit](../07-annexes/contributing.md#conventions-de-commit).
 
 ---
 
