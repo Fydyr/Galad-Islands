@@ -251,6 +251,92 @@ Scout  Scout  Scout
 - Chaque défaite apporte des leçons
 - La patience est souvent récompensée
 
+## 🌫️ Brouillard de guerre et vision (Version Bêta)
+
+**⚠️ Cette fonctionnalité est actuellement en développement et disponible uniquement dans la version bêta du jeu.**
+
+### Principes du brouillard de guerre
+
+Le brouillard de guerre transforme chaque partie en une danse stratégique entre ombre et lumière :
+
+#### États des zones
+
+- **Brouillard épais** : Territoires inexplorés, potentiellement riches en ressources cachées
+- **Brume grise** : Zones déjà découvertes mais actuellement hors de vue
+- **Vision claire** : Territoires sous contrôle actif de votre équipe
+
+### Stratégies de vision
+
+#### Exploration agressive
+
+**Objectif** : Découvrir rapidement la carte
+
+- Utilisez les **Scouts** pour étendre votre champ de vision
+- Créez des "patrouilles d'exploration" dédiées
+- Priorisez les îles stratégiques pour les ressources
+
+#### Vision défensive
+
+**Objectif** : Protéger vos positions
+
+- Placez des unités sentinelles autour de vos bases
+- Utilisez la vision des tours pour couvrir les approches
+- Créez des "zones de surveillance" autour des points vitaux
+
+#### Guerre psychologique
+
+**Objectif** : Manipuler la perception ennemie
+
+- Cachez vos mouvements derrière la vision réduite de votre adversaire
+- Créez des diversions dans des zones visibles
+- Utilisez l'effet de surprise pour vos attaques
+
+### Avantages tactiques du brouillard
+
+#### Embuscades et surprises
+
+- Positionnez des unités dans des zones non visibles
+- Attaquez des convois de ressources ennemis
+- Tendez des pièges aux explorateurs adverses
+
+#### Gestion des ressources
+
+- Protégez vos collecteurs d'or des raids surprises
+- Interceptez les coffres volants avant l'ennemi
+- Cachez vos constructions défensives
+
+#### Pression psychologique
+
+- Forcez l'adversaire à maintenir des unités d'éclairage
+- Créez l'illusion d'une présence plus importante
+- Semez le doute sur vos véritables intentions
+
+### Conseils pour maîtriser le brouillard
+
+#### Exploration méthodique
+
+1. **Commencez local** : Sécurisez votre zone de départ
+2. **Étendez progressivement** : Avancez île par île
+3. **Priorisez les ressources** : Cherchez l'or visible en premier
+4. **Maintenez la pression** : Ne laissez pas l'ennemi explorer impunément
+
+#### Utilisation optimale des unités
+
+- **Scouts** : Unités d'élite pour l'exploration et les embuscades
+- **Maraudeurs** : Défenseurs mobiles pour protéger les flancs
+- **Leviathans** : Puissance de feu pour sécuriser les positions
+- **Druids** : Support pour maintenir la vision sur les points clés
+- **Architects** : Construction de tours pour étendre la vision passive
+
+#### Gestion des risques
+
+- Toujours maintenir une "réserve visuelle" d'unités
+- Évitez de vous étirer trop sur la carte
+- Utilisez les capacités spéciales pour gagner des avantages temporaires
+- Restez vigilant face aux mouvements invisibles de l'ennemi
+
+**Note :** Le système de vision est en évolution constante. Vos retours sur la version bêta sont précieux pour affiner cette mécanique stratégique !
+
 ---
 
 *Maîtrisez ces mécaniques territoriales et vous deviendrez un stratège accompli dans les Galad Islands !*
