@@ -240,7 +240,7 @@ Used under Creative Commons license
 - Traductions et documentation
 - Tests et feedback de qualité
 
-Plus d'information [ici](/Galad-Islands/dev/contributing/)
+Plus d'information [ici](../../dev/07-annexes/contributing.md).
 
 ---
 

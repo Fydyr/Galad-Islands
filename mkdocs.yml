@@ -50,7 +50,7 @@ nav:
   - 🛠️ Documentation Technique:
     - 1. Introduction:
       - Vue d'ensemble: dev/01-introduction/overview.md
-      - Documentation complète: dev/01-introduction/documentation-technique.md
+      - Documentation complète: dev/01-introduction/documentation.md
     - 2. Description du système:
       - Architecture ECS: dev/02-systeme/architecture.md
       - Système de tours: dev/02-systeme/tower-system-implementation.md
