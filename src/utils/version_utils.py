@@ -79,8 +79,7 @@ def is_dev_mode_enabled() -> bool:
         True if dev mode is enabled, False otherwise.
     """
     try:
-        from src.settings.settings import ConfigManager
-        cfg = ConfigManager()
-        return cfg.get('dev_mode', False)
+        from src.settings.settings import config_manager
+        return config_manager.get('dev_mode', False)
     except Exception:
         return False

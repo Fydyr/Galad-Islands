@@ -28,7 +28,7 @@ from src.constants.gameplay import (
     UNIT_COST_SCOUT, UNIT_COST_MARAUDEUR, UNIT_COST_LEVIATHAN,
     UNIT_COST_DRUID, UNIT_COST_ARCHITECT, UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER
 )
-from src.settings.settings import ConfigManager, TILE_SIZE
+from src.settings.settings import ConfigManager, TILE_SIZE, config_manager
 from src.components.core.positionComponent import PositionComponent
 from src.components.globals.mapComponent import is_tile_island
 from src.factory.buildingFactory import create_defense_tower
@@ -282,7 +282,7 @@ class ActionBar:
         ]
         
         # Vérifier si le mode debug ou dev_mode est activé pour afficher le bouton
-        if ConfigManager().get('dev_mode', True):
+        if config_manager.get('dev_mode', True):
             global_buttons.append(
                 ActionButton(
                     action_type=ActionType.DEV_GIVE_GOLD,
@@ -448,8 +448,7 @@ class ActionBar:
         # Boutons globaux (à droite, plus espacés du bord)
         global_buttons = [btn for btn in self.action_buttons if btn.is_global]
         # Gérer la visibilité spéciale pour le bouton dev : n'afficher que si mode debug ou dev_mode config
-        cfg = ConfigManager()
-        dev_mode = cfg.get('dev_mode', False)
+        dev_mode = config_manager.get('dev_mode', False)
 
         for btn in global_buttons:
             if btn.action_type == ActionType.DEV_GIVE_GOLD:
