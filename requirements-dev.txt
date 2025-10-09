@@ -3,3 +3,4 @@ tkhtmlview==0.3.1
 commitizen==4.9.1
 mkdocs==1.5.2
 mkdocs-material==9.1.15
+scikit-learn==1.7.2
