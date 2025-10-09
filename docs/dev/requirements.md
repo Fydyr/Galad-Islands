@@ -68,6 +68,7 @@ sphinx>=4.1.0
 
 
 # Vérifier que tout fonctionne
+```
 python -c "import pygame, esper; print('✅ Setup OK')"
 ```
 
