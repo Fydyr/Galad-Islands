@@ -82,7 +82,6 @@ Votre mission dans **Galad Islands** est de **détruire la base ennemie** pour r
 
 **Concentration de tir** :
 
-- Regroupez vos unités (`Ctrl+Maj+numéro`)
 - Ciblez les menaces prioritaires
 - Éliminez dans l'ordre : Druid → Leviathan → Architect
 
@@ -126,7 +125,7 @@ Scout  Scout  Scout
 #### Dépôts d'or sur les îles
 
 - Ressources fixes à découvrir
-- Quantité variable selon l'île
+- Quantité variable (200-500 pièces)
 - Stratégie : Explorez méthodiquement
 
 #### Récompenses de combat
@@ -139,9 +138,9 @@ Scout  Scout  Scout
 
 #### Seuils critiques
 
-- **200 or** : Unité de base (Zasper)
-- **400 or** : Barhamus ou tour de défense
-- **600 or** : Draupnir ou capacités spéciales
+- **200 or** : Unité de base (Scout)
+- **400 or** : Marandeur ou tour de défense
+- **600 or** : Leviathan ou capacités spéciales
 - **800+ or** : Armée complète
 
 #### Gestion des risques
@@ -165,16 +164,19 @@ Scout  Scout  Scout
 ### Système de construction
 
 **Tours de défense** (150 or) :
+
 - **PV** : 300 | **Dégâts** : 25 | **Portée** : 350
 - Attaque automatiquement les ennemis à proximité
 - Rechargement : 1 seconde entre les tirs
 
 **Tours de soin** (120 or) :
+
 - **PV** : 200 | **Soin** : 10 PV | **Portée** : 350
 - Régénère automatiquement les alliés proches
 - Rechargement : 1 seconde entre les soins
 
 **Construction** :
+
 1. Sélectionner un Architecte
 2. Cliquer sur "Tour de Défense" ou "Tour de Soin" dans la barre d'action
 3. Cliquer sur une île vide pour placer la tour
@@ -226,7 +228,7 @@ Scout  Scout  Scout
 
 **Signes d'une stratégie agressive** :
 
-- Production massive de Zasper (reconnaissance offensive)
+- Production massive de Scout (reconnaissance offensive)
 - Peu de constructions défensives
 - Attaques précoces et répétées
 
