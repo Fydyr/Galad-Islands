@@ -186,6 +186,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             }),
         ),
     ),
+    
+    # c'est quoi cette partie ? ça sert encore ?
     UnitType.HEAL_TOWER: UnitMetadata(
         order=102,
         ally=FactionUnitConfig(
