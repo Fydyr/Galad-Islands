@@ -48,16 +48,17 @@ Ces taux contrôlent la densité d'entités et impactent les performances (colli
 
 Le moteur supporte nativement ces résolutions sans recalcul coûteux:
 
-| Résolution | Dimensions | Tile size calculée | Ratio |
-|------------|------------|-------------------|-------|
-| 800×600 | 800 × 600 | 40 px | 4:3 |
-| 1024×768 | 1024 × 768 | 62 px | 4:3 |
-| 1280×720 | 1280 × 720 | 62 px | 16:9 |
-| 1366×768 | 1366 × 768 | 62 px | ~16:9 |
-| **1920×1080** | 1920 × 1080 | 64 px (max) | 16:9 |
-| 2560×1440 | 2560 × 1440 | 64 px (max) | 16:9 |
+| Résolution | Tile size calculée | Ratio |
+|------------|-------------------|-------|
+| 800×600 | 40 px | 4:3 |
+| 1024×768 | 62 px | 4:3 |
+| 1280×720 | 62 px | 16:9 |
+| 1366×768 | 62 px | ~16:9 |
+| 1920×1080 | 64 px (max) | 16:9 |
+| 2560×1440 | 64 px (max) | 16:9 |
 
-Les résolutions ≥1920×1080 atteignent la limite max de 64px par tuile, optimisant ainsi l'usage GPU.
+Les résolutions ≥1920×1080 atteignent la limite max de 64px par tuile, optimisant ainsi l'usage GPU. <br/>
+Il est également possible de modifier les résolutions dans les paramètres pour avoir des résolutions personnalisé.
 
 ---
 
