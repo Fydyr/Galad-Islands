@@ -23,6 +23,8 @@ from src.constants.gameplay import (
     UNIT_REVERSE_SPEED_SCOUT, UNIT_REVERSE_SPEED_MARAUDEUR, UNIT_REVERSE_SPEED_LEVIATHAN, UNIT_REVERSE_SPEED_DRUID, UNIT_REVERSE_SPEED_ARCHITECT,
     UNIT_ATTACK_SCOUT, UNIT_ATTACK_MARAUDEUR, UNIT_ATTACK_LEVIATHAN, UNIT_ATTACK_DRUID, UNIT_ATTACK_ARCHITECT,
     UNIT_COOLDOWN_SCOUT, UNIT_COOLDOWN_MARAUDEUR, UNIT_COOLDOWN_LEVIATHAN, UNIT_COOLDOWN_DRUID, UNIT_COOLDOWN_ARCHITECT,
+    # Portées de vision
+    UNIT_VISION_SCOUT, UNIT_VISION_MARAUDEUR, UNIT_VISION_LEVIATHAN, UNIT_VISION_DRUID, UNIT_VISION_ARCHITECT,
     # Capacités spéciales
     SPECIAL_ABILITY_COOLDOWN, DRUID_IMMOBILIZATION_DURATION, DRUID_PROJECTILE_SPEED,
     ARCHITECT_RADIUS, ARCHITECT_RELOAD_FACTOR, ARCHITECT_DURATION,
@@ -42,6 +44,7 @@ from src.components.core.classeComponent import ClasseComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
+from src.components.core.visionComponent import VisionComponent
 from src.settings.localization import t
 
 
@@ -53,12 +56,13 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             entity = es.create_entity()
             es.add_component(entity, PositionComponent(pos.x, pos.y, ALLY_DEFAULT_DIRECTION if not enemy else ENEMY_DEFAULT_DIRECTION))
             es.add_component(entity, VelocityComponent(0, UNIT_SPEED_SCOUT, UNIT_REVERSE_SPEED_SCOUT))
-            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_SCOUT))
+            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_SCOUT, bullets_front=1))
             es.add_component(entity, TeamComponent(1 if not enemy else 2))
             es.add_component(entity, AttackComponent(UNIT_ATTACK_SCOUT))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_SCOUT, UNIT_HEALTH_SCOUT))
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpeScout())
+            es.add_component(entity, VisionComponent(UNIT_VISION_SCOUT))
             sprite_id = SpriteID.ALLY_SCOUT if not enemy else SpriteID.ENEMY_SCOUT
             size = sprite_manager.get_default_size(sprite_id)
             if size:
@@ -73,12 +77,13 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             entity = es.create_entity()
             es.add_component(entity, PositionComponent(pos.x, pos.y, ALLY_DEFAULT_DIRECTION if not enemy else ENEMY_DEFAULT_DIRECTION))
             es.add_component(entity, VelocityComponent(0, UNIT_SPEED_MARAUDEUR, UNIT_REVERSE_SPEED_MARAUDEUR))
-            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_MARAUDEUR))
+            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_MARAUDEUR, can_shoot_from_side=True, bullets_sides=2, bullets_front=1))
             es.add_component(entity, TeamComponent(1 if not enemy else 2))
             es.add_component(entity, AttackComponent(UNIT_ATTACK_MARAUDEUR))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_MARAUDEUR, UNIT_HEALTH_MARAUDEUR))
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpeMaraudeur())
+            es.add_component(entity, VisionComponent(UNIT_VISION_MARAUDEUR))
             sprite_id = SpriteID.ALLY_MARAUDEUR if not enemy else SpriteID.ENEMY_MARAUDEUR
             size = sprite_manager.get_default_size(sprite_id)
             if size:
@@ -91,12 +96,13 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             entity = es.create_entity()
             es.add_component(entity, PositionComponent(pos.x, pos.y, ALLY_DEFAULT_DIRECTION if not enemy else ENEMY_DEFAULT_DIRECTION))
             es.add_component(entity, VelocityComponent(0, UNIT_SPEED_LEVIATHAN, UNIT_REVERSE_SPEED_LEVIATHAN))
-            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_LEVIATHAN))
+            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_LEVIATHAN, can_shoot_from_side=True, bullets_sides=3, bullets_front=2))
             es.add_component(entity, TeamComponent(1 if not enemy else 2))
             es.add_component(entity, AttackComponent(UNIT_ATTACK_LEVIATHAN))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_LEVIATHAN, UNIT_HEALTH_LEVIATHAN))
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpeLeviathan())
+            es.add_component(entity, VisionComponent(UNIT_VISION_LEVIATHAN))
             sprite_id = SpriteID.ALLY_LEVIATHAN if not enemy else SpriteID.ENEMY_LEVIATHAN
             size = sprite_manager.get_default_size(sprite_id)
             if size:
@@ -127,6 +133,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
                 cooldown=0.0,
                 cooldown_duration=SPECIAL_ABILITY_COOLDOWN,
             ))
+            es.add_component(entity, VisionComponent(UNIT_VISION_DRUID))
 
         case UnitType.ARCHITECT:
             entity = es.create_entity()
@@ -154,6 +161,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
                 duration=ARCHITECT_DURATION,
                 timer=0.0
             ))
+            es.add_component(entity, VisionComponent(UNIT_VISION_ARCHITECT))
 
         case UnitType.ATTACK_TOWER:
             pass

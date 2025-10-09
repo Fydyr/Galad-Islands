@@ -2,12 +2,12 @@ name: Deploy Documentation
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, unstable ]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
   pull_request:
-    branches: [ main ]
+    branches: [ main, unstable ]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
@@ -18,7 +18,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/unstable'
     
     steps:
     - uses: actions/checkout@v4

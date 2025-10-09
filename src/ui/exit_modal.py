@@ -15,8 +15,16 @@ class ExitConfirmationModal:
         self.modal = GenericModal(
             title_key="game.exit_modal.title",
             message_key="game.exit_modal.message",
-            buttons=buttons
+            buttons=buttons,
+            callback=self._on_action
         )
+
+    def _on_action(self, action_id: str) -> None:
+        """Callback appelé quand un bouton est cliqué."""
+        if action_id == "quit":
+            # Poster l'événement de quit confirmé
+            ev = pygame.event.Event(pygame.USEREVENT, {"subtype": "confirmed_quit"})
+            pygame.event.post(ev)
 
     def is_active(self) -> bool:
         """Indique si la modale est visible."""

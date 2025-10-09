@@ -173,7 +173,7 @@ class SpriteManager:
             SpriteData(SpriteID.TERRAIN_ALLY_ISLAND, "assets/sprites/terrain/ally_island.png", 256, 256, "Île alliée"),
             SpriteData(SpriteID.TERRAIN_ENEMY_ISLAND, "assets/sprites/terrain/enemy_island.png", 256, 256, "Île ennemie"),
             SpriteData(SpriteID.TERRAIN_MINE, "assets/sprites/terrain/mine.png", 64, 64, "Mine"),
-            SpriteData(SpriteID.TERRAIN_CLOUD, "assets/sprites/terrain/cloud.png", 64, 64, "Nuage"),
+            SpriteData(SpriteID.TERRAIN_CLOUD,"assets/sprites/terrain/cloud.png", 64, 64, "Nuage"),
         ]
         
         # Register all sprites

@@ -13,30 +13,55 @@ Galad Islands est un jeu de stratégie en temps réel qui vous plonge dans une g
 Cette documentation est organisée en deux sections principales :
 
 ### 📖 Documentation Utilisateur
+
 *Pour les joueurs qui veulent maîtriser le jeu*
 
-- **[Guide de démarrage](user/getting-started.md)** - Installation et premiers pas
-- **[Installation](user/installation.md)** - Guide d'installation détaillé
-- **[Contrôles](user/controls.md)** - Mécaniques de jeu et contrôles
-- **[Unités](user/units.md)** - Guide des unités et leurs capacités
-- **[Bâtiments](user/buildings.md)** - Constructions et défenses
-- **[Boutique](user/shop.md)** - Système d'achat et économie
-- **[Barre d'action](user/action-bar.md)** - Interface et raccourcis
-- **[FAQ](user/faq.md)** - Questions fréquentes et dépannage
+#### 🏁 Bases
 
-### 🛠️ Documentation Technique  
-*Pour les développeurs et contributeurs*
+- **[Introduction](user/basics/introduction.md)** - Présentation du jeu
+- **[Guide de démarrage](user/basics/getting-started.md)** - Installation et premiers pas
+- **[Installation](user/basics/installation.md)** - Guide d'installation détaillé
 
-#### Développement
-- **[Vue d'ensemble](dev/overview.md)** - Architecture générale du projet
-- **[API](dev/api/game-engine.md)** - Documentation des interfaces de programmation
-- **[Modules](dev/modules/processors.md)** - Structure interne du code
-- **[Contribution](dev/contributing.md)** - Guide pour contribuer au projet
+#### 🎮 Gameplay
+
+- **[Contrôles](user/gameplay/controls.md)** - Mécaniques de jeu et contrôles
+- **[Gameplay](user/gameplay/gameplay.md)** - Principes de jeu généraux
+- **[Barre d'action](user/gameplay/action-bar.md)** - Interface et raccourcis
+
+#### ⚔️ Unités
+
+- **[Unités](user/units/units.md)** - Guide des unités et leurs capacités
+
+#### 🏗️ Économie
+
+- **[Bâtiments](user/economy/buildings.md)** - Constructions et défenses
+- **[Boutique](user/economy/shop.md)** - Système d'achat et économie
+
+#### 🛠️ Outils
+
+- **[Outil de configuration Galad](user/tools/galad-config-tool.md)** - Configuration du jeu
+
+#### ❓ Aide
+
+- **[FAQ](user/help/faq.md)** - Questions fréquentes et dépannage
+- **[Crédits](user/help/credits.md)** - Équipe et remerciements
+
+### 🛠️ Documentation Technique
+
+#### Pour les développeurs et contributeurs
+
+##### Développement
+
+- **[Vue d'ensemble](dev/01-introduction/overview.md)** - Architecture générale du projet
+- **[API](dev/02-systeme/api/game-engine.md)** - Documentation des interfaces de programmation
+- **[Modules](dev/02-systeme/modules/processors.md)** - Structure interne du code
+- **[Contribution](dev/07-annexes/contributing.md)** - Guide pour contribuer au projet
 
 #### Système et déploiement
-- **[Paramètres système critiques](dev/systeme.md)** - Configuration et optimisation des performances
-- **[Exigences matérielles](dev/requirements.md)** - Hardware/software requis et dépendances
-- **[Opérations système](dev/operations.md)** - Monitoring, sauvegarde, sécurité et maintenance
+
+- **[Paramètres système critiques](dev/05-exploitation/systeme.md)** - Configuration et optimisation des performances
+- **[Exigences matérielles](dev/03-installation/requirements.md)** - Hardware/software requis et dépendances
+- **[Opérations système](dev/05-exploitation/operations.md)** - Monitoring, sauvegarde, sécurité et maintenance
 
 ## ✨ Caractéristiques principales
 
@@ -78,7 +103,7 @@ Cette documentation est organisée en deux sections principales :
 
 ## 🚀 Démarrage rapide
 
-1. **Lancez le jeu** en exécutant `main.py`
+1. **Lancez le jeu** en exécutant `galad-islands.exe` ou `galad-islands`
 2. **Apprenez les contrôles** avec les flèches directionnelles
 3. **Sélectionnez vos unités** avec les touches numériques
 4. **Explorez la carte** et collectez de l'or
@@ -90,15 +115,14 @@ Cette documentation est organisée en deux sections principales :
 
 ## 📚 Navigation de ce guide
 
-- **[Guide de démarrage](getting-started.md)** : Premiers pas
-- **[Installation et Configuration](installation.md)** : Comment installer et configurer le jeu
-- **[Contrôles](controls.md)** : Toutes les commandes du jeu
-- **[Unités](units.md)** : Guide détaillé de chaque type d'unité
-- **[Stratégie](strategy.md)** : Conseils tactiques avancés
+- **[Guide de démarrage](user/basics/getting-started.md)** : Premiers pas
+- **[Installation et Configuration](user/basics/installation.md)** : Comment installer et configurer le jeu
+- **[Contrôles](user/gameplay/controls.md)** : Toutes les commandes du jeu
+- **[Unités](user/units/units.md)** : Guide détaillé de chaque type d'unité
 
 ## 🎵 Ambiance
 
-Galad Islands vous plonge dans un univers steampunk avec :
+Galad Islands vous plonge dans un univers fantastique avec :
 
 - Musique épique et immersive
 - Graphismes détaillés en pixel art

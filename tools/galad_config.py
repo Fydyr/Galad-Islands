@@ -6,7 +6,7 @@ marks custom entries, allows adding/removing custom resolutions, audio sliders,
 language selection and applying/reseting settings to `galad_config.json`.
 
 Run:
-    python tools/custom_resolution_manager.py
+    python tools/galad_config.py
 """
 from pathlib import Path
 import json
@@ -25,7 +25,8 @@ from src.settings.settings import config_manager, get_available_resolutions, app
 from src.settings.localization import get_available_languages, get_current_language, set_language, t
 from src.settings.resolutions import load_custom_resolutions
 from src.settings import controls
-from src.functions.optionsWindow import KEY_BINDING_GROUPS, CONTROL_GROUP_ACTIONS
+from src.functions.optionsWindow import KEY_BINDING_GROUPS
+import pygame # justte pour que ça se lance
 
 
 def load_config():
@@ -33,20 +34,26 @@ def load_config():
         if CONFIG_PATH.exists():
             return json.loads(CONFIG_PATH.read_text())
         else:
-            # Afficher un message d'avertissement dans une popup Tkinter
+            # Afficher un message d'avertissement bilingue (FR + EN) dans une popup Tkinter
             try:
-                messagebox.showwarning(
-                    "Fichier de configuration manquant",
-                    f"Le fichier de configuration n'a pas été trouvé :\n{CONFIG_PATH}\n\nUn nouveau fichier sera créé automatiquement lors de la première sauvegarde."
+                fr = (
+                    f"Fichier de configuration manquant:\n{CONFIG_PATH}\n\n"
+                    "Un nouveau fichier sera créé automatiquement lors de la première sauvegarde."
                 )
+                en = (
+                    f"Configuration file not found: {CONFIG_PATH}\n\n"
+                    "A new file will be created automatically on first save."
+                )
+                messagebox.showwarning("Fichier de configuration manquant / Missing configuration file", fr + "\n\n" + en)
             except:
                 pass  # Si Tkinter n'est pas encore initialisé
     except Exception as e:
         try:
-            messagebox.showerror(
-                "Erreur de configuration",
-                f"Erreur lors du chargement de la configuration :\n{str(e)}\n\nUtilisation des valeurs par défaut."
-            )
+            fr = (f"Erreur lors du chargement de la configuration :\n{str(e)}\n\n"
+                  "Utilisation des valeurs par défaut.")
+            en = (f"Error loading configuration: {str(e)}\n\n"
+                  "Using defaults.")
+            messagebox.showerror("Erreur de configuration / Configuration error", fr + "\n\n" + en)
         except:
             pass  # Si Tkinter n'est pas encore initialisé
     return {}
@@ -64,7 +71,7 @@ def save_resolutions_list(res_list):
 class GaladConfigApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Galad Options Tool")
+        self.title("Galad Config Tool")
         self.geometry("520x520")
         self.resizable(True, True)
 
@@ -368,7 +375,7 @@ class GaladConfigApp(tk.Tk):
         """Create editable controls bindings UI: label + combobox for each action."""
         # possible keys choices (simple list of common tokens)
         possible_keys = [
-            'z','s','q','d','a','e','tab','space','enter','escape',
+            'z','s','q','d','a','b','e','tab','space','enter','escape',
             'left','right','up','down','1','2','3','4','5','ctrl','shift','alt'
         ]
 
@@ -393,25 +400,6 @@ class GaladConfigApp(tk.Tk):
                 cb.grid(row=row, column=1, sticky=tk.W, padx=(6, 0))
                 self.control_widgets[action] = cb
                 self.control_label_widgets[action] = (lbl, label_key)
-                row += 1
-
-        # control groups (prefix + slots)
-        grp_lbl = ttk.Label(parent, text=t('options.binding_group.control_groups'))
-        grp_lbl.grid(row=row, column=0, sticky=tk.W, pady=(6, 0))
-        self.control_group_labels['options.binding_group.control_groups'] = grp_lbl
-        row += 1
-        for label_key, prefix in CONTROL_GROUP_ACTIONS:
-            for slot in controls.CONTROL_GROUP_SLOTS:
-                action_name = controls.get_group_action_name(prefix, slot)
-                lbl = ttk.Label(parent, text=t(label_key, slot=slot))
-                lbl.grid(row=row, column=0, sticky=tk.W, padx=(6, 0))
-                cb = ttk.Combobox(parent, values=possible_keys, width=12)
-                current = config_manager.get_key_bindings().get(action_name)
-                if current:
-                    cb.set(current[0] if isinstance(current, list) else current)
-                cb.grid(row=row, column=1, sticky=tk.W, padx=(6, 0))
-                self.control_widgets[action_name] = cb
-                self.control_label_widgets[action_name] = (lbl, label_key)
                 row += 1
 
         return row

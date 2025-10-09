@@ -4,6 +4,20 @@ Centralise toutes les constantes magiques pour faciliter la maintenance et l'éq
 """
 
 # =============================================================================
+# CONSTANTES DE VISION ET BROUILLARD DE GUERRE
+# =============================================================================
+
+# Portée de vision des bases (en unités de grille)
+BASE_VISION_RANGE = 8.0
+
+# Portées de vision par type d'unité (en unités de grille)
+UNIT_VISION_SCOUT = 6.0
+UNIT_VISION_MARAUDEUR = 5.0
+UNIT_VISION_LEVIATHAN = 4.0
+UNIT_VISION_DRUID = 5.0
+UNIT_VISION_ARCHITECT = 4.0
+
+# =============================================================================
 # CONSTANTES DE PERFORMANCE ET RENDU
 # =============================================================================
 
@@ -91,6 +105,15 @@ SHOP_FONT_SIZE_SUBTITLE = 26
 SHOP_FONT_SIZE_NORMAL = 20
 SHOP_FONT_SIZE_SMALL = 16
 SHOP_FONT_SIZE_TINY = 14
+
+# Constantes de la boutique - Prix des unités
+UNIT_COST_SCOUT = 10
+UNIT_COST_MARAUDEUR = 20
+UNIT_COST_LEVIATHAN = 40
+UNIT_COST_DRUID = 30
+UNIT_COST_ARCHITECT = 30
+UNIT_COST_ATTACK_TOWER = 25
+UNIT_COST_HEAL_TOWER = 20
 
 # Seuils de couleur pour les barres de vie
 HEALTH_HIGH_THRESHOLD = 0.6  # Vert si > 60%
@@ -230,6 +253,13 @@ FLYING_CHEST_GOLD_MAX = 150             # Gain maximal en or lors de la collecte
 FLYING_CHEST_LIFETIME = 25.0            # Durée avant la chute automatique dans l'océan
 FLYING_CHEST_SINK_DURATION = 3.0        # Durée de l'animation de chute avant disparition
 
+# Ressources d'îles (plus rares, récompenses plus importantes)
+ISLAND_RESOURCE_GOLD_MIN = 200
+ISLAND_RESOURCE_GOLD_MAX = 500
+ISLAND_RESOURCE_LIFETIME = 120.0  # 2 minutes
+ISLAND_RESOURCE_MAX_COUNT = 3
+ISLAND_RESOURCE_SPAWN_INTERVAL = 180.0  # every 3 minutes on average
+
 # =============================================================================
 # CONSTANTES DE POSITIONNEMENT
 # =============================================================================
@@ -259,3 +289,14 @@ TERRAIN_STOP_MODIFIER = 0.0  # Arrêt complet
 
 # Effets de pourcentage
 CLOUD_SPEED_REDUCTION = 100  # 100% pour debug print
+
+# =============================================================================
+# CONSTANTES DE VISION ET BROUILLARD DE GUERRE
+# =============================================================================
+
+# Portées de vision par type d'unité (en unités de grille)
+UNIT_VISION_SCOUT = 6.0
+UNIT_VISION_MARAUDEUR = 5.0
+UNIT_VISION_LEVIATHAN = 4.0
+UNIT_VISION_DRUID = 5.0
+UNIT_VISION_ARCHITECT = 4.0

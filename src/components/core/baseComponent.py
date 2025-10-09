@@ -14,8 +14,12 @@ from src.components.core.spriteComponent import SpriteComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.recentHitsComponent import RecentHitsComponent
 from src.components.core.classeComponent import ClasseComponent
+from src.components.core.visionComponent import VisionComponent
 from src.settings.localization import t
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
+
+# Import de la constante depuis gameplay.py
+from src.constants.gameplay import BASE_VISION_RANGE
 
 @component
 class BaseComponent:
@@ -93,6 +97,9 @@ class BaseComponent:
             display_name=t("base.ally_name"),
             is_enemy=False
         ))
+        esper.add_component(cls._ally_base_entity, VisionComponent(
+            BASE_VISION_RANGE  # Portée de vision des bases
+        ))
         
         # Calculer la taille de hitbox basée sur la taille réelle du sprite (391x350)
         # Utilisons 75% de la taille du sprite pour une hitbox plus accessible  
@@ -133,6 +140,9 @@ class BaseComponent:
             shop_id="enemy_base",
             display_name=t("base.enemy_name"), 
             is_enemy=True
+        ))
+        esper.add_component(cls._enemy_base_entity, VisionComponent(
+            BASE_VISION_RANGE  # Portée de vision des bases
         ))
         
         # Calculer la taille de hitbox basée sur la taille réelle du sprite (477x394)
@@ -238,4 +248,4 @@ class BaseComponent:
             base_component = esper.component_for_entity(base_entity, BaseComponent)
             return base_component.troopList.copy()  # Copie pour éviter les modifications externes
         
-        return [] 
+        return []

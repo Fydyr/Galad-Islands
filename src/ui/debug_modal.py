@@ -4,106 +4,29 @@ import random
 
 from src.ui.generic_modal import GenericModal
 from src.settings.localization import t
-from src.settings.settings import ConfigManager
+from src.settings.settings import ConfigManager, config_manager
 
-# Optional imports that may depend on the runtime (esper, managers, etc.).
-try:
-    from src.components.core.playerComponent import PlayerComponent
-except Exception:
-    PlayerComponent = None
-
-try:
-    from src.components.core.teamComponent import TeamComponent
-except Exception:
-    TeamComponent = None
-
-try:
-    from src.components.core.team_enum import Team as TeamEnum
-except Exception:
-    TeamEnum = None
-
-try:
-    from src.managers.stormManager import getStormManager
-except Exception:
-    getStormManager = None
-
-try:
-    from src.managers.flying_chest_manager import FlyingChestManager
-except Exception:
-    FlyingChestManager = None
-
-try:
-    from src.managers.island_resource_manager import IslandResourceManager
-except Exception:
-    IslandResourceManager = None
-
-try:
-    from src.components.events.krakenComponent import KrakenComponent
-except Exception:
-    KrakenComponent = None
-
-try:
-    from src.components.properties.eventsComponent import EventsComponent
-except Exception:
-    EventsComponent = None
-
-try:
-    from src.components.events.flyChestComponent import FlyingChestComponent
-except Exception:
-    FlyingChestComponent = None
-
-try:
-    from src.components.events.krakenTentacleComponent import KrakenTentacleComponent
-except Exception:
-    KrakenTentacleComponent = None
-
-try:
-    from src.components.events.islandResourceComponent import IslandResourceComponent
-except Exception:
-    IslandResourceComponent = None
-
-try:
-    from src.components.core.attackComponent import AttackComponent
-except Exception:
-    AttackComponent = None
-
-try:
-    from src.components.core.canCollideComponent import CanCollideComponent
-except Exception:
-    CanCollideComponent = None
-
-try:
-    from src.components.core.positionComponent import PositionComponent
-except Exception:
-    PositionComponent = None
-
-try:
-    from src.components.core.spriteComponent import SpriteComponent
-except Exception:
-    SpriteComponent = None
-
-try:
-    from src.managers.sprite_manager import SpriteID, sprite_manager
-except Exception:
-    SpriteID = None
-    sprite_manager = None
-
-try:
-    from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
-except Exception:
-    TILE_SIZE = MAP_WIDTH = MAP_HEIGHT = None
-
-# Optional import of Bandits component for fallback spawning
-try:
-    from src.components.events.banditsComponent import Bandits
-except Exception:
-    Bandits = None
-
-# Optional import of esper (entity system) used by fallback spawner
-try:
-    import esper
-except Exception:
-    esper = None
+# Direct imports (no try/except) — expected to be available in the runtime
+from src.components.core.playerComponent import PlayerComponent
+from src.components.core.teamComponent import TeamComponent
+from src.components.core.team_enum import Team as TeamEnum
+from src.managers.stormManager import getStormManager
+from src.managers.flying_chest_manager import FlyingChestManager
+from src.managers.island_resource_manager import IslandResourceManager
+from src.components.events.krakenComponent import KrakenComponent
+from src.components.properties.eventsComponent import EventsComponent
+from src.components.events.flyChestComponent import FlyingChestComponent
+from src.components.events.krakenTentacleComponent import KrakenTentacleComponent
+from src.components.events.islandResourceComponent import IslandResourceComponent
+from src.components.core.attackComponent import AttackComponent
+from src.components.core.canCollideComponent import CanCollideComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.spriteComponent import SpriteComponent
+from src.managers.sprite_manager import SpriteID, sprite_manager
+from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
+from src.components.events.banditsComponent import Bandits
+import esper
+from src.processeurs.events.banditsProcessor import BanditsProcessor
 
 
 class DebugModal:
@@ -129,6 +52,7 @@ class DebugModal:
             ("spawn_kraken", "debug.modal.spawn_kraken"),
             ("spawn_island_resources", "debug.modal.spawn_island_resources"),
             ("clear_events", "debug.modal.clear_events"),
+            ("reveal_map", "debug.modal.reveal_map"),
             ("close", "debug.modal.close"),
         ]
         self.modal = GenericModal(
@@ -176,6 +100,8 @@ class DebugModal:
             self._handle_clear_events()
         elif action == "spawn_bandits":
             self._handle_spawn_bandits()
+        elif action == "reveal_map":
+            self._handle_reveal_map()
         elif action == "close":
             self.close()
     
@@ -187,8 +113,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
-        dev_mode = cfg.get('dev_mode', False)
+        dev_mode = config_manager.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -223,8 +148,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
-        dev_mode = cfg.get('dev_mode', False)
+        dev_mode = config_manager.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -264,8 +188,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
-        dev_mode = cfg.get('dev_mode', False)
+        dev_mode = config_manager.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -302,8 +225,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
-        dev_mode = cfg.get('dev_mode', False)
+        dev_mode = config_manager.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -347,7 +269,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
+        dev_mode = config_manager.get('dev_mode', False)
         dev_mode = cfg.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
@@ -385,7 +307,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
+        dev_mode = config_manager.get('dev_mode', False)
         dev_mode = cfg.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
@@ -433,7 +355,7 @@ class DebugModal:
             return
 
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
+        dev_mode = config_manager.get('dev_mode', False)
         dev_mode = cfg.get('dev_mode', False)
 
         is_debug = getattr(self.game_engine, 'show_debug', False)
@@ -474,6 +396,34 @@ class DebugModal:
             self._show_feedback('success', t('debug.feedback.bandits_spawned', default='Bandits spawned'))
         else:
             self._show_feedback('warning', t('debug.feedback.no_valid_position', default='No valid position found'))
+    
+    def _handle_reveal_map(self):
+        """Handle the reveal map action."""
+        # Check if game engine is available
+        if not self.game_engine:
+            self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+        
+        # Check authorization via debug flag or config
+        dev_mode = config_manager.get('dev_mode', False)
+        dev_mode = cfg.get('dev_mode', False)
+        
+        is_debug = getattr(self.game_engine, 'show_debug', False)
+        if not (dev_mode or is_debug):
+            self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
+            return
+        
+        # Reveal the entire map for the current team
+        from src.systems.vision_system import vision_system
+        
+        # Get current team from action bar
+        current_team = 1  # Default to allies
+        if hasattr(self.game_engine, 'action_bar') and self.game_engine.action_bar is not None:
+            current_team = self.game_engine.action_bar.current_camp
+        
+        vision_system.reveal_all_map(current_team)
+        print(f"[DEV] Map revealed for team {current_team}")
+        self._show_feedback('success', t('debug.feedback.map_revealed', default='Map revealed'))
     
     def _find_sea_position(self):
         """Find a random sea position for spawning events."""

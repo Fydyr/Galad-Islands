@@ -6,6 +6,10 @@ on:
       version:
         description: 'Numéro de version à publier (ex: 1.0.0)'
         required: true
+      branch:
+        description: 'Branch source de la release (ex: main ou unstable). Si unstable, la release sera marquée pre-release.'
+        required: false
+        default: 'main'
 
 permissions:
   contents: write
@@ -39,7 +43,8 @@ jobs:
           if [ "$RUNNER_OS" = "Windows" ]; then SEP=';'; else SEP=':'; fi
           # Build main game
           pyinstaller --onefile main.py --name galad-islands \
-            --add-data "assets${SEP}assets"
+            --add-data "assets${SEP}assets" \
+            --add-data "pyproject.toml${SEP}."
           # Build config tool
           pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
             --add-data "assets/locales${SEP}assets/locales" \
@@ -72,9 +77,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.event.inputs.version }}
-          name: "Galad Islands v${{ github.event.inputs.version }}"
+          # Mark prerelease when input branch is 'unstable'
+          prerelease: ${{ github.event.inputs.branch == 'unstable' }}
+          name: "Galad Islands v${{ github.event.inputs.version }}${{ github.event.inputs.branch == 'unstable' && ' (pre-release)' || '' }}"
           body: |
-            🎮 **Galad Islands - Version v${{ github.event.inputs.version }}** (Release manuelle)
+            🎮 **Galad Islands - Version v${{ github.event.inputs.version }}${{ github.event.inputs.branch == 'unstable' && ' (pre-release)' || '' }}** (Release manuelle)
             
             Téléchargez le jeu pour votre plateforme :
             - **Windows** : `galad-islands-windows.zip`

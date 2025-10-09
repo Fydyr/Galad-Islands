@@ -33,53 +33,56 @@ theme:
 nav:
   - Accueil: index.md
   - 📖 Documentation Utilisateur:
-    - Installation et Configuration: user/installation.md
-    - Outil de configuration: user/galad-config-tool.md
-    - Guide de démarrage: user/getting-started.md
-    - Gameplay:
-      - Contrôles: user/controls.md
-      - Unités: user/units.md
-      - Unités alliées: user/units_allies.md
-      - Unités ennemies: user/units_enemies.md
-      - Bâtiments: user/buildings.md
-      - Boutique: user/shop.md
-    - Interface:
-      - Barre d'action: user/action-bar.md
-    - Stratégie: user/strategy.md
-    - FAQ: user/faq.md
-    - Crédits: user/credits.md
+    - Introduction & Présentation: user/basics/introduction.md
+    - Configuration & Installation: user/basics/installation.md
+    - Commandes & Interfaces: user/gameplay/controls.md
+    - Gameplay & Progression: user/gameplay/gameplay.md
+    - Description Sprites & Conseils: user/units/units.md
+    - Ressources supplémentaires:
+      - Outil de configuration: user/tools/galad-config-tool.md
+      - Guide de démarrage: user/basics/getting-started.md
+      - Unités : user/units/units.md
+      - Bâtiments: user/economy/buildings.md
+      - Boutique: user/economy/shop.md
+      - Barre d'action: user/gameplay/action-bar.md
+      - FAQ: user/help/faq.md
+      - Crédits: user/help/credits.md
   - 🛠️ Documentation Technique:
-    - Vue d'ensemble: dev/overview.md
-    - Architecture: dev/architecture.md
-    - API:
-      - Moteur de jeu: dev/api/game-engine.md
-      - Interface utilisateur: dev/api/ui-system.md
-      - Système d'unités: dev/api/unit-system.md
-    - Modules:
-      - Processeurs: dev/modules/processors.md
-      - Gestionnaires: dev/modules/managers.md
-      - Composants: dev/modules/components.md
-      - Capacités spéciales: dev/modules/special-capacity-system.md
-      - Gestionnaire de sprites: dev/modules/sprite-manager.md
-    - Systèmes avancés:
-      - Système de tours: dev/tower-system-implementation.md
-      - Mode debug: dev/debug-mode.md
-    - Localisation: dev/localization.md
-    - Configuration: dev/configuration.md
-    - Galad Config Tool: dev/galad-config-tool-technical.md
-    - Système et Déploiement:
-      - Paramètres système critiques: dev/systeme.md
-      - Exigences matérielles: dev/requirements.md
-      - Opérations système: dev/operations.md
-      - Déploiement: dev/deployment.md
-      - Migration workflow: dev/workflow-migration.md
-    - Maintenance: dev/maintenance.md
-    - Contribution: dev/contributing.md
-    - Gestion des versions: dev/versioning.md
-    - Résumé du refactoring: dev/refactoring-summary.md
-  - 💬 Support et Contact:
-    - Support: support.md
-    - Contact: contact.md
+    - 1. Introduction:
+      - Vue d'ensemble: dev/01-introduction/overview.md
+      - Documentation complète: dev/01-introduction/documentation.md
+    - 2. Description du système:
+      - Architecture ECS: dev/02-systeme/architecture.md
+      - Système de tours: dev/02-systeme/tower-system-implementation.md
+      - API:
+        - Moteur de jeu: dev/02-systeme/api/game-engine.md
+        - Interface utilisateur: dev/02-systeme/api/ui-system.md
+        - Système d'unités: dev/02-systeme/api/unit-system.md
+      - Modules:
+        - Composants: dev/02-systeme/modules/components.md
+        - Processeurs: dev/02-systeme/modules/processors.md
+        - Gestionnaires: dev/02-systeme/modules/managers.md
+        - Capacités spéciales: dev/02-systeme/modules/special-capacity-system.md
+        - Gestionnaire de sprites: dev/02-systeme/modules/sprite-manager.md
+        - Système de vision: dev/02-systeme/modules/vision-system.md
+    - 3. Installation:
+      - Exigences matérielles: dev/03-installation/requirements.md
+    - 4. Configuration:
+      - Configuration: dev/04-configuration/configuration.md
+      - Galad Config Tool: dev/04-configuration/galad-config-tool-technical.md
+      - Mode debug: dev/04-configuration/debug-mode.md
+      - Localisation: dev/04-configuration/localization.md
+    - 5. Exploitation:
+      - Paramètres système: dev/05-exploitation/systeme.md
+      - Opérations système: dev/05-exploitation/operations.md
+      - Déploiement: dev/05-exploitation/deployment.md
+    - 6. Maintenance:
+      - Maintenance: dev/06-maintenance/maintenance.md
+      - Gestion des versions: dev/06-maintenance/versioning.md
+    - 7. Annexes:
+      - Guide de contribution: dev/07-annexes/contributing.md
+      - Résumé du refactoring: dev/07-annexes/refactoring-summary.md
+  - 💬 Support et Contact: support.md
 
 plugins:
   - search:

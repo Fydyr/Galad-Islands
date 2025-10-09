@@ -19,6 +19,7 @@ from src.components.core.positionComponent import PositionComponent
 from src.components.core.baseComponent import BaseComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 from src.managers.sprite_manager import sprite_manager, SpriteID
+from src.factory.unitType import UnitType
 from src.constants.gameplay import (
     COLOR_WHITE, COLOR_GOLD, COLOR_BLACK, COLOR_GREEN_SUCCESS, COLOR_RED_ERROR,
     COLOR_PLACEHOLDER_UNIT,
@@ -31,7 +32,9 @@ from src.constants.gameplay import (
         SHOP_SHADOW_OFFSET, SHOP_SHADOW_LAYERS, SHOP_FEEDBACK_DURATION,
         SHOP_TEXT_X_OFFSET, SHOP_DEFAULT_PLAYER_GOLD, SHOP_FONT_SIZE_TITLE,
         SHOP_FONT_SIZE_SUBTITLE, SHOP_FONT_SIZE_NORMAL, SHOP_FONT_SIZE_SMALL,
-        SHOP_FONT_SIZE_TINY
+        SHOP_FONT_SIZE_TINY,
+        UNIT_COST_SCOUT, UNIT_COST_MARAUDEUR, UNIT_COST_LEVIATHAN,
+        UNIT_COST_DRUID, UNIT_COST_ARCHITECT, UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER
     )
 
 
@@ -278,6 +281,21 @@ class UnifiedShop:
         self._populate_unit_items(is_enemy=True)
         # Les bâtiments ennemis ne sont pas disponibles dans la boutique
     
+    def _get_unit_cost(self, unit_type: str) -> int:
+        """Retourne le coût d'une unité basé sur son type."""
+
+        
+        cost_mapping = {
+            UnitType.SCOUT: UNIT_COST_SCOUT,
+            UnitType.MARAUDEUR: UNIT_COST_MARAUDEUR,
+            UnitType.LEVIATHAN: UNIT_COST_LEVIATHAN,
+            UnitType.DRUID: UNIT_COST_DRUID,
+            UnitType.ARCHITECT: UNIT_COST_ARCHITECT,
+            UnitType.ATTACK_TOWER: UNIT_COST_ATTACK_TOWER,
+            UnitType.HEAL_TOWER: UNIT_COST_HEAL_TOWER,
+        }
+        return cost_mapping.get(unit_type, 0)
+
     def _populate_unit_items(self, is_enemy: bool):
         """Ajoute les unités disponibles en se basant sur le catalogue de la factory."""
 
@@ -291,7 +309,7 @@ class UnifiedShop:
                 id=faction_config.shop_id,
                 name=t(faction_config.name_key),
                 description=short_desc,
-                cost=config_data.get("cout_gold", 0),
+                cost=self._get_unit_cost(unit_type),
                 icon_path="",
                 category=ShopCategory.UNITS,
                 config_data=config_data,

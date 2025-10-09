@@ -16,11 +16,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Importations des systèmes
+from src.systems.vision_system import vision_system
+
 # Importations des processeurs
-from src.processeurs import movementProcessor, collisionProcessor, playerControlProcessor
+from src.processeurs.movementProcessor import MovementProcessor
+from src.processeurs.collisionProcessor import CollisionProcessor
+from src.processeurs.playerControlProcessor import PlayerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
+from src.processeurs.towerProcessor import TowerProcessor
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -32,6 +38,7 @@ from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
+from src.components.core.visionComponent import VisionComponent
 
 # Importations des capacités spéciales
 
@@ -58,7 +65,7 @@ from src.components.core.baseComponent import BaseComponent
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
-from src.ui.exit_modal import ExitConfirmationModal
+from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.notification_system import get_notification_system
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
@@ -79,6 +86,43 @@ class EventHandler:
         """Gère tous les événements pygame."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                # Ouvrir la modale de confirmation plutôt que quitter directement
+                self.game_engine.open_exit_modal()
+                continue
+
+            # Événement interne: changement de langue — demander aux UI de se rafraîchir
+            if event.type == pygame.USEREVENT and getattr(event, 'subtype', None) == 'language_changed':
+                lang = getattr(event, 'lang', None)
+                # Rafraîchir la barre d'action si présente
+                try:
+                    if getattr(self.game_engine, 'action_bar', None) is not None:
+                        if hasattr(self.game_engine.action_bar, 'refresh'):
+                            self.game_engine.action_bar.refresh()
+                        # forcer recalcul display texts if method exists
+                        if hasattr(self.game_engine.action_bar, '_refresh_texts'):
+                            self.game_engine.action_bar._refresh_texts()
+                except Exception:
+                    pass
+                # Rafraîchir la modale de sortie si elle est active so labels update
+                try:
+                    if getattr(self.game_engine, 'exit_modal', None) is not None:
+                        # Re-open layout to recalc labels next time it is shown
+                        if self.game_engine.exit_modal.is_active():
+                            target_surface = self.game_engine.window or pygame.display.get_surface()
+                            self.game_engine.exit_modal.open(target_surface)
+                except Exception:
+                    pass
+                # Rafraîchir notifications
+                try:
+                    ns = get_notification_system()
+                    if hasattr(ns, 'refresh'):
+                        ns.refresh()
+                except Exception:
+                    pass
+                # Continue to next event
+                continue
+            # Confirmed quit posted by an in-game confirmation dialog
+            if event.type == pygame.USEREVENT and getattr(event, 'subtype', None) == 'confirmed_quit':
                 self._handle_quit()
                 continue
 
@@ -114,9 +158,8 @@ class EventHandler:
         elif event.key == pygame.K_F5:
             # Allow only in debug mode or when configuration enables dev cheats
             try:
-                from src.settings.settings import ConfigManager
-                cfg = ConfigManager()
-                dev_mode = cfg.get('dev_mode', False)
+                from src.settings.settings import config_manager
+                dev_mode = config_manager.get('dev_mode', False)
             except Exception:
                 dev_mode = False
 
@@ -239,6 +282,8 @@ class GameRenderer:
             
         self._clear_screen(window)
         self._render_game_world(window, grid, images, camera)
+        self._render_fog_of_war(window, camera)
+        self._render_vision_circles(window, camera)
         self._render_sprites(window, camera)
         self._render_ui(window, action_bar)
         
@@ -263,13 +308,113 @@ class GameRenderer:
         if grid is not None and images is not None and camera is not None:
             game_map.afficher_grille(window, grid, images, camera)
             
+    def _render_fog_of_war(self, window, camera):
+        """Rend le brouillard de guerre avec nuages et brouillard léger."""
+        # Mettre à jour la visibilité pour l'équipe actuelle
+        current_team = self.game_engine.action_bar.current_camp
+        vision_system.update_visibility(current_team)
+
+        # Obtenir les rectangles du brouillard
+        fog_rects = vision_system.get_visibility_overlay(camera)
+
+        # Rendre chaque rectangle de brouillard
+        for rect, alpha, is_cloud, cloud_image in fog_rects:
+            if is_cloud and cloud_image is not None:
+                # Utiliser l'image cloud.png pour les zones non découvertes
+                try:
+                    scaled_cloud = pygame.transform.scale(cloud_image, (rect.width, rect.height))
+                    scaled_cloud.set_alpha(alpha)
+                    window.blit(scaled_cloud, rect.topleft)
+                except Exception as e:
+                    print(f"Error scaling cloud: {e}")
+                    # Fallback vers une couleur unie si l'image ne peut pas être redimensionnée
+                    fog_surface = pygame.Surface((rect.width, rect.height))
+                    fog_surface.fill((200, 200, 200))
+                    fog_surface.set_alpha(alpha)
+                    window.blit(fog_surface, rect.topleft)
+            else:
+                # Brouillard léger : très transparent noir
+                fog_surface = pygame.Surface((rect.width, rect.height))
+                fog_surface.fill((0, 0, 0))
+                fog_surface.set_alpha(alpha)
+                window.blit(fog_surface, rect.topleft)
+                if is_cloud:
+                    print(f"Cloud requested but cloud_image is None")  # Debug
+
+    def _render_vision_circles(self, window, camera):
+        """Rend les cercles blancs représentant la portée de vision des unités."""
+        if es is None:
+            return
+
+        # Couleur du cercle de vision
+        vision_color = (255, 255, 255)  # Blanc
+        circle_width = 2  # Épaisseur du cercle
+
+        # N'afficher le cercle que pour l'unité sélectionnée
+        selected_unit_id = self.game_engine.selected_unit_id
+        if selected_unit_id is None:
+            return
+
+        # Vérifier que l'unité sélectionnée existe et a les bons composants
+        if (selected_unit_id not in es._entities or
+            not es.has_component(selected_unit_id, PositionComponent) or
+            not es.has_component(selected_unit_id, TeamComponent) or
+            not es.has_component(selected_unit_id, VisionComponent)):
+            return
+
+        # Récupérer les composants de l'unité sélectionnée
+        pos = es.component_for_entity(selected_unit_id, PositionComponent)
+        team = es.component_for_entity(selected_unit_id, TeamComponent)
+        vision = es.component_for_entity(selected_unit_id, VisionComponent)
+
+        # Vérifier si l'unité appartient à l'équipe actuelle
+        current_team = self.game_engine.action_bar.current_camp
+        if team.team_id == current_team:
+            # Calculer la position à l'écran
+            screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
+            
+            # Calculer le rayon à l'écran (portée de vision en pixels)
+            vision_radius_pixels = vision.range * TILE_SIZE * camera.zoom
+            
+            # Ne dessiner que si le cercle est visible à l'écran
+            if (screen_x + vision_radius_pixels >= 0 and screen_x - vision_radius_pixels <= window.get_width() and
+                screen_y + vision_radius_pixels >= 0 and screen_y - vision_radius_pixels <= window.get_height()):
+                
+                # Dessiner le cercle de vision
+                pygame.draw.circle(window, vision_color, (int(screen_x), int(screen_y)), 
+                                 int(vision_radius_pixels), circle_width)
+
     def _render_sprites(self, window, camera):
         """Rendu manuel des sprites pour contrôler l'ordre d'affichage."""
         if camera is None:
             return
             
+        current_team = self.game_engine.action_bar.current_camp
+            
         for ent, (pos, sprite) in es.get_components(PositionComponent, SpriteComponent):
-            self._render_single_sprite(window, camera, ent, pos, sprite)
+            # Vérifier si l'entité appartient à l'équipe actuelle ou est visible
+            should_render = False
+            
+            # Les entités de l'équipe actuelle sont toujours visibles
+            if es.has_component(ent, TeamComponent):
+                team_comp = es.component_for_entity(ent, TeamComponent)
+                if team_comp.team_id == current_team:
+                    should_render = True
+                else:
+                    # Vérifier si l'unité adverse est dans une tuile visible
+                    grid_x = int(pos.x / TILE_SIZE)
+                    grid_y = int(pos.y / TILE_SIZE)
+                    if vision_system.is_tile_visible(grid_x, grid_y, current_team):
+                        should_render = True
+            else:
+                # Entités sans équipe (comme les événements) - vérifier visibilité
+                grid_x = int(pos.x / TILE_SIZE)
+                grid_y = int(pos.y / TILE_SIZE)
+                if vision_system.is_tile_visible(grid_x, grid_y, current_team):
+                    should_render = True
+            
+            if should_render:
+                self._render_single_sprite(window, camera, ent, pos, sprite)
             
     def _render_single_sprite(self, window, camera, entity, pos, sprite):
         """Rend un sprite individuel avec effet visuel spécial si invincible."""
@@ -526,7 +671,7 @@ class GameEngine:
         # Gestionnaire d'événements et rendu
         self.event_handler = EventHandler(self)
         self.renderer = GameRenderer(self)
-        self.exit_modal = ExitConfirmationModal()
+        self.exit_modal = InGameMenuModal()
         
         # Timer pour le spawn de coffres
         self.chest_spawn_timer = 0.0
@@ -583,6 +728,9 @@ class GameEngine:
         # Configurer la caméra
         self._setup_camera()
         
+        # Réinitialiser le système de vision après l'initialisation complète
+        vision_system.reset()
+        
     def _initialize_game_map(self):
         """Initialise la carte du jeu."""
         if self.window is None:
@@ -622,14 +770,13 @@ class GameEngine:
         es._world = es
         
         # Créer et ajouter les processeurs
-        self.movement_processor = movementProcessor.MovementProcessor()
-        self.collision_processor = collisionProcessor.CollisionProcessor(graph=self.grid)
-        self.player_controls = playerControlProcessor.PlayerControlProcessor()
+        self.movement_processor = MovementProcessor()
+        self.collision_processor = CollisionProcessor(graph=self.grid)
+        self.player_controls = PlayerControlProcessor(self.grid)
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
-        from src.processeurs.towerProcessor import TowerProcessor
         self.tower_processor = TowerProcessor()
 
         es.add_processor(self.collision_processor, priority=2)
@@ -650,6 +797,8 @@ class GameEngine:
         
     def _create_initial_entities(self):
         """Crée les entités initiales du jeu."""
+        from src.constants.team import Team
+        
         # Créer les PlayerComponent pour CHAQUE équipe (alliés ET ennemis)
         # Équipe Alliée (team_id = 1)
         ally_player = es.create_entity()
@@ -678,6 +827,10 @@ class GameEngine:
             is_enemy=True, jitter=TILE_SIZE * 0.1)  # Même jitter que l'allié
         enemy_druid = UnitFactory(
             UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
+        
+        # Initialiser la visibilité pour l'équipe actuelle
+        from src.constants.team import Team
+        vision_system.update_visibility(Team.ALLY)
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
@@ -753,11 +906,10 @@ class GameEngine:
 
         if self.action_bar is not None:
             self.action_bar.set_camp(team, show_feedback=notify)
-        elif notify:
-            camp_name = t("camp.ally") if team == Team.ALLY else t("camp.enemy")
-            feedback = t("camp.feedback", camp=camp_name)
-            print(f"[INFO] {feedback}")
 
+        # Mettre à jour la visibilité pour le brouillard de guerre
+        vision_system.update_visibility(team)
+        
     def cycle_selection_team(self) -> None:
         """Bascule sur la faction suivante pour la sélection."""
         order = (Team.ALLY, Team.ENEMY)
@@ -792,7 +944,12 @@ class GameEngine:
         result = self.exit_modal.handle_event(event, target_surface)
 
         if result == "quit":
-            self._quit_game()
+            # Pour InGameMenuModal, "quit" ouvre une modale de confirmation, ne pas quitter directement
+            from src.ui.ingame_menu_modal import InGameMenuModal
+            if not isinstance(self.exit_modal, InGameMenuModal):
+                self._quit_game()
+                return True
+            # Pour InGameMenuModal, continuer normalement (le callback a ouvert la modale de confirmation)
             return True
 
         if result == "stay":
@@ -1485,22 +1642,17 @@ class GameEngine:
             
             # Ajouter à la base
             from src.components.core.baseComponent import BaseComponent
-            BaseComponent.add_unit_to_base(new_ent, is_enemy=(self.tower_team_id != 1))
+            # Les tours sont automatiquement associées via leur team_id
             
-            # Déduire le coût
+            # Déduire l'or du joueur
             self._set_current_player_gold(current_gold - self.tower_cost)
             
-            # Afficher un message de succès
+            # Feedback visuel
             if hasattr(self, 'action_bar') and self.action_bar:
-                building_name = t(f'shop.{self.tower_type_to_place}_tower')
-                # Si la position a été ajustée de manière significative, informer l'utilisateur
-                if position_was_adjusted:
-                    self.action_bar._show_feedback('success', t('shop.buildings.built_snapped', building=building_name))
-                else:
-                    self.action_bar._show_feedback('success', t('shop.buildings.built', building=building_name))
+                tower_name = t('tower.defense') if self.tower_type_to_place == "defense" else t('tower.heal')
+                self.action_bar._show_feedback('success', t('placement.tower_placed', tower=tower_name))
             
-            # Désactiver le mode de placement
-            self.tower_placement_mode = False
+            # Réinitialiser l'état de placement
             self.tower_type_to_place = None
             self.tower_team_id = None
             self.tower_cost = 0
@@ -1508,14 +1660,10 @@ class GameEngine:
             return True
             
         except Exception as e:
-            print(f"[ERROR] Failed to place tower: {e}")
+            print(f"Erreur lors du placement de la tour: {e}")
             if hasattr(self, 'action_bar') and self.action_bar:
-                self.action_bar._show_feedback('error', t('feedback.error', default='Error occurred'))
+                self.action_bar._show_feedback('error', t('placement.error', default='Erreur lors du placement'))
             return False
-    
-    def _get_current_player_gold(self) -> int:
-        """Retourne la quantité d'or du joueur actuel."""
-        team_id = Team.ENEMY if self.selection_team_filter == Team.ENEMY else Team.ALLY
         
         for entity, (player_comp, team_comp) in es.get_components(PlayerComponent, TeamComponent):
             if team_comp.team_id == team_id:
