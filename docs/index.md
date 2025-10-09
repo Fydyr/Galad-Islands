@@ -31,8 +31,6 @@ Cette documentation est organisée en deux sections principales :
 #### ⚔️ Unités
 
 - **[Unités](user/units/units.md)** - Guide des unités et leurs capacités
-- **[Unités alliées](user/units/units_allies.md)** - Détail des unités alliées
-- **[Unités ennemies](user/units/units_enemies.md)** - Détail des unités ennemies
 
 #### 🏗️ Économie
 

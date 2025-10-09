@@ -102,4 +102,4 @@ L'interface de Galad Islands est conçue pour être intuitive et accessible, ave
 
 ---
 
-*Maintenant que vous maîtrisez l'interface, explorez les [stratégies avancées](strategy.md) pour dominer vos adversaires !*
+*Maintenant que vous maîtrisez l'interface, explorez les [stratégies de gameplay](gameplay.md) pour dominer vos adversaires !*

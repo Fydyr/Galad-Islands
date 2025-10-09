@@ -332,7 +332,7 @@ def test_language(lang_code):
 
 ## Intégration avec l'UI
 
-Le système de localisation s'intègre parfaitement avec le système UI documenté dans [Interface utilisateur](api/ui-system.md) :
+Le système de localisation s'intègre parfaitement avec le système UI documenté dans [Interface utilisateur](../02-systeme/api/ui-system.md) :
 
 - **Menu d'options** : Sélection de langue avec persistance automatique
 - **ActionBar** : Affichage dynamique des ressources et informations

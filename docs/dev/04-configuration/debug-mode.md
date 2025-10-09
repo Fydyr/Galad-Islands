@@ -98,6 +98,7 @@ def _update_button_positions(self):
 ```
 
 **Résultat** :
+
 - ✅ `dev_mode: true` → Bouton visible
 - ❌ `dev_mode: false` → Bouton caché
 
@@ -460,9 +461,8 @@ log_debug("Position de l'unité mise à jour")  # Visible seulement si dev_mode=
 
 ## Voir aussi
 
-- [Architecture](architecture.md) - Architecture globale du jeu
-- [Configuration](configuration.md) - Système de configuration complet
-- [UI System](api/ui-system.md) - Système d'interface utilisateur
+- [UI System](../02-systeme/api/ui-system.md) - Système d'interface utilisateur
+- [Configuration](configuration.md) - Paramètres du jeu
 
 ---
 

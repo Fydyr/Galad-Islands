@@ -148,7 +148,6 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 > 📚 **Ressources d'apprentissage :**
 >
 > - [Types d'unités et leurs rôles](../units/units.md)
-> - [Guide stratégique avancé](../gameplay/strategy.md)
 > - [Interface et barre d'actions](../gameplay/action-bar.md)
 
 ## 🎯 Conseils pour débuter
@@ -190,11 +189,10 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 
 !!! info "Ressources d'aide"
     **📚 Où trouver de l'aide :**
-    - **[Guide d'installation complet](installation.md)** : Problèmes techniques
-    - **[FAQ](faq.md)** : Questions les plus courantes  
+    - **[FAQ](../help/faq.md)** : Questions les plus courantes  
     - **[Issues GitHub](https://github.com/Fydyr/Galad-Islands/issues)** : Signaler un bug
     - **Aide intégrée** : Appuyez sur **F1** dans le jeu
 
 ---
 
-🎮 **Prêt à jouer ?** Découvrez maintenant les [contrôles détaillés](../gameplay/controls.md) et les [stratégies avancées](../gameplay/strategy.md) !
+🎮 **Prêt à jouer ?** Découvrez maintenant le [guide de gameplay](../gameplay/gameplay.md) !

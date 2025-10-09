@@ -447,7 +447,7 @@ def _handle_debug_action(self, action: str):
         self._spawn_test_unit()
 ```
 
-> **💡 Note** : Le `GenericModal` est particulièrement utile pour créer rapidement des interfaces de debug sans dupliquer le code UI. Voir [Mode Debug](../debug-mode.md) pour plus de détails.
+> **💡 Note** : Le `GenericModal` est particulièrement utile pour créer rapidement des interfaces de debug sans dupliquer le code UI. Voir [Mode Debug](../../04-configuration/debug-mode.md) pour plus de détails.
 
 ### Système de modales avancé
 

@@ -4,16 +4,14 @@ Besoin d'aide avec **Galad Islands** ? Voici où trouver de l'assistance et cont
 
 ## 📖 Documentation
 
-- **[Installation](user/installation.md)** - Guide d'installation complet
-- **[Guide de démarrage](user/getting-started.md)** - Premiers pas dans le jeu
-- **[FAQ](user/faq.md)** - Questions fréquemment posées
-- **[Contrôles](user/controls.md)** - Commandes et raccourcis clavier
+- **[Guide de démarrage](user/basics/getting-started.md)** - Premiers pas dans le jeu
+- **[FAQ](user/help/faq.md)** - Questions fréquemment posées
 
 ## 🐛 Problèmes techniques
 
 ### Avant de signaler un problème
 
-1. Consultez la **[FAQ](user/faq.md)** - les solutions aux problèmes courants s'y trouvent
+1. Consultez la **[FAQ](user/help/faq.md)** - les solutions aux problèmes courants s'y trouvent
 2. Vérifiez que vous utilisez la **dernière version** du jeu
 3. Recherchez dans les **[issues existantes](https://github.com/Fydyr/Galad-Islands/issues)**
 
@@ -67,14 +65,13 @@ Pour toute question sur le projet :
 ## 🛠️ Pour les développeurs
 
 - **[Documentation technique](dev/01-introduction/overview.md)** - Architecture du projet
-- **[Guide de contribution](dev/07-annexes/contributing.md)** - Comment contribuer au code
 - **[Issues développeur](https://github.com/Fydyr/Galad-Islands/issues)** - Bonnes premières contributions
 
 ## � Informations utiles
 
 ### Avant de nous contacter
 
-1. Consultez la **[FAQ](user/faq.md)**
+1. Consultez la **[FAQ](user/help/faq.md)**
 2. Recherchez dans les **[discussions existantes](https://github.com/Fydyr/Galad-Islands/discussions)**
 3. Vérifiez les **[issues ouvertes](https://github.com/Fydyr/Galad-Islands/issues)**
 
