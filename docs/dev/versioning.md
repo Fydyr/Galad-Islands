@@ -4,16 +4,6 @@
 
 Ce document explique comment gérer les versions du projet Galad Islands avec un système de gestion manuelle des versions.
 
-> **💡 Info : Migration du workflow de version**
->
-> Le projet a récemment migré d'un système de bump automatique (hooks pre-commit locaux) vers une gestion manuelle des versions.
->
-> 📖 **[Consultez le guide de migration](workflow-migration.md)** pour comprendre les changements et les avantages du nouveau système.
-
-## 🚀 Nouveau : Gestion manuelle des versions
-
-Le système de bump automatique via hook pre-commit a été supprimé. Désormais, les versions doivent être gérées manuellement par les développeurs.
-
 ### Comment gérer les versions manuellement
 
 1. **Activer l'environnement virtuel** :

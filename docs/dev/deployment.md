@@ -4,6 +4,9 @@
 
 ### Méthode 1 : Exécutable autonome (recommandée)
 
+
+#### Compilation du jeu
+
 ```bash
 # Installation de PyInstaller
 pip install pyinstaller
@@ -11,13 +14,22 @@ pip install pyinstaller
 # Compilation en fichier unique
 pyinstaller --onefile --windowed \
     --add-data "assets:assets" \
-    --add-data "galad_config.json:." \
     --name "GaladIslands" \
     main.py
 
 # L'exécutable se trouve dans dist/GaladIslands
 # Penser à copier les dossiers d'assets nécessaires
 ```
+
+#### Compilation de l'outil de configuration
+
+```bash
+pyinstaller --onefile --windowed \
+    --add-data "assets:assets" \
+    --add-data "assets/locales:assets/locales" \
+    --name "GaladConfigTool" \
+    src/tools/galad_config_tool.py
+
 
 ### Méthode 2 : Distribution Python
 
@@ -42,6 +54,8 @@ chmod +x start_game.sh
 galad-islands-prod/
 ├── GaladIslands.exe        # Exécutable (Windows)
 ├── GaladIslands            # Exécutable (Linux/Mac)
+├── GaladConfigTool.exe    # Outil de config (Windows)
+├── GaladConfigTool        # Outil de config (Linux/Mac)
 ├── assets/                 # Ressources du jeu
 ├── README.txt              # Instructions
 └── galad_config.json       # Configuration, il se crée automatiquement si absent
