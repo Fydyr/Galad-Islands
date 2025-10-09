@@ -158,9 +158,8 @@ class EventHandler:
         elif event.key == pygame.K_F5:
             # Allow only in debug mode or when configuration enables dev cheats
             try:
-                from src.settings.settings import ConfigManager
-                cfg = ConfigManager()
-                dev_mode = cfg.get('dev_mode', False)
+                from src.settings.settings import config_manager
+                dev_mode = config_manager.get('dev_mode', False)
             except Exception:
                 dev_mode = False
 

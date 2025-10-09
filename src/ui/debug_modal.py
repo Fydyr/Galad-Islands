@@ -4,7 +4,7 @@ import random
 
 from src.ui.generic_modal import GenericModal
 from src.settings.localization import t
-from src.settings.settings import ConfigManager
+from src.settings.settings import ConfigManager, config_manager
 
 # Direct imports (no try/except) — expected to be available in the runtime
 from src.components.core.playerComponent import PlayerComponent
@@ -113,8 +113,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
-        dev_mode = cfg.get('dev_mode', False)
+        dev_mode = config_manager.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -149,8 +148,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
-        dev_mode = cfg.get('dev_mode', False)
+        dev_mode = config_manager.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -190,8 +188,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
-        dev_mode = cfg.get('dev_mode', False)
+        dev_mode = config_manager.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -228,8 +225,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
-        dev_mode = cfg.get('dev_mode', False)
+        dev_mode = config_manager.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -273,7 +269,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
+        dev_mode = config_manager.get('dev_mode', False)
         dev_mode = cfg.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
@@ -311,7 +307,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
+        dev_mode = config_manager.get('dev_mode', False)
         dev_mode = cfg.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
@@ -359,7 +355,7 @@ class DebugModal:
             return
 
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
+        dev_mode = config_manager.get('dev_mode', False)
         dev_mode = cfg.get('dev_mode', False)
 
         is_debug = getattr(self.game_engine, 'show_debug', False)
@@ -409,7 +405,7 @@ class DebugModal:
             return
         
         # Check authorization via debug flag or config
-        cfg = ConfigManager()
+        dev_mode = config_manager.get('dev_mode', False)
         dev_mode = cfg.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
