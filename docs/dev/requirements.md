@@ -17,7 +17,6 @@ sudo apt install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
 
 #### Windows
 - Installer Python 3.9+ depuis python.org
-- Visual C++ Redistributable 2019+
 
 #### macOS
 ```bash
