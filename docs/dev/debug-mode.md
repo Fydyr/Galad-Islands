@@ -118,6 +118,11 @@ class DebugModal:
         self.visible = False
         self.options = [
             {"label": "Donner 1000 gold", "action": self._give_gold},
+            {"label": "Créer une tempête", "action": self._spawn_storm},
+            {"label": "Créer des coffres", "action": self._spawn_chest},
+            {"label": "Créer un kraken", "action": self._spawn_kraken},
+            {"label": "Créer des ressources d'îles", "action": self._spawn_island_resources},
+            {"label": "Nettoyer les événements", "action": self._clear_events},
         ]
 ```
 
