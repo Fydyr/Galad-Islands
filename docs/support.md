@@ -41,7 +41,7 @@ Pour proposer de nouvelles fonctionnalités ou améliorations :
 
 ### Participer au développement
 
-Envie de contribuer à **Galad Islands** ? Consultez notre **[guide de contribution](dev/contributing.md)**.
+Envie de contribuer à **Galad Islands** ? Consultez notre **[guide de contribution](dev/07-annexes/contributing.md)**.
 
 Types de contributions recherchées :
 
@@ -66,8 +66,8 @@ Pour toute question sur le projet :
 
 ## 🛠️ Pour les développeurs
 
-- **[Documentation technique](dev/overview.md)** - Architecture du projet
-- **[Guide de contribution](dev/contributing.md)** - Comment contribuer au code
+- **[Documentation technique](dev/01-introduction/overview.md)** - Architecture du projet
+- **[Guide de contribution](dev/07-annexes/contributing.md)** - Comment contribuer au code
 - **[Issues développeur](https://github.com/Fydyr/Galad-Islands/issues)** - Bonnes premières contributions
 
 ## � Informations utiles
