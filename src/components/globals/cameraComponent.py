@@ -38,6 +38,10 @@ class Camera:
             modifiers_state = pygame.key.get_mods()
 
         sensitivity = config_manager.get("camera_sensitivity", 1.0)
+        # Doubler la sensibilité si Ctrl est appuyé
+        sensitivity_multiplier = 2.0 if (modifiers_state & pygame.KMOD_CTRL) else 1.0
+        sensitivity *= sensitivity_multiplier
+        
         base_speed = CAMERA_SPEED * sensitivity * dt / self.zoom  # Plus on zoome, plus on bouge lentement
 
         fast_multiplier = config_manager.get_camera_fast_multiplier()
@@ -60,10 +64,16 @@ class Camera:
         # Contraindre la caméra dans les limites du monde
         self._constrain_camera()
     
-    def handle_zoom(self, zoom_delta):
+    def handle_zoom(self, zoom_delta, modifiers_state: int | None = None):
         """Gère le zoom avec la molette de la souris."""
+        if modifiers_state is None:
+            modifiers_state = pygame.key.get_mods()
+            
+        # Vérifier si Ctrl est appuyé pour doubler la sensibilité
+        sensitivity_multiplier = 2.0 if (modifiers_state & pygame.KMOD_CTRL) else 1.0
+        
         old_zoom = self.zoom
-        self.zoom += zoom_delta * ZOOM_SPEED
+        self.zoom += zoom_delta * ZOOM_SPEED * sensitivity_multiplier
         self.zoom = max(ZOOM_MIN, min(ZOOM_MAX, self.zoom))
         
         # Ajuster la position pour zoomer vers le centre de l'écran

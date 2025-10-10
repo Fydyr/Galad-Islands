@@ -270,7 +270,6 @@ class DebugModal:
         
         # Check authorization via debug flag or config
         dev_mode = config_manager.get('dev_mode', False)
-        dev_mode = cfg.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -308,7 +307,6 @@ class DebugModal:
         
         # Check authorization via debug flag or config
         dev_mode = config_manager.get('dev_mode', False)
-        dev_mode = cfg.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -356,8 +354,7 @@ class DebugModal:
 
         # Check authorization via debug flag or config
         dev_mode = config_manager.get('dev_mode', False)
-        dev_mode = cfg.get('dev_mode', False)
-
+        
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
             self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
@@ -371,32 +368,16 @@ class DebugModal:
                 try:
                     # pass the current grid and a reasonable default number of boats
                     spawned = mgr.spawn_bandits_wave(self.game_engine.grid, 3)
-                except Exception:
-                    spawned = None
-
-        # If manager didn't spawn anything, try the processor fallback (if available)
-        if not spawned:
-            try:
-                from src.processeurs.events.banditsProcessor import BanditsProcessor
-            except Exception:
-                BanditsProcessor = None
-
-            if BanditsProcessor and hasattr(BanditsProcessor, 'spawn_bandits_wave') and hasattr(self.game_engine, 'grid'):
-                try:
-                    spawned = BanditsProcessor.spawn_bandits_wave(self.game_engine.grid, 3)
+                    print(f"[DEV] {spawned} bandits spawned")
+                    self._show_feedback('success', t('debug.feedback.bandits_spawned', default=f'{spawned} bandits spawned'))
                 except Exception as e:
-                    print(f"[DEV] Failed to spawn bandits via BanditsProcessor: {e}")
-                    spawned = None
+                    print(f"[DEV] Error spawning bandits: {e}")
+                    self._show_feedback('warning', t('debug.feedback.bandits_failed', default='Failed to spawn bandits'))
             else:
-                # No fallback available — log and keep spawned as None
-                print("[DEV] Bandits manager and BanditsProcessor not available for spawning bandits.")
-                spawned = None
-
-        if spawned:
-            self._show_feedback('success', t('debug.feedback.bandits_spawned', default='Bandits spawned'))
+                self._show_feedback('warning', t('debug.feedback.bandits_unavailable', default='Bandits manager not available'))
         else:
-            self._show_feedback('warning', t('debug.feedback.no_valid_position', default='No valid position found'))
-    
+            self._show_feedback('warning', t('debug.feedback.bandits_unavailable', default='Bandits manager not available'))
+
     def _handle_reveal_map(self):
         """Handle the reveal map action."""
         # Check if game engine is available
@@ -406,7 +387,6 @@ class DebugModal:
         
         # Check authorization via debug flag or config
         dev_mode = config_manager.get('dev_mode', False)
-        dev_mode = cfg.get('dev_mode', False)
         
         is_debug = getattr(self.game_engine, 'show_debug', False)
         if not (dev_mode or is_debug):
@@ -415,13 +395,21 @@ class DebugModal:
         
         # Reveal the entire map for the current team
         from src.systems.vision_system import vision_system
+        from src.settings.settings import MAP_WIDTH, MAP_HEIGHT
         
         # Get current team from action bar
         current_team = 1  # Default to allies
         if hasattr(self.game_engine, 'action_bar') and self.game_engine.action_bar is not None:
             current_team = self.game_engine.action_bar.current_camp
         
-        vision_system.reveal_all_map(current_team)
+        # Add all tiles to explored tiles for this team
+        if current_team not in vision_system.explored_tiles:
+            vision_system.explored_tiles[current_team] = set()
+        
+        for x in range(MAP_WIDTH):
+            for y in range(MAP_HEIGHT):
+                vision_system.explored_tiles[current_team].add((x, y))
+        
         print(f"[DEV] Map revealed for team {current_team}")
         self._show_feedback('success', t('debug.feedback.map_revealed', default='Map revealed'))
     
