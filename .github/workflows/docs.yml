@@ -35,8 +35,7 @@ jobs:
         python-version: '3.11'
         
     - name: Install dependencies
-      run: |
-        pip install mkdocs mkdocs-material mkdocs-i18n pymdown-extensions
+      run: pip install -r requirements-dev.txt
         
     - name: Deploy to GitHub Pages
       run: |
