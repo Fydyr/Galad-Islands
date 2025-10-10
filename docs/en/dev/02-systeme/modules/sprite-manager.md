@@ -1,8 +1,14 @@
+---
+i18n:
+  en: "Sprite Manager"
+  fr: "Sprite Manager"
+---
+
 # Sprite Manager
 
-## Vue d'ensemble
+## Overview of'ensemble
 
-Le **Sprite Manager** est un système centralisé de gestion des sprites qui remplace l'utilisation directe des chemins de fichiers par un système basé sur des IDs. Il améliore les performances grâce à la mise en cache et simplifie la maintenance du code.
+Le **Sprite Manager** est un System centralisé de Management des sprites qui remplace l'Usage directe des chemins de Files par un System basé sur des IDs. Il améliore les performances grâce à la mise en cache et simplifie la maintenance du code.
 
 ## Architecture
 
@@ -10,28 +16,28 @@ Le **Sprite Manager** est un système centralisé de gestion des sprites qui rem
 
 ```python
 class SpriteID(Enum):
-    # Unités alliées
+    # Units alliées
     ALLY_SCOUT = "ally_scout"
     ALLY_MARAUDEUR = "ally_maraudeur"
-    # Unités ennemies  
+    # Units ennemies  
     ENEMY_SCOUT = "enemy_scout"
     # Projectiles
     PROJECTILE_BULLET = "ball"
-    # Effets
+    # Effects
     EXPLOSION = "explosion"
     # Buildings, Events, UI...
 ```
 
-### SpriteData (Classe de données)
+### SpriteData (Classe de Data)
 
 ```python
 class SpriteData:
     def __init__(self, sprite_id: SpriteID, file_path: str, 
-                 default_width: int, default_height: int, description: str):
-        # Données de configuration pour chaque sprite
+                 default_width: int, default_height: int, Description: str):
+        # Data de Configuration pour chaque sprite
 ```
 
-### SpriteManager (Gestionnaire principal)
+### SpriteManager (Manager Main)
 
 ```python
 class SpriteManager:
@@ -40,13 +46,13 @@ class SpriteManager:
         self._loaded_images: Dict[SpriteID, pygame.Surface] = {}
 ```
 
-## Fonctionnalités principales
+## Features Main
 
 ### 1. Enregistrement centralisé
 
 - Tous les sprites sont enregistrés dans un registre unique
-- Chaque sprite a un ID, un chemin, des dimensions par défaut et une description
-- Support de multiples catégories : unités, projectiles, effets, bâtiments, événements, UI
+- Chaque sprite a un ID, un chemin, des dimensions by default et une Description
+- Support de multiples catégories : units, projectiles, Effects, buildings, Events, UI
 
 ### 2. Chargement et mise en cache
 
@@ -59,10 +65,10 @@ sprite_manager.preload_sprites([SpriteID.ALLY_SCOUT, SpriteID.ENEMY_SCOUT])
 sprite_manager.preload_all_sprites()
 ```
 
-### 3. Création de composants
+### 3. Creation de Components
 
 ```python
-# Création directe de SpriteComponent
+# Creation directe de SpriteComponent
 component = sprite_manager.create_sprite_component(
     SpriteID.ALLY_SCOUT, 
     width=100, 
@@ -72,48 +78,48 @@ component = sprite_manager.create_sprite_component(
 
 ### 4. Utilitaires de haut niveau
 
-Le module `sprite_utils.py` fournit des fonctions de convenance :
+Le module `sprite_utils.py` fournit des Functions de convenance :
 
 ```python
-# Création de sprites d'unités
+# Creation de sprites d'units
 sprite = create_unit_sprite_component(UnitType.SCOUT, is_enemy=False)
 
-# Création de sprites de projectiles
+# Creation de sprites de projectiles
 sprite = create_projectile_sprite_component("explosion", 32, 32)
 
-# Création de sprites d'événements
+# Creation de sprites d'Events
 sprite = create_event_sprite_component("kraken", 200, 200)
 
-# Création de sprites de bâtiments
+# Creation de sprites de buildings
 sprite = create_building_sprite_component("attack_tower", 80, 120)
 ```
 
 ## Intégration dans le code existant
 
-### Avant (ancien système)
+### Avant (ancien System)
 
 ```python
-# Utilisation directe des chemins
+# Usage directe des chemins
 sprite = SpriteComponent("assets/sprites/units/ally/Scout.png", 80.0, 100.0)
 ```
 
-### Après (nouveau système)
+### Après (nouveau System)
 
 ```python
-# Utilisation du système centralisé
+# Usage du System centralisé
 sprite = create_unit_sprite_component(UnitType.SCOUT, is_enemy=False)
 ```
 
-## Initialisation
+## Initialization
 
-Le système s'initialise automatiquement au démarrage du jeu :
+Le System s'initialise Automatically au démarrage du jeu :
 
 ```python
 # Dans game.py
 from src.initialization.sprite_init import initialize_sprite_system
 
 def _initialize_game_map(self):
-    # ... initialisation de la carte ...
+    # ... Initialization de la carte ...
     initialize_sprite_system()  # Précharge les sprites communs
 ```
 
@@ -123,15 +129,15 @@ def _initialize_game_map(self):
 2. **Maintenabilité** : Centralisation des références de sprites
 3. **Flexibilité** : Dimensions personnalisables, fallbacks automatiques
 4. **Debugging** : Logging détaillé, informations sur les sprites
-5. **Robustesse** : Gestion d'erreur intégrée, validation des fichiers
+5. **Robustesse** : Management d'erreur intégrée, validation des Files
 
 ## Catégories de sprites supportées
 
-- **Unités** : Alliées et ennemies (Scout, Maraudeur, Léviathan, Druide, Architecte, etc.)
+- **Units** : Alliées et ennemies (Scout, Maraudeur, Léviathan, Druide, Architecte, etc.)
 - **Projectiles** : Balles, boulets de canon, flèches
-- **Effets** : Explosions, impacts, effets spéciaux
-- **Bâtiments** : Tours d'attaque, tours de soin, constructions
-- **Événements** : Coffres, Kraken, navires pirates, tempêtes  
+- **Effects** : Explosions, impacts, Effects special
+- **Buildings** : Tours d'attack, tours de heal, constructions
+- **Events** : Coffres, Kraken, navires pirates, tempêtes  
 - **Interface** : Icônes, boutons, éléments UI
 - **Terrain** : Eau, îles, nuages (prévu pour extension future)
 
@@ -148,10 +154,10 @@ all_sprites = sprite_manager.list_all_sprites()
 sprite_manager.clear_cache()
 ```
 
-## Exemple d'utilisation complète
+## Exemple d'Usage complète
 
 ```python
-# 1. Obtenir le gestionnaire global
+# 1. Obtenir le Manager global
 from src.managers.sprite_manager import sprite_manager
 
 # 2. Créer un composant sprite pour une unité
@@ -162,43 +168,43 @@ sprite_component = create_unit_sprite_component(
     height=110
 )
 
-# 3. Ajouter le composant à une entité
+# 3. Ajouter le composant à une entity
 if sprite_component:
     esper.add_component(entity, sprite_component)
 
-# 4. Le rendu se fait automatiquement via le système existant
+# 4. Le Rendering se fait Automatically via le System existant
 ```
 
-## Structure des fichiers
+## Structure des Files
 
 ```
 src/
 ├── managers/
-│   └── sprite_manager.py          # Gestionnaire principal et énumération SpriteID
+│   └── sprite_manager.py          # Manager Main et énumération SpriteID
 ├── utils/
-│   └── sprite_utils.py            # Fonctions utilitaires de convenance
+│   └── sprite_utils.py            # Functions utilitaires de convenance
 ├── initialization/
-│   └── sprite_init.py             # Initialisation et préchargement
+│   └── sprite_init.py             # Initialization et préchargement
 └── components/properties/
     └── spriteComponent.py         # Composant sprite (inchangé)
 ```
 
-## Migration depuis l'ancien système
+## Migration depuis l'ancien System
 
 ### Étapes de migration
 
 1. **Identifier les sprites** : Répertorier tous les chemins de sprites utilisés
 2. **Ajouter aux énumérations** : Créer des IDs dans `SpriteID` 
 3. **Enregistrer les sprites** : Ajouter les `SpriteData` dans le registre
-4. **Remplacer les appels** : Utiliser les fonctions utilitaires
+4. **Remplacer les appels** : Utiliser les Functions utilitaires
 5. **Tester** : Vérifier que tous les sprites s'affichent correctement
 
 ### Checklist de migration par fichier
 
 - [x] `unitFactory.py` - Migration vers `create_unit_sprite_component()`
 - [x] `projectileCreator.py` - Migration vers `create_projectile_sprite_component()`
-- [x] `game.py` - Intégration de l'initialisation sprite
-- [ ] Autres créateurs d'entités (si existants)
+- [x] `game.py` - Intégration de l'Initialization sprite
+- [ ] Autres créateurs d'Entities (si existants)
 
 ## Troubleshooting
 

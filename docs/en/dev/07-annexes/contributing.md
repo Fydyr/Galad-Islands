@@ -1,22 +1,16 @@
-# Guide de contribution
-
-## Table des matières
-
-1. [Conventions de commit](#conventions-de-commit)
-2. [Workflow de contribution](#workflow-de-contribution)
-3. [Standards de code](#standards-de-code)
-4. [Processus de revue](#processus-de-revue)
-5. [Contact](#contact)
-
+---
+i18n:
+  en: "Contribution Guide"
+  fr: "Guide de contribution"
 ---
 
-# Guide de contribution
+# Contribution Guide
 
-## Conventions de commit
+## Commit Conventions
 
-Le projet utilise la spécification [Conventional Commits 1.0.0](https://www.conventionalcommits.org/) pour garantir un historique de commits lisible et exploitable par des outils automatisés.
+The project uses the Conventional Commits 1.0.0 specification to ensure a readable and machine-exploitable commit history.
 
-### Structure du message de commit
+### Commit Message Structure
 
 ```text
 <type>(<scope>): <subject>
@@ -26,54 +20,54 @@ Le projet utilise la spécification [Conventional Commits 1.0.0](https://www.con
 <footer>
 ```
 
-**Composants obligatoires :**
+**Mandatory Components:**
 
-- `type` : Type de modification
-- `subject` : Description courte (72 caractères maximum)
+- `type`: type of change
+- `subject`: Short description (max 72 characters)
 
-**Composants optionnels :**
+**Optional Components:**
 
-- `scope` : Portée de la modification (composant, module, fichier)
-- `body` : Description détaillée de la modification
-- `footer` : Métadonnées (références d'issues, breaking changes)
+- `scope`: Scope of the change (component, module, file)
+- `body`: Detailed description of the change
+- `footer`: Metadata (issue references, breaking changes)
 
-### Types de commit
+### Commit Types
 
-| Type | Description | Impact sur versioning |
+| Type | Description | Versioning Impact |
 |------|-------------|----------------------|
-| `feat` | Ajout d'une nouvelle fonctionnalité | MINOR |
-| `fix` | Correction d'un bug | PATCH |
-| `docs` | Modification de la documentation uniquement | - |
-| `style` | Modification n'affectant pas la logique (formatage, espaces, indentation) | - |
-| `refactor` | Refactorisation sans modification de fonctionnalité | - |
-| `perf` | Amélioration des performances | PATCH |
-| `test` | Ajout ou modification de tests | - |
-| `build` | Modification du système de build ou des dépendances | - |
-| `ci` | Modification de la configuration CI/CD | - |
-| `chore` | Tâches de maintenance (ne modifie ni src ni test) | - |
-| `revert` | Annulation d'un commit précédent | Dépend du commit annulé |
+| `feat` | Adds a new feature | MINOR |
+| `fix` | Fixes a bug | PATCH |
+| `docs` | Documentation changes only | - |
+| `style` | Changes not affecting logic (formatting, spaces, indentation) | - |
+| `refactor` | Refactoring without changing functionality | - |
+| `perf` | Performance improvements | PATCH |
+| `test` | Adding or modifying tests | - |
+| `build` | Changes to the build system or dependencies | - |
+| `ci` | CI/CD configuration changes | - |
+| `chore` | Maintenance tasks (does not modify src or test) | - |
+| `revert` | Reverts a previous commit | Depends on the reverted commit |
 
-### Règles de rédaction
+### Writing Rules
 
 !!! info Subject
-    - Utiliser l'impératif présent ("add" et non "added" ou "adds")
-    - Ne pas commencer par une majuscule
-    - Ne pas terminer par un point
-    - Maximum 72 caractères
+    - Use the imperative present tense ("add" not "added" or "adds")
+    - Do not start with a capital letter
+    - Do not end with a period
+    - Maximum 72 characters
 
 !!! info Body
-    - Séparer du subject par une ligne vide
-    - Expliquer le "quoi" et le "pourquoi", pas le "comment"
-    - Maximum 100 caractères par ligne
+    - Separate from the subject with a blank line
+    - Explain the "what" and "why", not the "how"
+    - Maximum 100 characters per line
 
 !!! info Footer
-    - Références aux issues : `Refs: #123, #456`
-    - Fermeture d'issues : `Closes: #123`
-    - Breaking changes : `BREAKING CHANGE: description`
+    - Issue references: `Refs: #123, #456`
+    - Closing issues: `Closes: #123`
+    - Breaking changes: `BREAKING CHANGE: Description`
 
-### Exemples
+### Examples
 
-=== "Nouvelle unité"
+=== "New Unit"
 
     ```bash
     feat(units): add Leviathan unit with siege capabilities
@@ -84,7 +78,7 @@ Le projet utilise la spécification [Conventional Commits 1.0.0](https://www.con
     Closes: #156
     ```
 
-=== "Correction de bug de combat"
+=== "Combat Bug Fix"
 
     ```bash
     fix(combat): prevent units from attacking through obstacles
@@ -95,7 +89,7 @@ Le projet utilise la spécification [Conventional Commits 1.0.0](https://www.con
     Refs: #203
     ```
 
-=== "Refactorisation de la boutique"
+=== "Shop Refactoring"
 
     ```bash
     refactor(shop): extract unit pricing logic to gameplay constants
@@ -106,42 +100,42 @@ Le projet utilise la spécification [Conventional Commits 1.0.0](https://www.con
 
 ---
 
-## Workflow de contribution
+## Contribution Workflow
 
-### Prérequis
+### Prerequisites
 
 - Git 2.0+
-- Compte GitHub avec accès au dépôt
-- Environnement de développement configuré selon le README
+- GitHub account with access to the repository
+- Development environment configured according to the README
 
-### Processus standard
+### Standard Process
 
-#### 1. Préparation
+#### 1. Preparation
 
 ```bash
-# Fork le dépôt via l'interface GitHub
+# Fork the repository via the GitHub interface
 
-# Clone le fork
+# Clone the fork
 git clone https://github.com/Fydyr/Galad-Islands.git
 cd <repository>
 
-# Configure le dépôt upstream
+# Configure the upstream repository
 git remote add upstream https://github.com/Fydyr/Galad-Islands.git
 
-# Synchronise avec upstream
+# Synchronize with upstream
 git fetch upstream
 git checkout main
 git merge upstream/main
 ```
 
-#### 2. Création d'une branche
+#### 2. Branch Creation
 
-!!! tip Convention de nommage
+!!! tip Naming Convention
     ```text
     <type>/<issue-number>-<short-description>
     ```
 
-**Exemples :**
+**Examples:**
 
 ```bash
 git checkout -b feat/123-oauth-integration
@@ -149,65 +143,65 @@ git checkout -b fix/456-null-pointer-exception
 git checkout -b docs/789-api-documentation
 ```
 
-**Types de branches :**
+**Branch Types:**
 
-- `feat/` : Nouvelle fonctionnalité
-- `fix/` : Correction de bug
-- `docs/` : Documentation
-- `refactor/` : Refactorisation
-- `test/` : Tests
-- `chore/` : Maintenance
+- `feat/`: New feature
+- `fix/`: Bug fix
+- `docs/`: Documentation
+- `refactor/`: Refactoring
+- `test/`: Tests
+- `chore/`: Maintenance
 
 #### 3. Commit
 
 ```bash
-# Ajout des fichiers modifiés
+# Add modified files
 git add <files>
 
-# Commit avec message conventionnel
+# Commit with conventional message
 git commit -m "type(scope): description"
 
-# Vérification
+# Validation
 git log --oneline
 ```
 
-#### 4. Synchronisation
+#### 4. Synchronization
 
 ```bash
-# Récupération des dernières modifications
+# Fetch the latest changes
 git fetch upstream
 git rebase upstream/main
 
-# Résolution des conflits si nécessaire
-# Puis continuer le rebase
+# Resolve conflicts if necessary
+# Then continue the rebase
 git rebase --continue
 ```
 
-#### 5. Push et Pull Request
+#### 5. Push and Pull Request
 
 ```bash
-# Push vers le fork
+# Push to the fork
 git push origin <branch-name>
 ```
 
-!!! note En cas de rebase
-    Vérifier si vos modifications ne risquent pas d'écraser des changements des autres contributeurs.
+!!! note In case of rebase
+    Check if your changes might overwrite other contributors' changes.
 
-!!! note Création de la Pull Request
-    1. Ouvrir l'interface GitHub
-    2. Créer une Pull Request depuis la branche du fork vers `main` d'upstream
-    3. Remplir le template de PR avec :
-        - **Titre** : Résumé clair de la modification
-        - **Description** : Contexte et détails techniques
-        - **Type de changement** : Feature, Bug fix, etc.
-        - **Issues liées** : Références (#123)
+!!! note Creating the Pull Request
+    1. Open the GitHub interface
+    2. Create a Pull Request from the fork's branch to upstream's `main`
+    3. Fill out the PR template with:
+        - **Title**: Clear summary of the change
+        - **Description**: Context and technical details
+        - **Type of change**: Feature, Bug fix, etc.
+        - **Related issues**: References (#123)
 
 
 ---
 
-## Standards de code
+## Code Standards
 
-### Principes généraux
+### General Principles
 
 !!! abstract SOLID
     - Single Responsibility Principle
@@ -217,82 +211,85 @@ git push origin <branch-name>
     - Dependency Inversion Principle
 
 !!! abstract Clean Code
-    - Noms explicites et significatifs
-    - Fonctions courtes (< 20 lignes)
-    - Commentaires uniquement si nécessaire
-    - Pas de code dupliqué (DRY)
-    - Gestion appropriée des erreurs
+    - Explicit and meaningful names
+    - Short functions (< 20 lines)
+    - Comments only when necessary
+    - No duplicated code (DRY)
+    - Proper error management
 
-### Conventions de nommage
+### Naming Conventions
 
-=== "Variables et fonctions"
+=== "Variables and Functions"
 
-    ```javascript
-    // camelCase pour variables et fonctions
-    const userName = 'John';
-    function getUserData() { }
+    ```python
+    # snake_case for variables and functions
+    user_name = 'John'
+    def get_user_data():
+        pass
     ```
 
-=== "Classes et composants"
+=== "Classes and Components"
 
-    ```javascript
-    // PascalCase pour classes et composants
-    class UserService { }
-    function UserProfile() { }
+    ```python
+    # PascalCase for Classes and Components
+    class UserService:
+        pass
+    class UserProfileComponent:
+        pass
     ```
 
-=== "Constantes"
+=== "Constants"
 
-    ```javascript
-    // UPPER_SNAKE_CASE pour constantes
-    const MAX_RETRY_COUNT = 3;
-    const API_BASE_URL = 'https://api.example.com';
+    ```python
+    # UPPER_SNAKE_CASE for Constants
+    MAX_RETRY_COUNT = 3
+    API_BASE_URL = 'https://api.example.com'
     ```
 
-=== "Fichiers"
+=== "Files"
 
-    - Utilitaires : `camelCase.py`
+    - Utilities: `snake_case.py`
 
 ### Tests
 
-!!! success Couverture de code
-    - **Minimum requis** : 80%
-    - **Objectif** : 90%+
+!!! success Code Coverage
+    - **Minimum Required**: 80%
+    - **Goal**: 90%+
 
 ---
 
-## Processus de revue
+## Review Process
 
-### Critères d'acceptation
+### Acceptance Criteria
 
-!!! warning Obligatoires
-    - [ ] Au moins une revue approuvée d'un mainteneur
-    - [ ] Aucun conflit avec la branche cible
-    - [ ] Documentation à jour
-    - [ ] Couverture de tests satisfaisante
+!!! warning Mandatory
+    - [ ] At least one approved review from a maintainer
+    - [ ] No conflicts with the target branch
+    - [ ] Up-to-date documentation
+    - [ ] Satisfactory test coverage
 
-!!! tip Recommandés
-    - [ ] Performance évaluée pour les modifications critiques
-    - [ ] Accessibilité vérifiée pour les modifications UI
-    - [ ] Sécurité analysée pour les modifications sensibles
+!!! tip Recommended
+    - [ ] Performance evaluated for critical changes
+    - [ ] Accessibility checked for UI changes
+    - [ ] Security analyzed for sensitive changes
 
-### Traitement des retours
+### Handling Feedback
 
-**Résolution des commentaires :**
+**Resolving comments:**
 
-1. Lire et comprendre tous les commentaires
-2. Appliquer les modifications demandées
-3. Répondre aux commentaires pour expliquer les choix
-4. Marquer les commentaires comme résolus
-5. Demander une nouvelle revue
+1. Read and understand all comments
+2. Apply the requested changes
+3. Reply to comments to explain choices
+4. Mark comments as resolved
+5. Request a new review
 
-**Modifications après revue :**
+**Changes after review:**
 
 ```bash
-# Modifier le code
+# Modify the code
 git add <files>
 
-# Commit de correction
+# Correction commit
 git commit -m "fix(scope): address review comments"
 
 # Push
@@ -303,19 +300,19 @@ git push origin <branch-name>
 
 ## Contact
 
-!!! question Pour toute question
-    Ouvrir une issue avec le label `question`
+!!! question For any questions
+    Open an issue with the `question` label
 
-### Mainteneurs
+### Maintainers
 
-- [Enzo Fournier](https://github.com/fydyr)
-- [Edouard Alluin](https://github.com/AlluinEdouard)
-- [Julien Behani](https://github.com/kinator)
-- [Ethan Cailliau](https://github.com/ethann59)
-- [Alexandre Damman](https://github.com/kaldex0)
-- [Romain Lambert](https://github.com/roro627)
+- Enzo Fournier
+- Edouard Alluin
+- Julien Behani
+- Ethan Cailliau
+- Alexandre Damman
+- Romain Lambert
 
 ---
 
-!!! info Version du document
-    **Version** : 1.0.0
+!!! info Document Version
+    **Version**: 1.0.0

@@ -1,37 +1,43 @@
-# Composants ECS
+---
+i18n:
+  en: "ECS Components"
+  fr: "Components ECS"
+---
 
-Les composants stockent uniquement des **données** et définissent les propriétés des entités. Ils ne contiennent jamais de logique métier.
+# ECS Components
 
-## Organisation des composants
+Components store only **Data** and define the Properties of Entities. They never contain business Logic.
+
+## Components organization
 
 ```
 src/components/
-├── core/           # Composants de base (position, santé, etc.)
-├── special/        # Capacités spéciales des unités
-├── events/         # Composants d'événements temporaires
-└── globals/        # Composants globaux (caméra, carte)
+├── core/           # Core components (position, health, etc.)
+├── special/        # Special abilities of units
+├── events/         # Temporary event components
+└── globals/        # Global components (Camera, map)
 ```
 
-## Composants de base (core/)
+## Core components (core/)
 
-### Composants essentiels
+### Essential components
 
 #### PositionComponent
-**Fichier :** `src/components/core/positionComponent.py`
+**File:** `src/components/core/positionComponent.py`
 
 ```python
 @component
 class PositionComponent:
     def __init__(self, x=0.0, y=0.0, direction=0.0):
-        self.x: float = x           # Position X dans le monde
-        self.y: float = y           # Position Y dans le monde  
-        self.direction: float = direction  # Direction en radians
+        self.x: float = x           # Position X in the world
+        self.y: float = y           # Position Y in the world  
+        self.direction: float = direction  # Direction in radians
 ```
 
-**Usage :** Toutes les entités visibles sur la carte.
+**Usage:** All Entities visible on the map.
 
 #### HealthComponent
-**Fichier :** `src/components/core/healthComponent.py`
+**File:** `src/components/core/healthComponent.py`
 
 ```python
 @component
@@ -41,10 +47,10 @@ class HealthComponent:
         self.maxHealth: int = maxHealth
 ```
 
-**Usage :** Unités, bâtiments, objets destructibles.
+**Usage:** Units, buildings, destructible objects.
 
 #### TeamComponent
-**Fichier :** `src/components/core/teamComponent.py`
+**File:** `src/components/core/teamComponent.py`
 
 ```python
 from src.components.core.team_enum import Team
@@ -52,26 +58,26 @@ from src.components.core.team_enum import Team
 @component
 class TeamComponent:
     def __init__(self, team: Team = Team.ALLY):
-        self.team: Team = team  # Team.ALLY ou Team.ENEMY
+        self.team: Team = team  # Team.ALLY or Team.ENEMY
 ```
 
-**Usage :** Détermine les alliances et les cibles d'attaque.
+**Usage:** Determines alliances and attack targets.
 
-### Composants spéciaux les plus utilisés
+### Most used special components
 
-#### SpeArchitect - Boost de rechargement
+#### SpeArchitect - Reload boost
 ```python
 @component
 class SpeArchitect:
     def __init__(self, is_active=False, radius=0.0):
         self.is_active: bool = is_active
         self.available: bool = True
-        self.radius: float = radius             # Rayon d'effet
-        self.affected_units: List[int] = []    # Unités affectées
-        self.duration: float = 10.0            # Durée de l'effet
+        self.radius: float = radius             # Effect radius
+        self.affected_units: List[int] = []    # Affected units
+        self.duration: float = 10.0            # Effect duration
 ```
 
-#### SpeScout - Invincibilité
+#### SpeScout - Invincibility
 ```python
 @component
 class SpeScout:
@@ -81,7 +87,7 @@ class SpeScout:
         self.invincibility_duration: float = 3.0
 ```
 
-#### PlayerComponent - Données du joueur
+#### PlayerComponent - Player data
 ```python
 @component
 class PlayerComponent:
@@ -99,407 +105,407 @@ class PlayerComponent:
 ```
 
 #### BaseComponent
-**Fichier :** `src/components/core/baseComponent.py`
+**File:** `src/components/core/baseComponent.py`
 
-**Architecture hybride :** Composant ECS traditionnel + gestionnaire intégré pour les entités de bases.
+**Hybrid architecture:** Traditional ECS component + Integrated Manager for base Entities.
 
-##### Données d'instance (composant classique)
+##### Instance data (classic component)
 ```python
 @component
 class BaseComponent:
     def __init__(self, troopList=[], currentTroop=0):
-        self.troopList: list = troopList      # Troupes de la base
-        self.currentTroop: int = currentTroop # Index unité sélectionnée
+        self.troopList: list = troopList      # Base troops
+        self.currentTroop: int = currentTroop # Selected unit index
 ```
 
-##### Gestionnaire de classe intégré
+##### Integrated class manager
 ```python
 class BaseComponent:
-    # Variables de classe pour l'état global
+    # Class variables for global state
     _ally_base_entity: Optional[int] = None
     _enemy_base_entity: Optional[int] = None
     _initialized: bool = False
 ```
 
-##### API du gestionnaire
+##### Manager API
 
-**Initialisation :**
+**Initialization:**
 ```python
 @classmethod
 def initialize_bases(cls):
-    """Crée les entités de bases avec tous leurs composants :
-    - PositionComponent (positionnement sur la carte)
-    - HealthComponent (1000 HP par défaut)
-    - AttackComponent (50 dégâts au contact)
-    - TeamComponent (équipe 1/2)
+    """Creates base Entities with all their Components:
+    - PositionComponent (map positioning)
+    - HealthComponent (1000 HP by default)
+    - AttackComponent (50 damage on contact)
+    - TeamComponent (team 1/2)
     - CanCollideComponent + RecentHitsComponent (collision + cooldown)
-    - ClasseComponent (noms localisés)
-    - SpriteComponent (hitbox invisible optimisée)
+    - ClasseComponent (localized names)
+    - SpriteComponent (optimized invisible hitbox)
     """
 ```
 
-**Accès aux entités :**
+**Entity access:**
 ```python
 @classmethod
 def get_ally_base(cls) -> Optional[int]:
-    """Retourne l'ID de l'entité base alliée."""
+    """Returns the ID of the allied base entity."""
 
 @classmethod  
 def get_enemy_base(cls) -> Optional[int]:
-    """Retourne l'ID de l'entité base ennemie."""
+    """Returns the ID of the enemy base entity."""
 ```
 
-**Gestion des troupes :**
+**Troop management:**
 ```python
 @classmethod
 def add_unit_to_base(cls, unit_entity: int, is_enemy: bool = False) -> bool:
-    """Ajoute une unité à la liste des troupes de la base."""
+    """Adds a unit to the base's troop list."""
 
 @classmethod
 def get_base_units(cls, is_enemy: bool = False) -> list[int]:
-    """Retourne la liste des troupes d'une base."""
+    """Returns the troop list of a base."""
 ```
 
-**Positionnement :**
+**Positioning:**
 ```python
 @classmethod  
 def get_spawn_position(cls, is_enemy=False, jitter=TILE_SIZE*0.35) -> Tuple[float, float]:
-    """Calcule une position de spawn près de la base avec jitter optionnel."""
+    """Calculates a spawn position near the base with optional jitter."""
 ```
 
-**Maintenance :**
+**Maintenance:**
 ```python
 @classmethod
 def reset(cls) -> None:
-    """Réinitialise le gestionnaire (changement de niveau)."""
+    """Resets the Manager (level change)."""
 ```
 
-##### Utilisation
+##### Usage
 
-**Initialisation du jeu :**
+**Game initialization:**
 ```python
-# Dans GameEngine._create_initial_entities()
+# In GameEngine._create_initial_entities()
 BaseComponent.initialize_bases()
 spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False)
 ```
 
-**Achat d'unités :**
+**Unit purchase:**
 ```python
-# Dans boutique.py
+# In boutique.py
 entity = UnitFactory(unit_type, is_enemy, spawn_position)
 BaseComponent.add_unit_to_base(entity, is_enemy)
 ```
 
-**Migration depuis BaseManager :**
+**Migration from BaseManager:**
 - `get_base_manager().method()` → `BaseComponent.method()`
-- Même API, juste des appels directs
-- Performance identique, architecture simplifiée
+- Same API, just direct calls
+- Identical performance, simplified architecture
 
-**Usage :** Composant hybride pour QG alliés/ennemis avec gestion centralisée.
+**Usage:** Hybrid component for allied/enemy headquarters with centralized management.
 
-## Énumérations importantes
+## Important enumerations
 
-### Team (Équipes)
+### Team (Teams)
 ```python
 class Team(IntEnum):
-    ALLY = 0    # Équipe du joueur
-    ENEMY = 1   # Équipe ennemie
+    ALLY = 0    # Player team
+    ENEMY = 1   # Enemy team
 ```
 
-### UnitClass (Types d'unités)
+### UnitClass (Unit types)
 ```python
 class UnitClass(IntEnum):
-    ZASPER = 0      # Unité de base
+    ZASPER = 0      # Base unit
     BARHAMUS = 1    # Tank
-    DRUID = 2       # Soigneur
+    DRUID = 2       # Healer
     ARCHITECT = 3   # Support
-    DRAUPNIR = 4    # Attaquant lourd
+    DRAUPNIR = 4    # Heavy attacker
 ```
 
-## Composants globaux (globals/)
+## Global components (globals/)
 
-### CameraComponent - Gestion de la vue
-**Fichier :** `src/components/globals/cameraComponent.py`
+### CameraComponent - View management
+**File:** `src/components/globals/cameraComponent.py`
 
 ```python
 class Camera:
-    """Caméra pour l'affichage adaptatif de la carte."""
+    """Camera for adaptive map display."""
     
     def __init__(self, screen_width: int, screen_height: int):
-        self.x: float = 0.0              # Position X caméra (pixels monde)
-        self.y: float = 0.0              # Position Y caméra (pixels monde)
-        self.zoom: float = ZOOM_MIN      # Facteur de zoom par défaut
+        self.x: float = 0.0              # Camera X position (world pixels)
+        self.y: float = 0.0              # Camera Y position (world pixels)
+        self.zoom: float = ZOOM_MIN      # Default zoom factor
         self.screen_width: int = screen_width
         self.screen_height: int = screen_height
         
-        # Limites monde
+        # World limits
         self.world_width: int = MAP_WIDTH * TILE_SIZE
         self.world_height: int = MAP_HEIGHT * TILE_SIZE
     
     def world_to_screen(self, world_x: float, world_y: float) -> tuple[int, int]:
-        """Conversion coordonnées monde → écran."""
+        """World coordinates → Screen conversion."""
         
     def get_visible_tiles(self) -> tuple[int, int, int, int]:
-        """Optimisation : retourne les tuiles visibles (culling)."""
+        """Optimization: returns visible tiles (culling)."""
 ```
 
-**Intégration UI :** Voir [Système de caméra](../api/ui-system.md#système-de-caméra-avancé) pour les détails d'utilisation.
+**UI Integration:** See [Camera System](../api/ui-system.md#Advanced-Camera-System) for usage details.
 
-### MapComponent - Génération et affichage
-**Fichier :** `src/components/globals/mapComponent.py`
+### MapComponent - Generation and display
+**File:** `src/components/globals/mapComponent.py`
 
 ```python
 def init_game_map(screen_width: int, screen_height: int) -> dict:
-    """Initialise l'état complet de la carte."""
-    grid = creer_grille()           # Grille vide (mer)
-    images = charger_images()       # Sprites des terrains
-    placer_elements(grid)           # Génération procédurale
+    """Initializes the complete map state."""
+    grid = creer_grille()           # Empty grid (sea)
+    images = charger_images()       # Terrain sprites
+    placer_elements(grid)           # Procedural generation
     camera = Camera(screen_width, screen_height)
     return {"grid": grid, "images": images, "camera": camera}
 
 def creer_grille() -> list[list[int]]:
-    """Crée grille MAP_HEIGHT x MAP_WIDTH initialisée à TileType.SEA."""
+    """Creates MAP_HEIGHT x MAP_WIDTH grid initialized to TileType.SEA."""
     
 def placer_elements(grid: list[list[int]]) -> None:
-    """Génération procédurale des éléments de carte :
+    """Procedural generation of map elements:
     
-    1. Bases fixes (4x4) aux coins
-    2. Îles génériques (GENERIC_ISLAND_RATE)
-    3. Mines d'or (MINE_RATE) 
-    4. Nuages décoratifs (CLOUD_RATE)
+    1. Fixed bases (4x4) at corners
+    2. Generic islands (GENERIC_ISLAND_RATE)
+    3. Gold mines (MINE_RATE) 
+    4. Decorative clouds (CLOUD_RATE)
     """
 
 def afficher_grille(window: pygame.Surface, grid: list[list[int]], 
                    images: dict, camera: Camera) -> None:
-    """Rendu optimisé de la carte avec viewport culling."""
+    """Optimized map rendering with viewport culling."""
 ```
 
-**Intégration UI :** Voir [Système de carte et vue du monde](../api/ui-system.md#système-de-carte-et-vue-du-monde) pour le rendu complet.
+**UI Integration:** See [Map system and world view](../api/ui-system.md#Map-system-and-world-view) for complete rendering.
 
-## Composants d'événements (events/)
+## Event components (events/)
 
-### StormComponent - Événement tempête
-**Fichier :** `src/components/events/stormComponent.py`
+### StormComponent - Storm event
+**File:** `src/components/events/stormComponent.py`
 
 ```python
 @component
 class Storm:
     def __init__(self, tempete_duree: float = 0, tempete_cooldown: float = 0):
-        self.tempete_duree: float = tempete_duree      # Durée de la tempête
-        self.tempete_cooldown: float = tempete_cooldown # Cooldown avant nouvelle tempête
+        self.tempete_duree: float = tempete_duree      # Storm duration
+        self.tempete_cooldown: float = tempete_cooldown # Cooldown before new storm
 ```
 
-**Usage :** Événement climatique qui affecte les unités sur la carte.
+**Usage:** Weather event that affects units on the map.
 
-### KrakenComponent - Événement Kraken
-**Fichier :** `src/components/events/krakenComponent.py`
+### KrakenComponent - Kraken event
+**File:** `src/components/events/krakenComponent.py`
 
 ```python
 @component
 class Kraken:
     def __init__(self, kraken_tentacules_min: int = 0, kraken_tentacules_max: int = 0):
-        self.kraken_tentacules_min: int = kraken_tentacules_min  # Min tentacules
-        self.kraken_tentacules_max: int = kraken_tentacules_max  # Max tentacules
+        self.kraken_tentacules_min: int = kraken_tentacules_min  # Min tentacles
+        self.kraken_tentacules_max: int = kraken_tentacules_max  # Max tentacles
 ```
 
-**Usage :** Boss événementiel avec tentacules multiples.
+**Usage:** Boss event with multiple tentacles.
 
-### FlyChestComponent - Coffre volant
-**Fichier :** `src/components/events/flyChestComponent.py`
+### FlyChestComponent - Flying chest
+**File:** `src/components/events/flyChestComponent.py`
 
 ```python
 @component  
 class FlyChest:
     def __init__(self, chest_value: int = 0):
-        self.chest_value: int = chest_value  # Valeur en or du coffre
-        self.is_collected: bool = False      # État de collecte
+        self.chest_value: int = chest_value  # Gold value of the chest
+        self.is_collected: bool = False      # Collection state
 ```
 
-**Usage :** Événement de collecte d'or temporaire.
+**Usage:** Temporary gold collection event.
 
-## Composants de bâtiments (buildings/)
+## Building components (buildings/)
 
-> **📖 Documentation complète** : Voir [Système de Tours](../tower-system-implementation.md) pour l'implémentation détaillée du système de tours défensives.
+> **📖 Complete documentation**: See [Tower System](../tower-system-implementation.md) for detailed implementation of the defensive tower system.
 
-### TowerComponent - Composant de base des tours
-**Fichier :** `src/components/core/towerComponent.py`
+### TowerComponent - Base component for towers
+**File:** `src/components/core/towerComponent.py`
 
 ```python
 @dataclass
 class TowerComponent:
-    tower_type: str              # Type de tour : "defense" ou "heal"
-    range: float                 # Portée d'action en pixels
-    cooldown: float              # Temps entre deux actions (secondes)
-    current_cooldown: float = 0.0  # Temps restant avant prochaine action
-    target_entity: Optional[int] = None  # Entité actuellement ciblée
+    tower_type: str              # Tower type: "defense" or "heal"
+    range: float                 # Action range in pixels
+    cooldown: float              # Time between two actions (seconds)
+    current_cooldown: float = 0.0  # Time remaining before next action
+    target_entity: Optional[int] = None  # Currently targeted entity
 ```
 
-**Usage :** Toutes les tours (défense et soin). Géré par le `TowerProcessor`.
+**Usage:** All towers (defense and heal). Managed by the `TowerProcessor`.
 
-**Propriétés** :
-- `tower_type` : Détermine le comportement (attaque ou soin)
-- `range` : Distance de détection des cibles
-- `cooldown` : Fréquence d'action de la tour
-- `current_cooldown` : Compteur décrémenté à chaque frame
-- `target_entity` : ID de la cible en cours
+**Properties**:
+- `tower_type`: Determines behavior (attack or heal)
+- `range`: Target detection distance
+- `cooldown`: Action frequency
+- `current_cooldown`: Decremented counter each frame
+- `target_entity`: ID of current target
 
-### DefenseTowerComponent - Tours d'attaque
-**Fichier :** `src/components/core/defenseTowerComponent.py`
+### DefenseTowerComponent - Attack towers
+**File:** `src/components/core/defenseTowerComponent.py`
 
 ```python
 @dataclass
 class DefenseTowerComponent:
-    damage: float        # Dégâts infligés par attaque (défaut: 15.0)
-    attack_speed: float  # Multiplicateur de vitesse d'attaque (défaut: 1.0)
+    damage: float        # Damage inflicted per attack (default: 15.0)
+    attack_speed: float  # Attack speed multiplier (default: 1.0)
 ```
 
-**Usage :** Tours qui attaquent automatiquement les ennemis à portée.
+**Usage:** Towers that automatically attack enemies in range.
 
-**Création** : Via `buildingFactory.create_defense_tower()`
-- Coût : 150 gold
-- Portée : 200 pixels
-- Cooldown : 2 secondes
-- Dégâts : 15 par projectile
+**Creation**: Via `buildingFactory.create_defense_tower()`
+- Cost: 150 gold
+- Range: 200 pixels
+- Cooldown: 2 seconds
+- Damage: 15 per projectile
 
-### HealTowerComponent - Tours de soin
-**Fichier :** `src/components/core/healTowerComponent.py`
+### HealTowerComponent - Healing towers
+**File:** `src/components/core/healTowerComponent.py`
 
 ```python
 @dataclass
 class HealTowerComponent:
-    heal_amount: float   # Points de vie restaurés par soin (défaut: 10.0)
-    heal_speed: float    # Multiplicateur de vitesse de soin (défaut: 1.0)
+    heal_amount: float   # Health points restored per heal (default: 10.0)
+    heal_speed: float    # Healing speed multiplier (default: 1.0)
 ```
 
-**Usage :** Tours qui soignent automatiquement les alliés blessés à portée.
+**Usage:** Towers that automatically heal wounded allies in range.
 
-**Création** : Via `buildingFactory.create_heal_tower()`
-- Coût : 120 gold
-- Portée : 150 pixels
-- Cooldown : 3 secondes
-- Soin : 10 PV par cycle
+**Creation**: Via `buildingFactory.create_heal_tower()`
+- Cost: 120 gold
+- Range: 150 pixels
+- Cooldown: 3 seconds
+- Heal: 10 HP per cycle
 
-**Note** : Les tours nécessitent qu'un Architecte soit sélectionné et que le placement soit sur une île.
+**Note**: Towers require an Architect to be selected and placement on an island.
 
-## Composants de rendu et interactions
+## Rendering and interaction components
 
-### SpriteComponent - Affichage visuel
-**Fichier :** `src/components/core/spriteComponent.py`
+### SpriteComponent - Visual display
+**File:** `src/components/core/spriteComponent.py`
 
 ```python
 @component
 class SpriteComponent:
     def __init__(self, image_path: str = "", width: float = 0.0, height: float = 0.0,
                  image: pygame.Surface = None, surface: pygame.Surface = None):
-        self.image_path: str = image_path    # Chemin sprite assets
-        self.width: float = width            # Largeur affichage
-        self.height: float = height          # Hauteur affichage
-        self.original_width: float = width   # Dimensions originales
-        self.original_height: float = height # (pour collisions)
-        self.image: pygame.Surface = image   # Image source
-        self.surface: pygame.Surface = surface # Image redimensionnée
+        self.image_path: str = image_path    # Sprite assets path
+        self.width: float = width            # Display width
+        self.height: float = height          # Display height
+        self.original_width: float = width   # Original dimensions
+        self.original_height: float = height # (for collisions)
+        self.image: pygame.Surface = image   # Source image
+        self.surface: pygame.Surface = surface # Resized image
     
     def load_sprite(self) -> None:
-        """Charge l'image depuis le chemin."""
+        """Load image from path."""
         
     def scale_sprite(self, width: float, height: float) -> None:
-        """Redimensionne le sprite."""
+        """Resize the sprite."""
 ```
 
-**Usage :** Toutes les entités visibles (unités, projectiles, effets).
+**Usage:** All visible entities (units, projectiles, effects).
 
-### VelocityComponent - Mouvement
-**Fichier :** `src/components/core/velocityComponent.py`
+### VelocityComponent - Movement
+**File:** `src/components/core/velocityComponent.py`
 
 ```python
 @component
 class VelocityComponent:
     def __init__(self, vx: float = 0.0, vy: float = 0.0, speed: float = 0.0):
-        self.vx: float = vx              # Vitesse X
-        self.vy: float = vy              # Vitesse Y  
-        self.speed: float = speed        # Vitesse maximale
-        self.terrain_modifier: float = 1.0  # Modificateur terrain
+        self.vx: float = vx              # X speed
+        self.vy: float = vy              # Y speed  
+        self.speed: float = speed        # Maximum speed
+        self.terrain_modifier: float = 1.0  # Terrain modifier
 ```
 
-**Usage :** Entités mobiles avec interaction terrain.
+**Usage:** Mobile entities with terrain interaction.
 
 ### ProjectileComponent - Projectiles
-**Fichier :** `src/components/core/projectileComponent.py`
+**File:** `src/components/core/projectileComponent.py`
 
 ```python
 @component
 class ProjectileComponent:
     def __init__(self, damage: int = 0, target_entity: int = -1, 
                  speed: float = 0.0, range_max: float = 0.0):
-        self.damage: int = damage           # Dégâts du projectile
-        self.target_entity: int = target_entity  # Entité cible
-        self.speed: float = speed           # Vitesse de déplacement
-        self.range_max: float = range_max   # Portée maximale
-        self.distance_traveled: float = 0.0 # Distance parcourue
+        self.damage: int = damage           # Projectile damage
+        self.target_entity: int = target_entity  # Target entity
+        self.speed: float = speed           # Movement speed
+        self.range_max: float = range_max   # Maximum range
+        self.distance_traveled: float = 0.0 # Distance traveled
 ```
 
-**Usage :** Projectiles d'attaque entre unités.
+**Usage:** Attack projectiles between units.
 
-### VisionComponent - Portée de vision
-**Fichier :** `src/components/core/visionComponent.py`
+### VisionComponent - Vision range
+**File:** `src/components/core/visionComponent.py`
 
 ```python
 @component
 class VisionComponent:
     def __init__(self, range: float):
-        self.range: float = range  # Portée de vision en unités de grille
+        self.range: float = range  # Vision range in grid units
 ```
 
-**Usage :** Unités avec capacité de vision.
+**Usage:** Units with vision capability.
 
 !!!tip
-    Voir [Système de vision et brouillard de guerre](vision-system.md) pour les détails d'implémentation.
+    See [Vision system and fog of war](vision-system.md) for implementation details.
 
 
-## Types de terrain et génération
+## Terrain types and generation
 
-### Énumération TileType
-**Fichier :** `src/constants/map_tiles.py`
+### TileType enumeration
+**File:** `src/constants/map_tiles.py`
 
 ```python
 class TileType(IntEnum):
-    SEA = 0                # Mer (navigable)
-    GENERIC_ISLAND = 1     # Île générique (obstacle)
-    ALLY_BASE = 2          # Base alliée (4x4)
-    ENEMY_BASE = 3         # Base ennemie (4x4)  
-    MINE = 4               # Mine d'or (ressource)
-    CLOUD = 5              # Nuage décoratif
+    SEA = 0                # Sea (navigable)
+    GENERIC_ISLAND = 1     # Generic island (obstacle)
+    ALLY_BASE = 2          # Allied base (4x4)
+    ENEMY_BASE = 3         # Enemy base (4x4)  
+    MINE = 4               # Gold mine (resource)
+    CLOUD = 5              # Decorative cloud
 ```
 
-### Algorithme de génération procédurale
+### Procedural generation algorithm
 
 ```python
-def placer_bloc_aleatoire(grid: list[list[int]], valeur: TileType, nombre: int,
+def placer_bloc_aleatoire(grid: list[list[int]], value: TileType, nombre: int,
                          size: int = 1, min_dist: int = 2, avoid_bases: bool = True) -> list[tuple[float, float]]:
-    """Algorithme de placement aléatoire avec contraintes :
+    """Random placement algorithm with constraints:
     
-    1. Évitement des bases (avoid_bases=True)
-    2. Distance minimale entre éléments (min_dist)
-    3. Vérification d'espace libre (bloc_libre())
-    4. Placement par blocs de taille variable (size)
+    1. Base avoidance (avoid_bases=True)
+    2. Minimum distance between elements (min_dist)
+    3. Free space validation (bloc_libre())
+    4. Placement in variable size blocks (size)
     
     Returns:
-        list[tuple]: Centres des blocs placés
+        list[tuple]: Centers of placed blocks
     """
 ```
 
-**Taux de génération configurables :**
+**Configurable generation rates:**
 
-- `GENERIC_ISLAND_RATE` : Nombre d'îles générées
-- `MINE_RATE` : Nombre de mines d'or  
-- `CLOUD_RATE` : Nombre de nuages décoratifs
+- `GENERIC_ISLAND_RATE`: Number of generated islands
+- `MINE_RATE`: Number of gold mines  
+- `CLOUD_RATE`: Number of decorative clouds
 
-## Utilisation pratique
+## Practical usage
 
-### Créer une entité avec composants
+### Create an entity with components
 
 ```python
-# Créer une unité
+# Create a unit
 entity = esper.create_entity()
 esper.add_component(entity, PositionComponent(100, 200))
 esper.add_component(entity, TeamComponent(Team.ALLY))
@@ -507,38 +513,38 @@ esper.add_component(entity, HealthComponent(100, 100))
 esper.add_component(entity, AttackComponent(25))
 ```
 
-### Rechercher des entités
+### Search for entities
 
 ```python
-# Toutes les unités avec position et santé
+# All units with position and health
 for ent, (pos, health) in esper.get_components(PositionComponent, HealthComponent):
     if health.currentHealth <= 0:
         esper.delete_entity(ent)
 ```
 
-### Vérifier la présence d'un composant
+### Check component presence
 
 ```python
 if esper.has_component(entity, SpeArchitect):
     architect = esper.component_for_entity(entity, SpeArchitect)
     if architect.available and not architect.is_active:
-        # Activer la capacité...
+        # Activate the ability...
 ```
 
-## Bonnes pratiques
+## Best practices
 
-### ✅ À faire
+### ✅ Do's
 
-- **Données pures** uniquement dans les composants
-- **Type hints** pour toutes les propriétés
-- **Valeurs par défaut** sensées
-- **Noms explicites** pour les propriétés
+- **Pure data** only in components
+- **Type hints** for all properties
+- **Sensible default values**
+- **Explicit names** for properties
 
-### ❌ À éviter
+### ❌ Don'ts
 
-- Logique métier dans les composants
-- Références directes entre entités
-- Méthodes complexes
-- État mutable partagé
+- Business logic in components
+- Direct references between entities
+- Complex methods
+- Shared mutable state
 
-Cette organisation modulaire permet de créer des entités complexes en combinant des composants simples et réutilisables.
+This modular organization allows creating complex entities by combining simple and reusable components.

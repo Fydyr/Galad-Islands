@@ -1,56 +1,80 @@
-# API - Système d'unités
+---
+i18n:
+  en: "API - Unit System"
+  fr: "API - Système d'unités"
+---
 
-> 🚧 **Section en cours de rédaction**
+# API - Unit System
 
-Cette page décrit le modèle d'entités pour les unités, l'API des capacités spéciales, le flux de dégâts (collision → dispatch → application) et les bonnes pratiques de débogage et de test.
+> 🚧 **Section under construction**
+
+This page describes the entity model for units, the special abilities API, the damage flow (collision → dispatch → application), and best practices for debugging and testing.
 
 ---
 
-## 🧩 Principes généraux
+## 🧩 General Principles
 
-- Architecture : ECS (Esper-like)
+- Architecture: ECS (Esper-like)
 
-  - entité = id numérique (int)
-  - composants = dataclasses attachées via `esper.add_component(entity, Component(...))`
-  - processeurs = classes héritant de `esper.Processor` et exécutées via `es.process()`
+  - entity = numeric id (int)
+  - components = dataclasses attached via `esper.add_component(entity, Component(...))`
+  - processors = classes inheriting from `esper.Processor` and executed via `es.process()`
 
-- Composants clefs pour une unité
+- Key components for a unit
 
-  - `PositionComponent` : { x, y, direction }
-  - `SpriteComponent` : rendu (image, taille, surface)
-  - `TeamComponent` : { team_id }
-  - `VelocityComponent` : { currentSpeed, terrain_modifier, ... }
-  - `RadiusComponent` : { bullet_cooldown, ... }
-  - `AttackComponent` : { hitPoints }
-  - `HealthComponent` : { currentHealth, maxHealth }
-  - `CanCollideComponent` : drapeau de collision
-  - `Spe*` : composants de capacités spéciales (SpeScout, SpeMaraudeur, ...)
+  - `PositionComponent`: { x, y, direction }
+  - `SpriteComponent`: rendering (image, size, surface)
+  - `TeamComponent`: { team_id }
+  - `VelocityComponent`: { currentSpeed, terrain_modifier, ... }
+  - `RadiusComponent`: { bullet_cooldown, ... }
+  - `AttackComponent`: { hitPoints }
+  - `HealthComponent`: { currentHealth, maxHealth }
+  - `CanCollideComponent`: collision flag
+  - `Spe*`: special ability components (SpeScout, SpeMarauder, ...)
 
-Vous pouvez en savoir plus sur les capacités spéciales dans la [documentation dédiée](../modules/special-capacity-system.md).
-
----
-
-## ⚙️ Factory — création des unités
-
-- Fonction : `UnitFactory(unit_type, enemy: bool, pos: PositionComponent)`
-
-- Comportement : instancie l'entité et lui attache les composants pertinents (health, attack, sprite, team, canCollide, SpeXxx si applicable).
-
-- Exemple : `UnitType.MARAUDEUR` → ajoute `SpeMaraudeur()` lors de la création.
-
-- Valeurs (PV, attaque, vitesse, cooldown) : définies dans `src/constants/gameplay.py`.
+You can learn more about special abilities in the dedicated documentation.
 
 ---
 
-## ✨ Capacités spéciales — contrat & API
+## ⚙️ Factory — Unit Creation
 
-Chaque capacité spéciale est encapsulée dans un composant `SpeXxx`. Le code (GameEngine/UI/processors) attend une API légère et uniforme.
+The `UnitFactory` is the central point for creating unit entities. It ensures that each unit is instantiated with the correct set of components based on its type.
 
-> Voir la documentation détaillée des capacités : [Système de capacités spéciales](../modules/special-capacity-system.md)
+- **Function**: `UnitFactory(unit_type: UnitType, enemy: bool, pos: PositionComponent)`
 
-### Contrat recommandé
+- **Behavior**: Instantiates the entity and attaches the relevant components (health, attack, sprite, team, canCollide, SpeXxx if applicable). The factory reads unit statistics (HP, damage, speed) from `src/constants/gameplay.py`.
 
-- Attributs (selon capacité)
+- **Example**: `UnitType.MARAUDER` → adds `SpeMaraudeur()` during creation.
+
+```python
+def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
+    """Creates a complete entity with all its components."""
+    entity = esper.create_entity()
+    
+    # Base components
+    esper.add_component(entity, pos)
+    esper.add_component(entity, TeamComponent(Team.ENEMY if enemy else Team.ALLY))
+    
+    # Specific components based on unit type
+    if unit == UnitKey.ARCHITECT:
+        esper.add_component(entity, SpeArchitect(radius=ARCHITECT_RADIUS))
+        esper.add_component(entity, HealthComponent(100, 100))
+        esper.add_component(entity, AttackComponent(25))
+    
+    return entity
+```
+
+---
+
+## ✨ Special Abilities — Contract & API
+
+Each special ability is encapsulated in a `SpeXxx` component. The code (GameEngine/UI/processors) expects a light and uniform API.
+
+> See the detailed ability documentation: Special Ability System
+
+### Recommended Contract
+
+- Attributes (depending on ability)
 
   - `is_active: bool`
   - `duration: float`
@@ -58,95 +82,88 @@ Chaque capacité spéciale est encapsulée dans un composant `SpeXxx`. Le code (
   - `cooldown: float`
   - `cooldown_timer: float`
 
-- Méthodes conseillées
+- Recommended Methods
 
   - `can_activate()` -> bool
   - `activate()` -> bool
   - `update(dt)`
-  - éventuelles méthodes spécifiques (ex : `apply_damage_reduction(damage)`, `is_invincible()`)
+  - any specific methods (e.g., `apply_damage_reduction(damage)`, `is_invincible()`)
 
-### Implementations courantes
+### Common Implementations
 
-- `SpeScout` : invincibilité temporaire (`is_invincible()`)
-- `SpeMaraudeur` : bouclier qui réduit les dégâts (`apply_damage_reduction`, `is_shielded()`)
-- `SpeLeviathan`, `SpeDruid`, `SpeArchitect` : autres comportements (voir composants respectifs)
-
----
-
-## 🔁 Cycle de mise à jour
-
-- `CapacitiesSpecialesProcessor.process(dt)` appelle `update(dt)` sur chaque composant `Spe*`.
-- L'UI (ActionBar) lit `cooldown_timer` pour afficher le cooldown via `GameEngine._build_unit_info` / `_update_unit_info`.
+- `SpeScout`: temporary invincibility (`is_invincible()`)
+- `SpeMaraudeur`: shield that reduces damage (`apply_damage_reduction`, `is_shielded()`)
+- `SpeLeviathan`, `SpeDruid`, `SpeArchitect`: other behaviors (see respective components)
 
 ---
 
-## 💥 Chaîne de dégâts (collision → application)
+## 🔁 Update Cycle
 
-1. `CollisionProcessor` détecte les collisions (AABB sur `SpriteComponent.original_*`) et appelle `_handle_entity_hit(e1, e2)`.
-2. `_handle_entity_hit` :
-
-   - sauvegarde l'état utile (positions, si projectile, ...)
-   - dispatch : `esper.dispatch_event('entities_hit', e1, e2)`
-   - après le dispatch, gère destruction de mine / explosions selon l'existence des entités
-
-3. Handler configuré : `functions.handleHealth.entitiesHit`
-
-   - lit `AttackComponent.hitPoints` et appelle `processHealth(target, damage)`
-
-4. `processHealth(entity, damage)`
-
-   - récupère `HealthComponent`
-   - si `SpeMaraudeur` présent : applique `apply_damage_reduction`
-   - si `SpeScout` et `is_invincible()` : annule le dégât
-   - décrémente `health.currentHealth` et supprime l'entité si ≤ 0
+- `CapacitiesSpecialesProcessor.process(dt)` calls `update(dt)` on each `Spe*` component.
+- The UI (ActionBar) reads `cooldown_timer` to display the cooldown via `GameEngine._build_unit_info` / `_update_unit_info`.
 
 ---
 
-## ⚠️ Points d'attention
+## 💥 Damage Chain (Collision → Application)
 
-- Cohérence des noms : `HealthComponent` utilise `currentHealth` / `maxHealth` (camelCase)
-- Protéger les appels sur composants optionnels avec `esper.has_component(...)`
-- Éviter que des handlers ré-dispatchent `entities_hit` pour la même paire (boucle)
-- Mine lifecycle : entité (HP=1, Attack=40, Team=0) + nettoyage de la grille (`graph[y][x] = 0`) par `CollisionProcessor`
+The combat system is event-driven, starting from collision detection.
 
----
-
-## 🐛 Debugging recommandé
-
-- Préférer `logging` à `print` et utiliser des niveaux (DEBUG/INFO/WARN)
-- Traces utiles :
-
-  - `CollisionProcessor._handle_entity_hit(e1,e2)` (composants clés)
-  - `functions.handleHealth.entitiesHit` / `processHealth` (health avant/après, Spe* présents)
-  - vérifier `esper.entity_exists(entity)` après dispatch
-
----
-
-## ✅ Tests à automatiser
-
-- Tests unitaires (monde esper minimal) :
-
-  - mine vs unité normale → mine morte, unité -40 PV, grille = 0
-  - mine vs Scout invincible → mine intacte, unité pas touchée
-  - projectile vs mine → projectile détruit, mine intacte
-  - Maraudeur bouclier → dégâts réduits correctement
+1.  **`CollisionProcessor`**: Detects collisions (AABB on `SpriteComponent.original_*`) and calls `_handle_entity_hit(e1, e2)`.
+2.  **`_handle_entity_hit`**:
+    - Saves useful state (positions, if projectile, ...).
+    - Dispatches an event: `esper.dispatch_event('entities_hit', e1, e2)`.
+    - After dispatch, handles mine destruction/explosions based on entity existence.
+3.  **Configured Handler**: `functions.handleHealth.entitiesHit` is registered to listen for the `entities_hit` event.
+    - It reads `AttackComponent.hitPoints` from the attacker and calls `processHealth(target, damage)`.
+4.  **`processHealth(entity, damage)`**:
+    - Retrieves the target's `HealthComponent`.
+    - If `SpeMaraudeur` is present and active, it applies `apply_damage_reduction`.
+    - If `SpeScout` is present and `is_invincible()`, it cancels the damage.
+    - Decrements `health.currentHealth` and deletes the entity if health is ≤ 0.
 
 ---
 
-## 💡 Recommandations futures
+## ⚠️ Points of Attention
 
-- Remplacer `print` par `logging` (niveau DEBUG)
-- Standardiser l'API des capacités via une base commune (`BaseSpecialAbility`)
-- Ajouter `ManaComponent` si besoin de coût en ressource pour certaines capacités
-
----
-
-## À venir
-
-- Système de combat
-- IA et comportements
-- Factory pattern (déjà rédigé ?)
+- **Naming Consistency**: `HealthComponent` uses `currentHealth` / `maxHealth` (camelCase). Be consistent when adding new fields.
+- **Safe Access**: Always protect calls on optional components with `esper.has_component(...)`.
+- **Event Loops**: Avoid handlers that re-dispatch `entities_hit` for the same pair, which could cause an infinite loop.
+- **Mine Lifecycle**: A mine is an entity (HP=1, Attack=40, Team=0). `CollisionProcessor` is responsible for cleaning up the grid (`graph[y][x] = 0`) after it explodes.
 
 ---
 
-*Cette documentation sera complétée prochainement.*
+## 🐛 Recommended Debugging
+
+- Prefer `logging` over `print` and use levels (DEBUG/INFO/WARN).
+- Useful traces:
+  - `CollisionProcessor._handle_entity_hit(e1,e2)` (log key components).
+  - `functions.handleHealth.entitiesHit` / `processHealth` (log health before/after, and any active `Spe*` components).
+  - Check `esper.entity_exists(entity)` after dispatching an event that might delete it.
+
+---
+
+## ✅ Tests to Automate
+
+- Unit tests (with a minimal esper world):
+  - mine vs. normal unit → mine destroyed, unit -40 HP, grid tile = 0.
+  - mine vs. invincible Scout → mine intact, unit untouched.
+  - projectile vs. mine → projectile destroyed, mine intact.
+  - Marauder with shield → damage correctly reduced.
+
+---
+
+## 💡 Future Recommendations
+
+- Replace `print` with `logging` (DEBUG level).
+- Standardize the ability API via a common base class (`BaseSpecialAbility`).
+- Add a `ManaComponent` if some abilities need a resource cost.
+
+---
+
+## Coming Soon
+
+- AI and behaviors
+
+---
+
+*This documentation will be completed soon.*

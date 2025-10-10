@@ -1,152 +1,137 @@
-# Système de Vision et Brouillard de Guerre
+---
+i18n:
+  en: "Vision System & Fog of War"
+  fr: "Système de Vision et Brouillard de Guerre"
+---
 
-## Vue d'ensemble
+# Vision System and Fog of War
 
-Le **Système de Vision** gère la visibilité des unités et applique un brouillard de guerre immersif inspiré de Civilization. Il contrôle quelles parties de la carte sont visibles pour chaque équipe et rend les zones non explorées avec des sprites de nuages variés.
+## Overview
+
+The **Vision System** manages unit visibility and applies an immersive, Civilization-inspired fog of war. It controls which parts of the map are visible to each team and renders unexplored areas with varied cloud sprites.
 
 ## Architecture
 
-### VisionSystem (Classe principale)
+### VisionSystem (Main Class)
 
 ```python
 class VisionSystem:
     def __init__(self):
-        self.visible_tiles: dict[int, Set[Tuple[int, int]]] = {}  # Par équipe
-        self.explored_tiles: dict[int, Set[Tuple[int, int]]] = {}  # Par équipe
-        self.current_team = 1  # Équipe actuelle
-        self.cloud_image = None  # Image des nuages chargée dynamiquement
+        self.visible_tiles: dict[int, Set[Tuple[int, int]]] = {}  # Per team
+        self.explored_tiles: dict[int, Set[Tuple[int, int]]] = {}  # Per team
+        self.current_team = 1  # Current team
+        self.cloud_image = None  # Dynamically loaded cloud image
 ```
 
-### États de visibilité
+### Visibility States
 
-- **Visible** : Tuiles actuellement dans le champ de vision des unités de l'équipe
-- **Exploré** : Tuiles déjà vues au moins une fois (persistent)
-- **Non découvert** : Tuiles jamais vues, couvertes de nuages
+- **Visible**: Tiles currently within the line of sight of the team's units.
+- **Explored**: Tiles that have been seen at least once (persistent).
+- **Undiscovered**: Tiles never seen, covered by clouds.
 
-## Fonctionnalités principales
+## Main Features
 
-### 1. Gestion multi-équipes
+### 1. Multi-Team Management
 
-- Chaque équipe maintient ses propres ensembles de tuiles visibles et explorées
-- Changement automatique lors du switch d'équipe dans l'interface
-- Séparation complète des données de visibilité
+- Each team maintains its own sets of visible and explored tiles.
+- Automatically switches when the team is changed in the UI.
+- Complete separation of visibility data.
 
-### 2. Calcul de visibilité
+### 2. Visibility Calculation
 
 ```python
 def update_visibility(self, current_team: Optional[int] = None):
-    """Met à jour les zones visibles pour l'équipe actuelle."""
-    # Parcourt toutes les unités de l'équipe avec VisionComponent
-    # Calcule les tuiles dans leur portée de vision
-    # Met à jour visible_tiles et explored_tiles
+    """Updates the visible areas for the current team."""
+    # Iterates through all units of the team with VisionComponent
+    # Calculates tiles within their vision range
+    # Updates visible_tiles and explored_tiles
 ```
 
-### 3. Rendu du brouillard
+### 3. Fog Rendering
 
-#### Nuages pour zones non découvertes
+#### Clouds for Undiscovered Areas
 
-- Sprites de nuages 2x plus gros que les tuiles
-- Centrés sur chaque tuile pour un effet de chevauchement naturel
-- Découpes variées de l'image source pour plus de diversité
-- Alpha blending à 160 pour une transparence optimale
+- Cloud sprites are 2x larger than tiles.
+- Centered on each tile for a natural overlapping effect.
+- Varied cutouts from the source image for more diversity.
+- Alpha blending at 160 for optimal transparency.
 
-#### Brouillard léger pour zones explorées
+#### Light Fog for Explored Areas
 
-- Couleur noire semi-transparente (alpha 40)
-- Appliqué aux tuiles déjà vues mais hors de portée
+- Semi-transparent black color (alpha 40).
+- Applied to tiles already seen but currently out of range.
 
-### 4. Optimisations de performance
+### 4. Performance Optimizations
 
-- Chargement différé de l'image cloud (après initialisation Pygame)
-- Utilisation du SpriteManager pour la gestion centralisée des assets
-- Calcul déterministe des découpes pour éviter les calculs aléatoires coûteux
+- Lazy loading of the cloud image (after Pygame initialization).
+- Use of `SpriteManager` for centralized asset management.
+- Deterministic calculation of cutouts to avoid costly random calculations.
 
-## Composants associés
+## Associated Components
 
 ### VisionComponent
 
 ```python
 @dataclass
 class VisionComponent:
-    range: float  # Portée de vision en unités de grille
+    range: float  # Vision range in grid units
 ```
 
-- Attaché à toutes les unités et bâtiments
-- Valeurs définies dans `constants/gameplay.py`
-- Portées typiques : 4-8 unités de grille selon le type d'unité
+- Attached to all units and buildings.
+- Values defined in `constants/gameplay.py`.
+- Typical ranges: 4-8 grid units depending on the unit type.
 
-### Intégration dans le rendu
+### Integration into Rendering
 
-Le système s'intègre dans `GameRenderer._render_fog_of_war()` :
+The system integrates into `GameRenderer._render_fog_of_war()`:
 
 ```python
 def _render_fog_of_war(self, window, camera):
     vision_system.update_visibility(current_team)
     fog_rects = vision_system.get_visibility_overlay(camera)
-    # Rendu des rectangles de brouillard
+    # Render fog rectangles
 ```
 
-## Constantes de configuration
+## Configuration Constants
 
 ```python
-# Dans constants/gameplay.py
-BASE_VISION_RANGE = 8.0      # Vision des bases
-UNIT_VISION_SCOUT = 6.0      # Vision des éclaireurs
-UNIT_VISION_MARAUDEUR = 5.0  # Vision des maraudeurs
-# ... autres unités
+# In constants/gameplay.py
+BASE_VISION_RANGE = 8.0      # Vision of bases
+UNIT_VISION_SCOUT = 6.0      # Vision of scouts
+UNIT_VISION_MARAUDER = 5.0  # Vision of marauders
+# ... other units
 ```
 
-## Interface utilisateur
+## User Interface
 
-### Cercle de vision
+### Vision Circle
 
-- Cercle blanc affiché uniquement autour de l'unité sélectionnée
-- Diamètre proportionnel à la portée de vision
-- Épaisseur configurable (2 pixels par défaut)
+- White circle displayed only around the selected unit.
+- Diameter proportional to the vision range.
+- Configurable thickness (2 pixels by default).
 
-### Contrôles
+### Controls
 
-- Changement d'équipe : Met automatiquement à jour la visibilité
-- Sélection d'unité : Affiche le cercle de vision correspondant
+- Team change: Automatically updates visibility.
+- Unit selection: Displays the corresponding vision circle.
 
-## Optimisations et performances
+## Optimizations and Performance
 
-### Gestion mémoire
+### Memory Management
 
-- Images mises en cache par le SpriteManager
-- Découpes créées à la demande et non stockées
-- Ensembles de tuiles par équipe pour éviter les conflits
+- Images cached by the `SpriteManager`.
+- Cutouts created on demand and not stored.
+- Tile sets per team to avoid conflicts.
 
-### Performance de rendu
+### Rendering Performance
 
-- Un sprite par tuile non visible (optimisé pour les GPUs modernes)
-- Calcul de visibilité uniquement lors des changements d'équipe
-- Clipping automatique des sprites hors écran
+- One sprite per non-visible tile (optimized for modern GPUs).
+- Visibility calculation only on team changes.
+- Automatic clipping of off-screen sprites.
 
-## Débogage
+## Future Evolutions
 
-### Messages de debug
-
-- "Cloud requested but cloud_image is None" : Image non chargée
-- Comptage des cercles de vision rendus par équipe
-
-### Outils de développement
-
-- Vision étendue disponible en mode debug
-- Possibilité de révéler toute la carte temporairement
-
-## Évolutions futures
-
-### Améliorations possibles
-
-- Animation des nuages pour plus d'immersion
-- Effets de particules pour les transitions de visibilité
-- Ligne de vue (line-of-sight) plus sophistiquée
-- Brouillard dynamique réagissant aux événements
-
-### Intégration
-
-- Support des bâtiments avec vision étendue
-- Capacités spéciales affectant la visibilité
-- Effets météorologiques impactant le brouillard</content>
-<parameter name="filePath">/home/lieserl/Documents/GitHub/Galad-Islands/docs/dev/modules/vision-system.md
+- Cloud animation for more immersion.
+- Particle effects for visibility transitions.
+- More sophisticated line-of-sight.
+- Dynamic fog reacting to events.

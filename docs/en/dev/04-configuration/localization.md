@@ -1,50 +1,56 @@
-# Système de localisation
+---
+i18n:
+  en: "Localization System"
+  fr: "System de localisation"
+---
 
-Le système de localisation de Galad Islands permet de supporter plusieurs langues avec une architecture modulaire et extensible.
+# Localization System
 
-## Vue d'ensemble
+The Galad Islands localization system allows support for multiple languages with a modular and extensible architecture.
 
-### Architecture du système
+## Overall overview
+
+### System architecture
 
 ```text
-src/settings/localization.py    # Gestionnaire principal
-├── LocalizationManager         # Classe singleton
-├── Fonctions utilitaires       # t(), set_language(), etc.
-└── Intégration config          # Persistance des préférences
+src/settings/localization.py    # Main manager
+├── LocalizationManager         # Singleton class
+├── Utility functions           # t(), set_language(), etc.
+└── Config integration          # Preferences persistence
 
-assets/locales/                 # Fichiers de traduction
-├── french.py                   # Traductions françaises
-├── english.py                  # Traductions anglaises
-└── [nouvelle_langue].py        # Futures langues
+assets/locales/                 # Translation files
+├── french.py                   # French translations
+├── english.py                  # English translations
+└── [new_language].py           # Future languages
 ```
 
-## Gestionnaire de localisation
+## Localization manager
 
 ### LocalizationManager (Singleton)
 
-**Fichier :** `src/settings/localization.py`
+**File:** `src/settings/localization.py`
 
 ```python
 class LocalizationManager:
-    """Gestionnaire singleton pour les traductions."""
+    """Singleton manager for translations."""
     
     def __init__(self):
-        self._current_language = "fr"       # Langue par défaut
-        self._translations = {}             # Cache des traductions
-        self._load_translations()           # Chargement initial
+        self._current_language = "fr"       # Default language
+        self._translations = {}             # Translations cache
+        self._load_translations()           # Initial loading
     
     def translate(self, key: str, **kwargs) -> str:
-        """Traduit une clé avec paramètres optionnels."""
+        """Translates a key with optional parameters."""
         translation = self._translations.get(key, key)
         
-        # Support des paramètres dynamiques
+        # Support for dynamic parameters
         if kwargs:
             translation = translation.format(**kwargs)
         
         return translation
     
     def set_language(self, language_code: str) -> bool:
-        """Change la langue et recharge les traductions."""
+        """Changes the language and reloads translations."""
         if language_code in ["fr", "en"]:
             self._current_language = language_code
             config_manager.set("language", language_code)
@@ -53,104 +59,124 @@ class LocalizationManager:
         return False
 ```
 
-### Fonctions utilitaires globales
+### Global utility functions
 
 ```python
-# Importation simple depuis n'importe où
+# Simple import from anywhere
 from src.settings.localization import t, set_language, get_current_language
 
-# Usage dans le code
-title = t("menu.play")                           # "Jouer" ou "Play"
-volume_text = t("options.volume_music_label", volume=75)  # Avec paramètres
+# Usage in code
+title = t("menu.play")                           # "Jouer" or "Play"
+volume_text = t("Options.volume_music_label", volume=75)  # With parameters
 ```
 
-## Structure des fichiers de traduction
+## Translation files structure
 
-### Format standard
+### Standard format
 
-**Exemple :** `assets/locales/french.py`
+**Example:** `assets/locales/french.py`
 
 ```python
 # -*- coding: utf-8 -*-
 """
-Traductions françaises pour Galad Islands
+French translations for Galad Islands
 """
 
 TRANSLATIONS = {
-    # Organisation par catégories avec préfixes
+    # Organization by categories with prefixes
     
-    # Menu principal
+    # Main Menu
     "menu.play": "Jouer",
-    "menu.options": "Options",
+    "menu.Options": "Options",
     "menu.quit": "Quitter",
     
-    # Interface de jeu
-    "game.gold": "Or : {amount}",              # Avec paramètre dynamique
+    # Game interface
+    "game.gold": "Or : {amount}",              # With dynamic parameter
     "game.unit_selected": "Unité sélectionnée : {name}",
     "game.health": "Vie : {current}/{max}",
     
-    # Messages système
+    # System messages
     "system.loading": "Chargement...",
     "system.error": "Erreur : {message}",
     
-    # Raccourcis clavier
-    "options.binding.unit_attack": "Attaque principale",
-    "options.binding.camera_move_left": "Caméra vers la gauche",
+    # Keyboard shortcuts
+    "Options.binding.unit_attack": "Attack principale",
+    "Options.binding.camera_move_left": "Camera vers la gauche",
     
-    # Tips et conseils
-    "tip.0": "Utilisez les capacités spéciales au bon moment !",
+    # Tips and advice
+    "tip.0": "Utilisez les abilities special au bon moment !",
     "tip.1": "Les mines d'or vous donnent des ressources supplémentaires.",
     "tip.2": "Explorez la carte pour découvrir des coffres cachés.",
 }
 ```
 
-### Conventions de nommage
+### Naming conventions
 
-| Préfixe | Usage | Exemple |
+| Prefix | Usage | Example |
 |---------|-------|---------|
-| `menu.` | Menus et navigation | `menu.play`, `menu.options` |
-| `game.` | Interface de jeu | `game.gold`, `game.unit_selected` |
-| `options.` | Paramètres et configuration | `options.volume`, `options.language` |
-| `system.` | Messages système | `system.loading`, `system.error` |
-| `tip.` | Conseils et astuces | `tip.0`, `tip.1`, `tip.2` |
-| `unit.` | Noms et descriptions d'unités | `unit.zasper`, `unit.druid` |
-| `error.` | Messages d'erreur | `error.save_failed`, `error.connection` |
+| `menu.` | Menus and navigation | `menu.play`, `menu.Options` |
+| `game.` | Game interface | `game.gold`, `game.unit_selected` |
+| `Options.` | Settings and configuration | `Options.volume`, `Options.language` |
+| `system.` | System messages | `system.loading`, `system.error` |
+| `tip.` | Tips and advice | `tip.0`, `tip.1`, `tip.2` |
+| `unit.` | Unit names and descriptions | `unit.zasper`, `unit.druid` |
+| `error.` | Error messages | `error.save_failed`, `error.connection` |
 
-## Utilisation dans le code
+## Usage dans le code
 
-### Traduction simple
+## Usage examples
+
+### Basic translation
 
 ```python
-from src.settings.localization import t
+from src.managers.localization_manager import LocalizationManager
 
-# Dans les menus
-button_text = t("menu.play")            # "Jouer" ou "Play"
-options_title = t("options.title")      # "Options"
+# Get the localization manager instance
+loc = LocalizationManager.get_instance()
 
-# Dans l'interface de jeu
-loading_msg = t("system.loading")       # "Chargement..." ou "Loading..."
+# Simple translation
+play_text = loc.get_text("menu.play")  # Returns "Play"
+options_text = loc.get_text("menu.Options")  # Returns "Options"
 ```
 
-### Traduction avec paramètres
+### Translation with parameters
 
 ```python
-# Affichage dynamique des ressources
-gold_display = t("game.gold", amount=player.gold)
-# Résultat : "Or : 150" ou "Gold: 150"
-
-# Informations d'unité
-unit_info = t("game.unit_selected", name=unit.name)
-# Résultat : "Unité sélectionnée : Zasper"
-
-# Barres de vie
-health_text = t("game.health", current=75, max=100)
-# Résultat : "Vie : 75/100" ou "Health: 75/100"
+# Translation with dynamic parameters
+gold_text = loc.get_text("game.gold", amount=1500)  # Returns "Gold: 1500"
+unit_text = loc.get_text("game.unit_selected", name="Zasper")  # Returns "Unit selected: Zasper"
+health_text = loc.get_text("game.health", current=75, max=100)  # Returns "Health: 75/100"
 ```
 
-### Intégration dans l'interface utilisateur
+### Error handling
 
 ```python
-# Dans l'ActionBar
+# Translation with fallback
+error_msg = loc.get_text("system.error", message="Connection failed")
+# If key doesn't exist, returns "system.error"
+
+# Check if key exists
+if loc.has_key("menu.play"):
+    play_text = loc.get_text("menu.play")
+else:
+    play_text = "Play"  # Fallback
+```
+
+### Language switching
+
+```python
+# Change language at runtime
+loc.set_language("french")
+print(loc.get_text("menu.play"))  # Affiche "Jouer"
+
+loc.set_language("english")
+print(loc.get_text("menu.play"))  # Prints "Play"
+```
+
+### User interface integration
+
+```python
+# In the ActionBar
 class ActionBar:
     def _draw_gold_display(self, surface):
         gold_text = t("game.gold", amount=self.get_player_gold())
@@ -165,49 +191,49 @@ class ActionBar:
                           max=self.selected_unit.max_health)
 ```
 
-### Système de tips aléatoires
+### Random tips system
 
 ```python
 from src.settings.localization import get_random_tip, get_all_tips
 
-# Tip aléatoire pour écran de chargement
+# Tip aléatoire pour Screen de chargement
 loading_tip = get_random_tip()
 
-# Toutes les tips pour interface d'aide
+# Toutes les tips pour Interface d'aide
 all_tips = get_all_tips()
 for i, tip in enumerate(all_tips):
     print(f"{i+1}. {tip}")
 ```
 
-## Ajouter une nouvelle langue
+## Adding a new language
 
-### Étape 1 : Créer le fichier de traduction
+### Step 1: Create the translation file
 
-Créez un nouveau fichier dans `assets/locales/` :
+Create a new file in `assets/locales/`:
 
-**Exemple :** `assets/locales/spanish.py`
+**Example:** `assets/locales/spanish.py`
 
 ```python
 # -*- coding: utf-8 -*-
 """
-Traducciones españolas para Galad Islands
+Spanish translations for Galad Islands
 """
 
 TRANSLATIONS = {
-    # Menu principal
+    # Main Menu
     "menu.play": "Jugar",
-    "menu.options": "Opciones", 
+    "menu.Options": "Opciones", 
     "menu.credits": "Créditos",
     "menu.help": "Ayuda",
     "menu.scenario": "Escenario",
     "menu.quit": "Salir",
     
-    # Interface de jeu
+    # Game interface
     "game.gold": "Oro: {amount}",
     "game.unit_selected": "Unidad seleccionada: {name}",
     "game.health": "Vida: {current}/{max}",
     
-    # Messages système
+    # System messages
     "system.loading": "Cargando...",
     "system.error": "Error: {message}",
     
@@ -215,23 +241,23 @@ TRANSLATIONS = {
     "tip.0": "¡Usa las habilidades especiales en el momento adecuado!",
     "tip.1": "Las minas de oro te dan recursos adicionales.",
     
-    # Toutes les autres clés doivent être traduites...
+    # All other keys must be translated...
 }
 ```
 
-### Étape 2 : Mettre à jour le gestionnaire
+### Step 2: Update the Manager
 
-Modifiez `src/settings/localization.py` :
+Modify `src/settings/localization.py`:
 
 ```python
 def _load_translations(self):
-    """Charge les traductions pour la langue actuelle"""
+    """Load translations for the current language"""
     try:
-        # Ajouter la nouvelle langue au mapping
+        # Add the new language to the mapping
         language_modules = {
             "fr": "assets.locales.french", 
             "en": "assets.locales.english",
-            "es": "assets.locales.spanish"  # Nouvelle langue
+            "es": "assets.locales.spanish"  # New language
         }
         
         module_name = language_modules.get(self._current_language, "assets.locales.french")
@@ -239,20 +265,20 @@ def _load_translations(self):
         self._translations = translation_module.TRANSLATIONS
 
 def get_available_languages(self):
-    """Retourne la liste des langues disponibles"""
+    """Return the list of available languages"""
     return {
         "fr": "Français",
         "en": "English", 
-        "es": "Español"  # Nouvelle langue
+        "es": "Español"  # New language
     }
 ```
 
-### Étape 3 : Validation et test
+### Step 3: Validation and testing
 
 ```python
-# Script de validation des traductions
+# Translation validation script
 def validate_translations():
-    """Vérifie que toutes les clés sont traduites."""
+    """Check that all keys are translated."""
     
     from assets.locales import french, english, spanish
     
@@ -260,67 +286,67 @@ def validate_translations():
     en_keys = set(english.TRANSLATIONS.keys())
     es_keys = set(spanish.TRANSLATIONS.keys())
     
-    # Clés manquantes
+    # Missing keys
     missing_en = fr_keys - en_keys
     missing_es = fr_keys - es_keys
     
     if missing_en:
-        print(f"Clés manquantes en anglais : {missing_en}")
+        print(f"Keys missing in English: {missing_en}")
     
     if missing_es:
-        print(f"Clés manquantes en espagnol : {missing_es}")
+        print(f"Keys missing in Spanish: {missing_es}")
     
-    print(f"Français : {len(fr_keys)} clés")
-    print(f"Anglais : {len(en_keys)} clés")
-    print(f"Espagnol : {len(es_keys)} clés")
+    print(f"French: {len(fr_keys)} keys")
+    print(f"English: {len(en_keys)} keys")
+    print(f"Spanish: {len(es_keys)} keys")
 ```
 
-## Bonnes pratiques
+## Best practices
 
-### Structure et organisation
+### Structure and organization
 
-✅ **À faire :**
+✅ **Do's:**
 
-- **Préfixes cohérents** pour regrouper les traductions
-- **Clés descriptives** en anglais (`unit_attack` plutôt que `ua`)
-- **Paramètres nommés** pour les valeurs dynamiques (`{amount}`, `{name}`)
-- **Fichiers par langue** avec structure identique
-- **Commentaires** pour organiser les sections
+- **Consistent prefixes** to group translations
+- **Descriptive keys** in English (`unit_attack` rather than `ua`)
+- **Named placeholders** for dynamic values (`{amount}`, `{name}`)
+- **Language files** with identical structure
+- **Comments** to organize sections
 
-❌ **À éviter :**
+❌ **Don'ts:**
 
-- Traductions directes dans le code (`"Jouer"` vs `t("menu.play")`)
-- Clés trop longues ou peu claires
-- Mélange de langues dans un même fichier
-- Paramètres non nommés (`{0}`, `{1}` au lieu de `{name}`)
+- Direct translations in code (`"Jouer"` vs `t("menu.play")`)
+- Keys that are too long or unclear
+- Mixing languages in the same file
+- Unnamed placeholders (`{0}`, `{1}` instead of `{name}`)
 
-### Gestion des paramètres
+### Parameter management
 
 ```python
-# ✅ Bon usage avec paramètres nommés
-"game.unit_health": "Vie : {current}/{max}",
-"options.volume_label": "Volume {type} : {level}%",
+# ✅ Good usage with named parameters
+"game.unit_health": "Health: {current}/{max}",
+"Options.volume_label": "Volume {type}: {level}%",
 
-# ❌ À éviter - paramètres positionnels
-"game.unit_health": "Vie : {}/{}", 
-"options.volume_label": "Volume {} : {}%",
+# ❌ To avoid - Positional parameters
+"game.unit_health": "Health: {}/{}", 
+"Options.volume_label": "Volume {}: {}%",
 ```
 
-### Test et validation
+### Testing and validation
 
 ```python
-# Script de test pour nouvelle langue
+# Test script for new language
 def test_language(lang_code):
-    """Test complet d'une langue."""
+    """Complete test of a language."""
     
     from src.settings.localization import set_language, t
     
-    # Changer vers la nouvelle langue
+    # Switch to the new language
     set_language(lang_code)
     
-    # Tester les traductions essentielles
+    # Test essential translations
     essential_keys = [
-        "menu.play", "menu.options", "menu.quit",
+        "menu.play", "menu.Options", "menu.quit",
         "system.loading", "system.error",
         "game.gold", "game.health"
     ]
@@ -330,13 +356,13 @@ def test_language(lang_code):
         print(f"{key}: {translation}")
 ```
 
-## Intégration avec l'UI
+## Integration with UI
 
-Le système de localisation s'intègre parfaitement avec le système UI documenté dans [Interface utilisateur](../02-systeme/api/ui-system.md) :
+The localization system integrates perfectly with the UI system documented in [User Interface](../02-systeme/api/ui-system.md):
 
-- **Menu d'options** : Sélection de langue avec persistance automatique
-- **ActionBar** : Affichage dynamique des ressources et informations
-- **Modales** : Contenu traduit des fenêtres d'aide et crédits
-- **Messages système** : Notifications et erreurs localisées
+- **Options Menu**: Language selection with automatic persistence
+- **ActionBar**: Dynamic display of resources and information
+- **Modals**: Translated content of help windows and credits
+- **System Messages**: Localized notifications and errors
 
-Cette architecture permet d'ajouter facilement de nouvelles langues tout en maintenant la cohérence de l'interface utilisateur.
+This architecture allows easily adding new languages while maintaining UI consistency.

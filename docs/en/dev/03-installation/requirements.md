@@ -1,13 +1,20 @@
-# Configuration développement
+---
+i18n:
+  en: "Configuration Development"
+  fr: "Configuration Development"
+---
 
-## Ce qu'il faut pour développer Galad Islands
+# Configuration Development
 
-### Prérequis minimum
+## What you need to develop Galad Islands
+
+### Minimum Prerequisites
+
 - **Python 3.9+** 
-- **4 GB RAM** minimum (8 GB recommandés)
-- **2 GB d'espace disque**
+- **2 GB RAM** Minimum (4 GB recommended)
+- **500 MB disk space**
 
-### Installation rapide
+### Quick Installation
 
 #### Linux (Ubuntu/Debian)
 ```bash
@@ -16,7 +23,7 @@ sudo apt install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
 ```
 
 #### Windows
-- Installer Python 3.9+ depuis python.org
+- Install Python 3.9+ from python.org
 
 #### macOS
 ```bash
@@ -24,51 +31,52 @@ brew install python@3.9
 brew install sdl2 sdl2_image sdl2_mixer
 ```
 
-### Setup du projet
+### Project Setup
 
 ```bash
-# Cloner le projet
+# Clone the Project
 git clone https://github.com/Fydyr/Galad-Islands.git
 cd Galad-Islands
 
-# Créer l'environnement virtuel
+# Create Virtual Environment
 python3 -m venv venv
 source venv/bin/activate  # Linux/macOS
-# ou venv\Scripts\activate  # Windows
+# or venv\Scripts\activate  # Windows
 
-# Installer les dépendances
+# Install Dependencies
 pip install -r requirements.txt
-# Installer les dépendances de développement
+# Install Development Dependencies
 pip install -r requirements-dev.txt
 
-# Lancer le jeu
+# Launch the game
 python main.py
 ```
 
-### Dépendances Python principales
+### Main Python Dependencies
 
 ```txt
-# requirements.txt (version de production)
-pygame>=2.1.2
-esper>=2.0
-numpy>=1.21.0
-Pillow>=8.3.0
-pyyaml>=6.0
-requests>=2.26.0
+# requirements.txt (Production version)
+esper==3.4
+llvmlite==0.44.0
+numba==0.61.2
+numpy==2.2.6
+pygame==2.6.1
+Pillow==10.4.0
+tomli==1.2.0
 
-# requirements-dev.txt (développement)
-pytest>=6.2.0
-pytest-cov>=2.12.0
-black>=21.7.0
-flake8>=3.9.0
-mypy>=0.910
-sphinx>=4.1.0
+# requirements-dev.txt (Development)
+markdown==3.9.0
+tkhtmlview==0.3.1
+commitizen==4.9.1
+mkdocs==1.5.2
+mkdocs-material==9.1.15
+mkdocs-static-i18n==1.2.3
 ```
 
 
-# Vérifier que tout fonctionne
+# Verify everything works
 ```
 python -c "import pygame, esper; print('✅ Setup OK')"
 ```
 
-C'est tout ! Si ça marche, tu peux développer.
+That's it! If it works, you can develop.

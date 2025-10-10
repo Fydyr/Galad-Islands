@@ -1,45 +1,51 @@
-# Architecture du code
+---
+i18n:
+  en: "Code Architecture"
+  fr: "Architecture du code"
+---
 
-## Vue d'ensemble de l'architecture ECS
+# Code Architecture
 
-Galad Islands utilise une **architecture ECS (Entity-Component-System)** avec la bibliothèque `esper` pour organiser le code de façon modulaire et performante.
+## ECS Architecture Overview
 
-### Principe ECS
+Galad Islands uses an **ECS (Entity-Component-System)** architecture with the `esper` library to organize the code in a modular and efficient way.
+
+### ECS Principle
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   ENTITIES  │    │ COMPONENTS  │    │  SYSTEMS    │
+│   ENTITIES  │    │ COMPONENTS  │    │   SYSTEMS   │
 │             │    │             │    │             │
-│ ID simples  │◄──►│ Données     │◄──►│ Logique     │
-│ (int)       │    │ (Propriétés)│    │ (Comportem.)│
+│ Simple IDs  │◄──►│    Data     │◄──►│    Logic    │
+│   (int)     │    │ (Properties)│    │ (Behavior)  │
 └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
-- **Entités** : Identifiants numériques simples (int)
-- **Composants** : Structures de données pures (dataclasses)
-- **Systèmes/Processeurs** : Logique qui agit sur les entités ayant certains composants
+- **Entities**: Simple numerical identifiers (int)
+- **Components**: Pure data structures (dataclasses)
+- **Systems/Processors**: Logic that acts on entities having certain components
 
-## Organisation du code
+## Code Organization
 
 ```
 src/
-├── components/          # Tous les composants ECS
-│   ├── core/           # Composants de base
-│   ├── special/        # Capacités spéciales des unités
-│   ├── events/         # Composants d'événements
-│   └── globals/        # Composants globaux (caméra, carte)
-├── processeurs/        # Processeurs ECS (logique)
-├── systems/            # Nouveaux systèmes ECS modulaires
-├── managers/           # Gestionnaires de haut niveau
-├── factory/            # Création d'entités
-└── game.py             # Moteur principal
+├── components/          # All ECS components
+│   ├── core/           # Base components
+│   ├── special/        # Special unit abilities
+│   ├── events/         # Event components
+│   └── globals/        # Global components (camera, map)
+├── processors/         # ECS processors (logic) - Note: "processeurs" is French
+├── systems/            # New modular ECS systems
+├── managers/           # High-level managers
+├── factory/            # Entity creation
+└── game.py             # Main engine
 ```
 
-## Composants (Components)
+## Components
 
-Les composants stockent uniquement des **données**, pas de logique.
+Components only store **data**, not logic.
 
-### Composants de base (core/)
+### Base Components (core/)
 
 #### PositionComponent
 ```python
@@ -78,9 +84,9 @@ class AttackComponent:
         self.hitPoints: int = hitPoints
 ```
 
-### Composants spéciaux (special/)
+### Special Components (special/)
 
-Les unités avec des capacités ont des composants dédiés :
+Units with abilities have dedicated components:
 
 #### SpeArchitect
 ```python
@@ -94,7 +100,7 @@ class SpeArchitect:
         self.affected_units: List[int] = []
 ```
 
-### Composants d'événements (events/)
+### Event Components (events/)
 
 #### FlyingChestComponent
 ```python
@@ -105,54 +111,54 @@ class FlyingChestComponent:
         self.is_opened: bool = False
 ```
 
-### Composants de bâtiments (buildings/)
+### Building Components (buildings/)
 
-Les bâtiments (tours défensives, structures) utilisent des composants dédiés.
+Buildings (defensive towers, structures) use dedicated components.
 
-> **📖 Documentation complète** : Voir [Système de Tours](tower-system-implementation.md) pour l'implémentation détaillée.
+> **📖 Full documentation**: See Tower System for the detailed implementation.
 
 #### TowerComponent
-Composant de base pour toutes les tours :
+Base component for all towers:
 ```python
 @dataclass
 class TowerComponent:
-    tower_type: str              # "defense" ou "heal"
-    range: float                 # Portée d'action en pixels
-    cooldown: float              # Temps entre deux actions (secondes)
+    tower_type: str              # "defense" or "heal"
+    range: float                 # Action range in pixels
+    cooldown: float              # Time between two actions (seconds)
     current_cooldown: float = 0.0
     target_entity: Optional[int] = None
 ```
 
-**Fichier** : `src/components/core/towerComponent.py`
+**File**: `src/components/core/towerComponent.py`
 
 #### DefenseTowerComponent
-Composant pour les tours qui attaquent :
+Component for towers that attack:
 ```python
 @dataclass
 class DefenseTowerComponent:
-    damage: float        # Dégâts infligés par attaque
-    attack_speed: float  # Multiplicateur de vitesse
+    damage: float        # Damage inflicted per attack
+    attack_speed: float  # Attack speed multiplier
 ```
 
 #### HealTowerComponent
-Composant pour les tours qui soignent :
+Component for towers that heal:
 ```python
 @dataclass
 class HealTowerComponent:
-    heal_amount: float   # Points de vie restaurés
-    heal_speed: float    # Multiplicateur de vitesse
+    heal_amount: float   # Health points restored
+    heal_speed: float    # Healing speed multiplier
 ```
 
-**Utilisation** :
-- Les tours sont créées via `buildingFactory.create_defense_tower()` ou `create_heal_tower()`
-- Le `TowerProcessor` gère la détection de cibles et les actions automatiques
-- Les tours nécessitent un Architecte pour être construites
+**Usage**:
+- Towers are created via `buildingFactory.create_defense_tower()` or `create_heal_tower()`
+- The `TowerProcessor` handles target detection and automatic actions
+- Towers require an Architect to be built
 
-## Processeurs (Processors)
+## Processors
 
-Les processeurs contiennent la **logique métier** et agissent sur les entités.
+Processors contain the **business logic** and act on entities.
 
-### RenderingProcessor
+### RenderProcessor
 ```python
 class RenderProcessor(esper.Processor):
     def __init__(self, screen, camera=None):
@@ -161,16 +167,16 @@ class RenderProcessor(esper.Processor):
         self.camera = camera
 
     def process(self):
-        # Rendu de toutes les entités avec Position + Sprite
+        # Renders all entities with Position + Sprite
         for ent, (pos, sprite) in esper.get_components(PositionComponent, SpriteComponent):
-            # Logique de rendu...
+            # Rendering logic...
 ```
 
 ### MovementProcessor
 ```python
 class MovementProcessor(esper.Processor):
     def process(self, dt=0.016):
-        # Déplace toutes les entités avec Position + Velocity
+        # Moves all entities with Position + Velocity
         for ent, (pos, vel) in esper.get_components(PositionComponent, VelocityComponent):
             pos.x += vel.currentSpeed * dt
             pos.y += vel.currentSpeed * dt
@@ -180,7 +186,7 @@ class MovementProcessor(esper.Processor):
 ```python
 class CollisionProcessor(esper.Processor):
     def process(self):
-        # Détecte les collisions entre entités
+        # Detects collisions between entities
         for ent1, (pos1, collision1) in esper.get_components(PositionComponent, CanCollideComponent):
             for ent2, (pos2, collision2) in esper.get_components(PositionComponent, CanCollideComponent):
                 if self._check_collision(pos1, pos2):
@@ -189,88 +195,88 @@ class CollisionProcessor(esper.Processor):
 
 ### PlayerControlProcessor
 ```python
-class PlayerControlProcessor(esper.Processor):
+class PlayerControlProcessor(esper.-Processor):
     def process(self):
-        # Gère les contrôles du joueur et les capacités spéciales
+        # Handles player controls and special abilities
         if pygame.key.get_pressed()[pygame.K_SPACE]:
-            # Activer capacité de l'unité sélectionnée...
+            # Activate selected unit's ability...
 ```
 
-## Systèmes (Systems)
+## Systems
 
-Les nouveaux systèmes modulaires pour séparer la logique :
+New modular systems to separate logic:
 
 ### SpriteSystem
 ```python
 class SpriteSystem:
-    """Gestion des sprites avec cache pour optimiser les performances."""
+    """Manages sprites with a cache to optimize performance."""
     
     def __init__(self):
         self._sprite_cache = {}
     
     def get_sprite(self, sprite_id: SpriteID) -> pygame.Surface:
-        # Cache des sprites pour éviter les rechargements
+        # Caches sprites to avoid reloading
 ```
 
 ### CombatSystem
 ```python
 class CombatSystem:
-    """Système de combat séparé des processeurs."""
+    """Combat system separated from processors."""
     
     def deal_damage(self, attacker: int, target: int, damage: int) -> bool:
-        # Logique de dégâts pure
+        # Pure damage logic
 ```
 
-## Gestionnaires (Managers)
+## Managers
 
-Les gestionnaires orchestrent les systèmes de haut niveau :
+Managers orchestrate high-level systems:
 
-### BaseComponent (Gestionnaire intégré)
+### BaseComponent (Integrated Manager)
 ```python
 @component
 class BaseComponent:
-    """Composant de base avec gestionnaire intégré pour les QG."""
+    """Base component with an integrated manager for HQs."""
     
     @classmethod
     def get_ally_base(cls):
-        """Retourne l'entité de base alliée."""
+        """Returns the ally base entity."""
         return cls._ally_base_entity
     
     @classmethod
     def get_enemy_base(cls):
-        """Retourne l'entité de base ennemie.""" 
+        """Returns the enemy base entity.""" 
         return cls._enemy_base_entity
     
     @classmethod
     def initialize_bases(cls):
-        """Initialise les entités de bases alliée et ennemie."""
-        # Logique d'initialisation...
+        """Initializes the ally and enemy base entities."""
+        # Initialization logic...
 ```
 
-Pour en savoir plus, voir la documentation détaillée. [BaseComponent](./modules/components.md#basecomponent---gestionnaire-intégré-des-bases)
+To learn more, see the detailed documentation. BaseComponent
 
 ### FlyingChestManager
 ```python
 class FlyingChestManager:
-    """Gère l'apparition des coffres volants."""
+    """Manages the spawning of flying chests."""
     
     def update(self, dt: float):
-        # Logique d'apparition des coffres
+        # Chest spawning logic
 ```
 
-## Factory (Création d'entités)
+## Factory (Entity Creation)
 
 ### UnitFactory
 ```python
 def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
-    """Crée une entité complète avec tous ses composants."""
+    """Creates a complete entity with all its components."""
     entity = esper.create_entity()
     
-    # Composants de base
+    # Base components
     esper.add_component(entity, pos)
     esper.add_component(entity, TeamComponent(Team.ENEMY if enemy else Team.ALLY))
     
-    # Composants spécifiques selon le type d'unité
+    # Specific components based on unit type
     if unit == UnitKey.ARCHITECT:
         esper.add_component(entity, SpeArchitect(radius=ARCHITECT_RADIUS))
         esper.add_component(entity, HealthComponent(100, 100))
@@ -279,82 +285,82 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
     return entity
 ```
 
-## GameEngine (Moteur principal)
+## GameEngine (Main Engine)
 
 ```python
 class GameEngine:
-    """Moteur principal qui orchestre tous les systèmes."""
+    """Main engine that orchestrates all systems."""
     
     def _initialize_ecs(self):
-        """Initialise tous les processeurs ECS."""
+        """Initializes all ECS processors."""
         self.movement_processor = MovementProcessor()
         self.collision_processor = CollisionProcessor(graph=self.grid)
         self.player_controls = PlayerControlProcessor()
         
-        # Ajouter les processeurs avec priorités
+        # Add processors with priorities
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
     
     def run(self):
-        """Boucle principale du jeu."""
+        """Main game loop."""
         while self.running:
             dt = self.clock.tick(60) / 1000.0
             
-            # Traiter tous les processeurs ECS
+            # Process all ECS processors
             es.process(dt)
 ```
 
-## Flux de données
+## Data Flow
 
 ```
-1. Input (clavier/souris) → PlayerControlProcessor
-2. PlayerControlProcessor → Modification des composants
-3. MovementProcessor → Mise à jour des positions
-4. CollisionProcessor → Détection et gestion des collisions
-5. RenderingProcessor → Affichage à l'écran
+1. Input (keyboard/mouse) → PlayerControlProcessor
+2. PlayerControlProcessor → Modifies components
+3. MovementProcessor → Updates positions
+4. CollisionProcessor → Detects and handles collisions
+5. RenderProcessor → Displays on screen
 ```
 
-## Bonnes pratiques
+## Best Practices
 
-### ✅ À faire
-- **Composants** : Seulement des données, pas de logique
-- **Processeurs** : Une responsabilité claire par processeur
-- **Type hints** : Toujours typer les propriétés des composants
-- **Enums** : Utiliser `Team` et `UnitClass` au lieu d'entiers
-- **Vérifications** : Toujours `esper.has_component()` avant `esper.component_for_entity()`
+### ✅ Do
+- **Components**: Only data, no logic
+- **Processors**: A clear responsibility per processor
+- **Type hints**: Always type component properties
+- **Enums**: Use `Team` and `UnitClass` instead of integers
+- **Checks**: Always use `esper.has_component()` before `esper.component_for_entity()`
 
-### ❌ À éviter
-- Logique métier dans les composants
-- Références directes entre entités
-- Modifications concurrentes de la même entité
-- Processeurs qui dépendent de l'ordre d'exécution
+### ❌ Don't
+- Business logic in components
+- Direct references between entities
+- Concurrent modifications of the same entity
+- Processors that depend on execution order
 
-## Exemples d'utilisation
+## Usage Examples
 
-### Créer une unité
+### Create a unit
 ```python
-# Créer l'entité
+# Create the entity
 entity = esper.create_entity()
 
-# Ajouter les composants
+# Add components
 esper.add_component(entity, PositionComponent(100, 200))
 esper.add_component(entity, TeamComponent(Team.ALLY))
 esper.add_component(entity, HealthComponent(100, 100))
 ```
 
-### Chercher des entités
+### Find entities
 ```python
-# Toutes les entités avec position et santé
+# All entities with position and health
 for ent, (pos, health) in esper.get_components(PositionComponent, HealthComponent):
-    print(f"Entité {ent} à ({pos.x}, {pos.y}) avec {health.currentHealth} PV")
+    print(f"Entity {ent} at ({pos.x}, {pos.y}) with {health.currentHealth} HP")
 ```
 
-### Modifier un composant
+### Modify a component
 ```python
 if esper.has_component(entity, HealthComponent):
     health = esper.component_for_entity(entity, HealthComponent)
     health.currentHealth -= 10
 ```
 
-Cette architecture ECS permet une grande flexibilité et des performances optimales pour gérer des centaines d'entités simultanément dans le jeu.
+This ECS architecture allows for great flexibility and optimal performance to manage hundreds of entities simultaneously in the game.

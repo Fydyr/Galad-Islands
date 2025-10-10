@@ -1,69 +1,75 @@
-# Système de capacités spéciales
+---
+i18n:
+  en: "Special Ability System"
+  fr: "Système de capacités spéciales"
+---
 
-Le système de capacités spéciales permet aux unités d'avoir des pouvoirs uniques activables avec des cooldowns. Chaque type d'unité possède sa propre capacité spéciale implémentée via des composants `Spe*`.
+# Special Ability System
 
-## Vue d'ensemble
+The special ability system allows units to have unique activatable powers with cooldowns. Each unit type has its own special ability implemented via `Spe*` components.
 
-### Architecture des capacités
+## Overview
+
+### Ability Architecture
 
 ```text
 src/components/special/
-├── speScoutComponent.py      # Invincibilité temporaire
-├── speMaraudeurComponent.py  # Bouclier de réduction de dégâts
-├── speLeviathanComponent.py  # Double attaque
-├── speDruidComponent.py      # Lianes immobilisantes
-├── speArchitectComponent.py  # Boost de rechargement allié
-├── isVinedComponent.py       # Effet d'immobilisation
-└── VineComponent.py          # Composant visuel des lianes
+├── speScoutComponent.py      # Temporary invincibility
+├── speMaraudeurComponent.py  # Damage reduction shield
+├── speLeviathanComponent.py  # Double attack
+├── speDruidComponent.py      # Immobilizing vines
+├── speArchitectComponent.py  # Ally reload boost
+├── isVinedComponent.py       # Immobilization effect
+└── VineComponent.py          # Visual component for vines
 ```
 
-### Interface commune
+### Common Interface
 
-Toutes les capacités spéciales partagent une API standard :
+All special abilities share a standard API:
 
 ```python
 class SpeCapacity:
     def can_activate(self) -> bool:
-        """Vérifie si la capacité peut être activée."""
+        """Checks if the ability can be activated."""
         
     def activate(self) -> bool:
-        """Active la capacité si possible."""
+        """Activates the ability if possible."""
         
     def update(self, dt: float) -> None:
-        """Met à jour les timers de la capacité."""
+        """Updates the ability's timers."""
 ```
 
-## Capacités par unité
+## Abilities by Unit
 
-### SpeScout - Invincibilité (Zasper)
+### SpeScout - Invincibility (Zasper)
 
-**Fichier :** `src/components/special/speScoutComponent.py`
+**File:** `src/components/special/speScoutComponent.py`
 
-**Effet :** Invincibilité temporaire pour esquiver attaques et mines.
+**Effect:** Temporary invincibility to dodge attacks and mines.
 
 ```python
 @component
 class SpeScout:
     def __init__(self):
-        self.is_active: bool = False                    # État d'activation
-        self.duration: float = ZASPER_INVINCIBILITY_DURATION  # 3 secondes
-        self.timer: float = 0.0                         # Temps restant
-        self.cooldown: float = SPECIAL_ABILITY_COOLDOWN # Cooldown standard
-        self.cooldown_timer: float = 0.0                # Timer de cooldown
+        self.is_active: bool = False                    # Activation state
+        self.duration: float = ZASPER_INVINCIBILITY_DURATION  # 3 seconds
+        self.timer: float = 0.0                         # Remaining time
+        self.cooldown: float = SPECIAL_ABILITY_COOLDOWN # Standard cooldown
+        self.cooldown_timer: float = 0.0                # Cooldown timer
 ```
 
-**Méthodes spécifiques :**
-- `is_invincible() -> bool` : Retourne l'état d'invincibilité
+**Specific Methods:**
+- `is_invincible() -> bool`: Returns the invincibility state.
 
-**Intégrations :**
-- `CollisionProcessor` vérifie `is_invincible()` avant d'appliquer les dégâts
-- `processHealth` ignore les dégâts si l'unité est invincible
+**Integrations:**
+- `CollisionProcessor` checks `is_invincible()` before applying damage.
+- `processHealth` ignores damage if the unit is invincible.
 
-### SpeMaraudeur - Bouclier de mana (Barhamus/Maraudeur)
+### SpeMaraudeur - Mana Shield (Barhamus/Marauder)
 
-**Fichier :** `src/components/special/speMaraudeurComponent.py`
+**File:** `src/components/special/speMaraudeurComponent.py`
 
-**Effet :** Réduit les dégâts reçus pendant une durée déterminée.
+**Effect:** Reduces incoming damage for a set duration.
 
 ```python
 @component
@@ -72,281 +78,175 @@ class SpeMaraudeur:
         self.is_active: bool = False
         self.reduction_min: float = MARAUDEUR_SHIELD_REDUCTION_MIN
         self.reduction_max: float = MARAUDEUR_SHIELD_REDUCTION_MAX  
-        self.reduction_value: float = 0.0               # Pourcentage de réduction
+        self.reduction_value: float = 0.0               # Reduction percentage
         self.duration: float = MARAUDEUR_SHIELD_DURATION
         self.timer: float = 0.0
         self.cooldown: float = SPECIAL_ABILITY_COOLDOWN
         self.cooldown_timer: float = 0.0
 ```
 
-**Méthodes spécifiques :**
-- `apply_damage_reduction(damage: float) -> float` : Applique la réduction
-- `is_shielded() -> bool` : Vérifie l'état du bouclier
+**Specific Methods:**
+- `apply_damage_reduction(damage: float) -> float`: Applies the reduction.
+- `is_shielded() -> bool`: Checks the shield's state.
 
-**Paramètres configurables :**
-- Réduction personnalisable entre `reduction_min` et `reduction_max`
-- Durée optionnelle lors de l'activation
+**Configurable Parameters:**
+- Customizable reduction between `reduction_min` and `reduction_max`.
+- Optional duration upon activation.
 
-### SpeArchitect - Boost de rechargement (Architect)
+### SpeArchitect - Reload Boost (Architect)
 
-**Fichier :** `src/components/special/speArchitectComponent.py`
+**File:** `src/components/special/speArchitectComponent.py`
 
-**Effet :** Accélère le rechargement des unités alliées dans un rayon.
+**Effect:** Speeds up the reload of allied units within a radius.
 
 ```python
 @component
 class SpeArchitect:
     def __init__(self):
         self.is_active: bool = False
-        self.available: bool = True                     # Disponibilité
-        self.radius: float = 0.0                        # Rayon d'effet
-        self.reload_factor: float = 0.0                 # Facteur de division
-        self.affected_units: List[int] = []             # Unités affectées
-        self.duration: float = 0.0                      # Durée (0 = permanent)
+        self.available: bool = True                     # Availability
+        self.radius: float = 0.0                        # Effect radius
+        self.reload_factor: float = 0.0                 # Division factor
+        self.affected_units: List[int] = []             # Affected units
+        self.duration: float = 0.0                      # Duration (0 = permanent)
         self.timer: float = 0.0
 ```
 
-**Activation avec cibles :**
+**Activation with Targets:**
 ```python
 def activate(self, affected_units: List[int], duration: float = 0.0):
-    """Active le boost sur les unités spécifiées."""
+    """Activates the boost on the specified units."""
 ```
 
-**Fonctionnement :**
-- Trouve les unités alliées dans le rayon
-- Applique un boost de rechargement (divise les cooldowns)
-- Peut être permanent (`duration=0`) ou temporaire
+**How it works:**
+- Finds allied units within the radius.
+- Applies a reload boost (divides cooldowns).
+- Can be permanent (`duration=0`) or temporary.
 
-### SpeDruid - Lianes immobilisantes (Druid)
+### SpeDruid - Immobilizing Vines (Druid)
 
-**Fichier :** `src/components/special/speDruidComponent.py`
+**File:** `src/components/special/speDruidComponent.py`
 
-**Effet :** Lance un projectile qui immobilise la cible avec des lianes.
+**Effect:** Launches a projectile that immobilizes the target with vines.
 
-**Composants associés :**
-- `VineComponent` : Visuel des lianes
-- `isVinedComponent` : Effet d'immobilisation sur la cible
+**Associated Components:**
+- `VineComponent`: Visual for the vines.
+- `isVinedComponent`: Immobilization effect on the target.
 
-**Mécanisme :**
-1. Activation lance un projectile spécial
-2. À l'impact, ajoute `isVinedComponent` à la cible
-3. La cible est immobilisée pendant la durée
-4. Effet visuel avec `VineComponent`
+**Mechanism:**
+1. Activation launches a special projectile.
+2. On impact, adds `isVinedComponent` to the target.
+3. The target is immobilized for the duration.
+4. Visual effect with `VineComponent`.
 
-### SpeLeviathan - Double attaque (Draupnir/Leviathan)
+### SpeLeviathan - Double Attack (Draupnir/Leviathan)
 
-**Fichier :** `src/components/special/speLeviathanComponent.py`
+**File:** `src/components/special/speLeviathanComponent.py`
 
-**Effet :** Déclenche une seconde attaque immédiatement après la première.
+**Effect:** Triggers a second attack immediately after the first.
 
-**Mécanisme :**
-- Flag d'activation (`is_active = True`)
-- Lors de l'attaque, vérifie le flag
-- Si actif, déclenche une seconde salve instantanément
-- Consomme le flag (`is_active = False`)
+**Mechanism:**
+- Activation flag (`is_active = True`).
+- During an attack, checks the flag.
+- If active, triggers a second volley instantly.
+- Consumes the flag (`is_active = False`).
 
-## Constantes de configuration
+## Configuration Constants
 
-### Fichier : `src/constants/gameplay.py`
+### File: `src/constants/gameplay.py`
 
 ```python
-# Cooldowns universels
-SPECIAL_ABILITY_COOLDOWN = 15.0         # Cooldown standard (15 secondes)
+# Universal Cooldowns
+SPECIAL_ABILITY_COOLDOWN = 15.0         # Standard cooldown (15 seconds)
 
 # SpeScout (Zasper)
-ZASPER_INVINCIBILITY_DURATION = 3.0     # Durée d'invincibilité
+ZASPER_INVINCIBILITY_DURATION = 3.0     # Invincibility duration
 
-# SpeMaraudeur (Barhamus/Maraudeur)  
-MARAUDEUR_SHIELD_REDUCTION_MIN = 0.2    # 20% réduction minimum
-MARAUDEUR_SHIELD_REDUCTION_MAX = 0.5    # 50% réduction maximum
-MARAUDEUR_SHIELD_DURATION = 8.0         # Durée du bouclier
+# SpeMaraudeur (Barhamus/Marauder)  
+MARAUDEUR_SHIELD_REDUCTION_MIN = 0.2    # 20% minimum reduction
+MARAUDEUR_SHIELD_REDUCTION_MAX = 0.5    # 50% maximum reduction
+MARAUDEUR_SHIELD_DURATION = 8.0         # Shield duration
 
-# Autres capacités...
+# Other abilities...
 ```
 
-## Intégration avec les systèmes
+## System Integration
 
 ### CapacitiesSpecialesProcessor
 
-**Responsabilité :** Mise à jour des timers et gestion des effets spéciaux.
+**Responsibility:** Updates timers and manages special effects.
 
 ```python
 def process(self):
-    """Met à jour toutes les capacités spéciales actives."""
+    """Updates all active special abilities."""
     
-    # Update des timers pour chaque type de capacité
+    # Update timers for each ability type
     for entity, spe_scout in esper.get_components(SpeScout):
         spe_scout.update(dt)
     
     for entity, spe_maraudeur in esper.get_components(SpeMaraudeur):
         spe_maraudeur.update(dt)
         
-    # Gestion des effets temporaires (lianes, etc.)
+    # Manage temporary effects (vines, etc.)
     self._process_vine_effects()
 ```
 
-### Intégration UI - ActionBar
+### UI Integration - ActionBar
 
-**Affichage des cooldowns :**
+**Displaying Cooldowns:**
 
 ```python
 def _draw_special_ability_button(self, surface):
-    """Dessine le bouton de capacité spéciale avec cooldown."""
+    """Draws the special ability button with cooldown."""
     
     if self.selected_unit.has_special:
-        # Récupérer le composant de capacité
+        # Get the ability component
         if esper.has_component(entity, SpeScout):
             scout = esper.component_for_entity(entity, SpeScout)
             cooldown_ratio = scout.cooldown_timer / scout.cooldown
             
-        # Dessiner le bouton avec overlay de cooldown
+        # Draw the button with a cooldown overlay
         if cooldown_ratio > 0:
             self._draw_cooldown_overlay(surface, cooldown_ratio)
 ```
 
-### Intégration avec les dégâts
+### Damage Integration
 
-**Dans `processHealth` :**
+**In `processHealth`:**
 
 ```python
 def apply_damage(entity, damage):
-    """Applique les dégâts en tenant compte des capacités."""
+    """Applies damage, taking abilities into account."""
     
-    # Vérifier invincibilité (SpeScout)
+    # Check for invincibility (SpeScout)
     if esper.has_component(entity, SpeScout):
         scout = esper.component_for_entity(entity, SpeScout)
         if scout.is_invincible():
-            return  # Ignorer les dégâts
+            return  # Ignore damage
     
-    # Appliquer réduction (SpeMaraudeur)
+    # Apply reduction (SpeMaraudeur)
     if esper.has_component(entity, SpeMaraudeur):
         maraudeur = esper.component_for_entity(entity, SpeMaraudeur)
         if maraudeur.is_shielded():
             damage = maraudeur.apply_damage_reduction(damage)
     
-    # Appliquer les dégâts finaux
+    # Apply final damage
     health.currentHealth -= damage
 ```
 
-## Tests et validation
+## Best Practices
 
-### Exemples de tests unitaires
+### ✅ Recommendations
 
-```python
-# Test SpeScout
-from src.components.special.speScoutComponent import SpeScout
+- **Unified Interface**: All abilities implement `can_activate()`, `activate()`, `update()`.
+- **Defensive Management**: Check `esper.has_component()` before accessing abilities.
+- **Separation of Concerns**: Data in components, logic in processors.
+- **Centralized Configuration**: Constants in `gameplay.py` for easy balancing.
+- **Exhaustive Tests**: Cover activation, duration, expiration, and interactions.
 
-def test_spe_scout_invincibility():
-    scout = SpeScout()
-    assert scout.can_activate()
-    assert scout.activate() is True
-    assert scout.is_invincible()
-    
-    # Similer le temps qui passe
-    scout.update(scout.duration + 0.1)
-    assert not scout.is_invincible()
-    assert not scout.is_active
+### ❌ What to Avoid
 
-# Test SpeMaraudeur
-from src.components.special.speMaraudeurComponent import SpeMaraudeur
-
-def test_maraudeur_damage_reduction():
-    maraudeur = SpeMaraudeur()
-    maraudeur.activate(reduction=0.5)  # 50% de réduction
-    
-    original_damage = 100
-    reduced_damage = maraudeur.apply_damage_reduction(original_damage)
-    
-    assert reduced_damage == 50
-    assert maraudeur.is_shielded()
-```
-
-### Tests d'intégration
-
-```python
-def test_scout_collision_immunity():
-    """Test que le Scout évite les dégâts quand invincible."""
-    
-    # Créer entité avec SpeScout
-    entity = esper.create_entity()
-    scout = SpeScout()
-    health = HealthComponent(100, 100)
-    
-    esper.add_component(entity, scout)
-    esper.add_component(entity, health)
-    
-    # Activer invincibilité
-    scout.activate()
-    
-    # Simuler dégâts - ne devrais pas affecter la santé
-    apply_damage(entity, 50)
-    
-    assert health.currentHealth == 100  # Santé inchangée
-```
-
-## Bonnes pratiques
-
-### ✅ Recommandations
-
-- **Interface unifiée** : Toutes les capacités implémentent `can_activate()`, `activate()`, `update()`
-- **Gestion défensive** : Vérifier `esper.has_component()` avant d'accéder aux capacités
-- **Séparation des responsabilités** : Données dans les composants, logique dans les processeurs
-- **Configuration centralisée** : Constantes dans `gameplay.py` pour faciliter l'équilibrage
-- **Tests exhaustifs** : Couvrir activation, durée, expiration et interactions
-
-### ❌ À éviter
-
-- Logique métier complexe dans les composants
-- Modification directe des timers depuis l'extérieur
-- Oubli de vérifier les cooldowns avant activation
-- États incohérents (`is_active=True` mais `timer=0`)
-
-## Extension du système
-
-### Ajouter une nouvelle capacité
-
-1. **Créer le composant** :
-
-```python
-# src/components/special/speNewUnitComponent.py
-@component
-class SpeNewUnit:
-    def __init__(self):
-        self.is_active: bool = False
-        self.cooldown: float = SPECIAL_ABILITY_COOLDOWN
-        self.cooldown_timer: float = 0.0
-        # Attributs spécifiques...
-    
-    def can_activate(self) -> bool:
-        return not self.is_active and self.cooldown_timer <= 0
-    
-    def activate(self) -> bool:
-        if self.can_activate():
-            self.is_active = True
-            self.cooldown_timer = self.cooldown
-            return True
-        return False
-    
-    def update(self, dt: float) -> None:
-        if self.cooldown_timer > 0:
-            self.cooldown_timer -= dt
-```
-
-2. **Intégrer dans le processeur** :
-
-```python
-# Dans CapacitiesSpecialesProcessor
-for entity, new_capacity in esper.get_components(SpeNewUnit):
-    new_capacity.update(dt)
-```
-
-3. **Ajouter à l'UI** :
-
-```python
-# Dans ActionBar
-if esper.has_component(entity, SpeNewUnit):
-    capacity = esper.component_for_entity(entity, SpeNewUnit) 
-    self._draw_capacity_button(surface, capacity)
-```
-
-Cette architecture modulaire permet d'ajouter facilement de nouvelles capacités tout en maintenant la cohérence du système.
+- Complex business logic in components.
+- Direct modification of timers from outside.
+- Forgetting to check cooldowns before activation.
+- Inconsistent states (`is_active=True` but `timer=0`).

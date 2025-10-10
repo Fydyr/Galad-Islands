@@ -1,99 +1,105 @@
-# Gestionnaires (Managers)
+---
+i18n:
+  en: "Managers (Managers)"
+  fr: "Managers (Managers)"
+---
 
-Les gestionnaires centralisent la gestion des ressources et comportements de haut niveau du jeu.
+# Managers (Managers)
 
-## Liste des gestionnaires
+Managers centralize the management of resources and high-level game behaviors.
 
-| Gestionnaire | Responsabilité | Fichier |
+## List of Managers
+
+| Manager | Responsibility | File |
 |--------------|----------------|---------|
-| `BaseComponent` | Gestion intégrée des QG alliés/ennemis | `src/components/core/baseComponent.py` |
-| `FlyingChestManager` | Gestion des coffres volants | `src/managers/flying_chest_manager.py` |
-| `StormManager` | Gestion des tempêtes | `src/managers/storm_manager.py` |
-| `DisplayManager` | Gestion de l'affichage | `src/managers/display.py` |
-| `AudioManager` | Gestion audio | `src/managers/audio.py` |
-| `SpriteManager` | Cache des sprites | `src/systems/sprite_system.py` |
+| `BaseComponent` | Integrated management of allied/enemy headquarters | `src/components/core/baseComponent.py` |
+| `FlyingChestManager` | Management of flying chests | `src/managers/flying_chest_manager.py` |
+| `StormManager` | Management of storms | `src/managers/storm_manager.py` |
+| `DisplayManager` | Display management | `src/managers/display.py` |
+| `AudioManager` | Audio management | `src/managers/audio.py` |
+| `SpriteManager` | Sprite cache | `src/systems/sprite_system.py` |
 
-## Gestionnaires de gameplay
+## Gameplay managers
 
 ### ⚠️ BaseManager → BaseComponent
 
-**Note :** `BaseManager` n'existe plus. Il a été fusionné dans `BaseComponent` pour simplifier l'architecture.
+**Note:** `BaseManager` no longer exists. It has been merged into `BaseComponent` to simplify the architecture.
 
-**Migration :** 
+**Migration:** 
 - `get_base_manager().method()` → `BaseComponent.method()`
-- Toutes les fonctionnalités sont maintenant des méthodes de classe dans `BaseComponent`
+- All features are now class methods in `BaseComponent`
 
-**Documentation complète :** Voir [BaseComponent](./components.md#basecomponent)
+**Complete documentation:** See [BaseComponent](./components.md#basecomponent)
 
 ### FlyingChestManager
 
-**Responsabilité :** Gère l'apparition et le comportement des coffres volants.
+**Responsibility:** Manages the appearance and behavior of flying chests.
 
 ```python
 class FlyingChestManager:
     def update(self, dt: float):
-        """Met à jour les timers et fait apparaître les coffres."""
+        """Updates timers and spawns chests."""
         
     def handle_collision(self, entity: int, chest_entity: int):
-        """Gère la collision avec un coffre volant."""
+        """Handles collision with a flying chest."""
 ```
 
-**Fonctionnalités :**
-- Apparition automatique toutes les 30 secondes
-- Donne de l'or au joueur (100 or par défaut)
-- Spawn uniquement sur les cases d'eau
+**Features:**
+- Automatic appearance every 30 seconds
+- Gives gold to the player (100 gold by default)
+- Spawn only on water tiles
 
 ### AudioManager
 
-**Responsabilité :** Gestion centralisée de l'audio.
+**Responsibility:** Centralized audio management.
 
 ```python
 class AudioManager:
     def play_music(self, music_path: str, loop: bool = True):
-        """Joue une musique de fond."""
+        """Plays background music."""
         
     def play_sound(self, sound_path: str):
-        """Joue un effet sonore."""
+        """Plays a sound effect."""
         
     def set_music_volume(self, volume: float):
-        """Définit le volume de la musique."""
+        """Sets the music volume."""
 ```
 
 ### SpriteSystem (SpriteManager)
 
-**Responsabilité :** Cache et gestion optimisée des sprites.
+**Responsibility:** Cache and optimized sprite management.
 
 ```python
 class SpriteSystem:
     def get_sprite(self, sprite_id: SpriteID) -> pygame.Surface:
-        """Récupère un sprite depuis le cache."""
+        """Retrieves a sprite from the cache."""
         
     def create_sprite_component(self, sprite_id: SpriteID, width: int, height: int):
-        """Crée un SpriteComponent optimisé."""
+        """Creates an optimized SpriteComponent."""
 ```
 
-**Avantages :**
-- Cache automatique des sprites
-- Évite les rechargements multiples  
-- Système d'IDs au lieu de chemins
-- Optimisation mémoire
+**Advantages:**
+- Automatic sprite caching
+- Avoids multiple reloads  
+- ID system instead of paths
+- Memory optimization
 
-## Patterns d'utilisation
+## Usage Patterns
 
-### Architecture ECS intégrée
+### Integrated ECS Architecture
 ```python
-# Utilisation directe des méthodes de classe
+# Direct usage of class methods
 BaseComponent.initialize_bases()
 ally_base = BaseComponent.get_ally_base()
 enemy_base = BaseComponent.get_enemy_base()
 
-# Reset lors des changements de niveau
+# Reset during level changes
 BaseComponent.reset()
 ```
 
 ### Manager Lifecycle
 ```python
-# Dans GameEngine
+# In GameEngine
 def _initialize_managers(self):
     self.flying_chest_manager = FlyingChestManager()
     self.audio_manager = AudioManager()
@@ -102,14 +108,14 @@ def _update_managers(self, dt):
     self.flying_chest_manager.update(dt)
 ```
 
-## Bonnes pratiques
+## Best practices
 
-### ✅ Gestionnaires bien conçus
-- **Responsabilité unique** : Un domaine clairement défini
-- **Interface claire** : Méthodes publiques documentées
-- **Intégration ECS** : Travaille avec les composants/entités
+### ✅ Well-designed Managers
+- **Single responsibility**: Clearly defined domain
+- **Clear interface**: Documented public methods
+- **ECS integration**: Works with Components/Entities
 
-### ❌ À éviter
-- Gestionnaires trop gros avec multiples responsabilités
-- Couplage fort entre gestionnaires
-- Logique métier dans les gestionnaires (doit être dans les processeurs)
+### ❌ To avoid
+- Managers too large with multiple responsibilities
+- Strong coupling between Managers
+- Business logic in Managers (should be in Processors)

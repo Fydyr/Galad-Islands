@@ -1,88 +1,93 @@
-# Gestion des versions
+---
+i18n:
+  en: "Version Management"
+  fr: "Gestion des versions"
+---
 
-## 🎯 Objectif
+# Version Management
 
-Ce document explique comment gérer les versions du projet Galad Islands avec un système de gestion manuelle des versions.
+## 🎯 Objective
 
-### Comment gérer les versions manuellement
+This document explains how to manage versions for the Galad Islands project using a manual version management system.
 
-1. **Activer l'environnement virtuel** :
+### How to Manage Versions Manually
+
+1. **Activate the Virtual Environment**:
 
    ```bash
    source venv/bin/activate  # Unix/Linux/macOS
-   # ou
+   # or
    venv\Scripts\activate     # Windows
    ```
 
-2. **S'assurer d'être à jour** :
+2. **Ensure you are up-to-date**:
 
    ```bash
    git checkout main && git pull origin main
    ```
 
-3. **Effectuer le bump** :
+3. **Perform the bump**:
 
    ```bash
    python -m commitizen bump --increment patch --yes --changelog
    ```
 
-4. **Pousser les changements** :
+4. **Push the changes**:
 
    ```bash
    git push origin main && git push origin --tags
    ```
 
-### Types de commits et leur impact
+### Commit Types and Their Impact
 
-- ✅ **feat**: nouvelle fonctionnalité → bump **minor**
-- ✅ **fix**: correction de bug → bump **patch**
-- ✅ **perf**: amélioration performances → bump **patch**
-- ✅ **refactor**: refactorisation → bump **patch**
-- ❌ **docs**, **style**, **test**, **chore**, **ci** : pas de bump
+- ✅ **feat**: new feature → **minor** bump
+- ✅ **fix**: bug fix → **patch** bump
+- ✅ **perf**: performance improvement → **patch** bump
+- ✅ **refactor**: refactoring → **patch** bump
+- ❌ **docs**, **style**, **test**, **chore**, **ci**: no bump
 
-## 🔄 Workflow recommandé
+## 🔄 Recommended Workflow
 
-1. **Installation initiale** : `python setup_dev.py` (une seule fois)
-2. **Développement normal** : Commits avec messages conventionnels
-3. **Bump manuel** : Utiliser Commitizen pour gérer les versions
-4. **Push avec tags** : `git push origin main && git push origin --tags`
+1. **Initial setup**: `python setup_dev.py` (only once)
+2. **Normal development**: Commits with conventional messages
+3. **Manual bump**: Use Commitizen to manage versions
+4. **Push with tags**: `git push origin main && git push origin --tags`
 
-## 🚫 Suppression des hooks pre-commit
+## 🚫 Removal of Pre-commit Hooks
 
-> **⚠️ Attention : Hooks supprimés**
+> **⚠️ Warning: Hooks Removed**
 >
-> Le système de bump automatique via hooks pre-commit a été **désactivé**. Les versions doivent désormais être gérées manuellement.
+> The automatic bump system via pre-commit hooks has been **disabled**. Versions must now be managed manually.
 >
-> - ✅ **Nouveau** : Gestion manuelle des versions
-> - 🔄 **Legacy** : Les hooks ne sont plus installés par défaut
+> - ✅ **New**: Manual version management
+> - 🔄 **Legacy**: Hooks are no longer installed by default
 >
 
-## 🎯 Avantages de cette approche
+## 🎯 Advantages of This Approach
 
-- ✅ **Contrôle total** : Vous décidez quand faire une release
-- ✅ **Pas de problème de sync** : Tags créés et poussés ensemble
-- ✅ **Changelog cohérent** : Généré localement avec tout l'historique
-- ✅ **Confirmation** : Possibilité de vérifier avant publication
-- ✅ **Rollback facile** : Annulation possible avant push
+- ✅ **Total control**: You decide when to make a release
+- ✅ **No sync issues**: Tags are created and pushed together
+- ✅ **Consistent changelog**: Generated locally with the full history
+- ✅ **Confirmation**: Ability to verify before publishing
+- ✅ **Easy rollback**: Reversal is possible before pushing
 
-## 🔍 Dépannage
+## 🔍 Troubleshooting
 
-### Installation et tests
+### Installation and tests
 
 ```bash
-# Réinstaller Commitizen
+# Reinstall Commitizen
 python -m pip install commitizen
 
-# Vérifier Commitizen
-python -m commitizen version
+# Check Commitizen
+python -m commitizen Version
 ```
 
 ### Problèmes courants
 
 ```bash
-# Environnement virtuel non activé
+# Environment Virtual non Activated
 source venv/bin/activate  # Unix/Linux/macOS
 # ou
 venv\Scripts\activate     # Windows
 ```
-

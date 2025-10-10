@@ -1,42 +1,48 @@
-# Configuration du projet
+---
+i18n:
+  en: "Project Configuration"
+  fr: "Configuration du Project"
+---
 
-> 🚧 **Section en cours de rédaction**
+# Project Configuration
 
-## Création d'un environnement virtuel
 
-Un environnement virtuel permet d'exécuter un programme avec des dépendences, ainsi que leur versions précises, peut importe celles déjà installées sur le système.
-Cela permet d'empêcher tout problème d'incompatibilité.
 
-```cd emplacement/du/dossier```
+## Creating a Virtual Environment
+
+A Virtual Environment allows running a program with specific dependencies and their precise versions, regardless of those already installed on the system.
+This prevents any incompatibility issues.
+
+```cd path/to/folder```
 ```bash python -m venv myenv```
-*'myenv' est le nom du fichier contenant l'environnement virtuel.(venv) est maintenant afficher dans l'invité de commande*
+*'myenv' is the name of the file containing the Virtual Environment. (venv) is now shown in the command prompt*
 
-Pour activer le venv, il existe plusieurs moyens en fonction de l'invité de commande utilisé.
+To activate the venv, there are several methods depending on the command prompt used.
 
 - Windows (Command Prompt)
 ```myenv\Scripts\activate.bat```
 
 - Windows (PowerShell)
-```\myenv\Scripts\Activate.ps1```
+```.\myenv\Scripts\Activate.ps1```
 
 - macOS/Linux (Bash)
 ```source myenv/bin/activate```
 
-Pour quitter l'environnement virtuel et revenir à l'invité de commande de base, il faut simplement entrer ```exit```
+To exit the Virtual Environment and return to the base command prompt, simply enter ```exit```
 
 
-## Fichier de dépendences
+## Dependencies File
 
-Le fichier **requirements.txt** contient toutes les dépendances nécessaires au bon fonctionnement du jeu.
-Pour installer celle-ci, il faut simplement entrer cette commande dans l'invité de commande à l'emplacement de la racine du jeu:
-```cd emplacement/du/dossier```
+The **requirements.txt** file contains all the dependencies necessary for the proper functioning of the game.
+To install them, simply enter this command in the command prompt at the root location of the game:
+```cd path/to/folder```
 ```pip install -r requirements.txt```
 
-## Configuration du jeu
+## Game Configuration
 
-### Fichier de configuration
+### Configuration File
 
-Le jeu utilise un fichier `galad_config.json` pour stocker les préférences utilisateur :
+The game uses a `galad_config.json` file to store user preferences:
 
 ```json
 {
@@ -48,38 +54,38 @@ Le jeu utilise un fichier `galad_config.json` pour stocker les préférences uti
 }
 ```
 
-### Mode développeur
+### Developer Mode
 
-Le paramètre `dev_mode` contrôle l'activation des fonctionnalités de debug et de développement.
+The `dev_mode` parameter controls the activation of debug and development features.
 
-> **📖 Documentation complète** : Voir [Mode Debug](debug-mode.md) pour tous les détails sur le mode développeur.
+> **📖 Complete documentation**: See [Debug Mode](debug-mode.md) for all details on developer mode.
 
-**Activation** :
+**Activation**:
 
-- Modifier `"dev_mode": false` en `"dev_mode": true` dans `galad_config.json`
-- Relancer le jeu
+- Change `"dev_mode": false` to `"dev_mode": true` in `galad_config.json`
+- Restart the game
 
-**Fonctionnalités activées** :
+**Enabled Features**:
 
-- Bouton debug dans l'ActionBar
-- Modale de triche (gold, heal, spawn)
-- Logs de développement supplémentaires
+- Debug button in the ActionBar
+- Cheat modal (gold, heal, spawn)
+- Additional development logs
 
 ### ConfigManager
 
-**Fichier** : `src/managers/config_manager.py`
+**File**: `src/managers/config_manager.py`
 
-Gestionnaire de configuration centralisé pour lire et modifier les paramètres :
+Centralized Configuration Manager to read and modify parameters:
 
 ```python
 from src.managers.config_manager import ConfigManager
 
-# Lecture
+# Reading
 cfg = ConfigManager()
 dev_mode = cfg.get('dev_mode', False)
 language = cfg.get('language', 'french')
 
-# Écriture
+# Writing
 cfg.set('volume', 0.8)
 cfg.save()
 ```
