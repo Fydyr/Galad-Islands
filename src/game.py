@@ -7,7 +7,7 @@ import pygame
 import esper as es
 import src.settings.settings as settings
 import src.components.globals.mapComponent as game_map
-from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, config_manager
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path
 from src.settings import controls
@@ -281,9 +281,15 @@ class GameRenderer:
             return
             
         self._clear_screen(window)
+        
+        # Appliquer les optimisations de qualité depuis la config
+        disable_particles = config_manager.get("disable_particles", False)
+        disable_shadows = config_manager.get("disable_shadows", False)
+        
         self._render_game_world(window, grid, images, camera)
         self._render_fog_of_war(window, camera)
-        self._render_vision_circles(window, camera)
+        if not disable_shadows:
+            self._render_vision_circles(window, camera)
         self._render_sprites(window, camera)
         self._render_ui(window, action_bar)
         
@@ -310,9 +316,12 @@ class GameRenderer:
             
     def _render_fog_of_war(self, window, camera):
         """Rend le brouillard de guerre avec nuages et brouillard léger."""
-        # Mettre à jour la visibilité pour l'équipe actuelle
-        current_team = self.game_engine.action_bar.current_camp
-        vision_system.update_visibility(current_team)
+        # Mettre à jour la visibilité pour l'équipe actuelle (optimisé : moins fréquent)
+        current_time = pygame.time.get_ticks()
+        if not hasattr(self, '_last_visibility_update') or current_time - self._last_visibility_update > 100:  # 100ms
+            current_team = self.game_engine.action_bar.current_camp
+            vision_system.update_visibility(current_team)
+            self._last_visibility_update = current_time
 
         # Obtenir les rectangles du brouillard
         fog_rects = vision_system.get_visibility_overlay(camera)
@@ -380,9 +389,26 @@ class GameRenderer:
             if (screen_x + vision_radius_pixels >= 0 and screen_x - vision_radius_pixels <= window.get_width() and
                 screen_y + vision_radius_pixels >= 0 and screen_y - vision_radius_pixels <= window.get_height()):
                 
-                # Dessiner le cercle de vision
-                pygame.draw.circle(window, vision_color, (int(screen_x), int(screen_y)), 
-                                 int(vision_radius_pixels), circle_width)
+                # Optimisation : utiliser une surface pré-rendue pour le cercle si possible
+                circle_key = (int(vision_radius_pixels), vision_color, circle_width)
+                if not hasattr(self, '_vision_circle_cache'):
+                    self._vision_circle_cache = {}
+                
+                if circle_key not in self._vision_circle_cache:
+                    # Créer une surface pour le cercle
+                    size = int(vision_radius_pixels * 2) + circle_width * 2
+                    if size > 0:
+                        circle_surface = pygame.Surface((size, size), pygame.SRCALPHA)
+                        pygame.draw.circle(circle_surface, vision_color, (size//2, size//2), 
+                                         int(vision_radius_pixels), circle_width)
+                        self._vision_circle_cache[circle_key] = circle_surface
+                
+                # Dessiner le cercle pré-rendu
+                if circle_key in self._vision_circle_cache:
+                    circle_surf = self._vision_circle_cache[circle_key]
+                    dest_x = int(screen_x - circle_surf.get_width()//2)
+                    dest_y = int(screen_y - circle_surf.get_height()//2)
+                    window.blit(circle_surf, (dest_x, dest_y))
 
     def _render_sprites(self, window, camera):
         """Rendu manuel des sprites pour contrôler l'ordre d'affichage."""
@@ -419,26 +445,79 @@ class GameRenderer:
     def _render_single_sprite(self, window, camera, entity, pos, sprite):
         """Rend un sprite individuel avec effet visuel spécial si invincible."""
         from src.components.special.speScoutComponent import SpeScout
-        image = self._get_sprite_image(sprite)
-        if image is None:
-            return
+        
+        # Optimisation : niveaux de zoom discrets pour réduire les recalculs
+        zoom_levels = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5]
+        discrete_zoom = min(zoom_levels, key=lambda x: abs(x - camera.zoom))
+        
+        # Clé de cache optimisée : utiliser zoom discret + rotation arrondie
+        rotation_key = round(pos.direction / 15) * 15  # Arrondir la rotation à 15 degrés près
+        cache_key = (sprite.image_path, discrete_zoom, sprite.width, sprite.height, rotation_key)
+        
+        if not hasattr(self, '_sprite_cache'):
+            self._sprite_cache = {}
+            self._cache_access_order = []
+        
+        if cache_key not in self._sprite_cache:
+            image = self._get_sprite_image(sprite)
+            if image is None:
+                return
+            
+            # Redimensionner l'image (utiliser scale au lieu de smoothscale pour performance)
+            display_width = int(sprite.width * discrete_zoom)
+            display_height = int(sprite.height * discrete_zoom)
+            if display_width > 0 and display_height > 0:
+                if discrete_zoom == 1.0:
+                    scaled_image = image
+                else:
+                    scaled_image = pygame.transform.scale(image, (display_width, display_height))
+                
+                # Appliquer la rotation arrondie et mettre en cache
+                if rotation_key != 0:
+                    final_image = pygame.transform.rotate(scaled_image, -rotation_key)
+                else:
+                    final_image = scaled_image
+                
+                self._sprite_cache[cache_key] = final_image
+                self._cache_access_order.append(cache_key)
+            else:
+                return
+        else:
+            # Marquer comme récemment utilisé pour LRU
+            if cache_key in self._cache_access_order:
+                self._cache_access_order.remove(cache_key)
+            self._cache_access_order.append(cache_key)
+            
+        final_image = self._sprite_cache[cache_key]
+        display_width = final_image.get_width()
+        display_height = final_image.get_height()
 
-        display_width = int(sprite.width * camera.zoom)
-        display_height = int(sprite.height * camera.zoom)
         screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
 
-        if display_width <= 0 or display_height <= 0:
+        # Vérifier si le sprite est visible à l'écran (optimisation culling)
+        if (screen_x + display_width < 0 or screen_x > window.get_width() or
+            screen_y + display_height < 0 or screen_y > window.get_height()):
             return
 
-        sprite.scale_sprite(display_width, display_height)
-        if sprite.surface is not None:
-            rotated_image = pygame.transform.rotate(sprite.surface, -pos.direction)
-        else:
-            scaled_image = pygame.transform.scale(image, (display_width, display_height))
-            rotated_image = pygame.transform.rotate(scaled_image, -pos.direction)
+        # Positionner le sprite (centré sur la position)
+        dest_x = int(screen_x - display_width // 2)
+        dest_y = int(screen_y - display_height // 2)
+        
+        # Rendre le sprite
+        window.blit(final_image, (dest_x, dest_y))
+
+        # Gestion du cache : limiter la taille pour éviter la surcharge mémoire
+        if len(self._sprite_cache) > 150:  # Augmenter la limite
+            # Supprimer les entrées les moins récemment utilisées
+            to_remove = self._cache_access_order[:30]
+            for key in to_remove:
+                if key in self._sprite_cache:
+                    del self._sprite_cache[key]
+                if key in self._cache_access_order:
+                    self._cache_access_order.remove(key)
 
         # Calculer le rect avant tout effet visuel
-        rect = rotated_image.get_rect(center=(screen_x, screen_y))
+        rect = final_image.get_rect(center=(screen_x, screen_y))
 
         # Effet visuel d'invincibilité pour Zasper : clignotement
         invincible = False
@@ -450,14 +529,14 @@ class GameRenderer:
         if invincible:
             # Clignote : visible 2 frames sur 3
             if (pygame.time.get_ticks() // 100) % 3 != 0:
-                temp_img = rotated_image.copy()
+                temp_img = final_image.copy()
                 temp_img.set_alpha(128)  # semi-transparent
                 window.blit(temp_img, rect.topleft)
             else:
                 # Invisible cette frame (effet de clignotement)
                 pass
         else:
-            window.blit(rotated_image, rect.topleft)
+            window.blit(final_image, rect.topleft)
 
         # Effet visuel : halo bleu pour le bouclier de Barhamus
         if es.has_component(entity, SpeMaraudeur):
@@ -642,6 +721,7 @@ class GameEngine:
         self.grid = None
         self.images = None
         self.camera = None
+        self.camera_positions = {}  # Stockage des positions de caméra par équipe
         self.flying_chest_manager = FlyingChestManager()
         self.island_resource_manager = IslandResourceManager()
         self.stormManager = StormManager()
@@ -688,9 +768,33 @@ class GameEngine:
         """Initialise tous les composants du jeu."""
         print(t("system.game_launched"))
         
+        # Optimisations SDL pour améliorer les performances
+        import os
+        import platform
+        
+        # Optimisations spécifiques à Windows
+        if platform.system() == 'Windows':
+            os.environ['SDL_VIDEO_CENTERED'] = '1'
+            os.environ['SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING'] = '1'  # Réduit la surcharge des threads
+            os.environ['SDL_HINT_WINDOWS_INTRESOURCE_ICON'] = '0'  # Désactive les icônes intégrées
+            # Forcer DirectX si disponible (meilleures performances sur Windows)
+            if 'SDL_VIDEODRIVER' not in os.environ:
+                os.environ['SDL_VIDEODRIVER'] = 'directx'
+        else:
+            # Optimisations Linux/Mac
+            os.environ['SDL_VIDEO_CENTERED'] = '1'
+            os.environ['SDL_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR'] = '0'
+            # Essayer les drivers accélérés
+            for driver in ['wayland', 'x11', 'kmsdrm', 'directfb']:
+                try:
+                    os.environ['SDL_VIDEODRIVER'] = driver
+                    break
+                except:
+                    continue
+        
         pygame.init()
         
-        # Configuration de la fenêtre
+        # Configuration de la fenêtre avec optimisations
         if self.window is None:
             try:
                 from src.managers.display import get_display_manager
@@ -702,8 +806,21 @@ class GameEngine:
                 self.window = dm.surface
                 pygame.display.set_caption(t("system.game_window_title"))
             except Exception:
-                # fallback to direct creation
-                self.window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE), pygame.RESIZABLE)
+                # fallback to direct creation avec optimisations pour de meilleures performances
+                flags = pygame.RESIZABLE | pygame.DOUBLEBUF
+                # Désactiver VSync si configuré pour de meilleures performances
+                if not config_manager.get("vsync", True):
+                    flags |= pygame.NOFRAME  # Évite la synchronisation verticale
+                # Utiliser HWSURFACE si disponible (accélération matérielle)
+                try:
+                    test_surface = pygame.display.set_mode((100, 100), flags | pygame.HWSURFACE)
+                    if test_surface:
+                        flags |= pygame.HWSURFACE
+                        pygame.display.quit()  # Fermer le test
+                        pygame.display.init()  # Réinitialiser
+                except:
+                    pass  # HWSURFACE non disponible
+                self.window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE), flags)
                 pygame.display.set_caption(t("system.game_window_title"))
             self.created_local_window = True
         
@@ -834,15 +951,9 @@ class GameEngine:
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
-        if self.camera is None:
-            raise RuntimeError("La caméra doit être initialisée avant sa configuration")
-            
-        center_x = (MAP_WIDTH * TILE_SIZE) // 2
-        center_y = (MAP_HEIGHT * TILE_SIZE) // 2
-        
-        self.camera.x = center_x - self.camera.screen_width / (2 * self.camera.zoom)
-        self.camera.y = center_y - self.camera.screen_height / (2 * self.camera.zoom)
-        self.camera._constrain_camera()
+        # La caméra est déjà configurée dans init_game_map()
+        # Ne pas la recentrer automatiquement
+        pass
 
     def _give_dev_gold(self, amount: int = 500) -> None:
         """Ajoute de l'or au joueur de la team active (outil de développement).
@@ -900,6 +1011,10 @@ class GameEngine:
                 self.action_bar.set_camp(team, show_feedback=True)
             return
 
+        # Sauvegarder la position actuelle de la caméra pour l'équipe actuelle
+        if self.camera is not None:
+            self.camera_positions[self.selection_team_filter] = (self.camera.x, self.camera.y, self.camera.zoom)
+
         self.selection_team_filter = team
         self._clear_current_selection()
         self._update_selection_state()
@@ -909,6 +1024,26 @@ class GameEngine:
 
         # Mettre à jour la visibilité pour le brouillard de guerre
         vision_system.update_visibility(team)
+
+        # Restaurer ou définir la position de la caméra pour la nouvelle équipe
+        if self.camera is not None:
+            if team in self.camera_positions:
+                # Restaurer la position sauvegardée
+                saved_x, saved_y, saved_zoom = self.camera_positions[team]
+                self.camera.x = saved_x
+                self.camera.y = saved_y
+                self.camera.zoom = saved_zoom
+            else:
+                # Position par défaut selon la faction
+                if team == Team.ENEMY:
+                    # Basculer vers le bas à droite pour la faction ennemie
+                    self.camera.x = MAP_WIDTH * TILE_SIZE
+                    self.camera.y = MAP_HEIGHT * TILE_SIZE
+                else:
+                    # Coin supérieur gauche pour la faction alliée
+                    self.camera.x = 0
+                    self.camera.y = 0
+            self.camera._constrain_camera()
         
     def cycle_selection_team(self) -> None:
         """Bascule sur la faction suivante pour la sélection."""
@@ -1416,13 +1551,41 @@ class GameEngine:
         if self.clock is None:
             raise RuntimeError("L'horloge doit être initialisée")
         
+        # Variables pour l'optimisation adaptative
+        self._frame_times = []
+        self._adaptive_quality = 1.0  # 1.0 = qualité maximale, 0.5 = qualité réduite
+        
         while self.running:
+            frame_start = pygame.time.get_ticks()
             dt = self.clock.tick(60) / 1000.0
             
             self.event_handler.handle_events()
             self._update_game(dt)
             self._render_game(dt)
             
+            # Calcul du FPS adaptatif
+            frame_time = pygame.time.get_ticks() - frame_start
+            self._frame_times.append(frame_time)
+            if len(self._frame_times) > 10:  # Garder les 10 dernières frames
+                self._frame_times.pop(0)
+            
+            avg_frame_time = sum(self._frame_times) / len(self._frame_times)
+            target_frame_time = 1000 / 60  # 16.67ms pour 60 FPS
+            
+            # Ajuster la qualité adaptative
+            performance_mode = config_manager.get("performance_mode", "auto")
+            if performance_mode == "auto":
+                if avg_frame_time > target_frame_time * 1.2:  # Si on dépasse 20% du temps cible
+                    self._adaptive_quality = max(0.3, self._adaptive_quality * 0.95)  # Réduire progressivement
+                elif avg_frame_time < target_frame_time * 0.8:  # Si on est bien en dessous
+                    self._adaptive_quality = min(1.0, self._adaptive_quality * 1.05)  # Augmenter progressivement
+            elif performance_mode == "high":
+                self._adaptive_quality = 1.0
+            elif performance_mode == "medium":
+                self._adaptive_quality = 0.7
+            elif performance_mode == "low":
+                self._adaptive_quality = 0.4
+        
         self._cleanup()
         
 
