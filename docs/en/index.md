@@ -129,6 +129,6 @@ Galad Islands immerses you in a fantastic universe with:
 - Authentic sound effects
 - Unique aerial adventure atmosphere
 
----
+----
 
 *Ready to conquer the skies of Galad Islands? Good luck, commander!* ⚓️✈️
