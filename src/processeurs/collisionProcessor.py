@@ -106,27 +106,74 @@ class CollisionProcessor(esper.Processor):
         
 
     def _process_entity_collisions(self):
-        """Gère les collisions entre entités (logique existante)"""
-        entities = esper.get_components(Position, Sprite, CanCollide, Team)
-        other_entities = entities.copy()
-        already_hit: list = []
+        """Gère les collisions entre entités en utilisant un hachage spatial pour l'optimisation."""
         
-        for ent, (pos, sprite, collide, team) in entities:
-            for other_ent, (other_pos, other_sprite, other_collide, other_team) in other_entities:
-                if (other_ent, ent) in already_hit or (ent, other_ent) in already_hit or ent == other_ent:
-                    continue
+        # 1. Définir la taille de la grille de hachage
+        # Une bonne taille est généralement 2x la taille de l'entité moyenne.
+        CELL_SIZE = TILE_SIZE * 4 
+        
+        # 2. Créer et peupler la grille de hachage
+        spatial_grid = {}
+        entities = esper.get_components(Position, Sprite, CanCollide, Team)
 
-                # Utiliser les dimensions originales pour les collisions, pas les dimensions redimensionnées
-                # Cela évite que le zoom affecte les collisions
-                rect1 = pygame.Rect(0, 0, int(sprite.original_width), int(sprite.original_height))
-                rect1.center = (int(pos.x), int(pos.y))
+        for ent, (pos, sprite, _, _) in entities:
+            # Utiliser les dimensions originales pour la logique de collision
+            width = int(sprite.original_width)
+            height = int(sprite.original_height)
+
+            # Déterminer les cellules de la grille que l'entité chevauche
+            min_x = int((pos.x - width / 2) / CELL_SIZE)
+            max_x = int((pos.x + width / 2) / CELL_SIZE)
+            min_y = int((pos.y - height / 2) / CELL_SIZE)
+            max_y = int((pos.y + height / 2) / CELL_SIZE)
+
+            for grid_x in range(min_x, max_x + 1):
+                for grid_y in range(min_y, max_y + 1):
+                    cell_key = (grid_x, grid_y)
+                    if cell_key not in spatial_grid:
+                        spatial_grid[cell_key] = []
+                    spatial_grid[cell_key].append(ent)
+
+        # 3. Vérifier les collisions
+        already_checked = set()
+
+        for ent, (pos, sprite, collide, team) in entities:
+            width = int(sprite.original_width)
+            height = int(sprite.original_height)
+            rect1 = pygame.Rect(0, 0, width, height)
+            rect1.center = (int(pos.x), int(pos.y))
+
+            # Déterminer les cellules à vérifier
+            min_x = int((pos.x - width / 2) / CELL_SIZE)
+            max_x = int((pos.x + width / 2) / CELL_SIZE)
+            min_y = int((pos.y - height / 2) / CELL_SIZE)
+            max_y = int((pos.y + height / 2) / CELL_SIZE)
+
+            potential_colliders = set()
+            for grid_x in range(min_x, max_x + 1):
+                for grid_y in range(min_y, max_y + 1):
+                    cell_key = (grid_x, grid_y)
+                    if cell_key in spatial_grid:
+                        for collider_ent in spatial_grid[cell_key]:
+                            potential_colliders.add(collider_ent)
+            
+            for other_ent in potential_colliders:
+                # Éviter l'auto-collision et les paires déjà vérifiées
+                if ent == other_ent:
+                    continue
+                
+                pair_key = tuple(sorted((ent, other_ent)))
+                if pair_key in already_checked:
+                    continue
+                already_checked.add(pair_key)
+
+                # Récupérer les composants de l'autre entité
+                other_pos, other_sprite, other_team = esper.component_for_entity(other_ent, Position), esper.component_for_entity(other_ent, Sprite), esper.component_for_entity(other_ent, Team)
+
                 rect2 = pygame.Rect(0, 0, int(other_sprite.original_width), int(other_sprite.original_height))
                 rect2.center = (int(other_pos.x), int(other_pos.y))
-                
+
                 if rect1.colliderect(rect2):
-                    already_hit.append((ent, other_ent))
-                    already_hit.append((other_ent, ent))
-                    
                     # Ignorer les collisions entre tours et coffres volants
                     is_tower1 = esper.has_component(ent, TowerComponent)
                     is_tower2 = esper.has_component(other_ent, TowerComponent)

@@ -268,7 +268,7 @@ class GameRenderer:
         """
         self.game_engine = game_engine
         
-    def render_frame(self, dt):
+    def render_frame(self, dt, adaptive_quality=1.0):
         """Effectue le rendu complet d'une frame."""
         window = self.game_engine.window
         grid = self.game_engine.grid
@@ -283,8 +283,8 @@ class GameRenderer:
         self._clear_screen(window)
         
         # Appliquer les optimisations de qualité depuis la config
-        disable_particles = config_manager.get("disable_particles", False)
-        disable_shadows = config_manager.get("disable_shadows", False)
+        disable_particles = config_manager.get("disable_particles", False) or adaptive_quality < 0.5
+        disable_shadows = config_manager.get("disable_shadows", False) or adaptive_quality < 0.7
         
         self._render_game_world(window, grid, images, camera)
         self._render_fog_of_war(window, camera)
@@ -326,29 +326,48 @@ class GameRenderer:
         # Obtenir les rectangles du brouillard
         fog_rects = vision_system.get_visibility_overlay(camera)
 
+        # Initialiser le cache de tuiles de brouillard s'il n'existe pas
+        if not hasattr(self, '_fog_tile_cache'):
+            self._fog_tile_cache = {}
+
         # Rendre chaque rectangle de brouillard
         for rect, alpha, is_cloud, cloud_image in fog_rects:
-            if is_cloud and cloud_image is not None:
-                # Utiliser l'image cloud.png pour les zones non découvertes
-                try:
-                    scaled_cloud = pygame.transform.scale(cloud_image, (rect.width, rect.height))
-                    scaled_cloud.set_alpha(alpha)
-                    window.blit(scaled_cloud, rect.topleft)
-                except Exception as e:
-                    print(f"Error scaling cloud: {e}")
-                    # Fallback vers une couleur unie si l'image ne peut pas être redimensionnée
-                    fog_surface = pygame.Surface((rect.width, rect.height))
-                    fog_surface.fill((200, 200, 200))
-                    fog_surface.set_alpha(alpha)
-                    window.blit(fog_surface, rect.topleft)
-            else:
-                # Brouillard léger : très transparent noir
-                fog_surface = pygame.Surface((rect.width, rect.height))
-                fog_surface.fill((0, 0, 0))
-                fog_surface.set_alpha(alpha)
-                window.blit(fog_surface, rect.topleft)
-                if is_cloud:
-                    print(f"Cloud requested but cloud_image is None")  # Debug
+            
+            # Créer une clé de cache unique pour cette configuration de tuile
+            cache_key = (rect.width, rect.height, alpha, is_cloud)
+            
+            if cache_key not in self._fog_tile_cache:
+                # La tuile n'est pas en cache, la créer
+                if is_cloud and cloud_image is not None:
+                    try:
+                        tile_surface = pygame.transform.scale(cloud_image, (rect.width, rect.height))
+                        tile_surface.set_alpha(alpha)
+                        self._fog_tile_cache[cache_key] = tile_surface
+                    except Exception as e:
+                        # Fallback: créer une tuile de couleur unie
+                        tile_surface = pygame.Surface((rect.width, rect.height))
+                        tile_surface.fill((200, 200, 200))
+                        tile_surface.set_alpha(alpha)
+                        self._fog_tile_cache[cache_key] = tile_surface
+                else:
+                    # Brouillard léger ou fallback de nuage
+                    color = (200, 200, 200) if is_cloud else (0, 0, 0)
+                    tile_surface = pygame.Surface((rect.width, rect.height))
+                    tile_surface.fill(color)
+                    tile_surface.set_alpha(alpha)
+                    self._fog_tile_cache[cache_key] = tile_surface
+            
+            # Rendre la tuile depuis le cache
+            window.blit(self._fog_tile_cache[cache_key], rect.topleft)
+
+        # Limiter la taille du cache pour éviter une consommation mémoire excessive
+        if len(self._fog_tile_cache) > 100:
+            # Stratégie simple : supprimer les 50 plus anciennes clés
+            for i, key in enumerate(list(self._fog_tile_cache.keys())):
+                if i < 50:
+                    del self._fog_tile_cache[key]
+                else:
+                    break
 
     def _render_vision_circles(self, window, camera):
         """Rend les cercles blancs représentant la portée de vision des unités."""
@@ -519,22 +538,17 @@ class GameRenderer:
         # Calculer le rect avant tout effet visuel
         rect = final_image.get_rect(center=(screen_x, screen_y))
 
-        # Effet visuel d'invincibilité pour Zasper : clignotement
-        invincible = False
+        # Effets visuels basés sur les composants
         if es.has_component(entity, SpeScout):
             spe = es.component_for_entity(entity, SpeScout)
             if getattr(spe, 'is_active', False):
-                invincible = True
-
-        if invincible:
-            # Clignote : visible 2 frames sur 3
-            if (pygame.time.get_ticks() // 100) % 3 != 0:
-                temp_img = final_image.copy()
-                temp_img.set_alpha(128)  # semi-transparent
-                window.blit(temp_img, rect.topleft)
-            else:
-                # Invisible cette frame (effet de clignotement)
-                pass
+                # Effet visuel d'invincibilité pour Zasper : clignotement
+                if (pygame.time.get_ticks() // 100) % 3 != 0:
+                    temp_img = final_image.copy()
+                    temp_img.set_alpha(128)  # semi-transparent
+                    window.blit(temp_img, rect.topleft)
+                # Sinon, ne rien dessiner pour l'effet de clignotement
+                return # On arrête le rendu de ce sprite pour cette frame
         else:
             window.blit(final_image, rect.topleft)
 
@@ -1651,7 +1665,7 @@ class GameEngine:
         
     def _render_game(self, dt):
         """Effectue le rendu du jeu."""
-        self.renderer.render_frame(dt)
+        self.renderer.render_frame(dt, self._adaptive_quality)
         
     def _quit_game(self):
         """Quitte le jeu proprement."""
@@ -1854,4 +1868,3 @@ def game(window=None, bg_original=None, select_sound=None):
     """
     engine = GameEngine(window, bg_original, select_sound)
     engine.run()
-
