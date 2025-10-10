@@ -1,9 +1,3 @@
----
-i18n:
-  en: "Home"
-  fr: "Accueil"
----
-
 # Galad Islands - Documentation
 
 ![Galad Islands Logo](assets/logo.png)
@@ -25,7 +19,7 @@ This documentation is organized into two main sections:
 #### 🏁 Basics
 
 - **[Introduction](user/basics/introduction.md)** - Game presentation
-- **[Getting Started Guide](user/basics/getting-started.md)** - Installation and first steps
+- **[Getting Started](user/basics/getting-started.md)** - Installation and first steps
 - **[Installation](user/basics/installation.md)** - Detailed installation guide
 
 #### 🎮 Gameplay
@@ -41,11 +35,11 @@ This documentation is organized into two main sections:
 #### 🏗️ Economy
 
 - **[Buildings](user/economy/buildings.md)** - Constructions and defenses
-- **[Shop](user/economy/shop.md)** - Purchase and economy system
+- **[Shop](user/economy/shop.md)** - Purchase system and economy
 
 #### 🛠️ Tools
 
-- **[Galad Configuration Tool](user/tools/galad-config-tool.md)** - Game configuration
+- **[Galad Config Tool](user/tools/galad-config-tool.md)** - Game configuration
 
 #### ❓ Help
 
@@ -59,13 +53,13 @@ This documentation is organized into two main sections:
 ##### Development
 
 - **[Overview](dev/01-introduction/overview.md)** - General project architecture
-- **[API](dev/02-systeme/api/game-engine.md)** - Programming interface documentation
+- **[API](dev/02-systeme/api/game-engine.md)** - Programming interfaces documentation
 - **[Modules](dev/02-systeme/modules/processors.md)** - Internal code structure
-- **[Contribution](dev/07-annexes/contributing.md)** - Guide for contributing to the project
+- **[Contribution](dev/07-annexes/contributing.md)** - Guide to contribute to the project
 
 #### System and deployment
 
-- **[Critical system parameters](dev/05-exploitation/systeme.md)** - Configuration and performance optimization
+- **[Critical system settings](dev/05-exploitation/systeme.md)** - Configuration and performance optimization
 - **[Hardware requirements](dev/03-installation/requirements.md)** - Required hardware/software and dependencies
 - **[System operations](dev/05-exploitation/operations.md)** - Monitoring, backup, security and maintenance
 
@@ -76,7 +70,7 @@ This documentation is organized into two main sections:
 **Allies:**
 
 - **Zasper**: Light and fast scout
-- **Barhamus**: Medium robust marauder
+- **Barhamus**: Robust medium marauder
 - **Draupnir**: Heavy destructive leviathan
 - **Druid**: Healer and magical support
 - **Architect**: Defense builder
@@ -86,7 +80,7 @@ This documentation is organized into two main sections:
 - **Valkar**: Fast and aggressive interceptor
 - **Goliath**: Heavily armored with high firepower
 - **Spectre**: Stealth unit specialized in sabotage
-- **Necroprêtre**: Support that weakens your troops
+- **Necropriest**: Support that weakens your troops
 - **Bastion**: Mobile defensive platform
 
 ### 🏰 Construction and Defense
@@ -116,10 +110,10 @@ This documentation is organized into two main sections:
 5. **Buy new units** with the `B` key
 6. **Dominate the archipelago**!
 
-!!! tip "Starting tip"
-    Start by exploring the map to find flying chests or gold on the islands and map out areas before engaging in combat!
+!!! tip "Starting Tip"
+    Start by exploring the map to find chests or gold and map the areas before engaging in combat!
 
-## 📚 Navigation in this guide
+## 📚 Navigation of this Guide
 
 - **[Getting Started Guide](user/basics/getting-started.md)**: First steps
 - **[Installation and Configuration](user/basics/installation.md)**: How to install and configure the game

@@ -40,7 +40,7 @@ plugins:
       reconfigure_material: true
       reconfigure_search: true
       languages:
-        fr:
+        - locale: fr
           default: true
           name: Français
           build: true
@@ -95,7 +95,7 @@ plugins:
               - 7. Annexes:
                 - Guide de contribution: dev/07-annexes/contributing.md
             - 💬 Support et Contact: support.md
-        en:
+        - locale: en
           name: English
           build: true
           nav:
