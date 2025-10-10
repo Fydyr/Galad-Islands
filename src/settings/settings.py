@@ -196,17 +196,17 @@ GAME_TITLE = "Galad Islands"
 FPS = 30
 
 # Dimensions de la carte de jeu
-MAP_WIDTH = 30   # nombre de cases en largeur
-MAP_HEIGHT = 30  # nombre de cases en hauteur
+MAP_WIDTH = 60   # nombre de cases en largeur
+MAP_HEIGHT = 60  # nombre de cases en hauteur
 
 # Paramètres de génération de la carte
 MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.02)        # 2% de mines
-GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03)  # 3% d'îles
+GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.01)  # 1% d'îles
 CLOUD_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03)       # 3% de nuages
 
 # Paramètres de contrôle de la caméra
 CAMERA_SPEED = 200  # pixels par seconde
-ZOOM_MIN = 0.5
+ZOOM_MIN = 0.25
 ZOOM_MAX = 2.5
 ZOOM_SPEED = 0.1
 

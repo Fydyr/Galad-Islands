@@ -198,9 +198,9 @@ class EventHandler:
             return
 
         if event.button == 4:  # Molette vers le haut
-            camera.handle_zoom(1)
+            camera.handle_zoom(1, pygame.key.get_mods())
         elif event.button == 5:  # Molette vers le bas
-            camera.handle_zoom(-1)
+            camera.handle_zoom(-1, pygame.key.get_mods())
         elif event.button == 1:  # Clic gauche : sélection
             self.game_engine.handle_mouse_selection(event.pos)
         elif event.button == 3:  # Clic droit : tir principal
@@ -1619,7 +1619,7 @@ class GameEngine:
                 return False
         
         # Vérifier l'or du joueur
-        current_gold = self._get_current_player_gold()
+        current_gold = self.action_bar._get_current_player_gold()
         if current_gold < self.tower_cost:
             if hasattr(self, 'action_bar') and self.action_bar:
                 self.action_bar._show_feedback('warning', t('shop.insufficient_gold'))
@@ -1645,7 +1645,7 @@ class GameEngine:
             # Les tours sont automatiquement associées via leur team_id
             
             # Déduire l'or du joueur
-            self._set_current_player_gold(current_gold - self.tower_cost)
+            self.action_bar._set_current_player_gold(current_gold - self.tower_cost)
             
             # Feedback visuel
             if hasattr(self, 'action_bar') and self.action_bar:

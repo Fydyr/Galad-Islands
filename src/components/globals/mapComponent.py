@@ -171,7 +171,7 @@ def placer_elements(grid):
         for dx in range(4):
             grid[MAP_HEIGHT-4-margin+dy][MAP_WIDTH-4-margin+dx] = int(TileType.ENEMY_BASE)
     # Îles génériques
-    placer_bloc_aleatoire(grid, TileType.GENERIC_ISLAND, GENERIC_ISLAND_RATE, size=1, min_dist=2, avoid_bases=True)
+    placer_bloc_aleatoire(grid, TileType.GENERIC_ISLAND, GENERIC_ISLAND_RATE, size=3, min_dist=2, avoid_bases=True)
     # Nuages
     placer_bloc_aleatoire(grid, TileType.CLOUD, CLOUD_RATE, size=1, min_dist=0, avoid_bases=False)
     # Mines
@@ -334,9 +334,9 @@ def run_game_frame(window, game_state, dt):
         
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 4:
-                camera.handle_zoom(1)
+                camera.handle_zoom(1, pygame.key.get_mods())
             elif event.button == 5:
-                camera.handle_zoom(-1)
+                camera.handle_zoom(-1, pygame.key.get_mods())
 
     # Gestion des touches pressées
     keys = pygame.key.get_pressed()
