@@ -34,7 +34,6 @@ plugins:
   - search:
       lang: fr
   - i18n:
-      default_language: fr
       docs_structure: folder
       fallback_to_default: true
       reconfigure_material: true
