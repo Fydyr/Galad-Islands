@@ -117,7 +117,7 @@ This documentation is organized into two main sections:
 6. **Dominate the archipelago**!
 
 !!! tip "Starting tip"
-    Start by exploring the map to find chests and map out areas before engaging in combat!
+    Start by exploring the map to find flying chests or gold on the islands and map out areas before engaging in combat!
 
 ## 📚 Navigation in this guide
 
