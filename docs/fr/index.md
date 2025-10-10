@@ -111,7 +111,7 @@ Cette documentation est organisée en deux sections principales :
 6. **Dominez l'archipel** !
 
 !!! tip "Conseil de départ"
-    Commencez par explorer la carte pour trouver les coffres et cartographier les zones avant d'engager le combat !
+    Commencez par explorer la carte pour trouver des coffres ou de l'or et cartographier les zones avant d'engager le combat !
 
 ## 📚 Navigation de ce guide
 
