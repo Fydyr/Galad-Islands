@@ -24,6 +24,9 @@ DEFAULT_CONFIG = {
     "volume_music": 0.5,
     "volume_effects": 0.7,
     "vsync": True,
+    "performance_mode": "auto",  # "auto", "high", "medium", "low"
+    "disable_particles": False,
+    "disable_shadows": False,
     "show_fps": False,
     "dev_mode": False,  # Mode développement pour les actions debug
     "language": "fr",
@@ -46,8 +49,8 @@ DEFAULT_CONFIG = {
         "camera_move_right": ["right"],
         "camera_move_up": ["up"],
         "camera_move_down": ["down"],
-    "camera_fast_modifier": ["ctrl"],
-    "camera_follow_toggle": ["c"],
+        "camera_fast_modifier": ["ctrl"],
+        "camera_follow_toggle": ["c"],
         "selection_select_all": ["ctrl+a"],
         "selection_cycle_team": ["t"],
         "system_pause": ["escape"],
@@ -160,6 +163,31 @@ class ConfigManager:
         """Met à jour le multiplicateur de vitesse pour le déplacement rapide de la caméra."""
         self.config["camera_fast_multiplier"] = max(1.0, float(multiplier))
 
+    def get_performance_mode(self) -> str:
+        """Retourne le mode de performance actuel."""
+        return str(self.config.get("performance_mode", "auto"))
+
+    def set_performance_mode(self, mode: str) -> None:
+        """Définit le mode de performance."""
+        if mode in ["auto", "high", "medium", "low"]:
+            self.config["performance_mode"] = mode
+
+    def get_disable_particles(self) -> bool:
+        """Retourne si les particules sont désactivées."""
+        return bool(self.config.get("disable_particles", False))
+
+    def set_disable_particles(self, disabled: bool) -> None:
+        """Active/désactive les particules."""
+        self.config["disable_particles"] = bool(disabled)
+
+    def get_disable_shadows(self) -> bool:
+        """Retourne si les ombres sont désactivées."""
+        return bool(self.config.get("disable_shadows", False))
+
+    def set_disable_shadows(self, disabled: bool) -> None:
+        """Active/désactive les ombres."""
+        self.config["disable_shadows"] = bool(disabled)
+
     def get_key_bindings(self) -> Dict[str, List[str]]:
         """Retourne une copie des associations de touches personnalisées."""
         key_bindings = self.config.get("key_bindings", {})
@@ -193,15 +221,15 @@ config_manager = ConfigManager()
 
 # Paramètres d'affichage
 GAME_TITLE = "Galad Islands"
-FPS = 30
+FPS = 60
 
 # Dimensions de la carte de jeu
-MAP_WIDTH = 60   # nombre de cases en largeur
-MAP_HEIGHT = 60  # nombre de cases en hauteur
+MAP_WIDTH = 45   # nombre de cases en largeur
+MAP_HEIGHT = 45  # nombre de cases en hauteur
 
 # Paramètres de génération de la carte
-MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.02)        # 2% de mines
-GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.01)  # 1% d'îles
+MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.008)        # 0.8% de mines
+GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.008)  # 0.8% d'îles
 CLOUD_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03)       # 3% de nuages
 
 # Paramètres de contrôle de la caméra
@@ -315,6 +343,33 @@ def set_audio_volume(volume_type: str, value: float) -> bool:
 def reset_to_defaults() -> bool:
     """Réinitialise tous les paramètres aux valeurs par défaut et sauvegarde."""
     config_manager.reset_to_defaults()
+    return config_manager.save_config()
+
+def get_performance_mode() -> str:
+    """Retourne le mode de performance actuel."""
+    return config_manager.get_performance_mode()
+
+def set_performance_mode(mode: str) -> bool:
+    """Définit le mode de performance et sauvegarde."""
+    config_manager.set_performance_mode(mode)
+    return config_manager.save_config()
+
+def get_disable_particles() -> bool:
+    """Retourne si les particules sont désactivées."""
+    return config_manager.get_disable_particles()
+
+def set_disable_particles(disabled: bool) -> bool:
+    """Active/désactive les particules et sauvegarde."""
+    config_manager.set_disable_particles(disabled)
+    return config_manager.save_config()
+
+def get_disable_shadows() -> bool:
+    """Retourne si les ombres sont désactivées."""
+    return config_manager.get_disable_shadows()
+
+def set_disable_shadows(disabled: bool) -> bool:
+    """Active/désactive les ombres et sauvegarde."""
+    config_manager.set_disable_shadows(disabled)
     return config_manager.save_config()
 
 
