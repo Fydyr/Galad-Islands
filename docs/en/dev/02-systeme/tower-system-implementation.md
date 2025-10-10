@@ -1,47 +1,53 @@
-# Implémentation du Système de Tours
+---
+i18n:
+  en: "Tower System Implementation"
+  fr: "Implémentation du Système de Tours"
+---
 
-## Vue d'ensemble
+# Tower System Implementation
 
-Ce document décrit l'implémentation complète du système de tours de défense et de soin dans Galad Islands. Le système permet à l'unité Architecte de construire des tours défensives qui attaquent automatiquement les ennemis ou soignent les alliés.
+## Overview
 
-**Date de mise en œuvre** : Octobre 2025  
-**Version** : 1.0.0  
-**Architecture** : ECS (Entity Component System) avec esper
+This document describes the complete implementation of the defense and healing tower system in Galad Islands. The system allows the Architect unit to build defensive towers that automatically attack enemies or heal allies.
+
+**Implementation Date**: October 2025  
+**Version**: 1.0.0  
+**Architecture**: ECS (Entity Component System) with esper
 
 ---
 
-## Table des matières
+## Table of Contents
 
-1. [Architecture du système](#architecture-du-système)
-2. [Composants](#composants)
-3. [Systèmes (Processors)](#systèmes-processors)
+1. [System Architecture](#system-architecture)
+2. [Components](#components)
+3. [Systems (Processors)](#systems-processors)
 4. [Factory](#factory)
-5. [Interface utilisateur](#interface-utilisateur)
-6. [Sprites et assets](#sprites-et-assets)
+5. [User Interface](#user-interface)
+6. [Sprites and Assets](#sprites-and-assets)
 7. [Configuration](#configuration)
-8. [Corrections apportées](#corrections-apportées)
+8. [Fixes Made](#fixes-made)
 
 ---
 
-## Architecture du système
+## System Architecture
 
-Le système de tours suit l'architecture ECS du projet :
+The tower system follows the project's ECS architecture:
 
 ```
 ┌─────────────────────────────────────────┐
-│         Interface Utilisateur           │
-│  (ActionBar - Boutons de construction)  │
+│              User Interface             │
+│  (ActionBar - Construction Buttons)     │
 └────────────────┬────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────┐
 │            Factory Pattern              │
-│  (buildingFactory - Création d'entités) │
+│  (buildingFactory - Entity Creation)    │
 └────────────────┬────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────┐
-│         Composants (Components)         │
+│         Components (Components)         │
 │  - TowerComponent (base)                │
 │  - DefenseTowerComponent                │
 │  - HealTowerComponent                   │
@@ -49,153 +55,153 @@ Le système de tours suit l'architecture ECS du projet :
                  │
                  ▼
 ┌─────────────────────────────────────────┐
-│        Processeur (Processor)           │
-│  - TowerProcessor (logique d'action)    │
+│        Processor (Processor)            │
+│  - TowerProcessor (action logic)        │
 └─────────────────────────────────────────┘
 ```
 
 ---
 
-## Composants
+## Components
 
 ### 1. TowerComponent (Base)
 
-**Fichier** : `src/components/core/towerComponent.py`
+**File**: `src/components/core/towerComponent.py`
 
-Composant de base pour toutes les tours.
+Base component for all towers.
 
 ```python
 @dataclass
 class TowerComponent:
-    """Composant de base pour les tours."""
-    tower_type: str  # "defense" ou "heal"
-    range: float     # Portée d'action
-    cooldown: float  # Temps entre deux actions
-    current_cooldown: float = 0.0  # Compteur de cooldown
-    target_entity: Optional[int] = None  # Entité ciblée actuellement
+    """Base component for towers."""
+    tower_type: str  # "defense" or "heal"
+    range: float     # Action range
+    cooldown: float  # Time between two actions
+    current_cooldown: float = 0.0  # Cooldown counter
+    target_entity: Optional[int] = None  # Currently targeted entity
 ```
 
-**Propriétés** :
-- `tower_type` : Type de tour ("defense" ou "heal")
-- `range` : Portée de détection (en pixels)
-- `cooldown` : Délai entre deux actions (en secondes)
-- `current_cooldown` : Temps restant avant la prochaine action
-- `target_entity` : ID de l'entité actuellement ciblée
+**Properties**:
+- `tower_type`: Type of tower ("defense" or "heal")
+- `range`: Detection range (in pixels)
+- `cooldown`: Delay between two actions (in seconds)
+- `current_cooldown`: Time remaining before the next action
+- `target_entity`: ID of the currently targeted entity
 
-**Utilisation** : Ajouté à chaque entité tour pour gérer le comportement commun.
+**Usage**: Added to each tower entity to manage common behavior.
 
 ### 2. DefenseTowerComponent
 
-**Fichier** : `src/components/core/defenseTowerComponent.py`
+**File**: `src/components/core/defenseTowerComponent.py`
 
-Composant spécifique aux tours d'attaque.
+Specific component for attack towers.
 
 ```python
 @dataclass
 class DefenseTowerComponent:
-    """Composant pour les tours de défense (attaque)."""
-    damage: float  # Dégâts infligés par attaque
-    attack_speed: float  # Vitesse d'attaque
+    """Component for defense towers (attack)."""
+    damage: float  # Damage inflicted per attack
+    attack_speed: float  # Attack speed
 ```
 
-**Propriétés** :
-- `damage` : Dégâts infligés par projectile (défaut: 15.0)
-- `attack_speed` : Multiplicateur de vitesse d'attaque (défaut: 1.0)
+**Properties**:
+- `damage`: Damage inflicted per projectile (default: 15.0)
+- `attack_speed`: Attack speed multiplier (default: 1.0)
 
-**Utilisation** : Ajouté aux tours de défense en complément du `TowerComponent`.
+**Usage**: Added to defense towers in addition to `TowerComponent`.
 
 ### 3. HealTowerComponent
 
-**Fichier** : `src/components/core/healTowerComponent.py`
+**File**: `src/components/core/healTowerComponent.py`
 
-Composant spécifique aux tours de soin.
+Specific component for healing towers.
 
 ```python
 @dataclass
 class HealTowerComponent:
-    """Composant pour les tours de soin."""
-    heal_amount: float  # Points de vie restaurés par soin
-    heal_speed: float   # Vitesse de soin
+    """Component for healing towers."""
+    heal_amount: float  # Health points restored per heal
+    heal_speed: float   # Healing speed
 ```
 
-**Propriétés** :
-- `heal_amount` : Points de vie restaurés (défaut: 10.0)
-- `heal_speed` : Multiplicateur de vitesse de soin (défaut: 1.0)
+**Properties**:
+- `heal_amount`: Health points restored (default: 10.0)
+- `heal_speed`: Healing speed multiplier (default: 1.0)
 
-**Utilisation** : Ajouté aux tours de soin en complément du `TowerComponent`.
+**Usage**: Added to healing towers in addition to `TowerComponent`.
 
 ---
 
-## Systèmes (Processors)
+## Systems (Processors)
 
 ### TowerProcessor
 
-**Fichier** : `src/processeurs/towerProcessor.py`
+**File**: `src/processors/towerProcessor.py`
 
-Processeur principal gérant la logique des tours.
+Main processor managing tower logic.
 
-#### Fonctionnalités
+#### Features
 
-1. **Gestion du cooldown** :
-   - Décrémente le cooldown de chaque tour
-   - Permet l'action lorsque le cooldown atteint 0
+1. **Cooldown Management**:
+   - Decrements the cooldown of each tower
+   - Allows action when the cooldown reaches 0
 
-2. **Détection de cibles** :
-   - Recherche d'ennemis dans la portée (tours de défense)
-   - Recherche d'alliés blessés dans la portée (tours de soin)
-   - Utilise `TeamComponent` pour identifier alliés/ennemis
+2. **Target Detection**:
+   - Searches for enemies within range (defense towers)
+   - Searches for wounded allies within range (healing towers)
+   - Uses `TeamComponent` to identify allies/enemies
 
-3. **Actions** :
-   - **Tours de défense** : Crée des projectiles via `ProjectileFactory`
-   - **Tours de soin** : Applique des soins directement sur `HealthComponent`
+3. **Actions**:
+   - **Defense Towers**: Creates projectiles via `ProjectileFactory`
+   - **Healing Towers**: Applies healing directly to `HealthComponent`
 
-#### Méthode principale
+#### Main Method
 
 ```python
 def process(self, dt: float):
-    """Traite la logique des tours à chaque frame."""
+    """Processes tower logic each frame."""
     for entity, (tower, pos, team) in esper.get_components(
         TowerComponent, PositionComponent, TeamComponent
     ):
-        # 1. Mise à jour du cooldown
+        # 1. Update cooldown
         if tower.current_cooldown > 0:
             tower.current_cooldown -= dt
             continue
         
-        # 2. Recherche de cible
+        # 2. Search for target
         target = self._find_target(entity, tower, pos, team)
         
-        # 3. Action selon le type
+        # 3. Action according to type
         if target:
             if tower.tower_type == "defense":
                 self._attack_target(entity, target, pos)
             elif tower.tower_type == "heal":
                 self._heal_target(entity, target)
             
-            # 4. Réinitialisation du cooldown
+            # 4. Reset cooldown
             tower.current_cooldown = tower.cooldown
 ```
 
-#### Intégration dans la boucle de jeu
+#### Integration into the Game Loop
 
-**Fichier** : `src/game.py`
+**File**: `src/game.py`
 
 ```python
 def _initialize_processors(self):
-    """Initialise les processeurs du jeu."""
-    # ... autres processeurs
+    """Initializes the game's processors."""
+    # ... other processors
     self.tower_processor = TowerProcessor()
     esper.add_processor(self.tower_processor, priority=15)
 ```
 
-**Dans la boucle principale** :
+**In the main loop**:
 
 ```python
 def update(self, dt: float):
-    """Met à jour tous les systèmes du jeu."""
-    # ... autres mises à jour
+    """Updates all game systems."""
+    # ... other updates
     
-    # Traitement des tours
+    # Tower processing
     if self.tower_processor:
         self.tower_processor.process(dt)
 ```
@@ -206,28 +212,28 @@ def update(self, dt: float):
 
 ### buildingFactory
 
-**Fichier** : `src/factory/buildingFactory.py`
+**File**: `src/factory/buildingFactory.py`
 
-Factory pour créer les entités de tours.
+Factory for creating tower entities.
 
 #### create_defense_tower
 
 ```python
 def create_defense_tower(world: esper.World, x: float, y: float, team_id: int = 1) -> int:
     """
-    Crée une tour de défense.
+    Creates a defense tower.
     
     Args:
-        world: Monde esper
-        x, y: Position de la tour
-        team_id: ID de l'équipe (1=allié, 2=ennemi)
+        world: esper World
+        x, y: Tower position
+        team_id: Team ID (1=ally, 2=enemy)
     
     Returns:
-        ID de l'entité créée
+        ID of the created entity
     """
     entity = world.create_entity()
     
-    # Composants de base
+    # Base components
     world.add_component(entity, PositionComponent(x, y))
     world.add_component(entity, TeamComponent(team_id))
     
@@ -237,7 +243,7 @@ def create_defense_tower(world: esper.World, x: float, y: float, team_id: int = 
     )
     world.add_component(entity, sprite)
     
-    # Composants spécifiques tour
+    # Tower-specific components
     world.add_component(entity, TowerComponent(
         tower_type="defense",
         range=200.0,
@@ -256,19 +262,19 @@ def create_defense_tower(world: esper.World, x: float, y: float, team_id: int = 
 ```python
 def create_heal_tower(world: esper.World, x: float, y: float, team_id: int = 1) -> int:
     """
-    Crée une tour de soin.
+    Creates a healing tower.
     
     Args:
-        world: Monde esper
-        x, y: Position de la tour
-        team_id: ID de l'équipe (1=allié, 2=ennemi)
+        world: esper World
+        x, y: Tower position
+        team_id: Team ID (1=ally, 2=enemy)
     
     Returns:
-        ID de l'entité créée
+        ID of the created entity
     """
     entity = world.create_entity()
     
-    # Composants de base
+    # Base components
     world.add_component(entity, PositionComponent(x, y))
     world.add_component(entity, TeamComponent(team_id))
     
@@ -278,7 +284,7 @@ def create_heal_tower(world: esper.World, x: float, y: float, team_id: int = 1) 
     )
     world.add_component(entity, sprite)
     
-    # Composants spécifiques tour
+    # Tower-specific components
     world.add_component(entity, TowerComponent(
         tower_type="heal",
         range=150.0,
@@ -294,15 +300,15 @@ def create_heal_tower(world: esper.World, x: float, y: float, team_id: int = 1) 
 
 ---
 
-## Interface utilisateur
+## User Interface
 
 ### ActionBar
 
-**Fichier** : `src/ui/action_bar.py`
+**File**: `src/ui/action_bar.py`
 
-L'ActionBar gère les boutons de construction des tours.
+The ActionBar manages the tower construction buttons.
 
-#### Boutons de construction
+#### Construction Buttons
 
 ```python
 build_buttons = [
@@ -312,7 +318,7 @@ build_buttons = [
         text=t("actionbar.build_defense"),
         cost=150,
         hotkey="",
-        visible=False,  # Visible uniquement quand Architecte sélectionné
+        visible=False,  # Visible only when Architect is selected
         callback=self._build_defense_tower
     ),
     ActionButton(
@@ -327,12 +333,12 @@ build_buttons = [
 ]
 ```
 
-#### Logique de construction
+#### Construction Logic
 
 ```python
 def _build_defense_tower(self):
-    """Construit une tour de défense."""
-    # Vérifier qu'un Architecte est sélectionné
+    """Builds a defense tower."""
+    # Check if an Architect is selected
     architects = list(esper.get_components(SpeArchitect, PositionComponent))
     if not architects:
         self.notification_system.add_notification(
@@ -341,10 +347,10 @@ def _build_defense_tower(self):
         )
         return
     
-    # Récupérer la position de l'Architecte
+    # Get the Architect's position
     _, (_, pos) = architects[0]
     
-    # Vérifier que c'est sur une île
+    # Check if it's on an island
     if not is_tile_island(self.game_engine.grid, pos.x, pos.y):
         self.notification_system.add_notification(
             t("notification.not_on_island"),
@@ -352,17 +358,17 @@ def _build_defense_tower(self):
         )
         return
     
-    # Vérifier qu'il n'y a pas déjà une tour à cet emplacement
+    # Check if there is already a tower at this location
     for entity, (tower_pos, _) in esper.get_components(PositionComponent, TowerComponent):
         distance = math.sqrt((pos.x - tower_pos.x)**2 + (pos.y - tower_pos.y)**2)
-        if distance < 40:  # Rayon minimum entre tours
+        if distance < 40:  # Minimum radius between towers
             self.notification_system.add_notification(
                 t("notification.tower_already_exists"),
                 NotificationType.ERROR
             )
             return
     
-    # Vérifier le coût
+    # Check the cost
     cost = 150
     if self._get_player_gold_direct() < cost:
         self.notification_system.add_notification(
@@ -371,91 +377,91 @@ def _build_defense_tower(self):
         )
         return
     
-    # Créer la tour
+    # Create the tower
     create_defense_tower(esper, pos.x, pos.y, team_id=1)
     
-    # Déduire le coût
+    # Deduct the cost
     self._set_player_gold_direct(self._get_player_gold_direct() - cost)
     
-    # Notification de succès
+    # Success notification
     self.notification_system.add_notification(
         t("notification.tower_built"),
         NotificationType.SUCCESS
     )
 ```
 
-#### Activation des boutons
+#### Button Activation
 
-Les boutons sont activés lorsque l'Architecte est sélectionné :
+The buttons are activated when the Architect is selected:
 
 ```python
 def update_for_unit(self, unit_info: Optional[UnitInfo]):
-    """Met à jour les boutons selon l'unité sélectionnée."""
+    """Updates buttons based on the selected unit."""
     self.selected_unit = unit_info
     
-    # Afficher les boutons de construction si Architecte sélectionné
+    # Show construction buttons if Architect is selected
     for button in self.action_buttons:
         if button.action_type in [ActionType.BUILD_DEFENSE_TOWER, ActionType.BUILD_HEAL_TOWER]:
-            button.visible = (unit_info and unit_info.unit_type == "Architecte")
+            button.visible = (unit_info and unit_info.unit_type == "Architect")
     
     self._update_button_positions()
 ```
 
 ---
 
-## Sprites et assets
+## Sprites and Assets
 
-### Structure des fichiers
+### File Structure
 
 ```
 assets/sprites/buildings/
 ├── ally/
-│   ├── ally-defence-tower.png    # Tour de défense alliée (80x120)
-│   └── ally-heal-tower.png        # Tour de soin alliée (80x120)
+│   ├── ally-defence-tower.png    # Ally defense tower (80x120)
+│   └── ally-heal-tower.png        # Ally healing tower (80x120)
 └── enemy/
-    ├── enemy-defence-tower.png    # Tour de défense ennemie (80x120)
-    └── enemy-heal-tower.png        # Tour de soin ennemie (80x120)
+    ├── enemy-defence-tower.png    # Enemy defense tower (80x120)
+    └── enemy-heal-tower.png        # Enemy healing tower (80x120)
 ```
 
-### Configuration des sprites
+### Sprite Configuration
 
-**Fichier** : `src/managers/sprite_manager.py`
+**File**: `src/managers/sprite_manager.py`
 
 ```python
 class SpriteID(Enum):
-    """Identifiants des sprites."""
-    # ... autres sprites
+    """Sprite identifiers."""
+    # ... other sprites
     ALLY_DEFENCE_TOWER = "ALLY_DEFENCE_TOWER"
     ALLY_HEAL_TOWER = "ALLY_HEAL_TOWER"
     ENEMY_DEFENCE_TOWER = "ENEMY_DEFENCE_TOWER"
     ENEMY_HEAL_TOWER = "ENEMY_HEAL_TOWER"
 
-# Configuration des sprites
+# Sprite configurations
 SPRITE_CONFIGS = [
     # Buildings
     SpriteData(
         SpriteID.ALLY_DEFENCE_TOWER,
         "assets/sprites/buildings/ally/ally-defence-tower.png",
         80, 120,
-        "Tour de défense"
+        "Defense Tower"
     ),
     SpriteData(
         SpriteID.ALLY_HEAL_TOWER,
         "assets/sprites/buildings/ally/ally-heal-tower.png",
         80, 120,
-        "Tour de soin"
+        "Healing Tower"
     ),
     SpriteData(
         SpriteID.ENEMY_DEFENCE_TOWER,
         "assets/sprites/buildings/enemy/enemy-defence-tower.png",
         80, 120,
-        "Tour de défense ennemie"
+        "Enemy Defense Tower"
     ),
     SpriteData(
         SpriteID.ENEMY_HEAL_TOWER,
         "assets/sprites/buildings/enemy/enemy-heal-tower.png",
         80, 120,
-        "Tour de soin ennemie"
+        "Enemy Healing Tower"
     ),
 ]
 ```
@@ -464,9 +470,9 @@ SPRITE_CONFIGS = [
 
 ## Configuration
 
-### Mode développeur
+### Developer Mode
 
-**Fichier** : `src/settings/settings.py`
+**File**: `src/settings/settings.py`
 
 ```python
 DEFAULT_CONFIG = {
@@ -474,15 +480,15 @@ DEFAULT_CONFIG = {
     "fullscreen": False,
     "resolution": [1280, 720],
     "volume": 0.7,
-    "dev_mode": False,  # Active les fonctionnalités de développement
-    # ... autres paramètres
+    "dev_mode": False,  # Activates development features
+    # ... other parameters
 }
 ```
 
-Le `dev_mode` contrôle l'affichage du bouton de debug dans l'ActionBar :
+The `dev_mode` controls the display of the debug button in the ActionBar:
 
 ```python
-# Dans _initialize_buttons()
+# In _initialize_buttons()
 if ConfigManager().get('dev_mode', False):
     global_buttons.append(
         ActionButton(
@@ -498,14 +504,14 @@ if ConfigManager().get('dev_mode', False):
     )
 ```
 
-### Traductions
+### Translations
 
-**Fichiers** :
+**Files**:
 - `assets/locales/french.py`
 - `assets/locales/english.py`
 
 ```python
-# Français
+# French
 TRANSLATIONS = {
     "shop.defense_tower": "Tour de Défense",
     "shop.defense_tower_desc": "Tour de défense automatique",
@@ -519,7 +525,7 @@ TRANSLATIONS = {
     "notification.not_on_island": "Vous devez construire sur une île",
 }
 
-# Anglais
+# English
 TRANSLATIONS = {
     "shop.defense_tower": "Defense Tower",
     "shop.defense_tower_desc": "Automatic defense tower",
@@ -536,16 +542,16 @@ TRANSLATIONS = {
 
 ---
 
-## Corrections apportées
+## Fixes Made
 
-### 1. Organisation des imports
+### 1. Import Organization
 
-**Problème** : Imports dispersés dans le code, blocs try/except inutiles
+**Problem**: Imports scattered in the code, unnecessary try/except blocks
 
-**Solution** : Tous les imports regroupés en haut du fichier
+**Solution**: All imports grouped at the top of the file
 
 ```python
-# src/ui/action_bar.py - En-tête du fichier
+# src/ui/action_bar.py - File header
 import pygame
 import esper
 from typing import List, Optional, Callable
@@ -556,129 +562,129 @@ import math
 from src.components.core.positionComponent import PositionComponent
 from src.components.special.speArchitectComponent import SpeArchitect
 from src.components.core.towerComponent import TowerComponent
-# ... autres imports
+# ... other imports
 ```
 
-**Fichiers modifiés** :
+**Files modified**:
 - `src/ui/action_bar.py`
 
-### 2. Chemins des sprites
+### 2. Sprite Paths
 
-**Problème** : Chemin incorrect pour `ALLY_DEFENCE_TOWER` (manquait le sous-dossier `ally/`)
+**Problem**: Incorrect path for `ALLY_DEFENCE_TOWER` (missing the `ally/` subfolder)
 
-**Avant** :
+**Before**:
 ```python
 SpriteData(
     SpriteID.ALLY_DEFENCE_TOWER,
     "assets/sprites/buildings/ally-defence-tower.png",  # ❌ Incorrect
     80, 120,
-    "Tour de défense"
+    "Defense Tower"
 )
 ```
 
-**Après** :
+**After**:
 ```python
 SpriteData(
     SpriteID.ALLY_DEFENCE_TOWER,
     "assets/sprites/buildings/ally/ally-defence-tower.png",  # ✅ Correct
     80, 120,
-    "Tour de défense"
+    "Defense Tower"
 )
 ```
 
-**Fichiers modifiés** :
+**Files modified**:
 - `src/managers/sprite_manager.py`
 
-### 3. Noms des tours
+### 3. Tower Names
 
-**Problème** : Tours nommées "Tour d'Attaque" au lieu de "Tour de Défense"
+**Problem**: Towers named "Attack Tower" instead of "Defense Tower"
 
-**Solution** : Correction des traductions
+**Solution**: Corrected translations
 
-**Fichiers modifiés** :
+**Files modified**:
 - `assets/locales/french.py`
 - `assets/locales/english.py`
 
-### 4. Visibilité du bouton debug
+### 4. Debug Button Visibility
 
-**Problème** : Bouton debug toujours visible, même avec `dev_mode: False`
+**Problem**: Debug button always visible, even with `dev_mode: False`
 
-**Solution** : 
-1. Ajout de `dev_mode: False` dans `DEFAULT_CONFIG`
-2. Condition `if ConfigManager().get('dev_mode', False)` pour créer le bouton
-3. Vérification dynamique dans `_update_button_positions()`
+**Solution**: 
+1. Added `dev_mode: False` to `DEFAULT_CONFIG`
+2. Condition `if ConfigManager().get('dev_mode', False)` to create the button
+3. Dynamic check in `_update_button_positions()`
 
-**Fichiers modifiés** :
+**Files modified**:
 - `src/settings/settings.py`
 - `src/ui/action_bar.py`
 
-### 5. Intégration du TowerProcessor
+### 5. TowerProcessor Integration
 
-**Problème** : `TowerProcessor` créé mais pas appelé dans la boucle de jeu
+**Problem**: `TowerProcessor` created but not called in the game loop
 
-**Solution** : Ajout de l'appel `process(dt)` dans `GameEngine.update()`
+**Solution**: Added the `process(dt)` call in `GameEngine.update()`
 
-**Avant** :
+**Before**:
 ```python
 def update(self, dt: float):
-    # tower_processor existait mais n'était pas appelé
+    # tower_processor existed but was not called
     esper.process()
 ```
 
-**Après** :
+**After**:
 ```python
 def update(self, dt: float):
-    # ... autres mises à jour
+    # ... other updates
     
-    # Traitement des tours
+    # Tower processing
     if self.tower_processor:
         self.tower_processor.process(dt)
     
     esper.process()
 ```
 
-**Fichiers modifiés** :
+**Files modified**:
 - `src/game.py`
 
-### 6. Ajout du TowerComponent aux tours
+### 6. Adding TowerComponent to Towers
 
-**Problème** : Tours créées sans `TowerComponent`, donc non détectées par le processeur
+**Problem**: Towers created without `TowerComponent`, so not detected by the processor
 
-**Solution** : Ajout systématique du composant dans les factories
+**Solution**: Systematically added the component in the factories
 
-**Fichiers modifiés** :
+**Files modified**:
 - `src/factory/buildingFactory.py`
 
-### 7. Vérifications de placement
+### 7. Placement Checks
 
-**Problème** : Aucune vérification avant de placer une tour
+**Problem**: No checks before placing a tower
 
-**Solution** : Ajout de 3 vérifications :
-1. Architecte sélectionné
-2. Position sur une île
-3. Pas de tour existante à proximité
+**Solution**: Added 3 checks:
+1. Architect selected
+2. Position on an island
+3. No existing tower nearby
 
-**Fichiers modifiés** :
-- `src/ui/action_bar.py` (méthodes `_build_defense_tower()` et `_build_heal_tower()`)
+**Files modified**:
+- `src/ui/action_bar.py` (`_build_defense_tower()` and `_build_heal_tower()` methods)
 
 ---
 
-## Flux de données
+## Data Flow
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                    Joueur clique                          │
-│              "Construire Tour de Défense"                 │
+│                    Player clicks                          │
+│              "Build Defense Tower"                        │
 └─────────────────────┬────────────────────────────────────┘
                       │
                       ▼
 ┌──────────────────────────────────────────────────────────┐
 │              ActionBar._build_defense_tower()             │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │ 1. Vérifier Architecte sélectionné                 │  │
-│  │ 2. Vérifier position sur île                       │  │
-│  │ 3. Vérifier pas de tour existante                  │  │
-│  │ 4. Vérifier coût (150 gold)                        │  │
+│  │ 1. Check for selected Architect                    │  │
+│  │ 2. Check position on island                        │  │
+│  │ 3. Check for no existing tower                     │  │
+│  │ 4. Check cost (150 gold)                           │  │
 │  └────────────────────────────────────────────────────┘  │
 └─────────────────────┬────────────────────────────────────┘
                       │
@@ -686,58 +692,58 @@ def update(self, dt: float):
 ┌──────────────────────────────────────────────────────────┐
 │        buildingFactory.create_defense_tower()             │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │ 1. Créer entité                                    │  │
-│  │ 2. Ajouter PositionComponent                       │  │
-│  │ 3. Ajouter TeamComponent                           │  │
-│  │ 4. Ajouter SpriteComponent                         │  │
-│  │ 5. Ajouter TowerComponent                          │  │
-│  │ 6. Ajouter DefenseTowerComponent                   │  │
+│  │ 1. Create entity                                   │  │
+│  │ 2. Add PositionComponent                         │  │
+│  │ 3. Add TeamComponent                             │  │
+│  │ 4. Add SpriteComponent                           │  │
+│  │ 5. Add TowerComponent                            │  │
+│  │ 6. Add DefenseTowerComponent                     │  │
 │  └────────────────────────────────────────────────────┘  │
 └─────────────────────┬────────────────────────────────────┘
                       │
                       ▼
 ┌──────────────────────────────────────────────────────────┐
-│           Tour créée dans le monde (esper)                │
+│           Tower created in the world (esper)              │
 └─────────────────────┬────────────────────────────────────┘
                       │
                       ▼
 ┌──────────────────────────────────────────────────────────┐
-│         TowerProcessor.process(dt) - Chaque frame         │
+│         TowerProcessor.process(dt) - Each frame         │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │ Pour chaque tour:                                  │  │
-│  │   1. Décrémenter cooldown                          │  │
-│  │   2. Si cooldown = 0:                              │  │
-│  │      a. Chercher cible dans range                  │  │
-│  │      b. Si cible trouvée:                          │  │
-│  │         - Tour défense → Créer projectile          │  │
-│  │         - Tour soin → Soigner allié                │  │
-│  │      c. Réinitialiser cooldown                     │  │
+│  │ For each tower:                                    │  │
+│  │   1. Decrement cooldown                            │  │
+│  │   2. If cooldown = 0:                              │  │
+│  │      a. Search for target in range                 │  │
+│  │      b. If target found:                           │  │
+│  │         - Defense tower → Create projectile        │  │
+│  │         - Healing tower → Heal ally                │  │
+│  │      c. Reset cooldown                             │  │
 │  └────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Tests et validation
+## Tests and Validation
 
-### Checklist de fonctionnement
+### Functionality Checklist
 
-- [x] Les tours apparaissent correctement à l'écran
-- [x] Les sprites correspondent au bon fichier
-- [x] Les tours de défense attaquent les ennemis dans leur portée
-- [x] Les tours de soin soignent les alliés blessés
-- [x] Le cooldown fonctionne correctement
-- [x] Les boutons ne s'affichent que si Architecte sélectionné
-- [x] Le bouton debug ne s'affiche que si `dev_mode = True`
-- [x] Les traductions sont correctes (FR/EN)
-- [x] Le placement vérifie la position (île uniquement)
-- [x] Le placement vérifie l'absence de tour existante
-- [x] Le coût en or est correctement déduit
+- [x] Towers appear correctly on the screen
+- [x] Sprites match the correct file
+- [x/home/lieserl/Documents/GitHub/Galad-Islands/docs/en/dev/02-systeme/tower-system-implementation.md] Defense towers attack enemies within their range
+- [x] Healing towers heal wounded allies
+- [x] Cooldown works correctly
+- [x] Buttons only display if Architect is selected
+- [x] Debug button only displays if `dev_mode = True`
+- [x] Translations are correct (FR/EN)
+- [x] Placement checks position (island only)
+-- [x] Placement checks for absence of existing tower
+- [x] Gold cost is correctly deducted
 
-### Commandes de test
+### Test Commands
 
 ```bash
-# Tester la création de tour de défense
+# Test defense tower creation
 ./venv/bin/python -c "
 import pygame
 pygame.init()
@@ -746,86 +752,86 @@ import esper
 
 world = esper.World()
 tower = create_defense_tower(world, 100, 100)
-print(f'Tour créée: {tower}')
+print(f'Tower created: {tower}')
 pygame.quit()
 "
 
-# Lancer le jeu
+# Launch the game
 ./venv/bin/python main.py
 ```
 
 ---
 
-## Améliorations futures possibles
+## Possible Future Improvements
 
-### Court terme
-- [ ] Ajouter des effets visuels lors de l'attaque/soin
-- [ ] Ajouter des sons pour les tirs/soins
-- [ ] Animation de construction progressive
-- [ ] Indicateur visuel de la portée lors du placement
+### Short Term
+- [ ] Add visual effects during attack/healing
+- [ ] Add sounds for shots/heals
+- [ ] Progressive construction animation
+-- [ ] Visual range indicator during placement
 
-### Moyen terme
-- [ ] Système d'amélioration des tours (niveau, dégâts, portée)
-- [ ] Tours spéciales (ralentissement, zone d'effet, etc.)
-- [ ] Coût de maintenance des tours
-- [ ] Destruction manuelle des tours avec remboursement partiel
+### Medium Term
+- [ ] Tower upgrade system (level, damage, range)
+- [ ] Special towers (slow, area of effect, etc.)
+- [ ] Tower maintenance cost
+- [ ] Manual destruction of towers with partial refund
 
-### Long terme
-- [ ] IA pour placement optimal des tours (mode ennemi)
-- [ ] Synergie entre tours proches
-- [ ] Tours légendaires avec capacités uniques
-- [ ] Système de recherche pour débloquer de nouvelles tours
-
----
-
-## Dépendances
-
-### Composants requis
-- `PositionComponent` : Position dans le monde
-- `TeamComponent` : Identification allié/ennemi
-- `HealthComponent` : Points de vie (pour les cibles)
-- `SpriteComponent` : Rendu visuel
-- `SpeArchitect` : Capacité à construire
-
-### Systèmes requis
-- `sprite_manager` : Chargement des sprites
-- `ProjectileFactory` : Création de projectiles (tours de défense)
-- `NotificationSystem` : Retours utilisateur
-- `ConfigManager` : Configuration du jeu
+### Long Term
+- [ ] AI for optimal tower placement (enemy mode)
+- [ ] Synergy between nearby towers
+- [ ] Legendary towers with unique abilities
+- [ ] Research system to unlock new towers
 
 ---
 
-## Fichiers modifiés
+## Dependencies
 
-| Fichier | Modifications |
+### Required Components
+- `PositionComponent`: Position in the world
+- `TeamComponent`: Ally/enemy identification
+- `HealthComponent`: Health points (for targets)
+- `SpriteComponent`: Visual rendering
+- `SpeArchitect`: Ability to build
+
+### Required Systems
+- `sprite_manager`: Sprite loading
+- `ProjectileFactory`: Projectile creation (defense towers)
+- `NotificationSystem`: User feedback
+- `ConfigManager`: Game configuration
+
+---
+
+## Modified Files
+
+| File | Modifications |
 |---------|--------------|
-| `src/components/core/towerComponent.py` | ✨ Création du composant de base |
-| `src/components/core/defenseTowerComponent.py` | ✨ Création du composant défense |
-| `src/components/core/healTowerComponent.py` | ✨ Création du composant soin |
-| `src/processeurs/towerProcessor.py` | ✨ Création du processeur |
-| `src/factory/buildingFactory.py` | ✨ Ajout des factories + 🔧 TowerComponent |
-| `src/managers/sprite_manager.py` | 🔧 Correction chemins sprites |
-| `src/ui/action_bar.py` | 🔧 Organisation imports + boutons construction |
-| `src/settings/settings.py` | ➕ Ajout `dev_mode` |
-| `src/game.py` | 🔧 Intégration TowerProcessor |
-| `assets/locales/french.py` | 🔧 Correction traductions |
-| `assets/locales/english.py` | 🔧 Correction traductions |
+| `src/components/core/towerComponent.py` | ✨ Creation of the base component |
+| `src/components/core/defenseTowerComponent.py` | ✨ Creation of the defense component |
+| `src/components/core/healTowerComponent.py` | ✨ Creation of the healing component |
+| `src/processors/towerProcessor.py` | ✨ Creation of the processor |
+| `src/factory/buildingFactory.py` | ✨ Added factories + 🔧 TowerComponent |
+| `src/managers/sprite_manager.py` | 🔧 Corrected sprite paths |
+| `src/ui/action_bar.py` | 🔧 Organized imports + construction buttons |
+| `src/settings/settings.py` | ➕ Added `dev_mode` |
+| `src/game.py` | 🔧 Integrated TowerProcessor |
+| `assets/locales/french.py` | 🔧 Corrected translations |
+| `assets/locales/english.py` | 🔧 Corrected translations |
 
-**Légende** :
-- ✨ Nouveau fichier
+**Legend**:
+- ✨ New file
 - 🔧 Modification
-- ➕ Ajout de fonctionnalité
+- ➕ Feature addition
 
 ---
 
-## Auteurs et contributions
+## Authors and Contributions
 
-- **Implémentation initiale** : Session de développement Octobre 2025
-- **Architecture ECS** : Basée sur la structure existante du projet
-- **Tests et corrections** : Validation complète du système
+- **Initial Implementation**: Development Session October 2025
+- **ECS Architecture**: Based on the existing project structure
+- **Tests and Fixes**: Complete system validation
 
 ---
 
-## Licence
+## License
 
-Ce système fait partie du projet Galad Islands et est soumis à la même licence que le projet principal.
+This system is part of the Galad Islands project and is subject to the same license as the main project.

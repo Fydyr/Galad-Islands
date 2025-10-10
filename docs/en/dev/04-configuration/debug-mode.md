@@ -1,31 +1,37 @@
-# Mode Debug / Mode Développeur
+---
+i18n:
+  en: "Debug / Developer Mode"
+  fr: "Mode Debug / Mode Développeur"
+---
 
-## Vue d'ensemble
+# Debug / Developer Mode
 
-Le mode debug (ou mode développeur) est un système permettant d'activer des fonctionnalités de développement et de débogage dans Galad Islands. Il est contrôlé par le paramètre `dev_mode` dans la configuration du jeu.
+## Overview
+
+The debug mode (or developer mode) is a system that enables development and debugging features in Galad Islands. It is controlled by the `dev_mode` parameter in the game's configuration.
 
 ---
 
 ## Configuration
 
-### Activation du mode debug
+### Activating Debug Mode
 
-**Fichier de configuration** : `galad_config.json` ou configuration utilisateur
+**Configuration file**: `galad_config.json` or user configuration
 
 ```json
 {
-  "language": "french",
+  "language": "english",
   "fullscreen": false,
   "resolution": [1280, 720],
   "volume": 0.7,
-  "dev_mode": true,  // ← Activer le mode développeur
-  // ... autres paramètres
+  "dev_mode": true,  // ← Enable developer mode
+  // ... other settings
 }
 ```
 
-### Valeur par défaut
+### Default Value
 
-**Fichier** : `src/settings/settings.py`
+**File**: `src/settings/settings.py`
 
 ```python
 DEFAULT_CONFIG = {
@@ -33,35 +39,35 @@ DEFAULT_CONFIG = {
     "fullscreen": False,
     "resolution": [1280, 720],
     "volume": 0.7,
-    "dev_mode": False,  # Désactivé par défaut en production
-    # ... autres paramètres
+    "dev_mode": False,  // Disabled by default in production
+    # ... other settings
 }
 ```
 
-**Important** : Le mode debug est désactivé par défaut pour éviter que les joueurs n'aient accès aux fonctionnalités de triche.
+**Important**: Debug mode is disabled by default to prevent players from accessing cheat features.
 
 ---
 
-## Fonctionnalités activées en mode debug
+## Features Enabled in Debug Mode
 
-### 1. Bouton "Debug" dans l'ActionBar
+### 1. "Debug" Button in the ActionBar
 
-**Fichier** : `src/ui/action_bar.py`
+**File**: `src/ui/action_bar.py`
 
-Le bouton debug apparaît dans la barre d'action globale uniquement si `dev_mode` est activé.
+The debug button appears in the global action bar only if `dev_mode` is enabled.
 
-#### Création conditionnelle du bouton
+#### Conditional Button Creation
 
 ```python
 def _initialize_buttons(self):
-    """Initialise les boutons de la barre d'action."""
-    # ... autres boutons
+    """Initializes the action bar buttons."""
+    # ... other buttons
     
     global_buttons = [
-        ActionButton(...),  # Autres boutons globaux
+        ActionButton(...),  // Other global buttons
     ]
     
-    # Vérifier si le mode debug ou dev_mode est activé
+    # Check if debug mode or dev_mode is enabled
     if ConfigManager().get('dev_mode', False):
         global_buttons.append(
             ActionButton(
@@ -76,395 +82,224 @@ def _initialize_buttons(self):
         )
 ```
 
-#### Visibilité dynamique
+#### Dynamic Visibility
 
-Le bouton vérifie également le flag `show_debug` du moteur de jeu :
+The button also checks the `show_debug` flag of the game engine:
 
 ```python
 def _update_button_positions(self):
-    """Met à jour les positions et la visibilité des boutons."""
-    # ... positionnement des boutons
+    """Updates button positions and visibility."""
+    # ... button positioning
     
     cfg = ConfigManager()
     dev_mode = cfg.get('dev_mode', False)
     
     for btn in global_buttons:
         if btn.action_type == ActionType.DEV_GIVE_GOLD:
-            # Visible si dev_mode OU si le moteur est en debug
+            # Visible if dev_mode OR if the engine is in debug mode
             is_debug = hasattr(self, 'game_engine') and \
                        self.game_engine and \
                        getattr(self.game_engine, 'show_debug', False)
             btn.visible = bool(dev_mode or is_debug)
 ```
 
-**Résultat** :
+**Result**:
 
-- ✅ `dev_mode: true` → Bouton visible
-- ❌ `dev_mode: false` → Bouton caché
+- ✅ `dev_mode: true` → Button visible
+- ❌ `dev_mode: false` → Button hidden
 
-### 2. Modal de debug
+### 2. Debug Modal
 
-**Fichier** : `src/ui/debug_modal.py`
+**File**: `src/ui/debug_modal.py`
 
-Lorsque le bouton debug est cliqué, une modale s'ouvre avec plusieurs options :
+When the debug button is clicked, a modal opens with several options:
 
-#### Fonctionnalités de la modale
+#### Modal Features
 
 ```python
 class DebugModal:
-    """Interface de debug pour les développeurs."""
+    """Debug interface for developers."""
     
     def __init__(self, game_engine):
         self.game_engine = game_engine
         self.visible = False
         self.options = [
-            {"label": "Donner 1000 gold", "action": self._give_gold},
-            {"label": "Créer une tempête", "action": self._spawn_storm},
-            {"label": "Créer des coffres", "action": self._spawn_chest},
-            {"label": "Créer un kraken", "action": self._spawn_kraken},
-            {"label": "Créer des ressources d'îles", "action": self._spawn_island_resources},
-            {"label": "Nettoyer les événements", "action": self._clear_events},
+            {"label": "Give 1000 gold", "action": self._give_gold},
+            {"label": "Spawn a storm", "action": self._spawn_storm},
+            {"label": "Spawn chests", "action": self._spawn_chest},
+            {"label": "Spawn a kraken", "action": self._spawn_kraken},
+            {"label": "Spawn island resources", "action": self._spawn_island_resources},
+            {"label": "Clear events", "action": self._clear_events},
         ]
 ```
 
-#### Actions disponibles
+#### Available Actions
 
-Le modal de debug offre maintenant plusieurs actions pour faciliter le développement et les tests :
+The debug modal now offers several actions to facilitate development and testing:
 
-1. **Donner de l'or** : Ajoute 500 gold au joueur actif
+1.  **Give Gold**: Adds 500 gold to the active player.
 
-   ```python
-   def _handle_give_gold(self):
-       # Donne de l'or à la team active (alliés ou ennemis)
-       active_team = self.game_engine.action_bar.current_camp
-       for entity, (player_comp, team_comp) in esper.get_components(PlayerComponent, TeamComponent):
-           if team_comp.team_id == active_team:
-               player_comp.add_gold(500)
-   ```
+    ```python
+    def _handle_give_gold(self):
+        # Gives gold to the active team (allies or enemies)
+        active_team = self.game_engine.action_bar.current_camp
+        for entity, (player_comp, team_comp) in esper.get_components(PlayerComponent, TeamComponent):
+            if team_comp.team_id == active_team:
+                player_comp.add_gold(500)
+    ```
 
-2. **Créer une tempête** : Force l'apparition d'une tempête à une position aléatoire
+2.  **Spawn Storm**: Forces a storm to appear at a random position.
 
-   ```python
-   def _handle_spawn_storm(self):
-       storm_manager = getStormManager()
-       position = storm_manager.findValidSpawnPosition()
-       if position:
-           storm_entity = storm_manager.createStormEntity(position)
-   ```
+    ```python
+    def _handle_spawn_storm(self):
+        storm_manager = getStormManager()
+        position = storm_manager.findValidSpawnPosition()
+        if position:
+            storm_entity = storm_manager.createStormEntity(position)
+    ```
 
-3. **Créer des coffres** : Force l'apparition de 2-4 coffres volants
+3.  **Spawn Chests**: Forces 2-4 flying chests to appear.
 
-   ```python
-   def _handle_spawn_chest(self):
-       chest_manager = self.game_engine.flying_chest_manager
-       num_chests = random.randint(2, 4)
-       for _ in range(num_chests):
-           position = chest_manager._choose_spawn_position()
-           if position:
-               chest_manager._create_chest_entity(position)
-   ```
+    ```python
+    def _handle_spawn_chest(self):
+        chest_manager = self.game_engine.flying_chest_manager
+        num_chests = random.randint(2, 4)
+        for _ in range(num_chests):
+            position = chest_manager._choose_spawn_position()
+            if position:
+                chest_manager._create_chest_entity(position)
+    ```
 
-4. **Créer un kraken** : Force l'apparition d'un kraken avec 2-6 tentacules
+4.  **Spawn Kraken**: Forces a kraken with 2-6 tentacles to appear.
 
-   ```python
-   def _handle_spawn_kraken(self):
-       kraken_entity = esper.create_entity()
-       esper.add_component(kraken_entity, KrakenComponent(2, 6, 1))
-       esper.add_component(kraken_entity, EventsComponent(0.0, 20.0, 20.0))
-   ```
+    ```python
+    def _handle_spawn_kraken(self):
+        kraken_entity = esper.create_entity()
+        esper.add_component(kraken_entity, KrakenComponent(2, 6, 1))
+        esper.add_component(kraken_entity, EventsComponent(0.0, 20.0, 20.0))
+    ```
 
-5. **Créer des ressources d'îles** : Force l'apparition de 2-3 ressources d'or sur les îles
+5.  **Spawn Island Resources**: Forces 2-3 gold resources to appear on islands.
 
-   ```python
-   def _handle_spawn_island_resources(self):
-       resource_manager = self.game_engine.island_resource_manager
-       num_resources = random.randint(2, 3)
-       for _ in range(num_resources):
-           position = resource_manager._choose_spawn_position()
-           if position:
-               resource_manager._create_resource_entity(position)
-   ```
+    ```python
+    def _handle_spawn_island_resources(self):
+        resource_manager = self.game_engine.island_resource_manager
+        num_resources = random.randint(2, 3)
+        for _ in range(num_resources):
+            position = resource_manager._choose_spawn_position()
+            if position:
+                resource_manager._create_resource_entity(position)
+    ```
 
-6. **Nettoyer les événements** : Supprime tous les événements actifs (tempêtes, coffres, krakens, ressources)
+6.  **Clear Events**: Deletes all active events (storms, chests, krakens, resources).
 
-   ```python
-   def _handle_clear_events(self):
-       # Nettoie les tempêtes
-       storm_manager.clearAllStorms()
-       # Supprime les coffres volants, krakens, tentacules et ressources d'îles
-       for entity, component in esper.get_component(EventComponent):
-           esper.delete_entity(entity)
-   ```
+    ```python
+    def _handle_clear_events(self):
+        # Clears storms
+        storm_manager.clearAllStorms()
+        # Deletes flying chests, krakens, tentacles, and island resources
+        for entity, component in esper.get_component(EventComponent):
+            esper.delete_entity(entity)
+    ```
 
 ---
 
-## Utilisation du ConfigManager
+## Using the ConfigManager
 
-### Lecture de la configuration
+### Reading the Configuration
 
-**Fichier** : `src/managers/config_manager.py`
+**File**: `src/managers/config_manager.py`
 
 ```python
 from src.managers.config_manager import ConfigManager
 
-# Vérifier si le mode debug est activé
+# Check if debug mode is enabled
 cfg = ConfigManager()
 is_dev_mode = cfg.get('dev_mode', False)
 
 if is_dev_mode:
-    print("Mode développeur activé")
-    # Activer fonctionnalités de debug
+    print("Developer mode enabled")
+    # Activate debug features
 else:
-    print("Mode production")
+    print("Production mode")
 ```
 
-### Modification de la configuration
+### Modifying the Configuration
 
 ```python
-# Activer le mode debug
+# Enable debug mode
 cfg = ConfigManager()
 cfg.set('dev_mode', True)
-cfg.save()  # Sauvegarder dans galad_config.json
+cfg.save()  # Save to galad_config.json
 ```
 
 ---
 
-## Architecture de vérification
+## Verification Architecture
 
-### Double vérification de sécurité
+### Double Security Check
 
-Le système utilise deux méthodes pour contrôler l'affichage des fonctionnalités de debug :
+The system uses two methods to control the display of debug features:
 
-1. **Vérification à la création** (`_initialize_buttons()`)
-   - Vérifie `dev_mode` une seule fois au démarrage
-   - Crée ou non le bouton debug
+1.  **Check on Creation** (`_initialize_buttons()`)
+    -   Checks `dev_mode` once at startup.
+    -   Creates the debug button or not.
 
-2. **Vérification dynamique** (`_update_button_positions()`)
-   - Vérifie `dev_mode` ET `show_debug` à chaque mise à jour
-   - Permet de cacher/montrer le bouton sans redémarrer
-
-```
-┌─────────────────────────────────────────┐
-│       Démarrage du jeu                   │
-└────────────────┬────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────┐
-│  ConfigManager.get('dev_mode')           │
-│  Vérification dans galad_config.json    │
-└────────────────┬────────────────────────┘
-                 │
-         ┌───────┴────────┐
-         │                │
-         ▼                ▼
-    dev_mode=true    dev_mode=false
-         │                │
-         │                │
-         ▼                ▼
-   Bouton créé      Bouton NON créé
-         │
-         ▼
-┌─────────────────────────────────────────┐
-│  _update_button_positions()              │
-│  Vérification continue                   │
-└────────────────┬────────────────────────┘
-                 │
-         ┌───────┴────────┐
-         │                │
-         ▼                ▼
-    Visible=True    Visible=False
-```
+2.  **Dynamic Check** (`_update_button_positions()`)
+    -   Checks `dev_mode` AND `show_debug` on each update.
+    -   Allows hiding/showing the button without restarting.
 
 ---
 
-## Bonnes pratiques
+## Best Practices
 
-### Pour les développeurs
+### For Developers
 
-#### ✅ À faire
+#### ✅ Do
 
 ```python
-# Utiliser ConfigManager pour vérifier le mode debug
+# Use ConfigManager to check for debug mode
 if ConfigManager().get('dev_mode', False):
-    # Code de debug
+    # Debug code
     print(f"Debug: Position = {pos.x}, {pos.y}")
 ```
 
-```python
-# Toujours avoir une valeur par défaut False
-dev_mode = cfg.get('dev_mode', False)
-```
+#### ❌ Don't
 
 ```python
-# Utiliser des fonctionnalités conditionnelles
-def spawn_enemy(self):
-    """Spawne un ennemi."""
-    enemy = create_enemy(...)
-    
-    # Log uniquement en mode debug
-    if ConfigManager().get('dev_mode', False):
-        print(f"Enemy spawned: {enemy} at position {x}, {y}")
-```
-
-#### ❌ À éviter
-
-```python
-# NE PAS hard-coder True
-if True:  # ❌ Mauvais
+# DO NOT hard-code True
+if True:  # ❌ Bad
     show_debug_button()
 ```
 
-```python
-# NE PAS utiliser get() sans valeur par défaut
-dev_mode = cfg.get('dev_mode')  # ❌ Peut retourner None
-```
+---
 
-```python
-# NE PAS oublier la vérification
-def _give_gold_cheat(self):
-    # ❌ Pas de vérification dev_mode !
-    self.player.add_gold(9999)
-```
+## Security
 
-### Pour les joueurs
+### Production Protection
 
-1. **Activer le mode debug** :
-   - Ouvrir `galad_config.json`
-   - Changer `"dev_mode": false` en `"dev_mode": true`
-   - Relancer le jeu
+Debug mode is automatically disabled in production thanks to:
 
-2. **Utiliser les fonctionnalités** :
-   - Le bouton "Debug" apparaît en haut à droite de l'ActionBar
-   - Cliquer dessus pour ouvrir le menu debug
-
-3. **Désactiver le mode debug** :
-   - Remettre `"dev_mode": false` dans la config
-   - Relancer le jeu
+1.  **Default Value**: `dev_mode: False` in `DEFAULT_CONFIG`.
+2.  **No Interface**: No way to enable debug mode from within the game.
+3.  **External Configuration**: Requires manual modification of the config file.
 
 ---
 
-## Ajout de nouvelles fonctionnalités debug
+## Summary
 
-### Exemple : Ajouter un toggle pour afficher la grille
-
-#### 1. Ajouter l'action dans la modale debug
-
-**Fichier** : `src/ui/debug_modal.py`
-
-```python
-def __init__(self, game_engine):
-    self.game_engine = game_engine
-    self.show_grid = False  # Nouvel état
-    self.options = [
-        # ... autres options
-        {
-            "label": "Toggle Grid", 
-            "action": self._toggle_grid
-        },
-    ]
-
-def _toggle_grid(self):
-    """Active/désactive l'affichage de la grille."""
-    self.show_grid = not self.show_grid
-    print(f"Grid display: {self.show_grid}")
-```
-
-#### 2. Utiliser l'état dans le rendu
-
-**Fichier** : `src/processeurs/renderingProcessor.py`
-
-```python
-def process(self):
-    # Rendu normal
-    # ...
-    
-    # Afficher la grille si debug activé
-    if ConfigManager().get('dev_mode', False):
-        debug_modal = getattr(self.game_engine, 'debug_modal', None)
-        if debug_modal and debug_modal.show_grid:
-            self._render_debug_grid()
-
-def _render_debug_grid(self):
-    """Affiche une grille de debug."""
-    for x in range(0, WORLD_WIDTH, 32):
-        pygame.draw.line(self.screen, (50, 50, 50), 
-                        (x, 0), (x, WORLD_HEIGHT))
-    for y in range(0, WORLD_HEIGHT, 32):
-        pygame.draw.line(self.screen, (50, 50, 50), 
-                        (0, y), (WORLD_WIDTH, y))
-```
+| Aspect | Detail |
+|---|---|
+| **Setting** | `dev_mode` in `galad_config.json` |
+| **Default Value** | `False` (disabled) |
+| **Activation** | Manually edit the config file |
+| **Features** | Debug button, modal with cheats, additional logs |
+| **Security** | No way to enable from the game interface |
+| **Check** | `ConfigManager().get('dev_mode', False)` |
 
 ---
 
-## Sécurité
+## See Also
 
-### Protection en production
-
-Le mode debug est automatiquement désactivé en production grâce à :
-
-1. **Valeur par défaut** : `dev_mode: False` dans `DEFAULT_CONFIG`
-2. **Pas d'interface** : Aucun moyen d'activer le mode debug depuis le jeu
-3. **Configuration externe** : Nécessite modification manuelle du fichier config
-
-### Distribution du jeu
-
-Lors de la distribution finale :
-
-```python
-# Dans settings.py, s'assurer que :
-DEFAULT_CONFIG = {
-    # ... autres paramètres
-    "dev_mode": False,  # ← TOUJOURS False en production
-}
-```
-
-### Logs de développement
-
-Utiliser le mode debug pour contrôler les logs :
-
-```python
-def log_debug(message: str):
-    """Affiche un message uniquement en mode debug."""
-    if ConfigManager().get('dev_mode', False):
-        print(f"[DEBUG] {message}")
-
-# Utilisation
-log_debug("Position de l'unité mise à jour")  # Visible seulement si dev_mode=True
-```
-
----
-
-## Résumé
-
-| Aspect | Détail |
-|--------|--------|
-| **Paramètre** | `dev_mode` dans `galad_config.json` |
-| **Valeur par défaut** | `False` (désactivé) |
-| **Activation** | Modifier manuellement le fichier config |
-| **Fonctionnalités** | Bouton debug, modale avec cheats, logs additionnels |
-| **Sécurité** | Aucun moyen d'activer depuis l'interface du jeu |
-| **Vérification** | `ConfigManager().get('dev_mode', False)` |
-
----
-
-## Fichiers concernés
-
-| Fichier | Rôle |
-|---------|------|
-| `src/settings/settings.py` | Définition de `DEFAULT_CONFIG` avec `dev_mode: False` |
-| `src/managers/config_manager.py` | Lecture/écriture de la configuration |
-| `src/ui/action_bar.py` | Création conditionnelle du bouton debug |
-| `src/ui/debug_modal.py` | Interface de debug avec fonctionnalités de triche |
-| `galad_config.json` | Configuration utilisateur (où activer `dev_mode`) |
-
----
-
-## Voir aussi
-
-- [UI System](../02-systeme/api/ui-system.md) - Système d'interface utilisateur
-- [Configuration](configuration.md) - Paramètres du jeu
-
----
-
-**Version** : 1.0.0  
-**Dernière mise à jour** : Octobre 2025
+- UI System - User Interface System
+- Configuration - Game Settings

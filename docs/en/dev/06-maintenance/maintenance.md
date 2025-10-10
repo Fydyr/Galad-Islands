@@ -1,59 +1,65 @@
-# 🛠️ Maintenance du projet
+---
+i18n:
+  en: "🛠️ Project Maintenance"
+  fr: "🛠️ Maintenance du projet"
+---
 
-Cette page décrit les bonnes pratiques et procédures pour assurer la pérennité et la qualité du projet **Galad Islands**.
+# 🛠️ Project Maintenance
+
+This page describes the best practices and procedures to ensure the longevity and quality of the **Galad Islands** project.
 
 ---
 
-## 🚦 Stratégie de maintenance
+## 🚦 Maintenance Strategy
 
-- **Mises à jour fréquentes** : chaque nouvelle fonctionnalité ou correction de bug doit donner lieu à un commit. Privilégiez de petits commits fréquents pour faciliter le suivi et la restauration.
-- **Branches dédiées** : pour toute fonctionnalité majeure, créez une branche dédiée avant de fusionner dans la branche principale.
-- **Commits clairs** : les messages de commit doivent être explicites et suivre la [convention de commit](../07-annexes/contributing.md#conventions-de-commit).
+- **Frequent updates**: Every new feature or bug fix should result in a commit. Prefer small, frequent commits to facilitate tracking and restoration.
+- **Dedicated branches**: For any major feature, create a dedicated branch before merging into the main branch.
+- **Clear commits**: Commit messages must be explicit and follow the [commit convention](../07-annexes/contributing.md#commit-conventions).
 
 ---
 
-## 📦 Gestion des dépendances
+## 📦 Dependency Management
 
-- Les dépendances sont gérées via le fichier `requirements.txt`. Maintenez-le à jour avec les versions compatibles.
-- Avant d’ajouter une nouvelle dépendance, vérifiez sa nécessité et l’absence de conflit avec les dépendances existantes.
-- **Utilisez un environnement virtuel** pour isoler les dépendances du projet :
+- Dependencies are managed via the `requirements.txt` file. Keep it updated with compatible versions.
+- Before adding a new dependency, verify its necessity and the absence of conflicts with existing dependencies.
+- **Use a virtual environment** to isolate the project's dependencies:
 
     ```bash
     python -m venv env
-    source env/bin/activate  # Sur Windows : env\Scripts\activate
+    source env/bin/activate  # On Windows: env\Scripts\activate
     pip install -r requirements.txt
     ```
 
-    > 💡 Les IDE comme VSCode ou PyCharm peuvent automatiser la création et l’activation de l’environnement virtuel.
+    > 💡 IDEs like VSCode or PyCharm can automate the creation and activation of the virtual environment.
 
-!!! info "Mise à jour des dépendances"
-    Pour mettre à jour les dépendances, modifiez le fichier [requirements.txt](http://_vscodecontentref_/0) puis exécutez :
+!!! info "Updating Dependencies"
+    To update dependencies, modify the `requirements.txt` file and then run:
     ```bash
     pip install -r requirements.txt
     ```
 
 ---
 
-## 💾 Sauvegarde et restauration
+## 💾 Backup and Restoration
 
-- **Sauvegardes régulières** : utilisez Git pour versionner le code source et les ressources.
-- **Restauration** : en cas de problème, revenez à une version stable avec :
+- **Regular backups**: Use Git to version the source code and resources.
+- **Restoration**: In case of a problem, revert to a stable version with:
     ```bash
     git checkout <commit_id>
-    # ou pour annuler un commit
+    # or to revert a commit
     git revert <commit_id>
     ```
-- **Configuration** : le fichier [galad_config.json](http://_vscodecontentref_/1) contient la configuration du jeu. Sauvegardez-le ou supprimez-le avant des modifications majeures.
+- **Configuration**: The `galad_config.json` file contains the game's configuration. Back it up or delete it before major changes.
 
 ---
 
-## ✅ Bonnes pratiques de maintenance
+## ✅ Maintenance Best Practices
 
-- **Communiquez** avec l’équipe pour coordonner la maintenance et éviter les conflits.
-- **Automatisez** les tâches répétitives avec des scripts ou outils adaptés.
-- **Intégration continue** : utilisez des outils de CI pour automatiser tests et déploiements.
-- **Documentation à jour** : assurez-vous que la documentation reflète toujours l’état du projet.
+- **Communicate** with the team to coordinate maintenance and avoid conflicts.
+- **Automate** repetitive tasks with appropriate scripts or tools.
+- **Continuous Integration**: Use CI tools to automate tests and deployments.
+- **Up-to-date documentation**: Ensure that the documentation always reflects the project's current state.
 
 ---
 
-> Pour toute question ou suggestion, n’hésitez pas à ouvrir une issue ou une pull request sur le dépôt GitHub.
+> For any questions or suggestions, feel free to open an issue or a pull request on the GitHub repository.

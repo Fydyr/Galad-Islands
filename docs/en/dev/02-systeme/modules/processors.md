@@ -1,118 +1,124 @@
-# Processeurs ECS
+---
+i18n:
+  en: "ECS Processors"
+  fr: "Processors ECS"
+---
 
-Les processeurs contiennent la logique métier du jeu et agissent sur les entités ayant certains composants.
+# ECS Processors
 
-## Liste des processeurs
+Processors contain the game's business logic and act on Entities having certain Components.
 
-### Processeurs de base
+## List of Processors
 
-| Processeur | Priorité | Responsabilité |
+### Core processors
+
+| Processor | Priority | Responsibility |
 |------------|----------|----------------|
-| `CollisionProcessor` | 2 | Détection des collisions et gestion des impacts |
-| `MovementProcessor` | 3 | Déplacement des entités avec vélocité |
-| `PlayerControlProcessor` | 4 | Contrôles joueur et activation des capacités |
-| `CapacitiesSpecialesProcessor` | 5 | Mise à jour des cooldowns des capacités |
-| `LifetimeProcessor` | 10 | Suppression des entités temporaires |
-| `TowerProcessor` | 15 | Logique des tours défensives (attaque/soin) |
+| `CollisionProcessor` | 2 | Collision detection and impact management |
+| `MovementProcessor` | 3 | Movement of Entities with velocity |
+| `PlayerControlProcessor` | 4 | Player controls and ability activation |
+| `CapacitiesSpecialesProcessor` | 5 | Update of ability cooldowns |
+| `LifetimeProcessor` | 10 | Removal of temporary Entities |
+| `TowerProcessor` | 15 | Logic of defensive towers (attack/heal) |
 
-### Processeur de rendu
+### Rendering processor
 
-| Processeur | Description |
+| Processor | Description |
 |------------|-------------|
-| `RenderingProcessor` | Affichage des sprites avec gestion caméra/zoom |
+| `RenderingProcessor` | Sprite display with Camera/zoom management |
 
-## Détail des processeurs
+## Processor details
 
 ### CollisionProcessor
 
-**Fichier :** `src/processeurs/collisionProcessor.py`
+**File:** `src/Processors/collisionProcessor.py`
 
-**Responsabilité :** Détecte et gère les collisions entre entités.
+**Responsibility:** Detects and handles collisions between Entities.
 
 ```python
 class CollisionProcessor(esper.Processor):
     def __init__(self, graph=None):
-        self.graph = graph  # Grille de la carte
+        self.graph = graph  # Map grid
     
     def process(self):
-        # Détection des collisions entre toutes les entités
+        # Collision detection between all Entities
         for ent1, (pos1, collision1) in esper.get_components(PositionComponent, CanCollideComponent):
             for ent2, (pos2, collision2) in esper.get_components(PositionComponent, CanCollideComponent):
                 if self._entities_collide(ent1, ent2):
                     self._handle_entity_hit(ent1, ent2)
 ```
 
-**Composants requis :**
+**Components Required:**
 - `PositionComponent`
 - `CanCollideComponent`
 
-**Actions :**
-- Calcule les distances entre entités
-- Dispatche l'événement `entities_hit` pour les collisions
-- Gère les collisions avec les coffres volants
-- Nettoie les mines explosées de la grille
+**Actions:**
+- Calculates distances between Entities
+- Dispatches the `entities_hit` event for collisions
+- Handles collisions with flying chests
+- Cleans exploded mines from the grid
 
 ### MovementProcessor
 
-**Fichier :** `src/processeurs/movementProcessor.py`
+**File:** `src/Processors/movementProcessor.py`
 
-**Responsabilité :** Déplace les entités selon leur vélocité.
+**Responsibility:** Moves Entities according to their velocity.
 
 ```python
 class MovementProcessor(esper.Processor):
     def process(self, dt=0.016):
         for ent, (pos, vel) in esper.get_components(PositionComponent, VelocityComponent):
-            # Appliquer le mouvement
+            # Apply movement
             pos.x += vel.currentSpeed * dt * math.cos(pos.direction)
             pos.y += vel.currentSpeed * dt * math.sin(pos.direction)
 ```
 
-**Composants requis :**
+**Components Required:**
 - `PositionComponent`
 - `VelocityComponent`
 
 ### PlayerControlProcessor
 
-**Fichier :** `src/processeurs/playerControlProcessor.py`
+**File:** `src/Processors/playerControlProcessor.py`
 
-**Responsabilité :** Gère les contrôles du joueur et les capacités spéciales.
+**Responsibility:** Handles player controls and special abilities.
 
-**Contrôles gérés :**
-- **Clic droit** : Sélection d'unité
-- **Espace** : Activation de la capacité spéciale
-- **B** : Ouverture de la boutique
-- **F3** : Toggle debug
-- **T** : Changement de camp (debug)
+**Controls handled:**
+- **Right click**: Unit selection
+- **Space**: Special ability activation
+- **B**: Shop opening
+- **F3**: Debug toggle
+- **T**: Team change (debug)
 
-**Capacités spéciales traitées :**
-- `SpeArchitect` : Boost de rechargement des alliés
-- `SpeScout` : Invincibilité temporaire  
-- `SpeMaraudeur` : Bouclier de mana
-- `SpeLeviathan` : Seconde salve de projectiles
-- `SpeBreaker` : Frappe puissante
+**Special abilities handled:**
+- `SpeArchitect`: Reload boost for allies
+- `SpeScout`: Temporary invincibility  
+- `SpeMaraudeur`: Mana shield
+- `SpeLeviathan`: Second projectile salvo
+- `SpeBreaker`: Powerful strike
 
 ### CapacitiesSpecialesProcessor
 
-**Fichier :** `src/processeurs/CapacitiesSpecialesProcessor.py`
+**File:** `src/Processors/CapacitiesSpecialesProcessor.py`
 
-**Responsabilité :** Met à jour les cooldowns et effets des capacités spéciales.
+**Responsibility:** Updates cooldowns and effects of special abilities.
 
 ```python
 def process(self, dt=0.016):
-    # Mise à jour des timers de toutes les capacités
+    # Update timers of all abilities
     for ent, spe_comp in esper.get_component(SpeArchitect):
         spe_comp.update(dt)
     
     for ent, spe_comp in esper.get_component(SpeScout):
         spe_comp.update(dt)
-    # ... autres capacités
+    # ... other abilities
 ```
 
 ### LifetimeProcessor
 
-**Fichier :** `src/processeurs/lifetimeProcessor.py`
+**File:** `src/Processors/lifetimeProcessor.py`
 
-**Responsabilité :** Supprime les entités temporaires (projectiles, effets).
+**Responsibility:** Removes temporary Entities (projectiles, effects).
 
 ```python
 def process(self, dt=0.016):
@@ -124,43 +130,43 @@ def process(self, dt=0.016):
 
 ### TowerProcessor
 
-**Fichier :** `src/processeurs/towerProcessor.py`
+**File:** `src/Processors/towerProcessor.py`
 
-**Responsabilité :** Gère la logique automatique des tours (détection de cibles, attaque, soin).
+**Responsibility:** Handles automatic logic of towers (target detection, attack, heal).
 
-> **📖 Documentation complète** : Voir [Système de Tours](../tower-system-implementation.md) pour tous les détails.
+> **📖 Complete documentation**: See [Tower System](../tower-system-implementation.md) for all details.
 
-**Composants utilisés :**
-- `TowerComponent` : Données de base (type, portée, cooldown)
-- `DefenseTowerComponent` : Propriétés d'attaque
-- `HealTowerComponent` : Propriétés de soin
-- `PositionComponent` : Position de la tour
-- `TeamComponent` : Équipe de la tour
+**Components used:**
+- `TowerComponent`: Base data (type, range, cooldown)
+- `DefenseTowerComponent`: Attack properties
+- `HealTowerComponent`: Heal properties
+- `PositionComponent`: Tower position
+- `TeamComponent`: Tower team
 
-**Fonctionnalités :**
+**Features:**
 
-1. **Gestion du cooldown** : Décrémente le timer entre chaque action
-2. **Détection de cibles** :
-   - Tours de défense : Cherche ennemis à portée
-   - Tours de soin : Cherche alliés blessés à portée
-3. **Actions automatiques** :
-   - Tours de défense : Crée un projectile vers la cible
-   - Tours de soin : Applique des soins sur la cible
+1. **Cooldown management**: Decrements timer between each action
+2. **Target detection**:
+   - Defense towers: Search for enemies in range
+   - Heal towers: Search for wounded allies in range
+3. **Automatic actions**:
+   - Defense towers: Create projectile towards target
+   - Heal towers: Apply healing to target
 
 ```python
 def process(self, dt: float):
     for entity, (tower, pos, team) in esper.get_components(
         TowerComponent, PositionComponent, TeamComponent
     ):
-        # Mise à jour cooldown
+        # Update cooldown
         if tower.current_cooldown > 0:
             tower.current_cooldown -= dt
             continue
         
-        # Recherche de cible
+        # Target search
         target = self._find_target(entity, tower, pos, team)
         
-        # Action selon le type de tour
+        # Action according to tower type
         if target:
             if tower.tower_type == "defense":
                 self._attack_target(entity, target, pos)
@@ -170,71 +176,71 @@ def process(self, dt: float):
             tower.current_cooldown = tower.cooldown
 ```
 
-**Création de tours :** Via `buildingFactory.create_defense_tower()` ou `create_heal_tower()`.
+**Tower creation:** Via `buildingFactory.create_defense_tower()` or `create_heal_tower()`.
 
 ### RenderingProcessor
 
-**Fichier :** `src/processeurs/renderingProcessor.py`
+**File:** `src/Processors/renderingProcessor.py`
 
-**Responsabilité :** Affiche tous les sprites des entités à l'écran.
+**Responsibility:** Displays all Entity sprites on screen.
 
-**Fonctionnalités :**
-- Conversion coordonnées monde → écran via la caméra
-- Mise à l'échelle selon le zoom
-- Rotation des sprites selon la direction
-- Barres de vie pour les unités endommagées
-- Gestion des effets visuels (invincibilité, etc.)
+**Features:**
+- World → Screen coordinate conversion via Camera
+- Scaling according to zoom
+- Sprite rotation according to direction
+- Health bars for damaged units
+- Visual effects management (invincibility, etc.)
 
 ```python
 def process(self):
     for ent, (pos, sprite) in esper.get_components(PositionComponent, SpriteComponent):
-        # Calcul position écran
+        # Screen position calculation
         screen_x, screen_y = self.camera.world_to_screen(pos.x, pos.y)
         
-        # Affichage du sprite avec rotation
+        # Sprite display with rotation
         rotated_image = pygame.transform.rotate(image, -pos.direction * 180 / math.pi)
         self.screen.blit(rotated_image, (screen_x, screen_y))
 ```
 
-## Ordre d'exécution
+## Execution Order
 
-Les processeurs s'exécutent selon leur priorité (plus petit = priorité plus haute) :
+Processors execute according to their priority (smaller = higher priority):
 
-1. **CollisionProcessor** (priorité 2) - Détecte les collisions
-2. **MovementProcessor** (priorité 3) - Applique les mouvements  
-3. **PlayerControlProcessor** (priorité 4) - Traite les inputs
-4. **CapacitiesSpecialesProcessor** (priorité 5) - Met à jour les capacités
-5. **LifetimeProcessor** (priorité 10) - Nettoie les entités expirées
+1. **CollisionProcessor** (priority 2) - Detects collisions
+2. **MovementProcessor** (priority 3) - Applies movements  
+3. **PlayerControlProcessor** (priority 4) - Processes inputs
+4. **CapacitiesSpecialesProcessor** (priority 5) - Updates abilities
+5. **LifetimeProcessor** (priority 10) - Cleans expired Entities
 
-Le `RenderingProcessor` est appelé séparément dans la boucle de rendu.
+The `RenderingProcessor` is called separately in the rendering loop.
 
-## Événements
+## Events
 
-Les processeurs communiquent via le système d'événements d'esper :
+Processors communicate via esper's Event System:
 
-| Événement | Émetteur | Récepteur | Données |
-|-----------|----------|-----------|---------|
+| Event | Emitter | Receiver | Data |
+|-------|---------|----------|------|
 | `entities_hit` | CollisionProcessor | functions.handleHealth | entity1, entity2 |
 | `attack_event` | PlayerControlProcessor | functions.createProjectile | attacker, target |
 | `special_vine_event` | PlayerControlProcessor | functions.createProjectile | caster |
 | `flying_chest_collision` | CollisionProcessor | FlyingChestManager | entity, chest |
 
-## Ajout d'un nouveau processeur
+## Adding a new processor
 
-1. **Créer la classe** héritant de `esper.Processor`
-2. **Implémenter** `process(self, dt=0.016)`
-3. **Ajouter** dans `GameEngine._initialize_ecs()`
-4. **Définir** la priorité appropriée
+1. **Create the class** inheriting from `esper.Processor`
+2. **Implement** `process(self, dt=0.016)`
+3. **Add** in `GameEngine._initialize_ecs()`
+4. **Define** the appropriate priority
 
 ```python
-# Exemple de nouveau processeur
+# Example of new processor
 class ExampleProcessor(esper.Processor):
     def process(self, dt=0.016):
         for ent, (comp1, comp2) in esper.get_components(Component1, Component2):
-            # Logique du processeur...
+            # Processor logic...
             pass
 
-# Dans GameEngine._initialize_ecs()
+# In GameEngine._initialize_ecs()
 self.example_processor = ExampleProcessor()
 es.add_processor(self.example_processor, priority=6)
 ```

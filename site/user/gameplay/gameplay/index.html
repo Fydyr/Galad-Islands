@@ -1,0 +1,2600 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation complète de Galad Islands - Guide utilisateur et documentation technique">
+      
+      
+        <meta name="author" content="Équipe Galad Islands">
+      
+      
+        <link rel="canonical" href="https://fydyr.github.io/Galad-Islands/user/gameplay/gameplay/">
+      
+      
+        <link rel="prev" href="../controls/">
+      
+      
+        <link rel="next" href="../../units/units/">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.2, mkdocs-material-9.1.15">
+    
+    
+      
+        <title>Gameplay & Progression - Galad Islands - Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.26e3688c.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ecc896b0.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#gameplay-progression" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../../.." title="Galad Islands - Documentation" class="md-header__button md-logo" aria-label="Galad Islands - Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Galad Islands - Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Gameplay & Progression
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+          
+            
+            
+            
+            <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Passer au mode sombre / Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+            
+              <label class="md-header__button md-icon" title="Passer au mode sombre / Switch to dark mode" for="__palette_2" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+              </label>
+            
+          
+            
+            
+            
+            <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Passer au mode clair / Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+            
+              <label class="md-header__button md-icon" title="Passer au mode clair / Switch to light mode" for="__palette_1" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+              </label>
+            
+          
+        </form>
+      
+    
+    
+      <div class="md-header__option">
+        <div class="md-select">
+          
+          <button class="md-header__button md-icon" aria-label="Sélectionner la langue">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04M18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12m-2.62 7 1.62-4.33L19.12 17h-3.24Z"/></svg>
+          </button>
+          <div class="md-select__inner">
+            <ul class="md-select__list">
+              
+                <li class="md-select__item">
+                  <a href="./" hreflang="fr" class="md-select__link">
+                    Français
+                  </a>
+                </li>
+              
+                <li class="md-select__item">
+                  <a href="../../../en/user/gameplay/gameplay/" hreflang="en" class="md-select__link">
+                    English
+                  </a>
+                </li>
+              
+            </ul>
+          </div>
+        </div>
+      </div>
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Partager" aria-label="Partager" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7 0-.24-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91 1.61 0 2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08Z"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Fydyr/Galad-Islands" title="Aller au dépôt" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Fydyr/Galad-Islands
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Onglets" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href="../../.." class="md-tabs__link">
+      Accueil
+    </a>
+  </li>
+
+      
+        
+  
+  
+    
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../basics/introduction/" class="md-tabs__link md-tabs__link--active">
+        📖 Documentation Utilisateur
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../dev/01-introduction/overview/" class="md-tabs__link">
+        🛠️ Documentation Technique
+      </a>
+    </li>
+  
+
+  
+
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href="../../../support/" class="md-tabs__link">
+      💬 Support et Contact
+    </a>
+  </li>
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Galad Islands - Documentation" class="md-nav__button md-logo" aria-label="Galad Islands - Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Galad Islands - Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Fydyr/Galad-Islands" title="Aller au dépôt" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Fydyr/Galad-Islands
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        Accueil
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          📖 Documentation Utilisateur
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          📖 Documentation Utilisateur
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../basics/introduction/" class="md-nav__link">
+        Introduction & Présentation
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../basics/installation/" class="md-nav__link">
+        Configuration & Installation
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../controls/" class="md-nav__link">
+        Commandes & Interfaces
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Gameplay & Progression
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Gameplay & Progression
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#mission-principale" class="md-nav__link">
+    🎯 Mission principale
+  </a>
+  
+    <nav class="md-nav" aria-label="🎯 Mission principale">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#objectif-de-victoire" class="md-nav__link">
+    Objectif de victoire
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conditions-de-victoire" class="md-nav__link">
+    Conditions de victoire
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#duree-moyenne-dune-partie" class="md-nav__link">
+    Durée moyenne d'une partie
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strategies-pour-prendre-lavantage" class="md-nav__link">
+    🏆 Stratégies pour prendre l'avantage
+  </a>
+  
+    <nav class="md-nav" aria-label="🏆 Stratégies pour prendre l'avantage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#philosophies-de-jeu" class="md-nav__link">
+    Philosophies de jeu
+  </a>
+  
+    <nav class="md-nav" aria-label="Philosophies de jeu">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#le-rusher-agressif" class="md-nav__link">
+    Le Rusher agressif ⚡
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-defenseur-territorial" class="md-nav__link">
+    Le Défenseur territorial 🛡️
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ladaptateur-hybride" class="md-nav__link">
+    L'Adaptateur hybride 🔄
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tactiques-de-combat" class="md-nav__link">
+    Tactiques de combat
+  </a>
+  
+    <nav class="md-nav" aria-label="Tactiques de combat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#micromanagement-des-unites" class="md-nav__link">
+    Micromanagement des unités
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#formations-tactiques" class="md-nav__link">
+    Formations tactiques
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#systemes-economiques-et-de-progression" class="md-nav__link">
+    💰 Systèmes économiques et de progression
+  </a>
+  
+    <nav class="md-nav" aria-label="💰 Systèmes économiques et de progression">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sources-dor" class="md-nav__link">
+    Sources d'or
+  </a>
+  
+    <nav class="md-nav" aria-label="Sources d'or">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#coffres-volants" class="md-nav__link">
+    Coffres volants
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#depots-dor-sur-les-iles" class="md-nav__link">
+    Dépôts d'or sur les îles
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recompenses-de-combat" class="md-nav__link">
+    Récompenses de combat
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#progression-economique" class="md-nav__link">
+    Progression économique
+  </a>
+  
+    <nav class="md-nav" aria-label="Progression économique">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#seuils-critiques" class="md-nav__link">
+    Seuils critiques
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gestion-des-risques" class="md-nav__link">
+    Gestion des risques
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#controle-territorial-et-strategie" class="md-nav__link">
+    🗺️ Contrôle territorial et stratégie
+  </a>
+  
+    <nav class="md-nav" aria-label="🗺️ Contrôle territorial et stratégie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#les-iles-centres-strategiques" class="md-nav__link">
+    Les îles : centres stratégiques
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#systeme-de-construction" class="md-nav__link">
+    Système de construction
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#expansion-territoriale" class="md-nav__link">
+    Expansion territoriale
+  </a>
+  
+    <nav class="md-nav" aria-label="Expansion territoriale">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-0-3-min-securisation" class="md-nav__link">
+    Phase 1 (0-3 min) : Sécurisation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-3-6-min-developpement" class="md-nav__link">
+    Phase 2 (3-6 min) : Développement
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-6-min-domination" class="md-nav__link">
+    Phase 3 (6+ min) : Domination
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strategies-adaptatives" class="md-nav__link">
+    Stratégies adaptatives
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lecture-du-jeu-adverse" class="md-nav__link">
+    🎲 Lecture du jeu adverse
+  </a>
+  
+    <nav class="md-nav" aria-label="🎲 Lecture du jeu adverse">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#indices-strategiques" class="md-nav__link">
+    Indices stratégiques
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gestion-psychologique" class="md-nav__link">
+    Gestion psychologique
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brouillard-de-guerre-et-vision-version-beta" class="md-nav__link">
+    🌫️ Brouillard de guerre et vision (Version Bêta)
+  </a>
+  
+    <nav class="md-nav" aria-label="🌫️ Brouillard de guerre et vision (Version Bêta)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#principes-du-brouillard-de-guerre" class="md-nav__link">
+    Principes du brouillard de guerre
+  </a>
+  
+    <nav class="md-nav" aria-label="Principes du brouillard de guerre">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#etats-des-zones" class="md-nav__link">
+    États des zones
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strategies-de-vision" class="md-nav__link">
+    Stratégies de vision
+  </a>
+  
+    <nav class="md-nav" aria-label="Stratégies de vision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exploration-agressive" class="md-nav__link">
+    Exploration agressive
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vision-defensive" class="md-nav__link">
+    Vision défensive
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guerre-psychologique" class="md-nav__link">
+    Guerre psychologique
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#avantages-tactiques-du-brouillard" class="md-nav__link">
+    Avantages tactiques du brouillard
+  </a>
+  
+    <nav class="md-nav" aria-label="Avantages tactiques du brouillard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#embuscades-et-surprises" class="md-nav__link">
+    Embuscades et surprises
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gestion-des-ressources" class="md-nav__link">
+    Gestion des ressources
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pression-psychologique" class="md-nav__link">
+    Pression psychologique
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conseils-pour-maitriser-le-brouillard" class="md-nav__link">
+    Conseils pour maîtriser le brouillard
+  </a>
+  
+    <nav class="md-nav" aria-label="Conseils pour maîtriser le brouillard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exploration-methodique" class="md-nav__link">
+    Exploration méthodique
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#utilisation-optimale-des-unites" class="md-nav__link">
+    Utilisation optimale des unités
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gestion-des-risques_1" class="md-nav__link">
+    Gestion des risques
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../units/units/" class="md-nav__link">
+        Description Sprites & Conseils
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_6" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+          Ressources supplémentaires
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_2_6">
+          <span class="md-nav__icon md-icon"></span>
+          Ressources supplémentaires
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/galad-config-tool/" class="md-nav__link">
+        Outil de configuration
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../basics/getting-started/" class="md-nav__link">
+        Guide de démarrage
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../units/units/" class="md-nav__link">
+        Unités
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../economy/buildings/" class="md-nav__link">
+        Bâtiments
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../economy/shop/" class="md-nav__link">
+        Boutique
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../action-bar/" class="md-nav__link">
+        Barre d'action
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../help/faq/" class="md-nav__link">
+        FAQ
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../help/credits/" class="md-nav__link">
+        Crédits
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          🛠️ Documentation Technique
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          🛠️ Documentation Technique
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+          1. Introduction
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3_1">
+          <span class="md-nav__icon md-icon"></span>
+          1. Introduction
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/01-introduction/overview/" class="md-nav__link">
+        Vue d'ensemble
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+          2. Description du système
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3_2">
+          <span class="md-nav__icon md-icon"></span>
+          2. Description du système
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/architecture/" class="md-nav__link">
+        Architecture ECS
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/tower-system-implementation/" class="md-nav__link">
+        Système de tours
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2_3" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_2_3" id="__nav_3_2_3_label" tabindex="0">
+          API
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_3_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3_2_3">
+          <span class="md-nav__icon md-icon"></span>
+          API
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/api/game-engine/" class="md-nav__link">
+        Moteur de jeu
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/api/ui-system/" class="md-nav__link">
+        Interface utilisateur
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/api/unit-system/" class="md-nav__link">
+        Système d'unités
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2_4" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_2_4" id="__nav_3_2_4_label" tabindex="0">
+          Modules
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_4_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3_2_4">
+          <span class="md-nav__icon md-icon"></span>
+          Modules
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/modules/components/" class="md-nav__link">
+        Composants
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/modules/processors/" class="md-nav__link">
+        Processeurs
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/modules/managers/" class="md-nav__link">
+        Gestionnaires
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/modules/special-capacity-system/" class="md-nav__link">
+        Capacités spéciales
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/modules/sprite-manager/" class="md-nav__link">
+        Gestionnaire de sprites
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/02-systeme/modules/vision-system/" class="md-nav__link">
+        Système de vision
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+          3. Installation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3_3">
+          <span class="md-nav__icon md-icon"></span>
+          3. Installation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/03-installation/requirements/" class="md-nav__link">
+        Exigences matérielles
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+          4. Configuration
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3_4">
+          <span class="md-nav__icon md-icon"></span>
+          4. Configuration
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/04-configuration/configuration/" class="md-nav__link">
+        Configuration
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/04-configuration/galad-config-tool-technical/" class="md-nav__link">
+        Galad Config Tool
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/04-configuration/debug-mode/" class="md-nav__link">
+        Mode debug
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/04-configuration/localization/" class="md-nav__link">
+        Localisation
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_5" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+          5. Exploitation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3_5">
+          <span class="md-nav__icon md-icon"></span>
+          5. Exploitation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/05-exploitation/systeme/" class="md-nav__link">
+        Paramètres système
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/05-exploitation/operations/" class="md-nav__link">
+        Opérations système
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/05-exploitation/deployment/" class="md-nav__link">
+        Déploiement
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_6" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="0">
+          6. Maintenance
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3_6">
+          <span class="md-nav__icon md-icon"></span>
+          6. Maintenance
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/06-maintenance/maintenance/" class="md-nav__link">
+        Maintenance
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/06-maintenance/versioning/" class="md-nav__link">
+        Gestion des versions
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+      
+      
+      
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_7" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_7" id="__nav_3_7_label" tabindex="0">
+          7. Annexes
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_7_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3_7">
+          <span class="md-nav__icon md-icon"></span>
+          7. Annexes
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/07-annexes/contributing/" class="md-nav__link">
+        Guide de contribution
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../support/" class="md-nav__link">
+        💬 Support et Contact
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#mission-principale" class="md-nav__link">
+    🎯 Mission principale
+  </a>
+  
+    <nav class="md-nav" aria-label="🎯 Mission principale">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#objectif-de-victoire" class="md-nav__link">
+    Objectif de victoire
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conditions-de-victoire" class="md-nav__link">
+    Conditions de victoire
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#duree-moyenne-dune-partie" class="md-nav__link">
+    Durée moyenne d'une partie
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strategies-pour-prendre-lavantage" class="md-nav__link">
+    🏆 Stratégies pour prendre l'avantage
+  </a>
+  
+    <nav class="md-nav" aria-label="🏆 Stratégies pour prendre l'avantage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#philosophies-de-jeu" class="md-nav__link">
+    Philosophies de jeu
+  </a>
+  
+    <nav class="md-nav" aria-label="Philosophies de jeu">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#le-rusher-agressif" class="md-nav__link">
+    Le Rusher agressif ⚡
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-defenseur-territorial" class="md-nav__link">
+    Le Défenseur territorial 🛡️
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ladaptateur-hybride" class="md-nav__link">
+    L'Adaptateur hybride 🔄
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tactiques-de-combat" class="md-nav__link">
+    Tactiques de combat
+  </a>
+  
+    <nav class="md-nav" aria-label="Tactiques de combat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#micromanagement-des-unites" class="md-nav__link">
+    Micromanagement des unités
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#formations-tactiques" class="md-nav__link">
+    Formations tactiques
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#systemes-economiques-et-de-progression" class="md-nav__link">
+    💰 Systèmes économiques et de progression
+  </a>
+  
+    <nav class="md-nav" aria-label="💰 Systèmes économiques et de progression">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sources-dor" class="md-nav__link">
+    Sources d'or
+  </a>
+  
+    <nav class="md-nav" aria-label="Sources d'or">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#coffres-volants" class="md-nav__link">
+    Coffres volants
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#depots-dor-sur-les-iles" class="md-nav__link">
+    Dépôts d'or sur les îles
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recompenses-de-combat" class="md-nav__link">
+    Récompenses de combat
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#progression-economique" class="md-nav__link">
+    Progression économique
+  </a>
+  
+    <nav class="md-nav" aria-label="Progression économique">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#seuils-critiques" class="md-nav__link">
+    Seuils critiques
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gestion-des-risques" class="md-nav__link">
+    Gestion des risques
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#controle-territorial-et-strategie" class="md-nav__link">
+    🗺️ Contrôle territorial et stratégie
+  </a>
+  
+    <nav class="md-nav" aria-label="🗺️ Contrôle territorial et stratégie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#les-iles-centres-strategiques" class="md-nav__link">
+    Les îles : centres stratégiques
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#systeme-de-construction" class="md-nav__link">
+    Système de construction
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#expansion-territoriale" class="md-nav__link">
+    Expansion territoriale
+  </a>
+  
+    <nav class="md-nav" aria-label="Expansion territoriale">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-0-3-min-securisation" class="md-nav__link">
+    Phase 1 (0-3 min) : Sécurisation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-3-6-min-developpement" class="md-nav__link">
+    Phase 2 (3-6 min) : Développement
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-6-min-domination" class="md-nav__link">
+    Phase 3 (6+ min) : Domination
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strategies-adaptatives" class="md-nav__link">
+    Stratégies adaptatives
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lecture-du-jeu-adverse" class="md-nav__link">
+    🎲 Lecture du jeu adverse
+  </a>
+  
+    <nav class="md-nav" aria-label="🎲 Lecture du jeu adverse">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#indices-strategiques" class="md-nav__link">
+    Indices stratégiques
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gestion-psychologique" class="md-nav__link">
+    Gestion psychologique
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#brouillard-de-guerre-et-vision-version-beta" class="md-nav__link">
+    🌫️ Brouillard de guerre et vision (Version Bêta)
+  </a>
+  
+    <nav class="md-nav" aria-label="🌫️ Brouillard de guerre et vision (Version Bêta)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#principes-du-brouillard-de-guerre" class="md-nav__link">
+    Principes du brouillard de guerre
+  </a>
+  
+    <nav class="md-nav" aria-label="Principes du brouillard de guerre">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#etats-des-zones" class="md-nav__link">
+    États des zones
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strategies-de-vision" class="md-nav__link">
+    Stratégies de vision
+  </a>
+  
+    <nav class="md-nav" aria-label="Stratégies de vision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exploration-agressive" class="md-nav__link">
+    Exploration agressive
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vision-defensive" class="md-nav__link">
+    Vision défensive
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guerre-psychologique" class="md-nav__link">
+    Guerre psychologique
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#avantages-tactiques-du-brouillard" class="md-nav__link">
+    Avantages tactiques du brouillard
+  </a>
+  
+    <nav class="md-nav" aria-label="Avantages tactiques du brouillard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#embuscades-et-surprises" class="md-nav__link">
+    Embuscades et surprises
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gestion-des-ressources" class="md-nav__link">
+    Gestion des ressources
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pression-psychologique" class="md-nav__link">
+    Pression psychologique
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conseils-pour-maitriser-le-brouillard" class="md-nav__link">
+    Conseils pour maîtriser le brouillard
+  </a>
+  
+    <nav class="md-nav" aria-label="Conseils pour maîtriser le brouillard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exploration-methodique" class="md-nav__link">
+    Exploration méthodique
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#utilisation-optimale-des-unites" class="md-nav__link">
+    Utilisation optimale des unités
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gestion-des-risques_1" class="md-nav__link">
+    Gestion des risques
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="gameplay-progression">Gameplay &amp; Progression<a class="headerlink" href="#gameplay-progression" title="Permanent link">&para;</a></h1>
+<h2 id="mission-principale">🎯 Mission principale<a class="headerlink" href="#mission-principale" title="Permanent link">&para;</a></h2>
+<h3 id="objectif-de-victoire">Objectif de victoire<a class="headerlink" href="#objectif-de-victoire" title="Permanent link">&para;</a></h3>
+<p>Votre mission dans <strong>Galad Islands</strong> est de <strong>détruire la base ennemie</strong> pour remporter la partie. La base ennemie est représentée par un bâtiment spécial qui doit être localisé et éliminé.</p>
+<h3 id="conditions-de-victoire">Conditions de victoire<a class="headerlink" href="#conditions-de-victoire" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Destruction de la base</strong> : Éliminez complètement le bâtiment principal adverse</li>
+</ul>
+<h3 id="duree-moyenne-dune-partie">Durée moyenne d'une partie<a class="headerlink" href="#duree-moyenne-dune-partie" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Parties courtes</strong> : 5-10 minutes (rushes agressifs)</li>
+<li><strong>Parties équilibrées</strong> : 15-25 minutes (développement équilibré)</li>
+<li><strong>Parties longues</strong> : 30+ minutes (guerres d'usure)</li>
+</ul>
+<h2 id="strategies-pour-prendre-lavantage">🏆 Stratégies pour prendre l'avantage<a class="headerlink" href="#strategies-pour-prendre-lavantage" title="Permanent link">&para;</a></h2>
+<h3 id="philosophies-de-jeu">Philosophies de jeu<a class="headerlink" href="#philosophies-de-jeu" title="Permanent link">&para;</a></h3>
+<h4 id="le-rusher-agressif">Le Rusher agressif ⚡<a class="headerlink" href="#le-rusher-agressif" title="Permanent link">&para;</a></h4>
+<p><strong>Style</strong> : Attaque précoce et décisive
+- <strong>Objectif</strong> : Victoire rapide par élimination directe
+- <strong>Unités clés</strong> : 3-4 Scouts + 1 Maraudeur
+- <strong>Timing</strong> : Attaque dès 2-3 minutes de jeu
+- <strong>Économie</strong> : Minimale, focus sur le militaire</p>
+<p><strong>Avantages</strong> :</p>
+<ul>
+<li>Surprendre l'adversaire avant qu'il soit prêt</li>
+<li>Victoire rapide si l'attaque réussit</li>
+<li>Moins de ressources gaspillées</li>
+</ul>
+<p><strong>Risques</strong> :</p>
+<ul>
+<li>Facilement contrable avec des défenses</li>
+<li>Échec coûteux si l'attaque rate</li>
+</ul>
+<h4 id="le-defenseur-territorial">Le Défenseur territorial 🛡️<a class="headerlink" href="#le-defenseur-territorial" title="Permanent link">&para;</a></h4>
+<p><strong>Style</strong> : Contrôle territorial par les défenses</p>
+<ul>
+<li><strong>Objectif</strong> : Imprenable une fois établi</li>
+<li><strong>Stratégie</strong> : Réseau de tours + Leviathan</li>
+<li><strong>Forces</strong> : Quasi-invulnérable en position défensive</li>
+<li><strong>Faiblesses</strong> : Vulnérable aux attaques surprises</li>
+</ul>
+<p><strong>Avantages</strong> :</p>
+<ul>
+<li>Très difficile à déloger</li>
+<li>Protection contre les raids</li>
+<li>Économie stable</li>
+</ul>
+<p><strong>Risques</strong> :</p>
+<ul>
+<li>Faible mobilité offensive</li>
+<li>Coûteux à établir</li>
+</ul>
+<h4 id="ladaptateur-hybride">L'Adaptateur hybride 🔄<a class="headerlink" href="#ladaptateur-hybride" title="Permanent link">&para;</a></h4>
+<p><strong>Style</strong> : Flexibilité et adaptation</p>
+<ul>
+<li><strong>Principe</strong> : S'adapter à l'adversaire et à la carte</li>
+<li><strong>Flexibilité</strong> : Changer de stratégie selon la situation</li>
+<li><strong>Compétences</strong> : Lecture de jeu optimale</li>
+<li><strong>Complexité</strong> : Niveau expert requis</li>
+</ul>
+<h3 id="tactiques-de-combat">Tactiques de combat<a class="headerlink" href="#tactiques-de-combat" title="Permanent link">&para;</a></h3>
+<h4 id="micromanagement-des-unites">Micromanagement des unités<a class="headerlink" href="#micromanagement-des-unites" title="Permanent link">&para;</a></h4>
+<p><strong>Kiting et Hit-and-run</strong> :</p>
+<ul>
+<li>Approchez à portée maximale</li>
+<li>Attaquez puis retraitez immédiatement</li>
+<li>Répétez jusqu'à élimination</li>
+<li>Idéal avec les Zasper contre les unités lentes</li>
+</ul>
+<p><strong>Concentration de tir</strong> :</p>
+<ul>
+<li>Ciblez les menaces prioritaires</li>
+<li>Éliminez dans l'ordre : Druid → Leviathan → Architect</li>
+</ul>
+<h4 id="formations-tactiques">Formations tactiques<a class="headerlink" href="#formations-tactiques" title="Permanent link">&para;</a></h4>
+<p><strong>Phalange défensive</strong> :</p>
+<div class="highlight"><pre><span></span><code>    Leviathan
+Maraudeur  Maraudeur
+    Druid
+</code></pre></div>
+<ul>
+<li>Leviathan absorbe les dégâts frontaux</li>
+<li>Maraudeur protègent les flancs</li>
+<li>Druid maintient les PV</li>
+<li>Idéale pour contrôler les passages</li>
+</ul>
+<p><strong>Essaim offensif</strong> :</p>
+<div class="highlight"><pre><span></span><code>Scout  Scout  Scout
+  Scout  Scout
+    Maraudeur
+</code></pre></div>
+<ul>
+<li>Scout harcèlent en meute</li>
+<li>Mobilité pour les flanquements</li>
+<li>Maraudeur en soutien</li>
+</ul>
+<h2 id="systemes-economiques-et-de-progression">💰 Systèmes économiques et de progression<a class="headerlink" href="#systemes-economiques-et-de-progression" title="Permanent link">&para;</a></h2>
+<h3 id="sources-dor">Sources d'or<a class="headerlink" href="#sources-dor" title="Permanent link">&para;</a></h3>
+<h4 id="coffres-volants">Coffres volants<a class="headerlink" href="#coffres-volants" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Apparitions périodiques sur la carte</li>
+<li>Quantité variable (50-200 pièces)</li>
+<li>Stratégie : Positionnez vos unités pour les intercepter</li>
+</ul>
+<h4 id="depots-dor-sur-les-iles">Dépôts d'or sur les îles<a class="headerlink" href="#depots-dor-sur-les-iles" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Ressources fixes à découvrir</li>
+<li>Quantité variable (200-500 pièces)</li>
+<li>Stratégie : Explorez méthodiquement</li>
+</ul>
+<h4 id="recompenses-de-combat">Récompenses de combat<a class="headerlink" href="#recompenses-de-combat" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Or gagné en tuant des unités ennemies</li>
+<li>Proportionnel à la puissance de l'unité</li>
+<li>Stratégie : Combats sélectifs rentables</li>
+</ul>
+<h3 id="progression-economique">Progression économique<a class="headerlink" href="#progression-economique" title="Permanent link">&para;</a></h3>
+<h4 id="seuils-critiques">Seuils critiques<a class="headerlink" href="#seuils-critiques" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>200 or</strong> : Unité de base (Scout)</li>
+<li><strong>400 or</strong> : Marandeur ou tour de défense</li>
+<li><strong>600 or</strong> : Leviathan ou capacités spéciales</li>
+<li><strong>800+ or</strong> : Armée complète</li>
+</ul>
+<h4 id="gestion-des-risques">Gestion des risques<a class="headerlink" href="#gestion-des-risques" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Gardez toujours une réserve d'urgence</li>
+<li>Évitez les achats impulsifs</li>
+<li>Protégez vos sources de revenus</li>
+<li>Interceptez les coffres volants</li>
+</ul>
+<h2 id="controle-territorial-et-strategie">🗺️ Contrôle territorial et stratégie<a class="headerlink" href="#controle-territorial-et-strategie" title="Permanent link">&para;</a></h2>
+<h3 id="les-iles-centres-strategiques">Les îles : centres stratégiques<a class="headerlink" href="#les-iles-centres-strategiques" title="Permanent link">&para;</a></h3>
+<p><strong>Rôle des îles</strong> : Les îles sont les points clés du contrôle territorial. Elles permettent de :</p>
+<ul>
+<li><strong>Construire des tours</strong> : Défense et soin automatiques</li>
+<li><strong>Collecter des ressources</strong> : Or apparaissent périodiquement</li>
+<li><strong>Contrôler les routes</strong> : Bloquer les mouvements ennemis</li>
+</ul>
+<h3 id="systeme-de-construction">Système de construction<a class="headerlink" href="#systeme-de-construction" title="Permanent link">&para;</a></h3>
+<p><strong>Tours de défense</strong> (150 or) :</p>
+<ul>
+<li><strong>PV</strong> : 300 | <strong>Dégâts</strong> : 25 | <strong>Portée</strong> : 350</li>
+<li>Attaque automatiquement les ennemis à proximité</li>
+<li>Rechargement : 1 seconde entre les tirs</li>
+</ul>
+<p><strong>Tours de soin</strong> (120 or) :</p>
+<ul>
+<li><strong>PV</strong> : 200 | <strong>Soin</strong> : 10 PV | <strong>Portée</strong> : 350</li>
+<li>Régénère automatiquement les alliés proches</li>
+<li>Rechargement : 1 seconde entre les soins</li>
+</ul>
+<p><strong>Construction</strong> :</p>
+<ol>
+<li>Sélectionner un Architecte</li>
+<li>Cliquer sur "Tour de Défense" ou "Tour de Soin" dans la barre d'action</li>
+<li>Cliquer sur une île vide pour placer la tour</li>
+<li>Une seule tour par île possible</li>
+</ol>
+<h3 id="expansion-territoriale">Expansion territoriale<a class="headerlink" href="#expansion-territoriale" title="Permanent link">&para;</a></h3>
+<h4 id="phase-1-0-3-min-securisation">Phase 1 (0-3 min) : Sécurisation<a class="headerlink" href="#phase-1-0-3-min-securisation" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Contrôler 2-3 îles proches de votre base</li>
+<li>Établir une économie stable via les coffres</li>
+<li>Placer une tour de défense minimale</li>
+</ul>
+<h4 id="phase-2-3-6-min-developpement">Phase 2 (3-6 min) : Développement<a class="headerlink" href="#phase-2-3-6-min-developpement" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Étendre vers les îles stratégiques</li>
+<li>Construire un réseau défensif coordonné</li>
+<li>Maintenir la pression économique</li>
+</ul>
+<h4 id="phase-3-6-min-domination">Phase 3 (6+ min) : Domination<a class="headerlink" href="#phase-3-6-min-domination" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Contrôler la majorité des îles</li>
+<li>Supériorité économique écrasante</li>
+<li>Défense impénétrable</li>
+</ul>
+<h3 id="strategies-adaptatives">Stratégies adaptatives<a class="headerlink" href="#strategies-adaptatives" title="Permanent link">&para;</a></h3>
+<p><strong>Contre les attaques précoces</strong> :</p>
+<ol>
+<li>Construire immédiatement une tour de défense près de la base</li>
+<li>Regrouper vos unités en position défensive</li>
+<li>Utiliser le terrain (îles) comme couverture</li>
+</ol>
+<p><strong>Contre l'économie adverse</strong> :</p>
+<ol>
+<li>Harceler constamment ses sources de coffres</li>
+<li>Contrôler les îles riches en ressources</li>
+<li>Lancer des raids sur ses lignes d'approvisionnement</li>
+</ol>
+<p><strong>Contre la stratégie défensive</strong> :</p>
+<ol>
+<li>Expansion périphérique pour contourner</li>
+<li>Supériorité économique pour submerger</li>
+<li>Victoire par asphyxie économique</li>
+</ol>
+<h2 id="lecture-du-jeu-adverse">🎲 Lecture du jeu adverse<a class="headerlink" href="#lecture-du-jeu-adverse" title="Permanent link">&para;</a></h2>
+<h3 id="indices-strategiques">Indices stratégiques<a class="headerlink" href="#indices-strategiques" title="Permanent link">&para;</a></h3>
+<p><strong>Signes d'une stratégie agressive</strong> :</p>
+<ul>
+<li>Production massive de Scout (reconnaissance offensive)</li>
+<li>Peu de constructions défensives</li>
+<li>Attaques précoces et répétées</li>
+</ul>
+<p><strong>Signes d'une stratégie économique</strong> :</p>
+<ul>
+<li>Architecte produit en priorité</li>
+<li>Construction rapide de tours</li>
+<li>Expansion méthodique et patiente</li>
+</ul>
+<p><strong>Signes d'une stratégie défensive</strong> :</p>
+<ul>
+<li>Nombreuses tours de défense</li>
+<li>Peu d'activité offensive</li>
+<li>Contrôle territorial maximal</li>
+</ul>
+<h3 id="gestion-psychologique">Gestion psychologique<a class="headerlink" href="#gestion-psychologique" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Garder son calme face aux imprévus</li>
+<li>S'adapter plutôt que paniquer</li>
+<li>Chaque défaite apporte des leçons</li>
+<li>La patience est souvent récompensée</li>
+</ul>
+<h2 id="brouillard-de-guerre-et-vision-version-beta">🌫️ Brouillard de guerre et vision (Version Bêta)<a class="headerlink" href="#brouillard-de-guerre-et-vision-version-beta" title="Permanent link">&para;</a></h2>
+<p><strong>⚠️ Cette fonctionnalité est actuellement en développement et disponible uniquement dans la version bêta du jeu.</strong></p>
+<h3 id="principes-du-brouillard-de-guerre">Principes du brouillard de guerre<a class="headerlink" href="#principes-du-brouillard-de-guerre" title="Permanent link">&para;</a></h3>
+<p>Le brouillard de guerre transforme chaque partie en une danse stratégique entre ombre et lumière :</p>
+<h4 id="etats-des-zones">États des zones<a class="headerlink" href="#etats-des-zones" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Brouillard épais</strong> : Territoires inexplorés, potentiellement riches en ressources cachées</li>
+<li><strong>Brume grise</strong> : Zones déjà découvertes mais actuellement hors de vue</li>
+<li><strong>Vision claire</strong> : Territoires sous contrôle actif de votre équipe</li>
+</ul>
+<h3 id="strategies-de-vision">Stratégies de vision<a class="headerlink" href="#strategies-de-vision" title="Permanent link">&para;</a></h3>
+<h4 id="exploration-agressive">Exploration agressive<a class="headerlink" href="#exploration-agressive" title="Permanent link">&para;</a></h4>
+<p><strong>Objectif</strong> : Découvrir rapidement la carte</p>
+<ul>
+<li>Utilisez les <strong>Scouts</strong> pour étendre votre champ de vision</li>
+<li>Créez des "patrouilles d'exploration" dédiées</li>
+<li>Priorisez les îles stratégiques pour les ressources</li>
+</ul>
+<h4 id="vision-defensive">Vision défensive<a class="headerlink" href="#vision-defensive" title="Permanent link">&para;</a></h4>
+<p><strong>Objectif</strong> : Protéger vos positions</p>
+<ul>
+<li>Placez des unités sentinelles autour de vos bases</li>
+<li>Utilisez la vision des tours pour couvrir les approches</li>
+<li>Créez des "zones de surveillance" autour des points vitaux</li>
+</ul>
+<h4 id="guerre-psychologique">Guerre psychologique<a class="headerlink" href="#guerre-psychologique" title="Permanent link">&para;</a></h4>
+<p><strong>Objectif</strong> : Manipuler la perception ennemie</p>
+<ul>
+<li>Cachez vos mouvements derrière la vision réduite de votre adversaire</li>
+<li>Créez des diversions dans des zones visibles</li>
+<li>Utilisez l'effet de surprise pour vos attaques</li>
+</ul>
+<h3 id="avantages-tactiques-du-brouillard">Avantages tactiques du brouillard<a class="headerlink" href="#avantages-tactiques-du-brouillard" title="Permanent link">&para;</a></h3>
+<h4 id="embuscades-et-surprises">Embuscades et surprises<a class="headerlink" href="#embuscades-et-surprises" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Positionnez des unités dans des zones non visibles</li>
+<li>Attaquez des convois de ressources ennemis</li>
+<li>Tendez des pièges aux explorateurs adverses</li>
+</ul>
+<h4 id="gestion-des-ressources">Gestion des ressources<a class="headerlink" href="#gestion-des-ressources" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Protégez vos collecteurs d'or des raids surprises</li>
+<li>Interceptez les coffres volants avant l'ennemi</li>
+<li>Cachez vos constructions défensives</li>
+</ul>
+<h4 id="pression-psychologique">Pression psychologique<a class="headerlink" href="#pression-psychologique" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Forcez l'adversaire à maintenir des unités d'éclairage</li>
+<li>Créez l'illusion d'une présence plus importante</li>
+<li>Semez le doute sur vos véritables intentions</li>
+</ul>
+<h3 id="conseils-pour-maitriser-le-brouillard">Conseils pour maîtriser le brouillard<a class="headerlink" href="#conseils-pour-maitriser-le-brouillard" title="Permanent link">&para;</a></h3>
+<h4 id="exploration-methodique">Exploration méthodique<a class="headerlink" href="#exploration-methodique" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Commencez local</strong> : Sécurisez votre zone de départ</li>
+<li><strong>Étendez progressivement</strong> : Avancez île par île</li>
+<li><strong>Priorisez les ressources</strong> : Cherchez l'or visible en premier</li>
+<li><strong>Maintenez la pression</strong> : Ne laissez pas l'ennemi explorer impunément</li>
+</ol>
+<h4 id="utilisation-optimale-des-unites">Utilisation optimale des unités<a class="headerlink" href="#utilisation-optimale-des-unites" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Scouts</strong> : Unités d'élite pour l'exploration et les embuscades</li>
+<li><strong>Maraudeurs</strong> : Défenseurs mobiles pour protéger les flancs</li>
+<li><strong>Leviathans</strong> : Puissance de feu pour sécuriser les positions</li>
+<li><strong>Druids</strong> : Support pour maintenir la vision sur les points clés</li>
+<li><strong>Architects</strong> : Construction de tours pour étendre la vision passive</li>
+</ul>
+<h4 id="gestion-des-risques_1">Gestion des risques<a class="headerlink" href="#gestion-des-risques_1" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Toujours maintenir une "réserve visuelle" d'unités</li>
+<li>Évitez de vous étirer trop sur la carte</li>
+<li>Utilisez les capacités spéciales pour gagner des avantages temporaires</li>
+<li>Restez vigilant face aux mouvements invisibles de l'ennemi</li>
+</ul>
+<p><strong>Note :</strong> Le système de vision est en évolution constante. Vos retours sur la version bêta sont précieux pour affiner cette mécanique stratégique !</p>
+<hr />
+<p><em>Maîtrisez ces mécaniques territoriales et vous deviendrez un stratège accompli dans les Galad Islands !</em></p>
+<hr />
+<p><em>Maîtrisez ces concepts et vous deviendrez un stratège redoutable dans les Galad Islands !</em></p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+            Retour en haut de la page
+          </button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/Fydyr/Galad-Islands" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.share"], "search": "../../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.b4d07000.min.js"></script>
+      
+    
+  </body>
+</html>
