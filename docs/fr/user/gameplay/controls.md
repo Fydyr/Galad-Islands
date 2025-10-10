@@ -46,6 +46,8 @@
 - **Flèches directionnelles** : Déplacer la caméra
 - **C** : Basculer le suivi automatique de l'unité
 - **Molette** : Zoom avant/arrière
+- **Ctrl + Molette** : Zoom rapide (sensibilité ×2)
+- **Ctrl + Flèches** : Déplacement rapide de la caméra (sensibilité ×2)
 
 ### Interface utilisateur
 

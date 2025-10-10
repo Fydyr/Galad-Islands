@@ -52,6 +52,8 @@ i18n:
 - **Arrow Keys**: Move camera
 - **C**: Toggle automatic unit following
 - **Mouse Wheel**: Zoom in/out
+- **Ctrl + Mouse Wheel**: Fast zoom (sensitivity ×2)
+- **Ctrl + Arrow Keys**: Fast camera movement (sensitivity ×2)
 
 ### User Interface
 
