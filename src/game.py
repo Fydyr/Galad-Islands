@@ -53,7 +53,7 @@ from src.components.special.speArchitectComponent import SpeArchitect
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
 
 # import event
-from src.managers.flying_chest_manager import FlyingChestManager
+from src.processeurs.flyingChestProcessor import FlyingChestProcessor
 from src.managers.island_resource_manager import IslandResourceManager
 from src.processeurs.stormProcessor import StormProcessor
 from src.managers.display import get_display_manager
@@ -736,7 +736,7 @@ class GameEngine:
         self.images = None
         self.camera = None
         self.camera_positions = {}  # Stockage des positions de caméra par équipe
-        self.flying_chest_manager = FlyingChestManager()
+        self.flying_chest_processor = FlyingChestProcessor()
         self.island_resource_manager = IslandResourceManager()
         self.storm_processor = StormProcessor()
         self.player = None
@@ -869,9 +869,9 @@ class GameEngine:
         self.images = game_state["images"]
         self.camera = game_state["camera"]
         
-        # Initialize flying chest manager
-        if self.flying_chest_manager is not None and self.grid is not None:
-            self.flying_chest_manager.initialize_from_grid(self.grid)
+        # Initialize flying chest processor
+        if self.flying_chest_processor is not None and self.grid is not None:
+            self.flying_chest_processor.initialize_from_grid(self.grid)
 
         # Initialize island resource manager
         if self.island_resource_manager is not None and self.grid is not None:
@@ -919,8 +919,8 @@ class GameEngine:
         es.set_handler('special_vine_event', create_projectile)
         es.set_handler('entities_hit', entitiesHit)
         es.set_handler('game_over', self._handle_game_over)
-        if self.flying_chest_manager is not None:
-            es.set_handler('flying_chest_collision', self.flying_chest_manager.handle_collision)
+        if self.flying_chest_processor is not None:
+            es.set_handler('flying_chest_collision', self.flying_chest_processor.handle_collision)
         if self.island_resource_manager is not None:
             es.set_handler('island_resource_collision', self.island_resource_manager.handle_collision)
         
@@ -1648,8 +1648,8 @@ class GameEngine:
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
 
-        if self.flying_chest_manager is not None:
-            self.flying_chest_manager.update(dt)
+        if self.flying_chest_processor is not None:
+            self.flying_chest_processor.process(dt)
         if self.island_resource_manager is not None:
             self.island_resource_manager.update(dt)
             
@@ -1658,7 +1658,7 @@ class GameEngine:
         # Synchroniser les informations affichées avec l'état courant
         self._refresh_selected_unit_info()
         
-        # Les coffres volants sont gérés par flying_chest_manager.update(dt) plus haut
+        # Les coffres volants sont gérés par flying_chest_processor.process(dt) plus haut
         
     def _render_game(self, dt):
         """Effectue le rendu du jeu."""

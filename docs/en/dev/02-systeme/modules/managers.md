@@ -13,7 +13,7 @@ Managers centralize the management of resources and high-level game behaviors.
 | Manager | Responsibility | File |
 |--------------|----------------|---------|
 | `BaseComponent` | Integrated management of allied/enemy headquarters | `src/components/core/baseComponent.py` |
-| `FlyingChestManager` | Management of flying chests | `src/managers/flying_chest_manager.py` |
+| `FlyingChestProcessor` | Management of flying chests | `src/processeurs/flyingChestProcessor.py` |
 | `StormProcessor` | Management of storms | `src/processeurs/stormProcessor.py` |
 | `DisplayManager` | Display management | `src/managers/display.py` |
 | `AudioManager` | Audio management | `src/managers/audio.py` |
@@ -31,13 +31,13 @@ Managers centralize the management of resources and high-level game behaviors.
 
 **Complete documentation:** See [BaseComponent](./components.md#basecomponent)
 
-### FlyingChestManager
+### FlyingChestProcessor
 
 **Responsibility:** Manages the appearance and behavior of flying chests.
 
 ```python
-class FlyingChestManager:
-    def update(self, dt: float):
+class FlyingChestProcessor(esper.Processor):
+    def process(self, dt: float):
         """Updates timers and spawns chests."""
         
     def handle_collision(self, entity: int, chest_entity: int):
@@ -101,11 +101,11 @@ BaseComponent.reset()
 ```python
 # In GameEngine
 def _initialize_managers(self):
-    self.flying_chest_manager = FlyingChestManager()
+    self.flying_chest_processor = FlyingChestProcessor()
     self.audio_manager = AudioManager()
     
 def _update_managers(self, dt):
-    self.flying_chest_manager.update(dt)
+    self.flying_chest_processor.process(dt)
 ```
 
 ## Best practices

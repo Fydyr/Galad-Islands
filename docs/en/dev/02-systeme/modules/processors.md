@@ -18,7 +18,8 @@ Processors contain the game's business logic and act on Entities having certain 
 | `MovementProcessor` | 3 | Movement of Entities with velocity |
 | `PlayerControlProcessor` | 4 | Player controls and ability activation |
 | `CapacitiesSpecialesProcessor` | 5 | Update of ability cooldowns |
-| `StormProcessor` | Manual | Storm event management (called manually) |
+| `StormProcessor` | X | Storm event management |
+| `FlyingChestProcessor` | X | Flying chest spawning and collection |
 | `LifetimeProcessor` | 10 | Removal of temporary Entities |
 | `TowerProcessor` | 15 | Logic of defensive towers (attack/heal) |
 
@@ -140,6 +141,31 @@ class StormProcessor(esper.Processor):
             self.trySpawnStorm()
 ```
 
+### FlyingChestProcessor
+
+**File:** `src/processeurs/flyingChestProcessor.py`
+
+**Responsibility:** Manages flying chest spawning, behavior, and collection.
+
+**Configuration:**
+- Spawn interval: 30 seconds
+- Gold reward: 100-200 gold per chest
+- Maximum chests: Limited by game constants
+- Lifetime: Defined by game constants
+
+```python
+class FlyingChestProcessor(esper.Processor):
+    def process(self, dt: float):
+        # Update spawn timer
+        self._spawn_timer += dt
+        if self._spawn_timer >= FLYING_CHEST_SPAWN_INTERVAL:
+            self._spawn_timer = 0.0
+            self._try_spawn_chest()
+        
+        # Update existing chests
+        self._update_existing_chests(dt)
+```
+
 ### LifetimeProcessor
 
 **File:** `src/Processors/lifetimeProcessor.py`
@@ -249,7 +275,7 @@ Processors communicate via esper's Event System:
 | `entities_hit` | CollisionProcessor | functions.handleHealth | entity1, entity2 |
 | `attack_event` | PlayerControlProcessor | functions.createProjectile | attacker, target |
 | `special_vine_event` | PlayerControlProcessor | functions.createProjectile | caster |
-| `flying_chest_collision` | CollisionProcessor | FlyingChestManager | entity, chest |
+| `flying_chest_collision` | CollisionProcessor | FlyingChestProcessor | entity, chest |
 
 ## Adding a new processor
 

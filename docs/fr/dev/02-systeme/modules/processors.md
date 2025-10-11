@@ -18,7 +18,8 @@ Les processeurs contiennent la logique métier du jeu et agissent sur les entit�
 | `MovementProcessor` | 3 | Déplacement des entités avec vélocité |
 | `PlayerControlProcessor` | 4 | Contrôles joueur et activation des capacités |
 | `CapacitiesSpecialesProcessor` | 5 | Mise à jour des cooldowns des capacités |
-| `StormProcessor` | Manuel | Gestion des événements tempêtes (appelé manuellement) |
+| `StormProcessor` | X | Gestion des événements tempêtes  |
+| `FlyingChestProcessor` | X | Apparition et collecte des coffres volants |
 | `LifetimeProcessor` | 10 | Suppression des entités temporaires |
 | `TowerProcessor` | 15 | Logique des tours défensives (attaque/soin) |
 
@@ -140,6 +141,31 @@ class StormProcessor(esper.Processor):
             self.trySpawnStorm()
 ```
 
+### FlyingChestProcessor
+
+**Fichier :** `src/processeurs/flyingChestProcessor.py`
+
+**Responsabilité :** Gère l'apparition, le comportement et la collecte des coffres volants.
+
+**Configuration :**
+- Intervalle d'apparition : 30 secondes
+- Récompense en or : 100-200 or par coffre
+- Nombre maximum de coffres : Limité par les constantes du jeu
+- Durée de vie : Défini par les constantes du jeu
+
+```python
+class FlyingChestProcessor(esper.Processor):
+    def process(self, dt: float):
+        # Mise à jour du timer d'apparition
+        self._spawn_timer += dt
+        if self._spawn_timer >= FLYING_CHEST_SPAWN_INTERVAL:
+            self._spawn_timer = 0.0
+            self._try_spawn_chest()
+        
+        # Mise à jour des coffres existants
+        self._update_existing_chests(dt)
+```
+
 ### LifetimeProcessor
 
 **Fichier :** `src/processeurs/lifetimeProcessor.py`
@@ -249,7 +275,7 @@ Les processeurs communiquent via le système d'événements d'esper :
 | `entities_hit` | CollisionProcessor | functions.handleHealth | entity1, entity2 |
 | `attack_event` | PlayerControlProcessor | functions.createProjectile | attacker, target |
 | `special_vine_event` | PlayerControlProcessor | functions.createProjectile | caster |
-| `flying_chest_collision` | CollisionProcessor | FlyingChestManager | entity, chest |
+| `flying_chest_collision` | CollisionProcessor | FlyingChestProcessor | entity, chest |
 
 ## Ajout d'un nouveau processeur
 

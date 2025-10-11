@@ -29,7 +29,7 @@ from src.managers.sprite_manager import SpriteID, sprite_manager
 from src.settings.settings import TILE_SIZE
 
 
-class FlyingChestManager:
+class FlyingChestProcessor(esper.Processor):
     """Orchestre l'apparition et le comportement des coffres volants."""
 
     def __init__(self) -> None:
@@ -79,7 +79,7 @@ class FlyingChestManager:
         self.reset()
         self._remove_existing_chests()
 
-    def update(self, dt: float) -> None:
+    def process(self, dt: float) -> None:
         """Met à jour la génération et la durée de vie des coffres."""
         self._spawn_timer += dt
         if self._spawn_timer >= FLYING_CHEST_SPAWN_INTERVAL:

@@ -11,7 +11,7 @@ from src.components.core.playerComponent import PlayerComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.team_enum import Team as TeamEnum
 from src.processeurs.stormProcessor import StormProcessor
-from src.managers.flying_chest_manager import FlyingChestManager
+from src.processeurs.flyingChestProcessor import FlyingChestProcessor
 from src.managers.island_resource_manager import IslandResourceManager
 from src.components.events.krakenComponent import KrakenComponent
 from src.components.properties.eventsComponent import EventsComponent
@@ -196,8 +196,8 @@ class DebugModal:
             return
         
         # Get flying chest manager and force spawn chests
-        if hasattr(self.game_engine, 'flying_chest_manager') and hasattr(self.game_engine, 'grid'):
-            chest_manager = self.game_engine.flying_chest_manager
+        if hasattr(self.game_engine, 'flying_chest_processor') and hasattr(self.game_engine, 'grid'):
+            chest_manager = self.game_engine.flying_chest_processor
             chest_manager.initialize_from_grid(self.game_engine.grid)
             
             # Force spawn multiple chests (2-4)
