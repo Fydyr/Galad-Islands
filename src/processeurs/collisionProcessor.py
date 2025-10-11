@@ -231,7 +231,7 @@ class CollisionProcessor(esper.Processor):
                     attack_comp = esper.component_for_entity(projectile_entity, Attack)
                     dmg = int(attack_comp.hitPoints) if attack_comp is not None else 0
                     if dmg > 0:
-                        processHealth(target_entity, dmg)
+                        processHealth(target_entity, dmg, projectile_entity)
                         # Explosion d'impact et suppression du projectile
                         self._create_explosion_at_entity(projectile_entity)
                         if esper.entity_exists(projectile_entity):
