@@ -12,7 +12,7 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.spriteComponent import SpriteComponent
 from src.components.core.teamComponent import TeamComponent
-from src.components.core.recentHitsComponent import RecentHitsComponent
+from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
 from src.components.core.visionComponent import VisionComponent
 from src.settings.localization import t
@@ -90,7 +90,7 @@ class BaseComponent:
         ))
         esper.add_component(cls._ally_base_entity, AttackComponent(hitPoints=50))  # Base inflige des dégâts au contact
         esper.add_component(cls._ally_base_entity, CanCollideComponent())  # Les bases peuvent être touchées
-        esper.add_component(cls._ally_base_entity, RecentHitsComponent(cooldown_duration=1.0))  # Éviter dégâts continus
+        esper.add_component(cls._ally_base_entity, RadiusComponent(hit_cooldown_duration=1.0))  # Éviter dégâts continus
         esper.add_component(cls._ally_base_entity, ClasseComponent(
             unit_type="ALLY_BASE",
             shop_id="ally_base", 
@@ -134,7 +134,7 @@ class BaseComponent:
         ))
         esper.add_component(cls._enemy_base_entity, AttackComponent(hitPoints=50))  # Base inflige des dégâts au contact
         esper.add_component(cls._enemy_base_entity, CanCollideComponent())  # Les bases peuvent être touchées
-        esper.add_component(cls._enemy_base_entity, RecentHitsComponent(cooldown_duration=1.0))  # Éviter dégâts continus
+        esper.add_component(cls._enemy_base_entity, RadiusComponent(hit_cooldown_duration=1.0))  # Éviter dégâts continus
         esper.add_component(cls._enemy_base_entity, ClasseComponent(
             unit_type="ENEMY_BASE",
             shop_id="enemy_base",

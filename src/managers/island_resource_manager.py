@@ -26,6 +26,7 @@ from src.constants.gameplay import (
     ISLAND_RESOURCE_MAX_COUNT,
     ISLAND_RESOURCE_SPAWN_INTERVAL,
 )
+from src.processeurs.flyingChestProcessor import FlyingChestProcessor
 
 
 class IslandResourceManager:
@@ -104,12 +105,9 @@ class IslandResourceManager:
             return
 
     def _add_player_gold(self, amount: int, is_enemy: bool = False) -> None:
-        from src.managers.flying_chest_manager import FlyingChestManager
-        # Reuse the pattern to find/create player component
-        from src.managers.flying_chest_manager import FlyingChestManager as _F
-        # We import the helper from that manager file dynamically
+        # Reuse the pattern from FlyingChestProcessor to find/create player component
         try:
-            mgr = FlyingChestManager()
+            mgr = FlyingChestProcessor()
             mgr._add_player_gold(amount, is_enemy=is_enemy)
         except Exception:
             # Fallback: try to find PlayerComponent manually

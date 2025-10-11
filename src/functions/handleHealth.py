@@ -6,8 +6,15 @@ from src.components.core.teamComponent import TeamComponent, TeamComponent as Te
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speScoutComponent import SpeScout
 from src.components.core.attackComponent import AttackComponent as Attack
+from src.components.core.classeComponent import ClasseComponent
+from src.processeurs.combatRewardProcessor import CombatRewardProcessor
 
-def processHealth(entity, damage):
+
+# Global instance of the combat reward processor
+_combat_reward_processor = CombatRewardProcessor()
+
+
+def processHealth(entity, damage, attacker_entity=None):
     # Protection explicite : les mines (HP=1, team=0, attack=40) ne doivent jamais recevoir de dégâts
     try:
         if esper.has_component(entity, Health) and esper.has_component(entity, Team) and esper.has_component(entity, Attack):
@@ -59,6 +66,10 @@ def processHealth(entity, damage):
                 # Dispatcher l'événement de fin de partie AVANT de supprimer l'entité
                 esper.dispatch_event('game_over', team_id)
             
+            # Si c'est une unité tuée par quelqu'un, donner une récompense
+            elif esper.has_component(entity, ClasseComponent) and attacker_entity is not None:
+                _combat_reward_processor.create_unit_reward(entity, attacker_entity)
+            
             esper.delete_entity(entity)
     except Exception:
         pass
@@ -76,7 +87,7 @@ def entitiesHit(ent1, ent2):
     
     # Appliquer les dégâts seulement si les entités ont des HP
     if esper.has_component(ent1, Health) and damage2 > 0:
-        processHealth(ent1, damage2)
+        processHealth(ent1, damage2, ent2)
         
     if esper.has_component(ent2, Health) and damage1 > 0:
-        processHealth(ent2, damage1)
+        processHealth(ent2, damage1, ent1)

@@ -128,10 +128,10 @@
 
 ### Dangers
 
-- **Tempêtes** (15% chance)
+- **Tempêtes** (5% chance)
 ![Tempêtes](/assets/event/tempete.png)
   - Dégâts : 30 toutes les 3s
-  - Zone : 4 cases
+  - Zone : 3 cases de diamètre (1.5 cases de rayon)
   - Durée : 20s
 
 - **Vague de bandits** (25% chance)

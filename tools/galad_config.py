@@ -72,7 +72,7 @@ class GaladConfigApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Galad Config Tool")
-        self.geometry("520x520")
+        self.geometry("600x650")
         self.resizable(True, True)
 
         # load current settings
@@ -134,17 +134,41 @@ class GaladConfigApp(tk.Tk):
         ttk.Button(frm, text='Add current', command=self._add_current).grid(row=7, column=2, sticky=tk.W)
         ttk.Button(frm, text='Remove', command=self._remove_selected).grid(row=8, column=2, sticky=tk.W)
 
-        # Camera sensitivity (placed in display tab)
-        ttk.Separator(frm).grid(row=11, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        # Performance settings
+        ttk.Separator(frm).grid(row=9, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        ttk.Label(frm, text='Performance / Performances').grid(row=10, column=0, sticky=tk.W)
+        
+        # Performance mode
+        ttk.Label(frm, text='Mode de performance').grid(row=11, column=0, sticky=tk.W)
+        self.perf_var = tk.StringVar(value=self.config_data.get('performance_mode', 'auto'))
+        perf_combo = ttk.Combobox(frm, values=['auto', 'high', 'medium', 'low'], state="readonly", width=10)
+        perf_combo.set(self.perf_var.get())
+        perf_combo.bind("<<ComboboxSelected>>", lambda e: self.perf_var.set(perf_combo.get()))
+        perf_combo.grid(row=11, column=1, sticky=tk.W)
+        
+        # VSync
+        self.vsync_var = tk.BooleanVar(value=self.config_data.get('vsync', True))
+        ttk.Checkbutton(frm, text='VSync', variable=self.vsync_var).grid(row=12, column=0, sticky=tk.W)
+        
+        # Disable particles
+        self.particles_var = tk.BooleanVar(value=self.config_data.get('disable_particles', False))
+        ttk.Checkbutton(frm, text='Désactiver particules', variable=self.particles_var).grid(row=13, column=0, sticky=tk.W)
+        
+        # Disable shadows
+        self.shadows_var = tk.BooleanVar(value=self.config_data.get('disable_shadows', False))
+        ttk.Checkbutton(frm, text='Désactiver ombres', variable=self.shadows_var).grid(row=14, column=0, sticky=tk.W)
+
+        # Camera sensitivity (placed after performance settings)
+        ttk.Separator(frm).grid(row=15, column=0, columnspan=3, sticky='ew', pady=(6, 6))
         self.camera_var = tk.DoubleVar(value=self.config_data.get('camera_sensitivity', 1.0))
         self.camera_label = ttk.Label(frm, text=t('options.camera_sensitivity', sensitivity=self.camera_var.get()))
-        self.camera_label.grid(row=12, column=0, sticky=tk.W)
+        self.camera_label.grid(row=16, column=0, sticky=tk.W)
         self.camera_scale = ttk.Scale(frm, from_=0.2, to=3.0, orient=tk.HORIZONTAL, variable=self.camera_var, command=self._on_camera_changed)
-        self.camera_scale.grid(row=13, column=0, columnspan=3, sticky='ew')
+        self.camera_scale.grid(row=17, column=0, columnspan=3, sticky='ew')
 
-        # Language (placed in display tab)
-        ttk.Separator(frm).grid(row=14, column=0, columnspan=3, sticky='ew', pady=(6, 6))
-        ttk.Label(frm, text=t('options.language_section')).grid(row=15, column=0, sticky=tk.W)
+        # Language (placed after camera)
+        ttk.Separator(frm).grid(row=18, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        ttk.Label(frm, text=t('options.language_section')).grid(row=19, column=0, sticky=tk.W)
         
         # Language dropdown for extensibility
         self.lang_var = tk.StringVar(value=self.config_data.get('language', get_current_language()))
@@ -155,7 +179,7 @@ class GaladConfigApp(tk.Tk):
         self.lang_combo = ttk.Combobox(frm, values=lang_names, state="readonly", width=15)
         self.lang_combo.set(current_lang_name)
         self.lang_combo.bind("<<ComboboxSelected>>", self._on_lang_combo_changed)
-        self.lang_combo.grid(row=16, column=0, sticky=tk.W, padx=(0, 10))
+        self.lang_combo.grid(row=20, column=0, sticky=tk.W, padx=(0, 10))
 
         # Ensure the frame has three columns so buttons can align
         frm.columnconfigure(0, weight=1)
@@ -164,11 +188,11 @@ class GaladConfigApp(tk.Tk):
 
         # Action buttons (aligned across three columns)
         self.default_btn = ttk.Button(frm, text=t('options.button_default'), command=self._on_reset)
-        self.default_btn.grid(row=20, column=0, sticky=tk.W, pady=(12, 0), padx=(4, 4))
+        self.default_btn.grid(row=22, column=0, sticky=tk.W, pady=(12, 0), padx=(4, 4))
         self.apply_btn = ttk.Button(frm, text=t('options.apply'), command=self._on_apply)
-        self.apply_btn.grid(row=20, column=1, sticky='', pady=(12, 0))
+        self.apply_btn.grid(row=22, column=1, sticky='', pady=(12, 0))
         self.close_btn = ttk.Button(frm, text=t('options.button_close'), command=self.destroy)
-        self.close_btn.grid(row=20, column=2, sticky=tk.E, pady=(12, 0), padx=(4, 4))
+        self.close_btn.grid(row=22, column=2, sticky=tk.E, pady=(12, 0), padx=(4, 4))
 
         # Audio tab
         audio_frm = ttk.Frame(self.notebook, padding=pad)
@@ -355,6 +379,12 @@ class GaladConfigApp(tk.Tk):
         set_audio_volume('music', float(self.music_var.get()))
         # camera sensitivity
         set_camera_sensitivity(float(self.camera_var.get()))
+        # performance settings
+        config_manager.set("performance_mode", self.perf_var.get())
+        config_manager.set("vsync", self.vsync_var.get())
+        config_manager.set("disable_particles", self.particles_var.get())
+        config_manager.set("disable_shadows", self.shadows_var.get())
+        config_manager.save_config()
         # language
         set_language(self.lang_var.get())
         # save key bindings from controls tab
