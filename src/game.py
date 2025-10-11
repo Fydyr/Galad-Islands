@@ -1,5 +1,8 @@
 # Importations standard
 from typing import Dict, List, Optional, Tuple
+import os
+import platform
+import traceback
 
 import pygame
 
@@ -53,18 +56,23 @@ from src.components.special.speArchitectComponent import SpeArchitect
 from src.managers.flying_chest_manager import FlyingChestManager
 from src.managers.island_resource_manager import IslandResourceManager
 from src.managers.stormManager import StormManager
+from src.managers.display import get_display_manager
 
 
 # Importations des factories et fonctions utilitaires
 from src.factory.unitFactory import UnitFactory
 from src.factory.unitType import UnitType
+from src.factory.buildingFactory import create_defense_tower, create_heal_tower
 from src.functions.projectileCreator import create_projectile
 from src.functions.handleHealth import entitiesHit
 from src.functions.afficherModale import afficher_modale
 from src.components.core.baseComponent import BaseComponent
+from src.components.core.towerComponent import TowerComponent
+from src.components.globals.mapComponent import is_tile_island
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
+from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.notification_system import get_notification_system
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
@@ -158,7 +166,6 @@ class EventHandler:
         elif event.key == pygame.K_F5:
             # Allow only in debug mode or when configuration enables dev cheats
             try:
-                from src.settings.settings import config_manager
                 dev_mode = config_manager.get('dev_mode', False)
             except Exception:
                 dev_mode = False
@@ -316,58 +323,20 @@ class GameRenderer:
             
     def _render_fog_of_war(self, window, camera):
         """Rend le brouillard de guerre avec nuages et brouillard léger."""
-        # Mettre à jour la visibilité pour l'équipe actuelle (optimisé : moins fréquent)
-        current_time = pygame.time.get_ticks()
-        if not hasattr(self, '_last_visibility_update') or current_time - self._last_visibility_update > 100:  # 100ms
-            current_team = self.game_engine.action_bar.current_camp
-            vision_system.update_visibility(current_team)
-            self._last_visibility_update = current_time
+        current_team = self.game_engine.action_bar.current_camp
 
-        # Obtenir les rectangles du brouillard
-        fog_rects = vision_system.get_visibility_overlay(camera)
+        # Mettre à jour la visibilité pour l'équipe actuelle
+        vision_system.update_visibility(current_team)
 
-        # Initialiser le cache de tuiles de brouillard s'il n'existe pas
-        if not hasattr(self, '_fog_tile_cache'):
-            self._fog_tile_cache = {}
+        # Créer la surface du brouillard de guerre pour la vue actuelle
+        # Cette méthode est déjà optimisée pour ne dessiner que ce qui est visible à l'écran.
+        fog_surface = vision_system.create_fog_surface(camera)
 
-        # Rendre chaque rectangle de brouillard
-        for rect, alpha, is_cloud, cloud_image in fog_rects:
-            
-            # Créer une clé de cache unique pour cette configuration de tuile
-            cache_key = (rect.width, rect.height, alpha, is_cloud)
-            
-            if cache_key not in self._fog_tile_cache:
-                # La tuile n'est pas en cache, la créer
-                if is_cloud and cloud_image is not None:
-                    try:
-                        tile_surface = pygame.transform.scale(cloud_image, (rect.width, rect.height))
-                        tile_surface.set_alpha(alpha)
-                        self._fog_tile_cache[cache_key] = tile_surface
-                    except Exception as e:
-                        # Fallback: créer une tuile de couleur unie
-                        tile_surface = pygame.Surface((rect.width, rect.height))
-                        tile_surface.fill((200, 200, 200))
-                        tile_surface.set_alpha(alpha)
-                        self._fog_tile_cache[cache_key] = tile_surface
-                else:
-                    # Brouillard léger ou fallback de nuage
-                    color = (200, 200, 200) if is_cloud else (0, 0, 0)
-                    tile_surface = pygame.Surface((rect.width, rect.height))
-                    tile_surface.fill(color)
-                    tile_surface.set_alpha(alpha)
-                    self._fog_tile_cache[cache_key] = tile_surface
-            
-            # Rendre la tuile depuis le cache
-            window.blit(self._fog_tile_cache[cache_key], rect.topleft)
+        # Afficher la surface du brouillard en une seule opération de blit
+        if fog_surface:
+            window.blit(fog_surface, (0, 0))
 
-        # Limiter la taille du cache pour éviter une consommation mémoire excessive
-        if len(self._fog_tile_cache) > 100:
-            # Stratégie simple : supprimer les 50 plus anciennes clés
-            for i, key in enumerate(list(self._fog_tile_cache.keys())):
-                if i < 50:
-                    del self._fog_tile_cache[key]
-                else:
-                    break
+
 
     def _render_vision_circles(self, window, camera):
         """Rend les cercles blancs représentant la portée de vision des unités."""
@@ -431,6 +400,11 @@ class GameRenderer:
 
     def _render_sprites(self, window, camera):
         """Rendu manuel des sprites pour contrôler l'ordre d'affichage."""
+        # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
+        if not hasattr(self, '_sprite_render_group'):
+            self._sprite_render_group = pygame.sprite.Group()
+        self._sprite_render_group.empty()
+        # --- FIN OPTIMISATION ---
         if camera is None:
             return
             
@@ -459,11 +433,21 @@ class GameRenderer:
                     should_render = True
             
             if should_render:
-                self._render_single_sprite(window, camera, ent, pos, sprite)
-            
+                # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
+                # Au lieu de dessiner directement, on prépare le sprite et on l'ajoute au groupe
+                renderable_sprite = self._render_single_sprite(window, camera, ent, pos, sprite)
+                if renderable_sprite:
+                    self._sprite_render_group.add(renderable_sprite)
+                # --- FIN OPTIMISATION ---
+        
+        # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
+        # Dessiner tous les sprites du groupe en une seule fois.
+        # Pygame gère l'ordre de rendu si nécessaire, mais ici l'ordre n'importe pas.
+        self._sprite_render_group.draw(window)
+        # --- FIN OPTIMISATION ---
+  
     def _render_single_sprite(self, window, camera, entity, pos, sprite):
         """Rend un sprite individuel avec effet visuel spécial si invincible."""
-        from src.components.special.speScoutComponent import SpeScout
         
         # Optimisation : niveaux de zoom discrets pour réduire les recalculs
         zoom_levels = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5]
@@ -480,13 +464,13 @@ class GameRenderer:
         if cache_key not in self._sprite_cache:
             image = self._get_sprite_image(sprite)
             if image is None:
-                return
+                return None
             
             # Redimensionner l'image (utiliser scale au lieu de smoothscale pour performance)
             display_width = int(sprite.width * discrete_zoom)
             display_height = int(sprite.height * discrete_zoom)
             if display_width > 0 and display_height > 0:
-                if discrete_zoom == 1.0:
+                if abs(discrete_zoom - 1.0) < 0.01:
                     scaled_image = image
                 else:
                     scaled_image = pygame.transform.scale(image, (display_width, display_height))
@@ -500,7 +484,7 @@ class GameRenderer:
                 self._sprite_cache[cache_key] = final_image
                 self._cache_access_order.append(cache_key)
             else:
-                return
+                return None
         else:
             # Marquer comme récemment utilisé pour LRU
             if cache_key in self._cache_access_order:
@@ -513,12 +497,21 @@ class GameRenderer:
 
         screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
 
+        # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
+        # Créer un objet pygame.sprite.Sprite pour le rendu groupé
+        render_sprite = pygame.sprite.Sprite()
+        render_sprite.image = final_image
+        render_sprite.rect = final_image.get_rect(center=(int(screen_x), int(screen_y)))
+        # --- FIN OPTIMISATION ---
+
         # Vérifier si le sprite est visible à l'écran (optimisation culling)
-        if (screen_x + display_width < 0 or screen_x > window.get_width() or
-            screen_y + display_height < 0 or screen_y > window.get_height()):
-            return
+        if not window.get_rect().colliderect(render_sprite.rect):
+            return None
 
         # Positionner le sprite (centré sur la position)
+        # Cette partie est maintenant gérée par render_sprite.rect
+        # --- DEBUT OPTIMISATION: SUPPRESSION BLIT INDIVIDUEL ---
+        """
         dest_x = int(screen_x - display_width // 2)
         dest_y = int(screen_y - display_height // 2)
         
@@ -526,6 +519,7 @@ class GameRenderer:
         window.blit(final_image, (dest_x, dest_y))
 
         # Gestion du cache : limiter la taille pour éviter la surcharge mémoire
+        """
         if len(self._sprite_cache) > 150:  # Augmenter la limite
             # Supprimer les entrées les moins récemment utilisées
             to_remove = self._cache_access_order[:30]
@@ -535,8 +529,11 @@ class GameRenderer:
                 if key in self._cache_access_order:
                     self._cache_access_order.remove(key)
 
+        # --- FIN OPTIMISATION ---
+
         # Calculer le rect avant tout effet visuel
-        rect = final_image.get_rect(center=(screen_x, screen_y))
+        # On utilise maintenant render_sprite.rect
+        rect = render_sprite.rect
 
         # Effets visuels basés sur les composants
         if es.has_component(entity, SpeScout):
@@ -546,9 +543,10 @@ class GameRenderer:
                 if (pygame.time.get_ticks() // 100) % 3 != 0:
                     temp_img = final_image.copy()
                     temp_img.set_alpha(128)  # semi-transparent
-                    window.blit(temp_img, rect.topleft)
+                    render_sprite.image = temp_img # Remplacer l'image du sprite
                 # Sinon, ne rien dessiner pour l'effet de clignotement
-                return # On arrête le rendu de ce sprite pour cette frame
+                else:
+                    return None # Ne pas ajouter ce sprite au groupe de rendu
         else:
             window.blit(final_image, rect.topleft)
 
@@ -568,12 +566,14 @@ class GameRenderer:
         # Dessiner l'indicateur de sélection si nécessaire
         if es.has_component(entity, PlayerSelectedComponent):
             self._draw_selection_highlight(window, screen_x, screen_y, display_width, display_height)
-        
+
         # Dessiner la barre de vie si nécessaire
         if es.has_component(entity, HealthComponent):
             health = es.component_for_entity(entity, HealthComponent)
             if health.currentHealth < health.maxHealth:
                 self._draw_health_bar(window, screen_x, screen_y, health, display_width, display_height)
+        
+        return render_sprite
                 
     def _get_sprite_image(self, sprite):
         """Obtient l'image d'un sprite selon les données disponibles."""
@@ -783,8 +783,6 @@ class GameEngine:
         print(t("system.game_launched"))
         
         # Optimisations SDL pour améliorer les performances
-        import os
-        import platform
         
         # Optimisations spécifiques à Windows
         if platform.system() == 'Windows':
@@ -811,7 +809,6 @@ class GameEngine:
         # Configuration de la fenêtre avec optimisations
         if self.window is None:
             try:
-                from src.managers.display import get_display_manager
                 dm = get_display_manager()
                 # prefer to initialize with a sensible size based on the map
                 desired_w = MAP_WIDTH * TILE_SIZE
@@ -928,7 +925,6 @@ class GameEngine:
         
     def _create_initial_entities(self):
         """Crée les entités initiales du jeu."""
-        from src.constants.team import Team
         
         # Créer les PlayerComponent pour CHAQUE équipe (alliés ET ennemis)
         # Équipe Alliée (team_id = 1)
@@ -960,7 +956,6 @@ class GameEngine:
             UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
         
         # Initialiser la visibilité pour l'équipe actuelle
-        from src.constants.team import Team
         vision_system.update_visibility(Team.ALLY)
         
     def _setup_camera(self):
@@ -992,7 +987,6 @@ class GameEngine:
             # Si on arrive ici, aucun PlayerComponent trouvé (ne devrait jamais arriver)
             print(f"[DEV GOLD] ❌ ERREUR: Aucun PlayerComponent trouvé pour team_id={active_team}")
         except Exception as e:
-            import traceback
             print(f"[DEV GOLD] ❌ Exception: {e}")
             traceback.print_exc()
 
@@ -1094,7 +1088,6 @@ class GameEngine:
 
         if result == "quit":
             # Pour InGameMenuModal, "quit" ouvre une modale de confirmation, ne pas quitter directement
-            from src.ui.ingame_menu_modal import InGameMenuModal
             if not isinstance(self.exit_modal, InGameMenuModal):
                 self._quit_game()
                 return True
@@ -1675,7 +1668,6 @@ class GameEngine:
         """Nettoie les ressources avant de quitter."""
         if self.created_local_window:
             try:
-                from src.managers.display import get_display_manager
                 dm = get_display_manager()
                 dm.apply_resolution_and_recreate(settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
                 pygame.display.set_caption(t("system.main_window_title"))
@@ -1780,14 +1772,12 @@ class GameEngine:
         position_was_adjusted = distance_moved > TILE_SIZE * 0.1  # Seuil de 10% de TILE_SIZE
         
         # Vérifier que la position est sur une île
-        from src.components.globals.mapComponent import is_tile_island
         if not is_tile_island(self.grid, snapped_x, snapped_y):
             if hasattr(self, 'action_bar') and self.action_bar:
                 self.action_bar._show_feedback('warning', t('placement.must_be_on_island'))
             return False
         
         # Vérifier qu'il n'y a pas déjà une tour à cette position exacte (tolérance de 1 pixel)
-        from src.components.core.towerComponent import TowerComponent
         for tower_ent, (tower_pos, tower_comp) in es.get_components(PositionComponent, TowerComponent):
             distance = ((tower_pos.x - snapped_x) ** 2 + (tower_pos.y - snapped_y) ** 2) ** 0.5
             if distance < 1.0:  # Moins d'1 pixel de distance
@@ -1809,16 +1799,13 @@ class GameEngine:
         # Créer la tour à la position snappée
         try:
             if self.tower_type_to_place == "defense":
-                from src.factory.buildingFactory import create_defense_tower
                 new_ent = create_defense_tower(snapped_x, snapped_y, team_id=self.tower_team_id)
             elif self.tower_type_to_place == "heal":
-                from src.factory.buildingFactory import create_heal_tower
                 new_ent = create_heal_tower(snapped_x, snapped_y, team_id=self.tower_team_id)
             else:
                 return False
             
             # Ajouter à la base
-            from src.components.core.baseComponent import BaseComponent
             # Les tours sont automatiquement associées via leur team_id
             
             # Déduire l'or du joueur

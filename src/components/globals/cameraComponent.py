@@ -150,3 +150,7 @@ class Camera:
         self.x = world_x - (self.screen_width / (2 * self.zoom))
         self.y = world_y - (self.screen_height / (2 * self.zoom))
         self._constrain_camera()
+
+    def get_screen_size(self):
+        """Retourne la taille de l'écran (largeur, hauteur)."""
+        return (self.screen_width, self.screen_height)
