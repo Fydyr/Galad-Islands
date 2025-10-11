@@ -15,10 +15,22 @@ from src.managers.sprite_manager import SpriteID, sprite_manager
 logger = logging.getLogger(__name__)
 
 
-class StormManager:
-    """Manager for storm events."""
+class StormProcessor(es.Processor):
+    """
+    Processor for storm events.
+    
+    Storm configuration:
+    - Visual size: 3.0 tiles (matches actual sprite dimensions of 100x100 pixels)
+    - Damage radius: 1.5 tiles (half of visual size for proper area coverage)
+    - Damage: 30 HP per attack
+    - Movement: 1 tile per second, changes direction every 5 seconds
+    - Spawn chance: 5% every 5 seconds
+    - Lifetime: 20 seconds per storm
+    - Attack cooldown: 3 seconds per entity
+    """
 
     def __init__(self):
+        super().__init__()
         self.grid = None
         self.spawn_chance = 0.05  # 5%
         self.check_interval = 5.0  # Check every 5 seconds
@@ -26,8 +38,8 @@ class StormManager:
 
         # Storm configuration
         self.stormDamage = 30
-        self.stormVisualSize = 10.0  # tiles (sprite size)
-        self.stormRadius = 5.0  # tiles (radius from center = half of visual size)
+        self.stormVisualSize = 3.0  # tiles (sprite size - adjusted to match actual sprite dimensions)
+        self.stormRadius = 1.5  # tiles (radius from center - half of visual size for proper coverage)
         self.stormMoveInterval = 5.0  # seconds
         self.stormMoveSpeed = 1.0  # tiles per second
 
@@ -35,11 +47,11 @@ class StormManager:
         self.activeStorms: Dict[int, Dict] = {}  # entity_id -> stormState
 
     def initializeFromGrid(self, grid):
-        """Initialize the manager with the game grid."""
+        """Initialize the processor with the game grid."""
         self.grid = grid
-        logger.info("StormManager initialized")
+        logger.info("StormProcessor initialized")
 
-    def update(self, dt: float):
+    def process(self, dt: float):
         """Update existing storms and check for new spawns."""
         if self.grid is None:
             return
@@ -314,14 +326,3 @@ class StormManager:
         for stormEntity in list(self.activeStorms.keys()):
             self.destroyStorm(stormEntity)
         self.activeStorms.clear()
-
-
-# Global storm manager instance
-stormManagerInstance = None
-
-def getStormManager() -> StormManager:
-    """Get the global storm manager instance."""
-    global stormManagerInstance
-    if stormManagerInstance is None:
-        stormManagerInstance = StormManager()
-    return stormManagerInstance

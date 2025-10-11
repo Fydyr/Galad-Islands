@@ -14,7 +14,7 @@ Managers centralize the management of resources and high-level game behaviors.
 |--------------|----------------|---------|
 | `BaseComponent` | Integrated management of allied/enemy headquarters | `src/components/core/baseComponent.py` |
 | `FlyingChestManager` | Management of flying chests | `src/managers/flying_chest_manager.py` |
-| `StormManager` | Management of storms | `src/managers/storm_manager.py` |
+| `StormProcessor` | Management of storms | `src/processeurs/stormProcessor.py` |
 | `DisplayManager` | Display management | `src/managers/display.py` |
 | `AudioManager` | Audio management | `src/managers/audio.py` |
 | `SpriteManager` | Sprite cache | `src/systems/sprite_system.py` |

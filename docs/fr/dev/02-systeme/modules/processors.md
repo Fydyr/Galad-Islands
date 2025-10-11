@@ -18,6 +18,7 @@ Les processeurs contiennent la logique métier du jeu et agissent sur les entit�
 | `MovementProcessor` | 3 | Déplacement des entités avec vélocité |
 | `PlayerControlProcessor` | 4 | Contrôles joueur et activation des capacités |
 | `CapacitiesSpecialesProcessor` | 5 | Mise à jour des cooldowns des capacités |
+| `StormProcessor` | Manuel | Gestion des événements tempêtes (appelé manuellement) |
 | `LifetimeProcessor` | 10 | Suppression des entités temporaires |
 | `TowerProcessor` | 15 | Logique des tours défensives (attaque/soin) |
 
@@ -112,6 +113,31 @@ def process(self, dt=0.016):
     for ent, spe_comp in esper.get_component(SpeScout):
         spe_comp.update(dt)
     # ... autres capacités
+```
+
+### StormProcessor
+
+**Fichier :** `src/processeurs/stormProcessor.py`
+
+**Responsabilité :** Gère les événements tempêtes qui infligent des dégâts aux unités dans leur rayon.
+
+**Configuration :**
+- Taille visuelle : 3.0 cases (correspond au sprite 100x100px)
+- Rayon de dégâts : 1.5 cases (moitié de la taille visuelle)
+- Dégâts : 30 PV toutes les 3 secondes
+- Déplacement : 1 case/seconde, changement de direction toutes les 5 secondes
+- Chance d'apparition : 5% toutes les 5 secondes
+- Durée de vie : 20 secondes par tempête
+
+```python
+class StormProcessor(esper.Processor):
+    def process(self, dt: float):
+        # Mise à jour des tempêtes existantes
+        self.updateExistingStorms(dt)
+        
+        # Vérification de nouvelles apparitions de tempêtes
+        if random.random() < self.spawn_chance:
+            self.trySpawnStorm()
 ```
 
 ### LifetimeProcessor
