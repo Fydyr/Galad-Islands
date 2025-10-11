@@ -28,6 +28,7 @@ class VisionSystem:
         self.current_team = 1  # Équipe actuelle (1 = alliés, 2 = ennemis)
         self.cloud_image = sprite_manager.load_sprite(SpriteID.TERRAIN_CLOUD)
         self._dirty_teams: Set[int] = set()
+        self.unlimited_vision: dict[int, bool] = {}  # Vision illimitée par équipe
         self._load_cloud_image()
 
     def _load_cloud_image(self):
@@ -92,16 +93,28 @@ class VisionSystem:
             self.visible_tiles[self.current_team] = set()
         if self.current_team not in self.explored_tiles:
             self.explored_tiles[self.current_team] = set()
+        if self.current_team not in self.unlimited_vision:
+            self.unlimited_vision[self.current_team] = False
 
         self.visible_tiles[self.current_team].clear()
 
-        # Parcourir toutes les unités de l'équipe actuelle avec vision
-        for entity, (pos, team, vision) in es.get_components(
-            PositionComponent, TeamComponent, VisionComponent
-        ):
-            if team.team_id == self.current_team:
-                # Calculer les tuiles visibles depuis cette unité
-                self._add_visible_tiles_from_unit(pos.x, pos.y, vision.range)
+        # Vérifier si la vision illimitée est activée pour cette équipe
+        if self.unlimited_vision.get(self.current_team, False):
+            # Vision illimitée : révéler toute la carte
+            all_tiles = set()
+            for x in range(MAP_WIDTH):
+                for y in range(MAP_HEIGHT):
+                    all_tiles.add((x, y))
+            self.visible_tiles[self.current_team] = all_tiles.copy()
+        else:
+            # Vision normale : calculer depuis les unités
+            # Parcourir toutes les unités de l'équipe actuelle avec vision
+            for entity, (pos, team, vision) in es.get_components(
+                PositionComponent, TeamComponent, VisionComponent
+            ):
+                if team.team_id == self.current_team:
+                    # Calculer les tuiles visibles depuis cette unité
+                    self._add_visible_tiles_from_unit(pos.x, pos.y, vision.range)
 
         # Ajouter les zones actuellement visibles aux zones découvertes
         self.explored_tiles[self.current_team].update(self.visible_tiles[self.current_team])
@@ -239,7 +252,50 @@ class VisionSystem:
         self.visible_tiles.clear()
         self.explored_tiles.clear()
         self._dirty_teams.clear()
+        self.unlimited_vision.clear()  # Réinitialiser la vision illimitée
         self.current_team = 1
+
+
+    def set_unlimited_vision(self, team: int, enabled: bool):
+        """
+        Active ou désactive la vision illimitée pour une équipe.
+        
+        Args:
+            team (int): L'équipe pour laquelle activer/désactiver la vision
+            enabled (bool): True pour activer, False pour désactiver
+        """
+        self.unlimited_vision[team] = enabled
+        if enabled:
+            # Révéler immédiatement toute la carte quand activé
+            self.reveal_all_map(team)
+        else:
+            # Forcer un recalcul de la visibilité normale
+            self._dirty_teams.add(team)
+        print(f"[DEV VISION] Vision illimitée {'activée' if enabled else 'désactivée'} pour l'équipe {team}")
+
+    def reveal_all_map(self, team: int):
+        """
+        Révèle toute la carte pour une équipe (cheat de développement).
+        
+        Args:
+            team (int): Équipe pour laquelle révéler la carte
+        """
+        # Initialiser les ensembles pour cette équipe si nécessaire
+        if team not in self.visible_tiles:
+            self.visible_tiles[team] = set()
+        if team not in self.explored_tiles:
+            self.explored_tiles[team] = set()
+
+        # Marquer toutes les tuiles comme visibles et explorées
+        all_tiles = set()
+        for x in range(MAP_WIDTH):
+            for y in range(MAP_HEIGHT):
+                all_tiles.add((x, y))
+        
+        self.visible_tiles[team] = all_tiles.copy()
+        self.explored_tiles[team] = all_tiles.copy()
+        
+        print(f"[DEV VISION] Toute la carte révélée pour l'équipe {team}")
 
 
 # Instance globale du système de vision

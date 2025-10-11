@@ -53,6 +53,7 @@ from src.components.special.speArchitectComponent import SpeArchitect
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
 
 # import event
+from src.components.events.banditsComponent import Bandits
 from src.processeurs.flyingChestProcessor import FlyingChestProcessor
 from src.managers.island_resource_manager import IslandResourceManager
 from src.processeurs.stormProcessor import StormProcessor
@@ -420,6 +421,9 @@ class GameRenderer:
                 team_comp = es.component_for_entity(ent, TeamComponent)
                 if team_comp.team_id == current_team:
                     should_render = True
+                elif es.has_component(ent, Bandits):
+                    # Exception spéciale pour les bandits qui peuvent être en dehors de la carte
+                    should_render = True  # Les bandits sont toujours visibles
                 else:
                     # Vérifier si l'unité adverse est dans une tuile visible
                     grid_x = int(pos.x / TILE_SIZE)
@@ -497,7 +501,7 @@ class GameRenderer:
         display_height = final_image.get_height()
 
         screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
-
+        
         # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
         # Créer un objet pygame.sprite.Sprite pour le rendu groupé
         render_sprite = pygame.sprite.Sprite()
@@ -583,8 +587,14 @@ class GameRenderer:
         elif sprite.image is not None:
             return sprite.image
         elif sprite.image_path:
-            return pygame.image.load(sprite.image_path).convert_alpha()
+            try:
+                img = pygame.image.load(sprite.image_path).convert_alpha()
+                return img
+            except Exception as e:
+                print(f"[DEBUG] Failed to load image from {sprite.image_path}: {e}")
+                return None
         else:
+            print(f"[DEBUG] No image data available for sprite")
             return None
 
     def _draw_selection_highlight(self, window, screen_x, screen_y, display_width, display_height):

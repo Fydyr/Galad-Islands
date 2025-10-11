@@ -125,6 +125,7 @@ TRANSLATIONS = {
     "debug.modal.spawn_bandits": "Spawn Bandits",
     "debug.modal.clear_events": "Clear Events",
     "debug.modal.reveal_map": "Reveal Map",
+    "debug.modal.unlimited_vision": "Unlimited Vision",
     "debug.modal.close": "Close",
     
     # Tooltips for tower placement
@@ -140,6 +141,9 @@ TRANSLATIONS = {
     "debug.feedback.events_cleared": "Events cleared successfully",
     "debug.feedback.no_valid_position": "No valid position found",
   "debug.feedback.bandits_spawned": "Bandits spawned successfully",
+    "debug.feedback.bandits_failed": "Failed to spawn bandits",
+    "debug.feedback.bandits_unavailable": "Bandits system not available",
+    "debug.feedback.unlimited_vision": "Unlimited vision {status}",
     "placement.must_be_on_island": "Towers must be placed on an island",
     "placement.tower_already_here": "A tower is already present at this location",
     
