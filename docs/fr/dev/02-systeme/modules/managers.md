@@ -13,7 +13,7 @@ Les gestionnaires centralisent la gestion des ressources et comportements de hau
 | Gestionnaire | Responsabilité | Fichier |
 |--------------|----------------|---------|
 | `BaseComponent` | Gestion intégrée des QG alliés/ennemis | `src/components/core/baseComponent.py` |
-| `FlyingChestManager` | Gestion des coffres volants | `src/managers/flying_chest_manager.py` |
+| `FlyingChestProcessor` | Gestion des coffres volants | `src/processeurs/flyingChestProcessor.py` |
 | `StormProcessor` | Gestion des tempêtes | `src/processeurs/stormProcessor.py` |
 | `DisplayManager` | Gestion de l'affichage | `src/managers/display.py` |
 | `AudioManager` | Gestion audio | `src/managers/audio.py` |
@@ -31,13 +31,13 @@ Les gestionnaires centralisent la gestion des ressources et comportements de hau
 
 **Documentation complète :** Voir [BaseComponent](./components.md#basecomponent)
 
-### FlyingChestManager
+### FlyingChestProcessor
 
 **Responsabilité :** Gère l'apparition et le comportement des coffres volants.
 
 ```python
-class FlyingChestManager:
-    def update(self, dt: float):
+class FlyingChestProcessor(esper.Processor):
+    def process(self, dt: float):
         """Met à jour les timers et fait apparaître les coffres."""
         
     def handle_collision(self, entity: int, chest_entity: int):
@@ -101,11 +101,11 @@ BaseComponent.reset()
 ```python
 # Dans GameEngine
 def _initialize_managers(self):
-    self.flying_chest_manager = FlyingChestManager()
+    self.flying_chest_processor = FlyingChestProcessor()
     self.audio_manager = AudioManager()
     
 def _update_managers(self, dt):
-    self.flying_chest_manager.update(dt)
+    self.flying_chest_processor.process(dt)
 ```
 
 ## Bonnes pratiques

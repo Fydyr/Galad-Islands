@@ -48,7 +48,7 @@ class GameEngine:
 | `camera_follow_enabled` | `bool` | Suivi automatique de la caméra |
 | `control_groups` | `dict` | Groupes de contrôle (1-9) |
 | `selection_team_filter` | `Team` | Filtre d'équipe pour la sélection |
-| `flying_chest_manager` | `FlyingChestManager` | Gestionnaire des coffres volants |
+| `flying_chest_processor` | `FlyingChestProcessor` | Processeur des coffres volants |
 | `island_resource_manager` | `IslandResourceManager` | Gestionnaire des ressources d'îles |
 | `storm_processor` | `StormProcessor` | Processeur des tempêtes |
 | `notification_system` | `NotificationSystem` | Système de notifications |
@@ -224,7 +224,7 @@ def _initialize_ecs(self) -> None:
 # Configuration des gestionnaires d'événements
 es.set_handler('attack_event', create_projectile)
 es.set_handler('entities_hit', entitiesHit)
-es.set_handler('flying_chest_collision', self.flying_chest_manager.handle_collision)
+es.set_handler('flying_chest_collision', self.flying_chest_processor.handle_collision)
 ```
 
 ### Boucle principale
@@ -253,9 +253,9 @@ def run(self) -> None:
 
 Le moteur intègre plusieurs gestionnaires spécialisés pour prendre en charge des mécaniques complexes.
 
-### FlyingChestManager
+### FlyingChestProcessor
 
-Fichier : `src/managers/flying_chest_manager.py`
+Fichier : `src/processeurs/flyingChestProcessor.py`
 
 Responsabilité : gère l'apparition, le comportement et la collecte des coffres volants sur l'eau.
 
@@ -312,7 +312,7 @@ Responsabilité : gère les tempêtes qui infligent des dégâts aux unités dan
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │            Gestionnaires spécialisés               │    │
-│  │  - FlyingChestManager                               │    │
+│  │  - FlyingChestProcessor                            │    │
 │  │  - IslandResourceManager                            │    │
 │  │  - StormProcessor                                   │    │
 │  │  - NotificationSystem                               │    │
