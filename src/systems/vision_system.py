@@ -27,6 +27,7 @@ class VisionSystem:
         self.explored_tiles: dict[int, Set[Tuple[int, int]]] = {}  # Par équipe
         self.current_team = 1  # Équipe actuelle (1 = alliés, 2 = ennemis)
         self.cloud_image = sprite_manager.load_sprite(SpriteID.TERRAIN_CLOUD)
+        self._dirty_teams: Set[int] = set()
         self._load_cloud_image()
 
     def _load_cloud_image(self):
@@ -104,6 +105,9 @@ class VisionSystem:
 
         # Ajouter les zones actuellement visibles aux zones découvertes
         self.explored_tiles[self.current_team].update(self.visible_tiles[self.current_team])
+        
+        # Marquer cette équipe comme "sale" (dirty) car la visibilité a changé
+        self._dirty_teams.add(self.current_team)
 
     def _add_visible_tiles_from_unit(self, unit_x: float, unit_y: float, vision_range: float):
         """
@@ -168,53 +172,73 @@ class VisionSystem:
             return False
         return (grid_x, grid_y) in self.explored_tiles[team]
 
-    def get_visibility_overlay(self, camera) -> list:
+    def is_dirty(self, team_id: int) -> bool:
         """
-        Génère une liste de rectangles pour le brouillard de guerre.
+        Vérifie si la visibilité pour une équipe a changé depuis la dernière vérification.
+        
+        Args:
+            team_id (int): L'ID de l'équipe à vérifier.
+            
+        Returns:
+            bool: True si la visibilité a changé, False sinon.
+        """
+        if team_id in self._dirty_teams:
+            self._dirty_teams.remove(team_id)
+            return True
+        return False
+
+    def create_fog_surface(self, camera) -> Optional[pygame.Surface]:
+        """
+        Crée une surface unique pour le brouillard de guerre, optimisée pour le rendu.
 
         Args:
             camera: Instance de la caméra pour les calculs de viewport
 
         Returns:
-            list: Liste de tuples (rect, alpha, is_cloud, cloud_image) pour le rendu du brouillard
+            pygame.Surface | None: Une surface contenant le brouillard de guerre à afficher
+                                   par-dessus le monde, ou None si non applicable.
         """
-        # Assurer que l'image cloud est chargée
-        self._load_cloud_image()
-        
-        overlay_rects = []
+        if not hasattr(self, '_cloud_image') or self.cloud_image is None:
+            self._load_cloud_image()
+            if self.cloud_image is None:
+                return None # Impossible de rendre le brouillard sans l'image
+
+        # Créer une surface de la taille de la fenêtre, avec transparence
+        fog_surface = pygame.Surface(camera.get_screen_size(), pygame.SRCALPHA)
+        fog_surface.fill((0, 0, 0, 0)) # Remplir de transparent
 
         # Obtenir les limites visibles
         start_x, start_y, end_x, end_y = camera.get_visible_tiles()
+        
+        # Pré-calculer la taille des tuiles pour le zoom actuel
+        tile_size = int(TILE_SIZE * camera.zoom)
+        if tile_size <= 0:
+            return None
+
+        # Préparer les couleurs
+        explored_fog_color = (0, 0, 0, 120) # Brouillard léger pour les zones explorées
 
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
                 if not self.is_tile_visible(x, y):
-                    # Calculer la position à l'écran de la tuile
                     screen_x, screen_y = camera.world_to_screen(x * TILE_SIZE, y * TILE_SIZE)
-                    tile_size = int(TILE_SIZE * camera.zoom)
                     
                     if not self.is_tile_explored(x, y):
-                        # Nuages pour les zones non découvertes
-                        # Créer un sprite plus gros centré sur la tuile
-                        cloud_size = int(tile_size * 2.0)  # 2x plus gros pour plus de couverture
-                        cloud_x = screen_x - (cloud_size - tile_size) // 2
-                        cloud_y = screen_y - (cloud_size - tile_size) // 2
-                        cloud_rect = pygame.Rect(cloud_x, cloud_y, cloud_size, cloud_size)
-                        
-                        # Utiliser une partie découpée de l'image cloud
-                        cloud_subsurface = self._get_cloud_subsurface(x, y, cloud_size)
-                        overlay_rects.append((cloud_rect, 160, True, cloud_subsurface))
+                        # Zone non explorée : dessiner un nuage
+                        cloud_subsurface = self._get_cloud_subsurface(x, y, tile_size)
+                        if cloud_subsurface:
+                            fog_surface.blit(cloud_subsurface, (screen_x, screen_y))
                     else:
-                        # Brouillard très léger pour les zones découvertes mais non visibles
-                        rect = pygame.Rect(screen_x, screen_y, tile_size, tile_size)
-                        overlay_rects.append((rect, 40, False, None))
+                        # Zone explorée mais non visible : dessiner un rectangle semi-transparent
+                        pygame.draw.rect(fog_surface, explored_fog_color, (screen_x, screen_y, tile_size, tile_size))
 
-        return overlay_rects
+        return fog_surface
 
     def reset(self):
         """Réinitialise complètement le système de vision pour une nouvelle partie."""
         self.visible_tiles.clear()
         self.explored_tiles.clear()
+        self._dirty_teams.clear()
         self.current_team = 1
 
 

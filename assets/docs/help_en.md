@@ -127,10 +127,10 @@
 
 ### Hazards
 
-- **Storms** (15% chance)
+- **Storms** (5% chance)
 ![Storms](/assets/event/tempete.png)
   - Damage : 30 every 3s
-  - Area : 4 tiles
+  - Area : 3 tiles diameter (1.5 tiles radius)
   - Duration : 20s
 
 - **Bandit Wave** (25% chance)

@@ -11,6 +11,12 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
+  workflow_dispatch:
+    inputs:
+      build_clear:
+        description: 'Effectuer un build clear ?'
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
@@ -29,11 +35,14 @@ jobs:
         python-version: '3.11'
         
     - name: Install dependencies
-      run: |
-        pip install mkdocs mkdocs-material
+      run: pip install -r requirements-dev.txt
         
     - name: Deploy to GitHub Pages
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        mkdocs gh-deploy --force
+        if [[ "${{ github.event.inputs.build_clear }}" == "true" ]]; then
+          mkdocs gh-deploy --force --clean
+        else
+          mkdocs gh-deploy --force
+        fi

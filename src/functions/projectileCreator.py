@@ -107,7 +107,7 @@ def create_projectile(entity, type: str = "bullet"):
                 ))
 
                 # Identifier cette entité comme un projectile
-                esper.add_component(bullet_entity, ProjectileComponent("bullet"))
+                esper.add_component(bullet_entity, ProjectileComponent("bullet", entity))
 
                 # Choisir le sprite selon la team (ennemi -> fireball)
                 if team_id == Team.ENEMY:
@@ -128,7 +128,7 @@ def create_projectile(entity, type: str = "bullet"):
                 esper.add_component(bullet_entity, VineComponent(int(DRUID_IMMOBILIZATION_DURATION)))
 
                 # Identifier cette entité comme un projectile
-                esper.add_component(bullet_entity, ProjectileComponent("vine"))
+                esper.add_component(bullet_entity, ProjectileComponent("vine", entity))
                 
 
                 # Utiliser le SpriteManager pour les projectiles (balle)
