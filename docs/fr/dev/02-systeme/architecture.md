@@ -245,11 +245,172 @@ class PlayerControlProcessor(esper.Processor):
             # Activer capacité de l'unité sélectionnée...
 ```
 
+### CombatRewardProcessor
+
+```python
+class CombatRewardProcessor(esper.Processor):
+    """Processor dédié à la gestion des récompenses de combat."""
+    
+    def __init__(self):
+        super().__init__()
+    
+    def process(self, dt: float):
+        """Méthode requise par esper.Processor (logique événementielle)."""
+        pass
+    
+    def create_unit_reward(self, entity: int, attacker_entity: Optional[int] = None) -> None:
+        """Crée une récompense (coffre volant) pour une unité tuée."""
+        if not esper.has_component(entity, ClasseComponent) or attacker_entity is None:
+            return
+        
+        # Calcul de la récompense : moitié du coût de l'unité
+        classe = esper.component_for_entity(entity, ClasseComponent)
+        unit_cost = self._get_unit_cost(classe.unit_type)
+        reward = unit_cost // 2
+        
+        # Création du coffre de récompense
+        self._create_reward_chest(entity, reward)
+```
+
+### FlyingChestProcessor
+
+```python
+class FlyingChestProcessor(esper.Processor):
+    """Orchestre l'apparition et le comportement des coffres volants."""
+    
+    def process(self, dt: float):
+        # Met à jour le timer d'apparition
+        self._spawn_timer += dt
+        if self._spawn_timer >= FLYING_CHEST_SPAWN_INTERVAL:
+            self._spawn_timer = 0.0
+            self._try_spawn_chest()
+        
+        # Met à jour les coffres existants (durée de vie, mouvement)
+        self._update_existing_chests(dt)
+    
+    def handle_collision(self, entity_a: int, entity_b: int):
+        # Gère la collecte des coffres par les unités
+        # Ajoute l'or au joueur propriétaire de l'unité
+        pass
+```
+
+**Responsabilités** :
+
+- Apparition périodique des coffres sur cases d'eau
+- Gestion de la durée de vie des coffres
+- Détection des collisions avec les unités
+- Attribution de l'or collecté aux joueurs
+
+### StormProcessor
+
+```python
+class StormProcessor(esper.Processor):
+    """Gère les tempêtes qui endommagent les unités en mer."""
+    
+    def process(self, dt: float):
+        # Met à jour les tempêtes existantes
+        for storm in self._active_storms:
+            storm.update(dt)
+            self._apply_damage_to_nearby_units(storm)
+        
+        # Fait apparaître de nouvelles tempêtes
+        self._try_spawn_storm()
+```
+
+**Responsabilités** :
+
+- Apparition aléatoire de tempêtes sur la carte
+- Application de dégâts aux unités dans la zone d'effet
+- Gestion de la durée de vie des tempêtes
+
+### TowerProcessor
+
+```python
+class TowerProcessor(esper.Processor):
+    """Gère le comportement automatique des tours défensives."""
+    
+    def process(self, dt: float):
+        # Recherche de cibles pour chaque tour
+        for tower_entity, tower_comp in esper.get_components(TowerComponent):
+            if tower_comp.current_cooldown <= 0:
+                target = self._find_target(tower_entity, tower_comp)
+                if target:
+                    self._perform_action(tower_entity, target, tower_comp)
+                    tower_comp.current_cooldown = tower_comp.cooldown
+            else:
+                tower_comp.current_cooldown -= dt
+```
+
+**Responsabilités** :
+
+- Détection automatique de cibles dans le rayon d'action
+- Gestion des cooldowns entre actions
+- Exécution des actions (attaque ou soin) selon le type de tour
+
+### LifetimeProcessor
+
+```python
+class LifetimeProcessor(esper.Processor):
+    """Gère la durée de vie limitée de certaines entités."""
+    
+    def process(self, dt: float):
+        # Supprime les entités dont le temps de vie est écoulé
+        for entity, lifetime in esper.get_components(LifetimeComponent):
+            lifetime.remaining_time -= dt
+            if lifetime.remaining_time <= 0:
+                esper.delete_entity(entity)
+```
+
+**Responsabilités** :
+
+- Comptage du temps restant pour les entités temporaires
+- Suppression automatique des entités expirées
+
+### EventProcessor
+
+```python
+class EventProcessor(esper.Processor):
+    """Gère les événements spéciaux du jeu (krakens, bandits, etc.)."""
+    
+    def process(self, dt: float):
+        # Met à jour les événements actifs
+        for event in self._active_events:
+            event.update(dt)
+        
+        # Déclenche de nouveaux événements selon les conditions
+        self._check_event_conditions()
+```
+
+**Responsabilités** :
+
+- Gestion des événements spéciaux (krakens, bandits)
+- Coordination avec les autres systèmes du jeu
+
+### CapacitiesSpecialesProcessor
+
+```python
+class CapacitiesSpecialesProcessor(esper.Processor):
+    """Gère les capacités spéciales des unités (Architecte, Maraudeur, etc.)."""
+    
+    def process(self, dt: float):
+        # Met à jour les capacités actives
+        self._update_active_capacities(dt)
+        
+        # Gère les interactions entre capacités
+        self._handle_capacity_interactions()
+```
+
+**Responsabilités** :
+
+- Gestion des capacités spéciales des unités
+- Coordination des effets entre différentes capacités
+
 ## Systèmes (Systems)
 
 Les nouveaux systèmes modulaires pour séparer la logique :
 
 ### SpriteSystem
+
 ```python
 class SpriteSystem:
     """Gestion des sprites avec cache pour optimiser les performances."""
@@ -262,6 +423,7 @@ class SpriteSystem:
 ```
 
 ### CombatSystem
+
 ```python
 class CombatSystem:
     """Système de combat séparé des processeurs."""
@@ -270,38 +432,58 @@ class CombatSystem:
         # Logique de dégâts pure
 ```
 
+
+
 ### Système de Récompenses de Combat
 
-Le système de récompenses génère automatiquement des coffres volants lorsqu'une unité ennemie est éliminée.
+Le système de récompenses utilise un **processor ECS dédié** (`CombatRewardProcessor`) pour séparer proprement la logique de récompenses de la gestion de santé.
+
+#### Architecture Refactorisée
+
+```text
+handleHealth.py (Gestion Santé)
+    ↓ détecte mort d'unité
+CombatRewardProcessor.create_unit_reward()
+    ↓ calcule récompense (coût_unité // 2)
+    ↓ crée coffre volant via FlyingChestComponent
+```
 
 #### Mécanisme de Fonctionnement
 
 1. **Détection de Mort** : Dans `processHealth()` (`src/functions/handleHealth.py`), lorsqu'une entité atteint 0 PV :
-   - Vérification si c'est une unité (composant `ClasseComponent`)
-   - Calcul de la récompense : `coût_unité // 2`
-   - Création d'un coffre volant à la position de l'unité morte
+   - Vérification si c'est une unité avec `ClasseComponent`
+   - Appel à `CombatRewardProcessor.create_unit_reward(entity, attacker_entity)`
 
-2. **Propriétaire des Projectiles** : Les projectiles (`ProjectileComponent`) contiennent désormais un `owner_entity` pour identifier l'attaquant :
-   - Défini lors de la création du projectile
-   - Permet de distinguer tirs de tours vs unités
+2. **Calcul de Récompense** : Le `CombatRewardProcessor` :
+   - Récupère le coût de l'unité depuis les constantes (`UNIT_COST_*`)
+   - Calcule la récompense : `coût_unité // 2`
+   - Crée un coffre volant avec cette valeur
 
-3. **Coffres de Récompense** : Créés via `create_reward_chest()` avec :
+3. **Coffres de Récompense** : Créés avec :
    - Durée de vie réduite (10s vs 30s pour les coffres normaux)
    - Montant basé sur la valeur de l'unité tuée
-   - Collectables par les navires alliés
+   - Collectables par les navires alliés via `FlyingChestProcessor`
+
+#### Avantages de l'Architecture
+
+- **Séparation des Responsabilités** : Santé ≠ Récompenses
+- **Réutilisabilité** : Processor peut être étendu pour d'autres types de récompenses
+- **Testabilité** : Logique isolée et facilement testable
+- **Maintenance** : Modifications des récompenses sans toucher à la santé
 
 #### Intégration Technique
 
-- **ProjectileComponent** : Ajout du champ `owner_entity` (optionnel)
-- **processHealth()** : Paramètre `attacker_entity` pour identifier le tueur
-- **CollisionProcessor** : Passage de l'entité attaquante lors des dégâts
+- **CombatRewardProcessor** : Processor ECS dédié dans `src/processeurs/combatRewardProcessor.py`
+- **handleHealth.py** : Utilise une instance globale `_combat_reward_processor`
 - **FlyingChestComponent** : Réutilisation du système existant de coffres volants
+- **FlyingChestProcessor** : Gestion autonome des coffres (apparition, mouvement, collection)
 
 ## Gestionnaires (Managers)
 
 Les gestionnaires orchestrent les systèmes de haut niveau :
 
 ### BaseComponent (Gestionnaire intégré)
+
 ```python
 @component
 class BaseComponent:
@@ -326,6 +508,7 @@ class BaseComponent:
 Pour en savoir plus, voir la documentation détaillée. [BaseComponent](./modules/components.md#basecomponent---gestionnaire-intégré-des-bases)
 
 ### FlyingChestManager
+
 ```python
 class FlyingChestManager:
     """Gère l'apparition des coffres volants."""
@@ -337,6 +520,7 @@ class FlyingChestManager:
 ## Factory (Création d'entités)
 
 ### UnitFactory
+
 ```python
 def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
     """Crée une entité complète avec tous ses composants."""
@@ -383,7 +567,7 @@ class GameEngine:
 
 ## Flux de données
 
-```
+```text
 1. Input (clavier/souris) → PlayerControlProcessor
 2. PlayerControlProcessor → Modification des composants
 3. MovementProcessor → Mise à jour des positions
@@ -394,6 +578,7 @@ class GameEngine:
 ## Bonnes pratiques
 
 ### ✅ À faire
+
 - **Composants** : Seulement des données, pas de logique
 - **Processeurs** : Une responsabilité claire par processeur
 - **Type hints** : Toujours typer les propriétés des composants
@@ -401,6 +586,7 @@ class GameEngine:
 - **Vérifications** : Toujours `esper.has_component()` avant `esper.component_for_entity()`
 
 ### ❌ À éviter
+
 - Logique métier dans les composants
 - Références directes entre entités
 - Modifications concurrentes de la même entité
@@ -409,6 +595,7 @@ class GameEngine:
 ## Exemples d'utilisation
 
 ### Créer une unité
+
 ```python
 # Créer l'entité
 entity = esper.create_entity()
@@ -420,6 +607,7 @@ esper.add_component(entity, HealthComponent(100, 100))
 ```
 
 ### Chercher des entités
+
 ```python
 # Toutes les entités avec position et santé
 for ent, (pos, health) in esper.get_components(PositionComponent, HealthComponent):
@@ -427,6 +615,7 @@ for ent, (pos, health) in esper.get_components(PositionComponent, HealthComponen
 ```
 
 ### Modifier un composant
+
 ```python
 if esper.has_component(entity, HealthComponent):
     health = esper.component_for_entity(entity, HealthComponent)
