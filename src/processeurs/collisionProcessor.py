@@ -15,7 +15,7 @@ from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
 from src.components.core.lifetimeComponent import LifetimeComponent
 from src.components.core.projectileComponent import ProjectileComponent
-from src.components.core.recentHitsComponent import RecentHitsComponent
+from src.components.core.radiusComponent import RadiusComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.managers.sprite_manager import SpriteID, sprite_manager
@@ -244,20 +244,20 @@ class CollisionProcessor(esper.Processor):
         # Si ce n'est pas un projectile, vérifier les cooldowns pour éviter les dégâts continus
         elif not projectile_entity:
             # Vérifier si entity1 peut infliger des dégâts à entity2
-            if esper.has_component(entity1, RecentHitsComponent):
-                recent_hits = esper.component_for_entity(entity1, RecentHitsComponent)
-                if not recent_hits.can_hit(entity2):
+            if esper.has_component(entity1, RadiusComponent):
+                radius_comp = esper.component_for_entity(entity1, RadiusComponent)
+                if not radius_comp.can_hit(entity2):
                     return  # Cooldown pas écoulé, ignorer la collision
-                recent_hits.record_hit(entity2)
-                recent_hits.cleanup_old_entries()
+                radius_comp.record_hit(entity2)
+                radius_comp.cleanup_old_entries()
             
             # Vérifier si entity2 peut infliger des dégâts à entity1
-            if esper.has_component(entity2, RecentHitsComponent):
-                recent_hits = esper.component_for_entity(entity2, RecentHitsComponent)
-                if not recent_hits.can_hit(entity1):
+            if esper.has_component(entity2, RadiusComponent):
+                radius_comp = esper.component_for_entity(entity2, RadiusComponent)
+                if not radius_comp.can_hit(entity1):
                     return  # Cooldown pas écoulé, ignorer la collision
-                recent_hits.record_hit(entity1)
-                recent_hits.cleanup_old_entries()
+                radius_comp.record_hit(entity1)
+                radius_comp.cleanup_old_entries()
         
         # Détecter immédiatement les collisions impliquant un coffre volant
             try:
