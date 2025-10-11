@@ -4,6 +4,19 @@ Centralise toutes les constantes magiques pour faciliter la maintenance et l'éq
 """
 
 # =============================================================================
+# CONSTANTES DE COÛT DES UNITÉS
+# =============================================================================
+
+# Coûts en or pour l'achat des unités
+UNIT_COST_SCOUT = 50
+UNIT_COST_MARAUDEUR = 100
+UNIT_COST_LEVIATHAN = 200
+UNIT_COST_DRUID = 150
+UNIT_COST_ARCHITECT = 120
+UNIT_COST_ATTACK_TOWER = 80
+UNIT_COST_HEAL_TOWER = 100
+
+# =============================================================================
 # CONSTANTES DE VISION ET BROUILLARD DE GUERRE
 # =============================================================================
 

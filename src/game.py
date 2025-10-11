@@ -961,6 +961,10 @@ class GameEngine:
         # Initialiser la visibilité pour l'équipe actuelle
         vision_system.update_visibility(Team.ALLY)
         
+        # Initialiser les variables d'optimisation adaptative
+        self._frame_times = []
+        self._adaptive_quality = 1.0
+        
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
         # La caméra est déjà configurée dans init_game_map()

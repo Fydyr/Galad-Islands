@@ -181,20 +181,23 @@ class FlyingChestProcessor(esper.Processor):
 
     def _update_existing_chests(self, dt: float) -> None:
         """Met à jour la durée de vie de chaque coffre actif."""
-        for entity, chest in esper.get_component(FlyingChestComponent):
-            chest.elapsed_time += dt
+        # Itérer sur toutes les entités ayant un FlyingChestComponent
+        for entity in list(esper._entities.keys()):
+            if esper.has_component(entity, FlyingChestComponent):
+                chest = esper.component_for_entity(entity, FlyingChestComponent)
+                chest.elapsed_time += dt
 
-            if chest.is_sinking:
-                chest.sink_elapsed_time += dt
-                if chest.sink_elapsed_time >= chest.sink_duration:
-                    esper.delete_entity(entity)
-                continue
+                if chest.is_sinking:
+                    chest.sink_elapsed_time += dt
+                    if chest.sink_elapsed_time >= chest.sink_duration:
+                        esper.delete_entity(entity)
+                    continue
 
-            if chest.elapsed_time >= chest.max_lifetime:
-                chest.is_sinking = True
-                chest.sink_elapsed_time = 0.0
-                self._disable_collision(entity)
-                self._set_sprite(entity, SpriteID.CHEST_OPEN)
+                if chest.elapsed_time >= chest.max_lifetime:
+                    chest.is_sinking = True
+                    chest.sink_elapsed_time = 0.0
+                    self._disable_collision(entity)
+                    self._set_sprite(entity, SpriteID.CHEST_OPEN)
 
     def _set_sprite(self, entity: int, sprite_id: SpriteID) -> None:
         """Met à jour le sprite d'un coffre en conservant ses dimensions actuelles."""
