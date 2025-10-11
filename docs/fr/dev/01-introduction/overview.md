@@ -55,6 +55,24 @@ pip install -r requirements-dev.txt
 python main.py
 ```
 
+## Outils de développement
+
+### 📊 Profilage des performances
+
+Pour analyser les performances du jeu, utilisez l'outil de profilage intégré :
+
+```bash
+python profile_game.py
+```
+
+Cet outil utilise `cProfile` pour analyser les goulots d'étranglement pendant une vraie session de jeu. Pour plus de détails, consultez la [section profilage de la maintenance](../06-maintenance/maintenance.md#profilage-des-performances-avec-cprofile).
+
+### 🔧 Outils disponibles
+
+- **Galad Config Tool** : Éditeur graphique de configuration (`python tools/galad_config.py`)
+- **Mode debug** : Interface de debug en jeu (accessible via le menu paramètres)
+- **Tests unitaires** : `python -m pytest tests/`
+
 ## Structure du projet (dossiers importants)
 
 ```text

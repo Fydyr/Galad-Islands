@@ -58,6 +58,7 @@ plugins:
                 - Bâtiments: user/economy/buildings.md
                 - Boutique: user/economy/shop.md
                 - Barre d'action: user/gameplay/action-bar.md
+                - Paramètres du jeu: user/basics/settings.md
                 - FAQ: user/help/faq.md
                 - Crédits: user/help/credits.md
             - 🛠️ Documentation Technique:
@@ -77,6 +78,7 @@ plugins:
                   - Capacités spéciales: dev/02-systeme/modules/special-capacity-system.md
                   - Gestionnaire de sprites: dev/02-systeme/modules/sprite-manager.md
                   - Système de vision: dev/02-systeme/modules/vision-system.md
+                - Optimisations de rendu: dev/02-systeme/rendering_optimizations.md
               - 3. Installation:
                 - Exigences matérielles: dev/03-installation/requirements.md
               - 4. Configuration:
@@ -112,6 +114,7 @@ plugins:
                 - Buildings: user/economy/buildings.md
                 - Shop: user/economy/shop.md
                 - Action Bar: user/gameplay/action-bar.md
+                - Game Settings: user/basics/settings.md
                 - FAQ: user/help/faq.md
                 - Credits: user/help/credits.md
             - 🛠️ Technical Documentation:
@@ -131,6 +134,7 @@ plugins:
                   - Special Abilities: dev/02-systeme/modules/special-capacity-system.md
                   - Sprite Manager: dev/02-systeme/modules/sprite-manager.md
                   - Vision System: dev/02-systeme/modules/vision-system.md
+                  - Rendering Optimizations: dev/02-systeme/rendering_optimizations.md
               - 3. Installation:
                 - Hardware Requirements: dev/03-installation/requirements.md
               - 4. Configuration:
