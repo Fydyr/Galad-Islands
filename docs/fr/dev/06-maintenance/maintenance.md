@@ -62,4 +62,54 @@ Cette page décrit les bonnes pratiques et procédures pour assurer la pérennit
 
 ---
 
+## 📊 Profilage des performances avec cProfile
+
+Le projet inclut un outil de profilage intégré utilisant `cProfile` pour analyser les performances du jeu en temps réel.
+
+### 🚀 Utilisation du profiler
+
+Pour profiler une session de jeu complète :
+
+```bash
+python profile_game.py
+```
+
+Le profiler :
+- **Enregistre** toutes les performances pendant votre partie
+- **Analyse** les fonctions les plus lentes automatiquement
+- **Génère** un rapport détaillé des 30 fonctions les plus gourmandes
+- **Sauvegarde** les résultats complets dans `profile_results.prof`
+
+### 📈 Interprétation des résultats
+
+Le rapport affiche :
+- **`cumulative`** : Temps total passé dans la fonction et ses sous-fonctions
+- **`percall`** : Temps moyen par appel de fonction
+- **`ncalls`** : Nombre d'appels à la fonction
+
+!!! tip "Conseils d'optimisation"
+    - Concentrez-vous sur les fonctions avec le plus haut temps `cumulative`
+    - Vérifiez les appels fréquents (haut `ncalls`)
+    - Optimisez les boucles et calculs mathématiques intensifs
+
+### 🔧 Analyse avancée
+
+Pour une analyse interactive des résultats sauvegardés :
+
+```bash
+python -m pstats profile_results.prof
+```
+
+Commandes utiles dans l'interpréteur pstats :
+- `sort cumulative` : Trier par temps cumulé
+- `sort tottime` : Trier par temps propre à la fonction
+- `stats 20` : Afficher les 20 premières fonctions
+
+!!! info "Bonnes pratiques de profilage"
+    - Profilez des sessions de jeu réalistes (2-5 minutes)
+    - Comparez les résultats avant/après optimisation
+    - Utilisez le profilage pour identifier les goulots d'étranglement
+
+---
+
 > Pour toute question ou suggestion, n’hésitez pas à ouvrir une issue ou une pull request sur le dépôt GitHub.
