@@ -50,39 +50,40 @@ class AIModelManager:
         # Load the model on startup if it exists
         self.load_model_if_exists()
 
-    def load_model_if_exists(self) -> bool:
+    def load_model_if_exists(self) -> dict:
         """
         Loads a pre-trained model if it exists.
 
         Returns:
-            True if a model was loaded, False otherwise
+            Dictionary containing training metadata (epsilon, episodes, etc.)
         """
         if os.path.exists(self.model_path):
             try:
-                self.ai_processor.load_model(self.model_path)
+                metadata = self.ai_processor.load_model(self.model_path)
                 logger.info(f"AI model loaded from: {self.model_path}")
-                return True
+                return metadata
             except Exception as e:
                 logger.error(f"Error loading model: {e}")
                 # Attempt to load the backup
                 if os.path.exists(self.backup_path):
                     try:
-                        self.ai_processor.load_model(self.backup_path)
+                        metadata = self.ai_processor.load_model(self.backup_path)
                         logger.info(f"Backup model loaded from: {self.backup_path}")
-                        return True
+                        return metadata
                     except Exception as e2:
                         logger.error(f"Error loading backup model: {e2}")
-                return False
+                return {}
         else:
             logger.info("No pre-trained model found, starting with a new model.")
-            return False
+            return {}
 
-    def save_model(self, backup: bool = False) -> bool:
+    def save_model(self, backup: bool = False, metadata: dict = None) -> bool:
         """
-        Saves the current model.
+        Saves the current model with optional metadata.
 
         Args:
             backup: If True, saves to the backup file
+            metadata: Optional training metadata (episodes, epsilon, etc.)
 
         Returns:
             True if saving was successful, False otherwise
@@ -90,7 +91,7 @@ class AIModelManager:
         save_path = self.backup_path if backup else self.model_path
 
         try:
-            self.ai_processor.save_model(save_path)
+            self.ai_processor.save_model(save_path, metadata)
             logger.info(f"AI model saved to: {save_path}")
             self.time_since_last_save = 0.0
             return True

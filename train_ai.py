@@ -49,7 +49,14 @@ class AITrainer:
         # Model save manager
         self.model_manager = AIModelManager(self.ai_processor)
 
+        # Load training metadata if resuming
+        self.training_metadata = self.model_manager.load_model_if_exists()
+        self.start_episode = self.training_metadata.get('episodes_completed', 0)
+        self.current_epsilon = self.training_metadata.get('epsilon', 1.0)
+
         print(f"[OK] AI processor created (state_size={self.ai_processor.brain.state_size})")
+        if self.start_episode > 0:
+            print(f"[RESUME] Resuming from episode {self.start_episode}, epsilon={self.current_epsilon:.3f}")
         print()
 
     def setup_entities(self):
@@ -127,14 +134,17 @@ class AITrainer:
         Args:
             episode_num: The current episode number
         """
-        print(f"[EPISODE] {episode_num + 1}/{self.episodes}")
+        total_episode = self.start_episode + episode_num + 1
+        print(f"[EPISODE] {episode_num + 1}/{self.episodes} (Total: {total_episode})")
 
         # Reset entities for the new episode
         self.setup_entities()
 
         # Reset episode statistics for each AI agent
         # Reduce epsilon over time (exploration -> exploitation)
-        epsilon_decay = max(0.01, 1.0 - (episode_num / self.episodes))
+        # Use the total episode count (including previous training sessions)
+        total_episodes = self.start_episode + episode_num
+        epsilon_decay = max(0.01, 1.0 - (total_episodes / (self.start_episode + self.episodes)))
 
         for entity in self.leviathans:
             if es.has_component(entity, AILeviathanComponent):
@@ -142,6 +152,9 @@ class AITrainer:
                 ai_comp.reset_episode()
                 # Apply epsilon decay for progressive learning
                 ai_comp.epsilon = epsilon_decay
+
+        # Store current epsilon for saving
+        self.current_epsilon = epsilon_decay
 
         step_count = 0
 
@@ -234,10 +247,16 @@ class AITrainer:
                 avg_reward = self.run_episode(episode)
                 rewards_history.append(avg_reward)
 
-                # Save the model every N episodes
+                # Save the model every N episodes with metadata
                 if (episode + 1) % self.save_interval == 0:
                     print(f"[SAVE] Saving model (episode {episode + 1})...")
-                    self.model_manager.save_model()
+                    metadata = {
+                        'episodes_completed': self.start_episode + episode + 1,
+                        'epsilon': self.current_epsilon,
+                        'total_rewards': rewards_history,
+                        'last_avg_reward': rewards_history[-1] if rewards_history else 0
+                    }
+                    self.model_manager.save_model(metadata=metadata)
 
                     # Also show training progress
                     if len(rewards_history) >= 10:
@@ -250,9 +269,15 @@ class AITrainer:
             print("[WARN] Training interrupted by user")
             print()
 
-        # Final save
+        # Final save with complete metadata
         print("[SAVE] Final model save...")
-        self.model_manager.save_model()
+        final_metadata = {
+            'episodes_completed': self.start_episode + len(rewards_history),
+            'epsilon': self.current_epsilon,
+            'total_rewards': rewards_history,
+            'last_avg_reward': rewards_history[-1] if rewards_history else 0
+        }
+        self.model_manager.save_model(metadata=final_metadata)
 
         # Final statistics
         elapsed_time = time.time() - start_time
@@ -262,11 +287,14 @@ class AITrainer:
         print("=" * 60)
         print("[FINAL STATISTICS]")
         print("=" * 60)
+        total_completed = self.start_episode + len(rewards_history)
         print(f"[TIME] Total time: {elapsed_time:.1f} seconds ({elapsed_time / 60:.1f} minutes)")
-        print(f"[EPISODES] Completed: {len(rewards_history)}/{self.episodes}")
+        print(f"[EPISODES] Completed this session: {len(rewards_history)}/{self.episodes}")
+        print(f"[EPISODES] Total trained: {total_completed}")
         print(f"[ACTIONS] Total actions: {stats['total_actions']}")
         print(f"[TRAIN] Trainings: {stats['training_count']}")
         print(f"[REWARD] Final average reward: {rewards_history[-1] if rewards_history else 0:.2f}")
+        print(f"[EPSILON] Final epsilon: {self.current_epsilon:.3f}")
         print(f"[PROGRESS] {rewards_history[0]:.2f} -> {rewards_history[-1]:.2f}" if len(rewards_history) > 1 else "")
 
         # Favorite actions

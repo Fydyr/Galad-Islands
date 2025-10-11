@@ -212,8 +212,8 @@ class LeviathanBrain:
             logger.error(f"Training error: {e}")
             return 0.0
 
-    def save_model(self, path: str):
-        """Saves the trained model."""
+    def save_model(self, path: str, metadata: dict = None):
+        """Saves the trained model with optional training metadata."""
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             data = {
@@ -222,6 +222,7 @@ class LeviathanBrain:
                 'is_trained': self.is_trained,
                 'training_samples': self.training_samples,
                 'state_size': self.state_size,
+                'metadata': metadata or {}  # Store training progress info
             }
             with open(path, 'wb') as f:
                 pickle.dump(data, f)
@@ -229,8 +230,8 @@ class LeviathanBrain:
         except Exception as e:
             logger.error(f"Save error: {e}")
 
-    def load_model(self, path: str):
-        """Loads a pre-trained model."""
+    def load_model(self, path: str) -> dict:
+        """Loads a pre-trained model and returns metadata."""
         try:
             with open(path, 'rb') as f:
                 data = pickle.load(f)
@@ -239,9 +240,12 @@ class LeviathanBrain:
             self.is_trained = data['is_trained']
             self.training_samples = data['training_samples']
             self.state_size = data['state_size']
+            metadata = data.get('metadata', {})
             logger.info(f"Model loaded: {path} ({self.training_samples} samples)")
+            return metadata
         except Exception as e:
             logger.error(f"Load error: {e}")
+            return {}
 
     def _normalize_state(self, state: np.ndarray) -> np.ndarray:
         """Normalizes a single state."""

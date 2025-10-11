@@ -473,15 +473,16 @@ class AILeviathanProcessor(esper.Processor):
             f"epsilon={ai_comp.epsilon:.3f}, total_reward={ai_comp.total_reward:.2f}"
         )
 
-    def save_model(self, path: str):
-        """Saves the trained model."""
-        self.brain.save_model(path)
+    def save_model(self, path: str, metadata: dict = None):
+        """Saves the trained model with optional metadata."""
+        self.brain.save_model(path, metadata)
         logger.info(f"AI model saved: {path}")
 
-    def load_model(self, path: str):
-        """Loads a pre-trained model."""
-        self.brain.load_model(path)
+    def load_model(self, path: str) -> dict:
+        """Loads a pre-trained model and returns metadata."""
+        metadata = self.brain.load_model(path)
         logger.info(f"AI model loaded: {path}")
+        return metadata
 
     def get_statistics(self) -> dict:
         """Returns AI usage statistics."""
