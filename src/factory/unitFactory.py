@@ -44,6 +44,7 @@ from src.components.core.classeComponent import ClasseComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
+from src.components.ai.aiLeviathanComponent import AILeviathanComponent
 from src.components.core.visionComponent import VisionComponent
 from src.settings.localization import t
 
@@ -103,6 +104,9 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpeLeviathan())
             es.add_component(entity, VisionComponent(UNIT_VISION_LEVIATHAN))
+            # Ajouter le composant IA pour les Léviathans ennemis
+            if enemy:
+                es.add_component(entity, AILeviathanComponent(enabled=True))
             sprite_id = SpriteID.ALLY_LEVIATHAN if not enemy else SpriteID.ENEMY_LEVIATHAN
             size = sprite_manager.get_default_size(sprite_id)
             if size:

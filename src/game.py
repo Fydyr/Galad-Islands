@@ -30,6 +30,7 @@ from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProc
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
+from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -750,6 +751,7 @@ class GameEngine:
         self.player_controls = None
         self.capacities_processor = None
         self.lifetime_processor = None
+        self.ai_processor = None  # Processeur IA pour le Léviathan
 
         # Gestion de la sélection des unités
         self.selected_unit_id = None
@@ -909,6 +911,8 @@ class GameEngine:
         self.tower_processor = TowerProcessor()
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
+        # AI processor (gère l'IA du Léviathan) - inference mode only (no training during gameplay)
+        self.ai_processor = AILeviathanProcessor(model_path="models/leviathan_ai.pkl", training_mode=False)
 
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
@@ -1646,11 +1650,15 @@ class GameEngine:
         # Traiter le TowerProcessor (avec dt)
         if self.tower_processor is not None:
             self.tower_processor.process(dt)
-        
+
         # Traiter le StormProcessor (avec dt)
         if self.storm_processor is not None:
             self.storm_processor.process(dt)
         
+        # Traiter le AIProcessor (avec dt)
+        if self.ai_processor is not None:
+            self.ai_processor.process(dt)
+
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
 
