@@ -18,6 +18,7 @@ Processors contain the game's business logic and act on Entities having certain 
 | `MovementProcessor` | 3 | Movement of Entities with velocity |
 | `PlayerControlProcessor` | 4 | Player controls and ability activation |
 | `CapacitiesSpecialesProcessor` | 5 | Update of ability cooldowns |
+| `StormProcessor` | Manual | Storm event management (called manually) |
 | `LifetimeProcessor` | 10 | Removal of temporary Entities |
 | `TowerProcessor` | 15 | Logic of defensive towers (attack/heal) |
 
@@ -112,6 +113,31 @@ def process(self, dt=0.016):
     for ent, spe_comp in esper.get_component(SpeScout):
         spe_comp.update(dt)
     # ... other abilities
+```
+
+### StormProcessor
+
+**File:** `src/processeurs/stormProcessor.py`
+
+**Responsibility:** Manages storm events that damage units within their radius.
+
+**Configuration:**
+- Visual size: 3.0 tiles (matches 100x100px sprite)
+- Damage radius: 1.5 tiles (half of visual size)
+- Damage: 30 HP every 3 seconds
+- Movement: 1 tile/second, direction change every 5 seconds
+- Spawn chance: 5% every 5 seconds
+- Lifetime: 20 seconds per storm
+
+```python
+class StormProcessor(esper.Processor):
+    def process(self, dt: float):
+        # Update existing storms
+        self.updateExistingStorms(dt)
+        
+        # Check for new storm spawns
+        if random.random() < self.spawn_chance:
+            self.trySpawnStorm()
 ```
 
 ### LifetimeProcessor

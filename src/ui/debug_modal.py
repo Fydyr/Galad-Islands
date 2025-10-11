@@ -10,7 +10,7 @@ from src.settings.settings import ConfigManager, config_manager
 from src.components.core.playerComponent import PlayerComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.team_enum import Team as TeamEnum
-from src.managers.stormManager import getStormManager
+from src.processeurs.stormProcessor import StormProcessor
 from src.managers.flying_chest_manager import FlyingChestManager
 from src.managers.island_resource_manager import IslandResourceManager
 from src.components.events.krakenComponent import KrakenComponent
@@ -155,8 +155,8 @@ class DebugModal:
             self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
             return
         
-        # Get storm manager and force spawn a storm
-        storm_manager = getStormManager()
+        # Get storm processor and force spawn a storm
+        storm_manager = self.game_engine.storm_processor
         if storm_manager and hasattr(self.game_engine, 'grid'):
             storm_manager.initializeFromGrid(self.game_engine.grid)
             
@@ -316,7 +316,7 @@ class DebugModal:
         cleared_count = 0
         
         # Clear storms
-        storm_manager = getStormManager()
+        storm_manager = self.game_engine.storm_processor
         if storm_manager:
             storm_count = len(storm_manager.activeStorms)
             storm_manager.clearAllStorms()

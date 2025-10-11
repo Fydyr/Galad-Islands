@@ -14,7 +14,7 @@ Les gestionnaires centralisent la gestion des ressources et comportements de hau
 |--------------|----------------|---------|
 | `BaseComponent` | Gestion intégrée des QG alliés/ennemis | `src/components/core/baseComponent.py` |
 | `FlyingChestManager` | Gestion des coffres volants | `src/managers/flying_chest_manager.py` |
-| `StormManager` | Gestion des tempêtes | `src/managers/storm_manager.py` |
+| `StormProcessor` | Gestion des tempêtes | `src/processeurs/stormProcessor.py` |
 | `DisplayManager` | Gestion de l'affichage | `src/managers/display.py` |
 | `AudioManager` | Gestion audio | `src/managers/audio.py` |
 | `SpriteManager` | Cache des sprites | `src/systems/sprite_system.py` |

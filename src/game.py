@@ -55,7 +55,7 @@ from src.components.special.speArchitectComponent import SpeArchitect
 # import event
 from src.managers.flying_chest_manager import FlyingChestManager
 from src.managers.island_resource_manager import IslandResourceManager
-from src.managers.stormManager import StormManager
+from src.processeurs.stormProcessor import StormProcessor
 from src.managers.display import get_display_manager
 
 
@@ -738,7 +738,7 @@ class GameEngine:
         self.camera_positions = {}  # Stockage des positions de caméra par équipe
         self.flying_chest_manager = FlyingChestManager()
         self.island_resource_manager = IslandResourceManager()
-        self.stormManager = StormManager()
+        self.storm_processor = StormProcessor()
         self.player = None
         self.notification_system = get_notification_system()
         
@@ -878,8 +878,8 @@ class GameEngine:
             self.island_resource_manager.initialize_from_grid(self.grid)
 
         # Initialize storm manager
-        if self.stormManager is not None and self.grid is not None:
-            self.stormManager.initializeFromGrid(self.grid)
+        if self.storm_processor is not None and self.grid is not None:
+            self.storm_processor.initializeFromGrid(self.grid)
 
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
@@ -889,7 +889,6 @@ class GameEngine:
         
         # Nettoyer tous les processeurs existants
         es._processors.clear()
-        StormManager().clearAllStorms()
 
         # Réinitialiser les gestionnaires globaux dépendant du monde
         BaseComponent.reset()
@@ -906,6 +905,8 @@ class GameEngine:
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
         self.tower_processor = TowerProcessor()
+        # Storm processor (gère les tempêtes)
+        self.storm_processor = StormProcessor()
 
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
@@ -1640,6 +1641,10 @@ class GameEngine:
         if self.tower_processor is not None:
             self.tower_processor.process(dt)
         
+        # Traiter le StormProcessor (avec dt)
+        if self.storm_processor is not None:
+            self.storm_processor.process(dt)
+        
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
 
@@ -1648,8 +1653,7 @@ class GameEngine:
         if self.island_resource_manager is not None:
             self.island_resource_manager.update(dt)
             
-        if self.stormManager is not None:
-            self.stormManager.update(dt)
+        # Les tempêtes sont gérées par storm_processor (processeur ECS)
 
         # Synchroniser les informations affichées avec l'état courant
         self._refresh_selected_unit_info()

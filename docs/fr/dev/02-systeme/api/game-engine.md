@@ -50,7 +50,7 @@ class GameEngine:
 | `selection_team_filter` | `Team` | Filtre d'équipe pour la sélection |
 | `flying_chest_manager` | `FlyingChestManager` | Gestionnaire des coffres volants |
 | `island_resource_manager` | `IslandResourceManager` | Gestionnaire des ressources d'îles |
-| `stormManager` | `StormManager` | Gestionnaire des tempêtes |
+| `storm_processor` | `StormProcessor` | Processeur des tempêtes |
 | `notification_system` | `NotificationSystem` | Système de notifications |
 | `exit_modal` | `InGameMenuModal` | Modale du menu en jeu |
 | `game_over` | `bool` | État de fin de partie |
@@ -265,9 +265,9 @@ Fichier : `src/managers/island_resource_manager.py`
 
 Responsabilité : gère les ressources en or présentes sur les îles neutres.
 
-### StormManager
+### StormProcessor
 
-Fichier : `src/managers/stormManager.py`
+Fichier : `src/processeurs/stormProcessor.py`
 
 Responsabilité : gère les tempêtes qui infligent des dégâts aux unités dans leur rayon.
 
@@ -314,7 +314,7 @@ Responsabilité : gère les tempêtes qui infligent des dégâts aux unités dan
 │  │            Gestionnaires spécialisés               │    │
 │  │  - FlyingChestManager                               │    │
 │  │  - IslandResourceManager                            │    │
-│  │  - StormManager                                     │    │
+│  │  - StormProcessor                                   │    │
 │  │  - NotificationSystem                               │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │

@@ -152,10 +152,10 @@ The debug modal now offers several actions to facilitate development and testing
 
     ```python
     def _handle_spawn_storm(self):
-        storm_manager = getStormManager()
-        position = storm_manager.findValidSpawnPosition()
+        storm_processor = self.game_engine.storm_processor
+        position = storm_processor.findValidSpawnPosition()
         if position:
-            storm_entity = storm_manager.createStormEntity(position)
+            storm_entity = storm_processor.createStormEntity(position)
     ```
 
 3.  **Spawn Chests**: Forces 2-4 flying chests to appear.
@@ -196,7 +196,7 @@ The debug modal now offers several actions to facilitate development and testing
     ```python
     def _handle_clear_events(self):
         # Clears storms
-        storm_manager.clearAllStorms()
+        self.game_engine.storm_processor.clearAllStorms()
         # Deletes flying chests, krakens, tentacles, and island resources
         for entity, component in esper.get_component(EventComponent):
             esper.delete_entity(entity)
