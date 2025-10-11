@@ -227,6 +227,33 @@ class CombatSystem:
         # Logique de dégâts pure
 ```
 
+### Système de Récompenses de Combat
+
+Le système de récompenses génère automatiquement des coffres volants lorsqu'une unité ennemie est éliminée.
+
+#### Mécanisme de Fonctionnement
+
+1. **Détection de Mort** : Dans `processHealth()` (`src/functions/handleHealth.py`), lorsqu'une entité atteint 0 PV :
+   - Vérification si c'est une unité (composant `ClasseComponent`)
+   - Calcul de la récompense : `coût_unité // 2`
+   - Création d'un coffre volant à la position de l'unité morte
+
+2. **Propriétaire des Projectiles** : Les projectiles (`ProjectileComponent`) contiennent désormais un `owner_entity` pour identifier l'attaquant :
+   - Défini lors de la création du projectile
+   - Permet de distinguer tirs de tours vs unités
+
+3. **Coffres de Récompense** : Créés via `create_reward_chest()` avec :
+   - Durée de vie réduite (10s vs 30s pour les coffres normaux)
+   - Montant basé sur la valeur de l'unité tuée
+   - Collectables par les navires alliés
+
+#### Intégration Technique
+
+- **ProjectileComponent** : Ajout du champ `owner_entity` (optionnel)
+- **processHealth()** : Paramètre `attacker_entity` pour identifier le tueur
+- **CollisionProcessor** : Passage de l'entité attaquante lors des dégâts
+- **FlyingChestComponent** : Réutilisation du système existant de coffres volants
+
 ## Gestionnaires (Managers)
 
 Les gestionnaires orchestrent les systèmes de haut niveau :
