@@ -30,14 +30,17 @@ i18n:
 
 #### Combat Rewards
 
-- Earn gold by eliminating enemy units
-- Amount corresponds to half the cost of the eliminated unit
+- Earn gold by eliminating enemy units via **flying chests**
+- A flying chest automatically appears at the location of the killed enemy unit
+- Gold amount corresponds to **half the cost** of the eliminated unit
 - **Scout**: 10 gold → **5 gold**
 - **Marauder**: 20 gold → **10 gold**
 - **Leviathan**: 40 gold → **20 gold**
 - **Druid**: 30 gold → **15 gold**
 - **Architect**: 30 gold → **15 gold**
-- Strategy: Kill expensive units to maximize gains
+- **Attack Tower**: 150 gold → **75 gold**
+- **Heal Tower**: 120 gold → **60 gold**
+- Strategy: Kill expensive units to maximize gains, then collect the chests quickly
 
 ### Resource Management
 

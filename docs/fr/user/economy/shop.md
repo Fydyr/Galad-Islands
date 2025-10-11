@@ -25,14 +25,17 @@
 
 #### Récompenses de combat
 
-- Gagnez de l'or en éliminant des unités ennemies
-- La quantité correspond à la moitié du coût de l'unité éliminée
+- Gagnez de l'or en éliminant des unités ennemies via des **coffres volants**
+- Un coffre volant apparaît automatiquement à l'emplacement de l'unité ennemie tuée
+- La quantité d'or correspond à la **moitié du coût** de l'unité éliminée
 - **Scout** : 10 or → **5 or**
 - **Maraudeur** : 20 or → **10 or**
 - **Leviathan** : 40 or → **20 or**
 - **Druid** : 30 or → **15 or**
 - **Architect** : 30 or → **15 or**
-- Stratégie : Tuez des unités coûteuses pour maximiser les gains
+- **Tour d'attaque** : 150 or → **75 or**
+- **Tour de soin** : 120 or → **60 or**
+- Stratégie : Tuez des unités coûteuses pour maximiser les gains, puis collectez les coffres rapidement
 
 ### Gestion des ressources
 

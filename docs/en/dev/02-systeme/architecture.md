@@ -227,6 +227,33 @@ class CombatSystem:
         # Pure damage logic
 ```
 
+### Combat Rewards System
+
+The combat rewards system automatically generates flying chests when an enemy unit is eliminated.
+
+#### How It Works
+
+1. **Death Detection**: In `processHealth()` (`src/functions/handleHealth.py`), when an entity reaches 0 HP:
+   - Check if it's a unit (has `ClasseComponent`)
+   - Calculate reward: `unit_cost // 2`
+   - Create a flying chest at the dead unit's position
+
+2. **Projectile Ownership**: Projectiles (`ProjectileComponent`) now contain an `owner_entity` to identify the attacker:
+   - Set when the projectile is created
+   - Allows distinguishing tower shots vs unit shots
+
+3. **Reward Chests**: Created via `create_reward_chest()` with:
+   - Reduced lifetime (10s vs 30s for normal chests)
+   - Amount based on the killed unit's value
+   - Collectable by allied ships
+
+#### Technical Integration
+
+- **ProjectileComponent**: Added `owner_entity` field (optional)
+- **processHealth()**: `attacker_entity` parameter to identify the killer
+- **CollisionProcessor**: Pass attacker entity when dealing damage
+- **FlyingChestComponent**: Reuse existing flying chest system
+
 ## Managers
 
 Managers orchestrate high-level systems:
