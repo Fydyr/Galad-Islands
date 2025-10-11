@@ -19,7 +19,7 @@ ACTIONS = [
 # [current_speed, angle_to_island, distance_to_island, distance_to_enemy,
 #  distance_to_ally, distance_to_mine, money, obstacle_ahead]
 np.random.seed(42)
-n_samples = 100000
+n_samples = 10000000
 
 features = np.random.rand(n_samples, 8) * np.array([100, 360, 1000, 1000, 1000, 1000, 2000, 2]) - np.array([0, 180, 0, 0, 0, 0, 0, 0])
 features[:, 7] = np.round(features[:, 7])  # obstacle binary
@@ -31,18 +31,18 @@ for i in range(n_samples):
 
     # --- Danger avoidance rules ---
     # Avoid mines
-    if dist_mine < 150:
+    if dist_mine < 50:
         labels[i] = 1  # decelerate
         continue
 
     # Avoid enemies
-    if dist_enemy < 150:
+    if dist_enemy < 50:
         labels[i] = 1  # decelerate
         continue
 
     # --- Ally cohesion ---
     # Stay close to allies (but not too close)
-    if dist_ally > 400:
+    if dist_ally > 200:
         # Move closer (rotate toward ally)
         if abs(angle_island) > 45:
             labels[i] = 2 if angle_island < 0 else 3
@@ -77,7 +77,7 @@ for i in range(n_samples):
         continue
 
     # --- General movement ---
-    if obstacle > 0.5:
+    if obstacle > 5:
         labels[i] = 1
     elif speed > 80:
         labels[i] = 1
@@ -86,7 +86,7 @@ for i in range(n_samples):
 
 # Train Decision Tree
 X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=42)
-clf = DecisionTreeClassifier(max_depth=7, random_state=45)
+clf = DecisionTreeClassifier(max_depth=4, random_state=20)
 clf.fit(X_train, y_train)
 
 joblib.dump(clf, 'ia/architectAI.joblib')

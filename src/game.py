@@ -28,6 +28,7 @@ from src.processeurs.collisionProcessor import CollisionProcessor
 from src.processeurs.playerControlProcessor import PlayerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
+from ia.AIControlProcessor import AIControlProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
 
@@ -748,6 +749,7 @@ class GameEngine:
         self.player_controls = None
         self.capacities_processor = None
         self.lifetime_processor = None
+        self.ai_processor = None
 
         # Gestion de la sélection des unités
         self.selected_unit_id = None
@@ -902,6 +904,7 @@ class GameEngine:
         self.player_controls = PlayerControlProcessor(self.grid)
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
+        self.ai_processor = AIControlProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
         self.tower_processor = TowerProcessor()
@@ -946,7 +949,7 @@ class GameEngine:
         
         # Créer les unités
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
-        player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
+        player_unit = UnitFactory(UnitType.ARCHITECT, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
             self._set_selected_entity(player_unit)
 
@@ -1637,6 +1640,10 @@ class GameEngine:
         if self.event_processor is not None:
             self.event_processor.process(dt, self.grid)
         
+        # Traiter les événements d'abord (avec dt)
+        if self.ai_processor is not None:
+            self.ai_processor.process(dt, self.grid)
+
         # Traiter le TowerProcessor (avec dt)
         if self.tower_processor is not None:
             self.tower_processor.process(dt)

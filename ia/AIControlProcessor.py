@@ -2,6 +2,7 @@ import esper
 import pygame
 import math
 from ia.architectAIComponent import ArchitectAIComponent as archAI
+from src.components.core.playerComponent import PlayerComponent
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.baseComponent import BaseComponent 
@@ -23,25 +24,94 @@ class AIControlProcessor(esper.Processor):
         self.slowing_down = False  # Indique si le frein est activé
         self.change_mode_cooldown = 0
 
-    def getState():
-        pass
+    def isObstacleNearby(self, posX, posY):
+        height, width = 2, 2
+        grid_height = len(self.grid)
+        grid_width = len(self.grid[0]) if grid_height > 0 else 0
+        for i in range(-height, height):
+            for j in range(-width, width):
+                y = int(posY) + i
+                x = int(posX) + j
+                if 0 <= y < grid_height and 0 <= x < grid_width:
+                    if self.grid[y][x] == 1 or self.grid[y][x] == 2 or self.grid[y][x] == 3:
+                        return True
+        return False
 
-    def getDecision(self, ai):
-        pass
+    def findClosestEntity(self, team, ally, currentX, currentY):
+        minDistance = float('inf')
+
+        for ent, (pos, opposition) in esper.get_components(PositionComponent, TeamComponent):
+            if (team.team_id == opposition.team_id) == ally :
+                distance = abs(pos.y - currentY) + abs(pos.x - currentX)
+                if distance < minDistance:
+                    minDistance = distance
+        return minDistance
     
+    def findClosestInGrid(self, targetValue, currentX, currentY):
+        closestPos = None
+        minDistance = float('inf')
 
-    def process(self):
+        for row in range(len(self.grid)):
+            for col in range(len(self.grid[0])):
+                if self.grid[row][col] == targetValue:
+                    distance = abs(row - currentY) + abs(col - currentX)
+                    if distance < minDistance:
+                        minDistance = distance
+                        closestPos = (col, row)
+        return closestPos
+    
+    def getCurrentMoney(self, team):
+        gold = 0
+        for ent, (opposition, player) in esper.get_components(TeamComponent, PlayerComponent):
+            if team.team_id == opposition.team_id:
+                gold = player.get_gold()
+        return gold
+
+    def getDecision(self, dt, entity, ai):
+        pos = esper.component_for_entity(entity, PositionComponent)
+        vel = esper.component_for_entity(entity, VelocityComponent)
+        team = esper.component_for_entity(entity, TeamComponent)
+        state = []
+        if (pos is not None and vel is not None and team is not None):
+            posMine = self.findClosestInGrid(3, pos.x, pos.y)
+            posIsland = self.findClosestInGrid(2, pos.x, pos.y)
+
+            dxMine = abs(pos.x - posMine[0])
+            dyMine = abs(pos.y - posMine[1])
+            distanceMine = math.sqrt(dxMine**2 + dyMine**2)
+
+            dxIsland = abs(pos.x - posIsland[0])
+            dyIsland = abs(pos.y - posIsland[1])
+            distanceIsland = math.sqrt(dxIsland**2 + dyIsland**2)
+            absoluteAngleIsland = math.atan2(dyIsland, dxIsland)
+            relativeAngleIsland = (absoluteAngleIsland - pos.direction + math.pi) % (2 * math.pi) - math.pi
+
+            distanceAlly = self.findClosestEntity(team, True, pos.x, pos.y)
+            distanceEnemy = self.findClosestEntity(team, False, pos.x, pos.y)
+            gold = self.getCurrentMoney(team)
+            obstacle = self.isObstacleNearby(pos.x, pos.y)
+            
+            state = [vel.currentSpeed, distanceIsland, relativeAngleIsland, distanceEnemy, distanceAlly, distanceMine, gold, obstacle]
+
+        return ai.makeDecision(dt, state)
+
+    def process(self, dt: float, grid):
+        self.grid = grid
         for entity, ai in esper.get_component(archAI):
             # if self.change_mode_cooldown > 0:
             #     self.change_mode_cooldown -= 0.0016
             # else:
             #     self.change_mode_cooldown = 0
 
-            decision = self.getDecision(ai)
+            decision = self.getDecision(dt, entity, ai)
 
-            if not esper.has_component(entity, RadiusComponent):
+            print(decision)
+            if decision is None:
                 continue
-            radius = esper.component_for_entity(entity, RadiusComponent)
+
+            # if not esper.has_component(entity, RadiusComponent):
+            #     continue
+            # radius = esper.component_for_entity(entity, RadiusComponent)
 
             # # Gestion du frein progressif
             # if decision == "frein":
@@ -57,99 +127,99 @@ class AIControlProcessor(esper.Processor):
             # else:
             #     self.slowing_down = False
 
-            # Accélération uniquement si le frein n'est pas activé
-            if not self.slowing_down and controls.is_action_active(controls.ACTION_UNIT_MOVE_FORWARD, keys, modifiers_state):
-                if esper.has_component(entity, VelocityComponent):
-                    velocity = esper.component_for_entity(entity, VelocityComponent)
-                    if velocity.currentSpeed < velocity.maxUpSpeed:
-                        velocity.currentSpeed += 0.2
-            if not self.slowing_down and controls.is_action_active(controls.ACTION_UNIT_MOVE_BACKWARD, keys, modifiers_state):
-                if esper.has_component(entity, VelocityComponent):
-                    velocity = esper.component_for_entity(entity, VelocityComponent)
-                    if velocity.currentSpeed > velocity.maxReverseSpeed:
-                        velocity.currentSpeed -= 0.1
+            # # Accélération uniquement si le frein n'est pas activé
+            # if not self.slowing_down and controls.is_action_active(controls.ACTION_UNIT_MOVE_FORWARD):
+            #     if esper.has_component(entity, VelocityComponent):
+            #         velocity = esper.component_for_entity(entity, VelocityComponent)
+            #         if velocity.currentSpeed < velocity.maxUpSpeed:
+            #             velocity.currentSpeed += 0.2
+            # if not self.slowing_down and controls.is_action_active(controls.ACTION_UNIT_MOVE_BACKWARD):
+            #     if esper.has_component(entity, VelocityComponent):
+            #         velocity = esper.component_for_entity(entity, VelocityComponent)
+            #         if velocity.currentSpeed > velocity.maxReverseSpeed:
+            #             velocity.currentSpeed -= 0.1
 
-            if controls.is_action_active(controls.ACTION_UNIT_TURN_RIGHT, keys, modifiers_state):
-                if esper.has_component(entity, PositionComponent):
-                    position = esper.component_for_entity(entity, PositionComponent)
-                    position.direction = (position.direction + 1) % 360
-            if controls.is_action_active(controls.ACTION_UNIT_TURN_LEFT, keys, modifiers_state):
-                if esper.has_component(entity, PositionComponent):
-                    position = esper.component_for_entity(entity, PositionComponent)
-                    position.direction = (position.direction - 1) % 360
-            if controls.is_action_active(controls.ACTION_UNIT_PREVIOUS, keys, modifiers_state):
-                if esper.has_component(entity, BaseComponent):
-                    base = esper.component_for_entity(entity, BaseComponent)
-                    base.currentTroop = (base.currentTroop - 1) % len(base.troopList)
-            if controls.is_action_active(controls.ACTION_UNIT_NEXT, keys, modifiers_state):
-                if esper.has_component(entity, BaseComponent):
-                    base = esper.component_for_entity(entity, BaseComponent)
-                    base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
-            if radius.cooldown > 0:
-                radius.cooldown -= 0.1  # Réduction du cooldown
-            else:
-                if controls.is_action_active(controls.ACTION_UNIT_ATTACK, keys, modifiers_state):
-                    esper.dispatch_event("attack_event", entity, "bullet")
-                    radius.cooldown = radius.bullet_cooldown
+            # if controls.is_action_active(controls.ACTION_UNIT_TURN_RIGHT):
+            #     if esper.has_component(entity, PositionComponent):
+            #         position = esper.component_for_entity(entity, PositionComponent)
+            #         position.direction = (position.direction + 1) % 360
+            # if controls.is_action_active(controls.ACTION_UNIT_TURN_LEFT):
+            #     if esper.has_component(entity, PositionComponent):
+            #         position = esper.component_for_entity(entity, PositionComponent)
+            #         position.direction = (position.direction - 1) % 360
+            # if controls.is_action_active(controls.ACTION_UNIT_PREVIOUS):
+            #     if esper.has_component(entity, BaseComponent):
+            #         base = esper.component_for_entity(entity, BaseComponent)
+            #         base.currentTroop = (base.currentTroop - 1) % len(base.troopList)
+            # if controls.is_action_active(controls.ACTION_UNIT_NEXT):
+            #     if esper.has_component(entity, BaseComponent):
+            #         base = esper.component_for_entity(entity, BaseComponent)
+            #         base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
+            # if radius.cooldown > 0:
+            #     radius.cooldown -= 0.1  # Réduction du cooldown
+            # else:
+            #     if controls.is_action_active(controls.ACTION_UNIT_ATTACK):
+            #         esper.dispatch_event("attack_event", entity, "bullet")
+            #         radius.cooldown = radius.bullet_cooldown
 
-            # Changement du mode d'attaque avec Tab
-            if controls.is_action_active(controls.ACTION_UNIT_ATTACK_MODE, keys, modifiers_state) and self.change_mode_cooldown == 0:
-                # on déclenche le toggle une seule fois au moment de l'appui
-                if esper.has_component(entity, RadiusComponent):
-                    self.change_mode_cooldown = 0.1
-                    radius = esper.component_for_entity(entity, RadiusComponent)
-                    print("is changing mode")
-                    if radius.can_shoot_from_side:
-                        radius.lateral_shooting = not radius.lateral_shooting
+            # # Changement du mode d'attaque avec Tab
+            # if controls.is_action_active(controls.ACTION_UNIT_ATTACK_MODE) and self.change_mode_cooldown == 0:
+            #     # on déclenche le toggle une seule fois au moment de l'appui
+            #     if esper.has_component(entity, RadiusComponent):
+            #         self.change_mode_cooldown = 0.1
+            #         radius = esper.component_for_entity(entity, RadiusComponent)
+            #         print("is changing mode")
+            #         if radius.can_shoot_from_side:
+            #             radius.lateral_shooting = not radius.lateral_shooting
     
-            # GESTION DE LA CAPACITÉ SPÉCIALE
-            if controls.is_action_active(controls.ACTION_UNIT_SPECIAL, keys, modifiers_state):
-                # Capacité du Druid
-                if esper.has_component(entity, SpeDruid):
-                    spe_druid = esper.component_for_entity(entity, SpeDruid)
-                    if spe_druid.can_cast_ivy():
-                        self._activate_druid_ability(entity, spe_druid)
+            # # GESTION DE LA CAPACITÉ SPÉCIALE
+            # if controls.is_action_active(controls.ACTION_UNIT_SPECIAL):
+            #     # Capacité du Druid
+            #     if esper.has_component(entity, SpeDruid):
+            #         spe_druid = esper.component_for_entity(entity, SpeDruid)
+            #         if spe_druid.can_cast_ivy():
+            #             self._activate_druid_ability(entity, spe_druid)
                 
-                # Capacité de l'Architect
-                elif esper.has_component(entity, SpeArchitect):
-                    spe_architect = esper.component_for_entity(entity, SpeArchitect)
-                    if spe_architect.available and not spe_architect.is_active:
-                        self._activate_architect_ability(entity, spe_architect)
-                # Capacité du Scout (invincibilité)
-                elif esper.has_component(entity, SpeScout):
-                    spe_scout = esper.component_for_entity(entity, SpeScout)
-                    if spe_scout.can_activate():
-                        spe_scout.activate()
-                    else:
-                        pass
+            #     # Capacité de l'Architect
+            #     elif esper.has_component(entity, SpeArchitect):
+            #         spe_architect = esper.component_for_entity(entity, SpeArchitect)
+            #         if spe_architect.available and not spe_architect.is_active:
+            #             self._activate_architect_ability(entity, spe_architect)
+            #     # Capacité du Scout (invincibilité)
+            #     elif esper.has_component(entity, SpeScout):
+            #         spe_scout = esper.component_for_entity(entity, SpeScout)
+            #         if spe_scout.can_activate():
+            #             spe_scout.activate()
+            #         else:
+            #             pass
 
-                # Capacité du Maraudeur (bouclier de mana)
-                elif esper.has_component(entity, SpeMaraudeur):
-                    spe_maraudeur = esper.component_for_entity(entity, SpeMaraudeur)
-                    if spe_maraudeur.can_activate():
-                        spe_maraudeur.activate()
-                    else:
-                        pass
+            #     # Capacité du Maraudeur (bouclier de mana)
+            #     elif esper.has_component(entity, SpeMaraudeur):
+            #         spe_maraudeur = esper.component_for_entity(entity, SpeMaraudeur)
+            #         if spe_maraudeur.can_activate():
+            #             spe_maraudeur.activate()
+            #         else:
+            #             pass
 
-                # Capacité du Leviathan (seconde salve)
-                elif esper.has_component(entity, SpeLeviathan):
-                    spe_lev = esper.component_for_entity(entity, SpeLeviathan)
-                    if spe_lev.can_activate():
-                        spe_lev.activate()
-                    else:
-                        pass
+            #     # Capacité du Leviathan (seconde salve)
+            #     elif esper.has_component(entity, SpeLeviathan):
+            #         spe_lev = esper.component_for_entity(entity, SpeLeviathan)
+            #         if spe_lev.can_activate():
+            #             spe_lev.activate()
+            #         else:
+            #             pass
 
 
-            if esper.has_component(entity, SpeArchitect):
-                if controls.is_action_active(controls.ACTION_BUILD_DEFENSE_TOWER, keys, modifiers_state):
-                    pos = esper.component_for_entity(entity, PositionComponent)
-                    team = esper.component_for_entity(entity, TeamComponent)
-                    createDefenseTower(self.grid, pos, team)
+            # if esper.has_component(entity, SpeArchitect):
+            #     if controls.is_action_active(controls.ACTION_BUILD_DEFENSE_TOWER):
+            #         pos = esper.component_for_entity(entity, PositionComponent)
+            #         team = esper.component_for_entity(entity, TeamComponent)
+            #         createDefenseTower(self.grid, pos, team)
 
-                if controls.is_action_active(controls.ACTION_BUILD_HEAL_TOWER, keys, modifiers_state):
-                    pos = esper.component_for_entity(entity, PositionComponent)
-                    team = esper.component_for_entity(entity, TeamComponent)
-                    createHealTower(self.grid, pos, team)
+            #     if controls.is_action_active(controls.ACTION_BUILD_HEAL_TOWER):
+            #         pos = esper.component_for_entity(entity, PositionComponent)
+            #         team = esper.component_for_entity(entity, TeamComponent)
+            #         createHealTower(self.grid, pos, team)
 
 
     def _activate_druid_ability(self, druid_entity, spe_druid):
