@@ -112,4 +112,116 @@ Useful commands in the pstats interpreter:
 
 ---
 
+## 🧪 Testing and Benchmarking Suite
+
+The project includes a comprehensive testing and benchmarking suite to ensure code quality and performance monitoring.
+
+### 🧪 Automated Testing
+
+The project uses `pytest` for automated testing with three categories of tests:
+
+#### Test Categories
+
+- **Unit Tests** (`--unit`): Test individual components and functions
+- **Integration Tests** (`--integration`): Test interactions between components
+- **Performance Tests** (`--performance`): Test system performance under load
+
+#### Running Tests
+
+```bash
+# Run all tests
+python run_tests.py
+
+# Run specific test categories
+python run_tests.py --unit              # Only unit tests
+python run_tests.py --integration       # Only integration tests
+python run_tests.py --performance       # Only performance tests
+
+# Run with coverage report
+python run_tests.py --coverage
+
+# Run with verbose output
+python run_tests.py --verbose
+```
+
+#### Test Structure
+
+```
+tests/
+├── conftest.py              # Common test fixtures and setup
+├── test_components.py       # Unit tests for ECS components
+├── test_processors.py       # Unit tests for ECS processors
+├── test_utils.py           # Unit tests for utility functions
+├── test_integration.py     # Integration tests
+├── test_performance.py     # Performance tests
+└── run_tests.py           # Test execution script
+```
+
+### 📊 Performance Benchmarking
+
+The project includes a dedicated benchmarking program to measure real-world performance.
+
+#### Benchmark Types
+
+- **Entity Creation**: Measures ECS entity creation speed (~160k ops/sec)
+- **Component Queries**: Measures component query performance
+- **Unit Spawning**: Simulates unit creation and spawning
+- **Combat Simulation**: Tests combat system performance
+- **Full Game Simulation**: Real pygame window with FPS measurement (~31 FPS)
+
+#### Running Benchmarks
+
+```bash
+# Run all benchmarks (10 seconds each)
+python benchmark.py
+
+# Run only full game simulation benchmark
+python benchmark.py --full-game-only --duration 30
+
+# Run with custom duration and save results
+python benchmark.py --duration 5 --output benchmark_results.json
+
+# Run demonstration script
+python demo_benchmarks.py
+```
+
+#### Benchmark Results
+
+Typical performance metrics:
+
+- **Entity Creation**: 160,000+ operations/second
+- **Full Game Simulation**: 30+ FPS with real pygame window
+- **Memory Usage**: Efficient ECS memory management
+- **Component Queries**: Fast entity-component lookups
+
+#### Interpreting Benchmark Results
+
+```text
+🔹 ENTITY_CREATION:
+   ⏱️  Duration: 10.00s
+   🔢 Operations: 1,618,947
+   ⚡ Ops/sec: 161,895
+   💾 Memory: 0.00 MB
+
+🔹 FULL_GAME_SIMULATION:
+   ⏱️  Duration: 10.03s
+   🔢 Operations: 312
+   ⚡ Ops/sec: 31
+   💾 Memory: 0.00 MB
+```
+
+!!! tip "Benchmarking Best Practices"
+    - Run benchmarks on dedicated hardware for consistent results
+    - Compare results before/after performance optimizations
+    - Use `--full-game-only` for realistic performance testing
+    - Monitor FPS metrics for gameplay performance validation
+
+!!! info "Maintenance Integration"
+    - Run tests before any major changes
+    - Use benchmarks to validate performance improvements
+    - Include benchmark results in performance regression testing
+    - Automate benchmark execution in CI/CD pipelines
+
+---
+
 > For any questions or suggestions, feel free to open an issue or a pull request on the GitHub repository.
