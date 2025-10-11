@@ -56,6 +56,7 @@ from src.components.special.speArchitectComponent import SpeArchitect
 from src.processeurs.flyingChestProcessor import FlyingChestProcessor
 from src.managers.island_resource_manager import IslandResourceManager
 from src.processeurs.stormProcessor import StormProcessor
+from src.processeurs.combatRewardProcessor import CombatRewardProcessor
 from src.managers.display import get_display_manager
 
 
@@ -739,6 +740,7 @@ class GameEngine:
         self.flying_chest_processor = FlyingChestProcessor()
         self.island_resource_manager = IslandResourceManager()
         self.storm_processor = StormProcessor()
+        self.combat_reward_processor = CombatRewardProcessor()
         self.player = None
         self.notification_system = get_notification_system()
         
