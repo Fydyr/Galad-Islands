@@ -18,6 +18,7 @@ from src.components.core.projectileComponent import ProjectileComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
+from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.managers.sprite_manager import SpriteID, sprite_manager
 from src.components.events.flyChestComponent import FlyingChestComponent
 from src.components.events.islandResourceComponent import IslandResourceComponent
@@ -40,7 +41,7 @@ class CollisionProcessor(esper.Processor):
             'enemy_base': {'can_pass': False, 'speed_modifier': 0.0} # 5 - Base ennemie bloque
         }
 
-    def process(self):
+    def process(self, **kwargs):
         # Initialiser les entités mines une seule fois
         if not self.mines_initialized and self.graph:
             self._initialize_mine_entities()
@@ -287,6 +288,21 @@ class CollisionProcessor(esper.Processor):
         is_mine1 = self._is_mine_entity(entity1)
         is_mine2 = self._is_mine_entity(entity2)
         # Si un projectile touche une mine, la mine ne prend pas de dégâts
+
+        # Gestion spéciale pour le Kamikaze
+        is_kamikaze1 = esper.has_component(entity1, SpeKamikazeComponent)
+        is_kamikaze2 = esper.has_component(entity2, SpeKamikazeComponent)
+
+        if is_kamikaze1 and not is_mine2: # Le kamikaze explose sur tout sauf les mines
+            self._create_explosion_at_entity(entity1)
+            processHealth(entity2, esper.component_for_entity(entity1, Attack).hitPoints, entity1)
+            esper.delete_entity(entity1)
+            return # Fin du traitement pour cette paire
+        if is_kamikaze2 and not is_mine1:
+            self._create_explosion_at_entity(entity2)
+            processHealth(entity1, esper.component_for_entity(entity2, Attack).hitPoints, entity2)
+            esper.delete_entity(entity2)
+            return
         # Mais le projectile peut être détruit
         if (is_projectile1 and is_mine2) or (is_projectile2 and is_mine1):
             # Détruire seulement le projectile et créer une explosion

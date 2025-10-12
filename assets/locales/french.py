@@ -106,6 +106,7 @@ TRANSLATIONS = {
     "units.draupnir": "Draupnir (Léviathan Lourd)",
     "units.druid": "Druid",
     "units.architect": "Architect",
+    "units.kamikaze": "Kamikaze",
     
     # Interface de jeu
     "game.instructions": "Flèches: Déplacer | Molette: Zoom | F3: Debug | Échap: Quitter",
@@ -227,6 +228,7 @@ TRANSLATIONS = {
     "shop.barhamus_desc": "Guerrier robuste avec bouclier", 
     "shop.draupnir_desc": "Léviathan lourd destructeur",
     "shop.druid_desc": "Soigneur et support magique",
+    "shop.kamikaze_desc": "Unité rapide et explosive",
     "shop.architect_desc": "Constructeur de défenses",
     
     # Descriptions des bâtiments
@@ -292,6 +294,8 @@ TRANSLATIONS = {
     "enemy_shop.shaman_desc": "Soigneur et soutien maléfique",
     "enemy_shop.engineer": "Ingénieur Ennemi",
     "enemy_shop.engineer_desc": "Constructeur de pièges",
+    "enemy_shop.kamikaze": "Kamikaze Ennemi",
+    "enemy_shop.kamikaze_desc": "Unité rapide et agressive",
     "enemy_shop.attack_tower": "Tour de Défense",
     "enemy_shop.attack_tower_desc": "Tour offensive redoutable",
     "enemy_shop.heal_tower": "Tour de Régénération", 

@@ -97,6 +97,7 @@ TRANSLATIONS = {
     "units.draupnir": "Draupnir (Heavy Leviathan)",
     "units.druid": "Druid",
     "units.architect": "Architect",
+    "units.kamikaze": "Kamikaze",
     
     # Game interface  
     "game.instructions": "Arrows: Move | Mouse Wheel: Zoom | F3: Debug | Esc: Quit",
@@ -218,6 +219,7 @@ TRANSLATIONS = {
     "shop.barhamus_desc": "Robust warrior with shield",
     "shop.draupnir_desc": "Heavy destructive leviathan", 
     "shop.druid_desc": "Healer and magic support",
+    "shop.kamikaze_desc": "Fast and explosive unit",
     "shop.architect_desc": "Defense builder",
     
     # Building descriptions
@@ -283,6 +285,8 @@ TRANSLATIONS = {
     "enemy_shop.shaman_desc": "Healer and evil support",
     "enemy_shop.engineer": "Enemy Engineer",
     "enemy_shop.engineer_desc": "Trap constructor",
+    "enemy_shop.kamikaze": "Enemy Kamikaze",
+    "enemy_shop.kamikaze_desc": "Fast and aggressive unit",
     "enemy_shop.attack_tower": "Defense Tower",
     "enemy_shop.attack_tower_desc": "Formidable offensive tower",
     "enemy_shop.heal_tower": "Regeneration Tower",

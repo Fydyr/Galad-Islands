@@ -17,7 +17,7 @@ from src.factory.unitType import (
 from src.constants.gameplay import (
     # Directions par défaut
     ALLY_DEFAULT_DIRECTION, ENEMY_DEFAULT_DIRECTION,
-    # Stats des unités
+    # Stats des unités - KAMIKAZE ajouté
     UNIT_HEALTH_SCOUT, UNIT_HEALTH_MARAUDEUR, UNIT_HEALTH_LEVIATHAN, UNIT_HEALTH_DRUID, UNIT_HEALTH_ARCHITECT,
     UNIT_SPEED_SCOUT, UNIT_SPEED_MARAUDEUR, UNIT_SPEED_LEVIATHAN, UNIT_SPEED_DRUID, UNIT_SPEED_ARCHITECT,
     UNIT_REVERSE_SPEED_SCOUT, UNIT_REVERSE_SPEED_MARAUDEUR, UNIT_REVERSE_SPEED_LEVIATHAN, UNIT_REVERSE_SPEED_DRUID, UNIT_REVERSE_SPEED_ARCHITECT,
@@ -25,6 +25,7 @@ from src.constants.gameplay import (
     UNIT_COOLDOWN_SCOUT, UNIT_COOLDOWN_MARAUDEUR, UNIT_COOLDOWN_LEVIATHAN, UNIT_COOLDOWN_DRUID, UNIT_COOLDOWN_ARCHITECT,
     # Portées de vision
     UNIT_VISION_SCOUT, UNIT_VISION_MARAUDEUR, UNIT_VISION_LEVIATHAN, UNIT_VISION_DRUID, UNIT_VISION_ARCHITECT,
+    UNIT_HEALTH_KAMIKAZE, UNIT_SPEED_KAMIKAZE, UNIT_REVERSE_SPEED_KAMIKAZE, UNIT_ATTACK_KAMIKAZE, UNIT_COOLDOWN_KAMIKAZE, UNIT_VISION_KAMIKAZE,
     # Capacités spéciales
     SPECIAL_ABILITY_COOLDOWN, DRUID_IMMOBILIZATION_DURATION, DRUID_PROJECTILE_SPEED,
     ARCHITECT_RADIUS, ARCHITECT_RELOAD_FACTOR, ARCHITECT_DURATION,
@@ -44,6 +45,8 @@ from src.components.core.classeComponent import ClasseComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
+from src.components.special.speKamikazeComponent import SpeKamikazeComponent
+from src.components.core.UnitAiComponent import UnitAiComponent
 from src.components.core.visionComponent import VisionComponent
 from src.settings.localization import t
 
@@ -162,6 +165,27 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
                 timer=0.0
             ))
             es.add_component(entity, VisionComponent(UNIT_VISION_ARCHITECT))
+
+        case UnitType.KAMIKAZE:
+            entity = es.create_entity()
+            es.add_component(entity, PositionComponent(pos.x, pos.y, ALLY_DEFAULT_DIRECTION if not enemy else ENEMY_DEFAULT_DIRECTION))
+            es.add_component(entity, VelocityComponent(0, UNIT_SPEED_KAMIKAZE, UNIT_REVERSE_SPEED_KAMIKAZE))
+            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_KAMIKAZE))
+            es.add_component(entity, TeamComponent(1 if not enemy else 2))
+            es.add_component(entity, AttackComponent(UNIT_ATTACK_KAMIKAZE))
+            es.add_component(entity, HealthComponent(UNIT_HEALTH_KAMIKAZE, UNIT_HEALTH_KAMIKAZE))
+            es.add_component(entity, CanCollideComponent())
+            es.add_component(entity, SpeKamikazeComponent()) # Gère la capacité spéciale et le marqueur d'explosion
+            es.add_component(entity, VisionComponent(UNIT_VISION_KAMIKAZE))
+            # Si l'unité est ennemie, on lui ajoute le composant IA
+            if enemy:
+                es.add_component(entity, UnitAiComponent(unit_type=UnitType.KAMIKAZE))
+
+            sprite_id = SpriteID.ALLY_KAMIKAZE if not enemy else SpriteID.ENEMY_KAMIKAZE
+            size = sprite_manager.get_default_size(sprite_id)
+            if size:
+                width, height = size
+                es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
 
         case UnitType.ATTACK_TOWER:
             pass

@@ -31,6 +31,7 @@ from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
 from src.ia.BaseAi import BaseAi
+from src.processeurs.UnitAiProcessor import UnitAiProcessor
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -922,11 +923,14 @@ class GameEngine:
         self.enemy_base_ai = BaseAi(team_id=2)
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
+        # IA des unités individuelles (Kamikaze, etc.)
+        self.unit_ai_processor = UnitAiProcessor(grid=self.grid)
 
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
         es.add_processor(self.tower_processor, priority=5)
+        es.add_processor(self.unit_ai_processor, priority=6) # L'IA des unités décide avant l'IA de la base
         es.add_processor(self.enemy_base_ai, priority=7) # L'IA est un processeur comme les autres
         es.add_processor(self.lifetime_processor, priority=10)
         

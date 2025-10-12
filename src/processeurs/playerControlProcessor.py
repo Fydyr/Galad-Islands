@@ -11,6 +11,7 @@ from src.components.special.speArchitectComponent import SpeArchitect
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
+from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.teamComponent import TeamComponent
 from src.functions.buildingCreator import createDefenseTower, createHealTower
 from src.settings import controls
@@ -23,7 +24,7 @@ class PlayerControlProcessor(esper.Processor):
         self.slowing_down = False  # Indique si le frein est activé
         self.change_mode_cooldown = 0
 
-    def process(self):
+    def process(self, **kwargs):
         keys = pygame.key.get_pressed()
         modifiers_state = pygame.key.get_mods()
         for entity, selected in esper.get_component(PlayerSelectedComponent):
@@ -132,6 +133,13 @@ class PlayerControlProcessor(esper.Processor):
                     else:
                         pass
 
+                # Capacité du Kamikaze (boost de vitesse)
+                elif esper.has_component(entity, SpeKamikazeComponent):
+                    spe_kamikaze = esper.component_for_entity(entity, SpeKamikazeComponent)
+                    if spe_kamikaze.can_activate():
+                        spe_kamikaze.activate()
+                    else:
+                        pass
 
             if esper.has_component(entity, SpeArchitect):
                 if controls.is_action_active(controls.ACTION_BUILD_DEFENSE_TOWER, keys, modifiers_state):
@@ -158,7 +166,7 @@ class PlayerControlProcessor(esper.Processor):
         
         # Recherche de tous les alliés dans le rayon
         for ent, (pos, team, radius) in esper.get_components(PositionComponent, TeamComponent, RadiusComponent):
-            if team.team == architect_team.team and ent != architect_entity:
+            if team.team_id == architect_team.team_id and ent != architect_entity:
                 distance = math.sqrt((pos.x - architect_pos.x)**2 + (pos.y - architect_pos.y)**2)
                 if distance <= spe_architect.radius:
                     affected_units.append(ent)
@@ -168,6 +176,3 @@ class PlayerControlProcessor(esper.Processor):
 
 
                 
-
-
-

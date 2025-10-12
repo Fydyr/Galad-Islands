@@ -12,6 +12,7 @@ UNIT_COST_SCOUT = 50
 UNIT_COST_MARAUDEUR = 100
 UNIT_COST_LEVIATHAN = 200
 UNIT_COST_DRUID = 150
+UNIT_COST_KAMIKAZE = UNIT_COST_SCOUT  # Même prix qu'un Scout
 UNIT_COST_ARCHITECT = 120
 UNIT_COST_ATTACK_TOWER = 80
 UNIT_COST_HEAL_TOWER = 100
@@ -22,6 +23,7 @@ UNIT_COSTS = {
     "maraudeur": UNIT_COST_MARAUDEUR,
     "leviathan": UNIT_COST_LEVIATHAN,
     "druid": UNIT_COST_DRUID,
+    "kamikaze": UNIT_COST_KAMIKAZE,
     "architect": UNIT_COST_ARCHITECT,
     "attack_tower": UNIT_COST_ATTACK_TOWER,
     "heal_tower": UNIT_COST_HEAL_TOWER,
@@ -40,6 +42,7 @@ UNIT_VISION_MARAUDEUR = 5.0
 UNIT_VISION_LEVIATHAN = 4.0
 UNIT_VISION_DRUID = 5.0
 UNIT_VISION_ARCHITECT = 4.0
+UNIT_VISION_KAMIKAZE = UNIT_VISION_SCOUT  # Même vision qu'un Scout
 
 # =============================================================================
 # CONSTANTES DE PERFORMANCE ET RENDU
@@ -202,6 +205,7 @@ UNIT_HEALTH_SCOUT = 60
 UNIT_HEALTH_MARAUDEUR = 130  # Était 80, mise à jour depuis factory
 UNIT_HEALTH_LEVIATHAN = 300  # Était 120, mise à jour depuis factory
 UNIT_HEALTH_DRUID = 130      # Était 70, mise à jour depuis factory
+UNIT_HEALTH_KAMIKAZE = 40    # Unité faible
 UNIT_HEALTH_ARCHITECT = 130  # Était 75, mise à jour depuis factory
 
 # Vitesses des unités (par type)
@@ -209,6 +213,7 @@ UNIT_SPEED_SCOUT = 5.0
 UNIT_SPEED_MARAUDEUR = 3.5
 UNIT_SPEED_LEVIATHAN = 2.0
 UNIT_SPEED_DRUID = 3.5
+UNIT_SPEED_KAMIKAZE = 6.0    # Très rapide
 UNIT_SPEED_ARCHITECT = 3.5
 
 # Vitesses de recul des unités (par type)
@@ -216,6 +221,7 @@ UNIT_REVERSE_SPEED_SCOUT = -1.0
 UNIT_REVERSE_SPEED_MARAUDEUR = -0.6
 UNIT_REVERSE_SPEED_LEVIATHAN = -0.2
 UNIT_REVERSE_SPEED_DRUID = -0.6
+UNIT_REVERSE_SPEED_KAMIKAZE = -1.0
 UNIT_REVERSE_SPEED_ARCHITECT = -0.6
 
 # Attaques des unités (par type)
@@ -223,6 +229,7 @@ UNIT_ATTACK_SCOUT = 10
 UNIT_ATTACK_MARAUDEUR = 20
 UNIT_ATTACK_LEVIATHAN = 30
 UNIT_ATTACK_DRUID = 20
+UNIT_ATTACK_KAMIKAZE = 150   # Dégâts de collision importants
 UNIT_ATTACK_ARCHITECT = 20
 
 # Attaques des bases
@@ -234,6 +241,7 @@ UNIT_COOLDOWN_SCOUT = 2
 UNIT_COOLDOWN_MARAUDEUR = 4
 UNIT_COOLDOWN_LEVIATHAN = 8
 UNIT_COOLDOWN_DRUID = 4
+UNIT_COOLDOWN_KAMIKAZE = 0.5 # Cooldown très court, car il meurt après l'attaque
 UNIT_COOLDOWN_ARCHITECT = 4
 
 # Capacités spéciales

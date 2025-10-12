@@ -34,7 +34,8 @@ from src.constants.gameplay import (
         SHOP_FONT_SIZE_SUBTITLE, SHOP_FONT_SIZE_NORMAL, SHOP_FONT_SIZE_SMALL,
         SHOP_FONT_SIZE_TINY,
         UNIT_COST_SCOUT, UNIT_COST_MARAUDEUR, UNIT_COST_LEVIATHAN,
-        UNIT_COST_DRUID, UNIT_COST_ARCHITECT, UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER
+        UNIT_COST_DRUID, UNIT_COST_ARCHITECT, UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER,
+        UNIT_COST_KAMIKAZE
     )
 
 
@@ -291,6 +292,7 @@ class UnifiedShop:
             UnitType.LEVIATHAN: UNIT_COST_LEVIATHAN,
             UnitType.DRUID: UNIT_COST_DRUID,
             UnitType.ARCHITECT: UNIT_COST_ARCHITECT,
+            UnitType.KAMIKAZE: UNIT_COST_KAMIKAZE,
             UnitType.ATTACK_TOWER: UNIT_COST_ATTACK_TOWER,
             UnitType.HEAL_TOWER: UNIT_COST_HEAL_TOWER,
         }
@@ -358,7 +360,8 @@ class UnifiedShop:
             "barhamus": SpriteID.ALLY_MARAUDEUR,
             "draupnir": SpriteID.ALLY_LEVIATHAN,
             "druid": SpriteID.ALLY_DRUID,
-            "architect": SpriteID.ALLY_ARCHITECT
+            "architect": SpriteID.ALLY_ARCHITECT,
+            "kamikaze": SpriteID.ALLY_KAMIKAZE
         }
         
         # Mapping des unités ennemies
@@ -367,7 +370,8 @@ class UnifiedShop:
             "enemy_warrior": SpriteID.ENEMY_MARAUDEUR,
             "enemy_brute": SpriteID.ENEMY_LEVIATHAN,
             "enemy_shaman": SpriteID.ENEMY_DRUID,
-            "enemy_engineer": SpriteID.ENEMY_ARCHITECT
+            "enemy_engineer": SpriteID.ENEMY_ARCHITECT,
+            "enemy_kamikaze": SpriteID.ENEMY_KAMIKAZE
         }
         
         if is_enemy or unit_id.startswith("enemy_"):

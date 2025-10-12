@@ -20,7 +20,7 @@ class TowerProcessor(esper.Processor):
     def __init__(self):
         super().__init__()
 
-    def process(self, dt: float = 0.016):
+    def process(self, dt: float = 0.016, **kwargs):
         # Process all towers with the unified component
         for ent, (tower, pos, team) in esper.get_components(TowerComponent, PositionComponent, TeamComponent):
             tower.update_cooldown(dt)

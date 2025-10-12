@@ -25,8 +25,8 @@ class AdvancedBaseAiTrainer:
     """Entraîneur avancé pour l'IA de la base."""
 
     def __init__(self, default_team_id=2):
-        self.ai = BaseAi(default_team_id=default_team_id)
-        self.gold_reserve = 200
+        self.ai = BaseAi(team_id=default_team_id)
+        self.gold_reserve = 50
 
     def generate_advanced_training_data(self, n_games=200):
         """Génère des données d'entraînement avancées avec plus de scénarios."""
@@ -34,7 +34,7 @@ class AdvancedBaseAiTrainer:
 
         features = []
         labels = []
-        action_counts = [0, 0, 0, 0, 0, 0] # 6 actions: Rien, Eclaireur, Architecte, Maraudeur, Léviathan, Druide
+        action_counts = [0] * 7 # 7 actions: Rien, Eclaireur, Architecte, Maraudeur, Léviathan, Druide, Kamikaze
 
         for game in range(n_games):
             # Utiliser la simulation améliorée de BaseAi
@@ -50,7 +50,7 @@ class AdvancedBaseAiTrainer:
 
         print(f"📈 Données générées: {len(features)} exemples")
         print("🎯 Répartition des actions dans les données:")
-        action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide"]
+        action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
         for i, count in enumerate(action_counts):
             if count > 0:
                 percentage = (count / sum(action_counts)) * 100
@@ -113,13 +113,13 @@ class AdvancedBaseAiTrainer:
 
         # Rapport détaillé par classe
         print("📋 RAPPORT DÉTAILLÉ PAR ACTION:")
-        target_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide"]
-        report = classification_report(y_test, y_pred, target_names=target_names, labels=[0,1,2,3,4,5], zero_division=0)
+        target_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
+        report = classification_report(y_test, y_pred, target_names=target_names, labels=list(range(len(target_names))), zero_division=0)
         print(report)
 
         # Sauvegarder le modèle avancé
-        model_path = "src/models/base_ai_advanced_model.pkl"
-        os.makedirs("src/models", exist_ok=True)
+        model_path = "models/base_ai_advanced_model.pkl"
+        os.makedirs("models", exist_ok=True)
         joblib.dump(model, model_path)
         print(f"💾 Modèle sauvegardé: {model_path}")
 

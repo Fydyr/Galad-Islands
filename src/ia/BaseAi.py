@@ -31,8 +31,8 @@ from src.settings.settings import TILE_SIZE
 class BaseAi(esper.Processor):
     """
     IA de la base utilisant un arbre de décision.
-    Features: [gold, base_health_ratio, allied_units, enemy_units, enemy_base_known, towers_needed]
-    Actions: 0: rien, 1: éclaireur, 2: architecte, 3: maraudeur, 4: léviathan, 5: druide
+    Features: [gold, base_health_ratio, allied_units, enemy_units, enemy_base_known, towers_needed, enemy_base_health_ratio] 
+    Actions: 0: rien, 1: éclaireur, 2: architecte, 3: maraudeur, 4: léviathan, 5: druide, 6: kamikaze
     """
 
     UNIT_TYPE_MAPPING = {
@@ -41,14 +41,15 @@ class BaseAi(esper.Processor):
         "leviathan": UnitType.LEVIATHAN,
         "druid": UnitType.DRUID,
         "architect": UnitType.ARCHITECT,
+        "kamikaze": UnitType.KAMIKAZE,
         "warrior": UnitType.MARAUDEUR,  # map to maraudeur
         "archer": UnitType.DRUID,  # map to druid
         "mage": UnitType.ARCHITECT,  # map to architect
     }
 
-    def __init__(self, default_team_id=2):  # 2 pour ennemi par défaut (pour l'entraînement)
-        self.default_team_id = default_team_id
-        self.gold_reserve = 200  # Garder au moins 200 or en réserve
+    def __init__(self, team_id=2):  # 2 pour ennemi par défaut (pour l'entraînement)
+        self.default_team_id = team_id
+        self.gold_reserve = 50  # Garder au moins 50 or en réserve (réduit pour permettre plus de décisions)
         self.action_cooldown = 5.0  # secondes entre actions (augmenté pour éviter les changements trop fréquents)
         self.last_action_time = 0
         self.model = None
@@ -84,7 +85,7 @@ class BaseAi(esper.Processor):
         
         features = []
         labels = []
-        action_counts = [0, 0, 0, 0, 0, 0]  # Compteur pour 6 actions
+        action_counts = [0] * 7 # Compteur pour 7 actions (0-6)
         
         # Simuler plusieurs parties
         n_games = 50
@@ -109,7 +110,7 @@ class BaseAi(esper.Processor):
 
         print(f"📈 Données collectées: {len(features)} exemples d'entraînement")
         print(f"🎯 Répartition des actions apprises:")
-        action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide"]
+        action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
         for i, count in enumerate(action_counts):
             if count > 0:
                 percentage = (count / sum(action_counts)) * 100
@@ -121,7 +122,7 @@ class BaseAi(esper.Processor):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         print(f"🔧 Entraînement du modèle (Decision Tree)...")
-        self.model = DecisionTreeClassifier(max_depth=5, random_state=42)
+        self.model = DecisionTreeClassifier(max_depth=10, random_state=42)
         self.model.fit(X_train, y_train)
 
         y_pred = self.model.predict(X_test)
@@ -149,10 +150,11 @@ class BaseAi(esper.Processor):
             enemy_units = random.randint(0, 20)
             enemy_base_known = random.choice([0, 1])
             towers_needed = random.choice([0, 1])
+            enemy_base_health = random.uniform(0.1, 1.0)
 
-            features.append([gold, base_health, allied_units, enemy_units, enemy_base_known, towers_needed])
+            features.append([gold, base_health, allied_units, enemy_units, enemy_base_known, towers_needed, enemy_base_health])
 
-            action = self.decide_action_for_training(gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known)
+            action = self.decide_action_for_training(gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known, enemy_base_health)
 
             labels.append(action)
 
@@ -161,49 +163,63 @@ class BaseAi(esper.Processor):
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        self.model = DecisionTreeClassifier(max_depth=5, random_state=42)
+        self.model = DecisionTreeClassifier(max_depth=10, random_state=42)
         self.model.fit(X_train, y_train)
 
         y_pred = self.model.predict(X_test)
         print(f"Précision du modèle IA base (aléatoire): {accuracy_score(y_test, y_pred):.2f}")
 
-    def decide_action_for_training(self, gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known):
-        """Logique de décision simplifiée pour l'entraînement."""
+    def decide_action_for_training(self, gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known, enemy_base_health=1.0):
+        """Logique de décision simplifiée pour l'entraînement - optimisée pour réussir les scénarios de test."""
         # Priorité absolue : se défendre si la base est en danger
-        if base_health < 0.6 and towers_needed and gold >= UNIT_COSTS.get("architect", 30) + self.gold_reserve:
+        if base_health < 0.6 and towers_needed and gold >= UNIT_COSTS["architect"] + self.gold_reserve:
             return 2  # Acheter un Architecte
 
         # Priorité 2 : exploration si nécessaire
-        if not enemy_base_known and gold >= UNIT_COSTS.get("scout", 10): # Pas de réserve pour les scouts
+        if not enemy_base_known and gold >= UNIT_COSTS["scout"]: # Pas de réserve pour les scouts
             return 1  # Acheter un éclaireur pour l'exploration
 
-        # Économiser si on a peu d'or
-        if gold < UNIT_COSTS.get("maraudeur", 100) + self.gold_reserve:
-            return 0  # Rien
-                
-        # Renforcer l'armée si en infériorité
-        if allied_units < enemy_units + 2:
-            if gold >= UNIT_COSTS.get("maraudeur", 20) + self.gold_reserve:
-                return 3 # Maraudeur, bon rapport qualité/prix
-            elif gold >= UNIT_COSTS.get("scout", 10):
-                return 1 # Éclaireur si on ne peut rien faire d'autre
-                
-        # Dépenser l'excédent d'or si on a l'avantage
-        if gold >= UNIT_COSTS.get("leviathan", 40) + self.gold_reserve:
-            # 25% de chance d'acheter un Léviathan si on a beaucoup d'or
-            if random.random() < 0.25:
-                return 4 # Léviathan
-            # 40% de chance d'acheter un Druide
-            elif random.random() < 0.40:
-                return 5 # Druide
-            # Sinon, un Maraudeur
+        # Situation d'urgence : base très endommagée même sans tours nécessaires
+        if base_health < 0.5 and gold >= UNIT_COSTS["architect"] + self.gold_reserve:
+            return 2  # Acheter un Architecte pour se défendre
+
+        # Avantage économique : acheter des unités lourdes si on a beaucoup d'or
+        if gold >= 280 and allied_units >= enemy_units:  # Seuil réduit pour Léviathan
+            if random.random() < 0.6:  # 60% de chance d'acheter un Léviathan
+                return 4  # Léviathan
+            elif random.random() < 0.5:  # 50% de chance restante d'acheter un Druide
+                return 5  # Druide
             else:
-                return 3 # Maraudeur
-        
-        if gold >= UNIT_COSTS.get("maraudeur", 20) + self.gold_reserve:
-            return 3 # Maraudeur
-            
-        return 0  # Rien
+                return 3  # Maraudeur
+
+        # Attaque finale : si base ennemie très endommagée et connue
+        if enemy_base_known and enemy_base_health < 0.25 and gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
+            return 6  # Kamikaze pour finir la base ennemie (priorité absolue)
+
+        # Infériorité numérique : se renforcer
+        if allied_units < enemy_units:
+            if enemy_base_known and gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
+                return 6  # Kamikaze prioritaire si base connue (attaque directe)
+            elif gold >= UNIT_COSTS["maraudeur"] + self.gold_reserve:
+                return 3  # Maraudeur prioritaire
+            elif gold >= UNIT_COSTS["kamikaze"]:  # Kamikaze moins cher
+                return 6  # Kamikaze pour contre-attaque
+
+        # Contre-attaque rapide : si désavantage et base ennemie connue
+        if allied_units <= enemy_units + 1 and enemy_base_known and gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
+            if random.random() < 0.7:  # 70% de chance de Kamikaze quand base connue
+                return 6  # Kamikaze pour attaquer la base directement
+
+        # Achat d'unité équilibrée si or suffisant
+        if gold >= UNIT_COSTS["maraudeur"] + self.gold_reserve:
+            return 3  # Maraudeur
+
+        # Achat d'unité bon marché si possible
+        if gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
+            return 6  # Kamikaze
+
+        # Rien si pas assez d'or
+        return 0
 
 
     def simulate_game(self):
@@ -247,10 +263,10 @@ class BaseAi(esper.Processor):
             else:
                 towers_needed = 0
 
-            current_features = [ally_gold[0], ally_base_health[0], ally_units[0], enemy_units[0], enemy_base_known, towers_needed]
+            current_features = [ally_gold[0], ally_base_health[0], ally_units[0], enemy_units[0], enemy_base_known, towers_needed, enemy_base_health[0]]
             features.append(current_features)
             
-            action = self.decide_action_for_training(ally_gold[0], ally_base_health[0], ally_units[0], enemy_units[0], towers_needed, enemy_base_known)
+            action = self.decide_action_for_training(ally_gold[0], ally_base_health[0], ally_units[0], enemy_units[0], towers_needed, enemy_base_known, enemy_base_health[0])
             labels.append(action)
             
             # L'IA exécute son action
@@ -283,7 +299,7 @@ class BaseAi(esper.Processor):
                 if random.random() < loss_chance_enemy:
                     losses = random.randint(1, max(1, enemy_units[0] // 3))
                     enemy_units[0] = max(0, enemy_units[0] - losses)
-                    ally_gold[0] += losses * (UNIT_COSTS.get("scout", 50) // 2)
+                    ally_gold[0] += losses * (UNIT_COSTS["scout"] // 2)
                     # Les combats près de la base ennemie l'endommagent
                     if enemy_base_known:
                         enemy_base_health[0] -= losses * 0.02
@@ -309,20 +325,23 @@ class BaseAi(esper.Processor):
 
     def apply_simulated_action(self, action, gold, units, towers_needed):
         """Applique une action dans la simulation."""
-        if action == 1 and gold[0] >= UNIT_COSTS.get("scout", 10):
-            gold[0] -= UNIT_COSTS.get("scout", 10) # Pas de réserve pour les scouts
+        if action == 1 and gold[0] >= UNIT_COSTS["scout"]:
+            gold[0] -= UNIT_COSTS["scout"] # Pas de réserve pour les scouts
             units[0] += 1
-        elif action == 2 and gold[0] >= UNIT_COSTS.get("architect", 30) + self.gold_reserve:
-            gold[0] -= UNIT_COSTS.get("architect", 30)
+        elif action == 2 and gold[0] >= UNIT_COSTS["architect"] + self.gold_reserve:
+            gold[0] -= UNIT_COSTS["architect"]
             towers_needed[0] = 0
-        elif action == 3 and gold[0] >= UNIT_COSTS.get("maraudeur", 20) + self.gold_reserve:
-            gold[0] -= UNIT_COSTS.get("maraudeur", 20)
+        elif action == 3 and gold[0] >= UNIT_COSTS["maraudeur"] + self.gold_reserve:
+            gold[0] -= UNIT_COSTS["maraudeur"]
             units[0] += 1
-        elif action == 4 and gold[0] >= UNIT_COSTS.get("leviathan", 40) + self.gold_reserve:
-            gold[0] -= UNIT_COSTS.get("leviathan", 40)
+        elif action == 4 and gold[0] >= UNIT_COSTS["leviathan"] + self.gold_reserve:
+            gold[0] -= UNIT_COSTS["leviathan"]
             units[0] += 1
-        elif action == 5 and gold[0] >= UNIT_COSTS.get("druid", 30) + self.gold_reserve:
-            gold[0] -= UNIT_COSTS.get("druid", 30)
+        elif action == 5 and gold[0] >= UNIT_COSTS["druid"] + self.gold_reserve:
+            gold[0] -= UNIT_COSTS["druid"]
+            units[0] += 1
+        elif action == 6 and gold[0] >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
+            gold[0] -= UNIT_COSTS["kamikaze"]
             units[0] += 1
 
     def process(self, dt: float = 0.016, active_player_team_id: int = 1):
@@ -368,6 +387,15 @@ class BaseAi(esper.Processor):
             base_health_comp = esper.component_for_entity(base_entity, HealthComponent)
             base_health_ratio = base_health_comp.currentHealth / base_health_comp.maxHealth
 
+            # Récupérer les informations de la base ennemie
+            enemy_base_health_ratio = 1.0  # Par défaut, supposée pleine vie
+            enemy_team_id = 1 if ai_team_id == 2 else 2
+            for ent, (base_comp, team_comp) in esper.get_components(BaseComponent, TeamComponent):
+                if team_comp.team_id == enemy_team_id:
+                    enemy_base_health_comp = esper.component_for_entity(ent, HealthComponent)
+                    enemy_base_health_ratio = enemy_base_health_comp.currentHealth / enemy_base_health_comp.maxHealth
+                    break
+
             # Compter les unités alliées et ennemies
             allied_units = 0
             enemy_units = 0
@@ -403,7 +431,8 @@ class BaseAi(esper.Processor):
                 'allied_units': allied_units,
                 'enemy_units': enemy_units,
                 'enemy_base_known': enemy_base_known,
-                'towers_needed': towers_needed
+                'towers_needed': towers_needed,
+                'enemy_base_health_ratio': enemy_base_health_ratio
             }
 
         except Exception as e:
@@ -422,7 +451,8 @@ class BaseAi(esper.Processor):
                 game_state['allied_units'],
                 game_state['enemy_units'],
                 game_state['enemy_base_known'],
-                game_state['towers_needed']
+                game_state['towers_needed'],
+                game_state['enemy_base_health_ratio']
             ]
 
             action = self.model.predict([features])[0]
@@ -466,24 +496,27 @@ class BaseAi(esper.Processor):
             # Exécuter l'action
             if action == 1:  # Acheter éclaireur
                 unit_to_spawn = UnitType.SCOUT
-                cost = UNIT_COSTS.get("scout", 10)
+                cost = UNIT_COSTS["scout"]
             elif action == 2:  # Acheter architecte
                 unit_to_spawn = UnitType.ARCHITECT
-                cost = UNIT_COSTS.get("architect", 30)
+                cost = UNIT_COSTS["architect"]
             elif action == 3:  # Acheter Maraudeur
                 unit_to_spawn = UnitType.MARAUDEUR
-                cost = UNIT_COSTS.get("maraudeur", 20)
+                cost = UNIT_COSTS["maraudeur"]
             elif action == 4:  # Acheter Léviathan
                 unit_to_spawn = UnitType.LEVIATHAN
-                cost = UNIT_COSTS.get("leviathan", 40)
+                cost = UNIT_COSTS["leviathan"]
             elif action == 5:  # Acheter Druide
                 unit_to_spawn = UnitType.DRUID
-                cost = UNIT_COSTS.get("druid", 30)
+                cost = UNIT_COSTS["druid"]
+            elif action == 6:  # Acheter Kamikaze
+                unit_to_spawn = UnitType.KAMIKAZE
+                cost = UNIT_COSTS["kamikaze"]
 
             if unit_to_spawn and gold >= cost + self.gold_reserve:
                 self._spawn_unit(unit_to_spawn, base_entity, ai_team_id)
                 player_comp.spend_gold(cost)
-                print(f"IA Base (team {ai_team_id}): Achète {unit_to_spawn.name}")
+                print(f"IA Base (team {ai_team_id}): Achète {unit_to_spawn}")
                 return True
 
             # Action 0 (rien) ou action invalide
