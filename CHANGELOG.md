@@ -2,42 +2,35 @@
 
 ## v0.7.0 (2025-10-12)
 
-### Feat
+### ✨ Feat
 
-- Create LICENSE
-- Ajouter système de récompenses de combat
-- améliorations de performance et système de caméra
-- taille de la map doublé et ajuster la sensibilité de la caméra avec Ctrl
-- ajout du numéro de version et d'indicateurs de mode développeur
-- ajout de l'action "révéler la carte" dans le modal de débogage
-- added build tower to Architect
-- ajouter le système de vision et le brouillard de guerre avec gestion de la visibilité des unités
+- Ajout du système de récompenses de combat
+- Améliorations de performance et système de caméra
+- Taille de la map doublée et ajustement de la sensibilité de la caméra avec Ctrl
+- Ajout du numéro de version et d'indicateurs de mode développeur
+- Ajout de la construction de tours pour l'Architecte
+- Ajout du système de vision et du brouillard de guerre avec gestion de la visibilité des unités
 
-### Fix
+### 🐞 Fix
 
-- les nuages réapparait désormais sur la carte, les ressources apparaient sur les bords des iles, et la fenetre debug tient sur l'écran
-- correct MkDocs i18n plugin configuration for GitHub Actions
-- milti firing on sides and front
-- requirements.md
-- requirements.md
-- galad_config.json n'est plus socilité en permanance
-- requirement.txt
-- fin de l'inflation des prix des unités dans la faction ennemi
-- le brouillard de guerre est réinilisialisé quand on relance une partie et le bouton continuer du menu quitter quitte bien
+- Les nuages réapparaissent désormais sur la carte, les ressources apparaissent sur les bords des îles, et la fenêtre debug tient sur l'écran
+- Correction du tir multiple sur les côtés et l'avant
+- Fin de l'inflation des prix des unités dans la faction ennemie
+- Le brouillard de guerre est réinitialisé quand on relance une partie et le bouton continuer du menu quitter fonctionne correctement
 
-### Refactor
+### 🧹 Refactor
 
-- Améliorer la lisibilité et la structure du BanditsProcessor
-- Add bandits functionality and unlimited vision cheat in debug mode
-- externaliser les récompenses de combat dans un processeur
-- Renommer FlyingChestManager en FlyingChestProcessor et mettre à jour les références dans le code et la documentation
-- Remplacer StormManager par StormProcessor dans le code et la documentation
-- Fusionner RecentHitsComponent dans RadiusComponent
-- deuxième phase d'optimisation du jeu notamment le brouilliard de guerre et le rendu des sprites et ajout d'un profiler pour analyser les performances du jeu
-- optimisation des collisions avec un hachage spatial et amélioration du rendu des frames
-- correction de l'aide en jeu
-- suppression des boosts globaux d'attaque et de défense dans le code et la documentation
-- remove unused bindings
+- Amélioration de la lisibilité et de la structure du code des bandits
+- Ajout des fonctionnalités bandits et triche de vision illimitée en mode debug
+- Externalisation des récompenses de combat à part de la gestion de la vie
+- Renommage de FlyingChestManager en FlyingChestProcessor et mise à jour des références dans le code et la documentation
+- Remplacement de StormManager par StormProcessor dans le code et la documentation
+- Fusion de RecentHitsComponent dans RadiusComponent
+- Deuxième phase d'optimisation du jeu notamment le brouillard de guerre et le rendu des sprites et ajout d'un profiler pour analyser les performances du jeu
+- Optimisation des collisions avec un hachage spatial et amélioration du rendu des frames
+- Correction de l'aide en jeu
+- Suppression des boosts globaux d'attaque et de défense dans le code et la documentation
+- Suppression des bindings inutilisés
 
 ## v0.6.0 (2025-10-06)
 
