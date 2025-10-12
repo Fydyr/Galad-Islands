@@ -214,6 +214,10 @@ UNIT_ATTACK_LEVIATHAN = 30
 UNIT_ATTACK_DRUID = 20
 UNIT_ATTACK_ARCHITECT = 20
 
+# Attaques des bases
+BASE_ATTACK_DAMAGE = 25  # Dégâts des projectiles de base
+BASE_ATTACK_COOLDOWN = 3.0  # Cooldown entre tirs de base (secondes)
+
 # Cooldowns d'attaque des unités (en secondes)
 UNIT_COOLDOWN_SCOUT = 2
 UNIT_COOLDOWN_MARAUDEUR = 4

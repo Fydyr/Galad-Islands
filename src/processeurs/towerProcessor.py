@@ -39,13 +39,14 @@ class TowerProcessor(esper.Processor):
                 if t2.team_id == 0:
                     continue
                 
-                # NE PAS cibler les bases (elles ont BaseComponent)
-                if esper.has_component(e2, BaseComponent):
-                    continue
-                
-                # NE PAS cibler d'autres tours
-                if esper.has_component(e2, TowerComponent):
-                    continue
+                # Si la tour ne peut pas attaquer les bâtiments, on ignore les bases et les autres tours
+                if not tower.can_attack_buildings:
+                    # NE PAS cibler les bases (elles ont BaseComponent)
+                    if esper.has_component(e2, BaseComponent):
+                        continue
+                    # NE PAS cibler d'autres tours
+                    if esper.has_component(e2, TowerComponent):
+                        continue
                     
                 # Defense towers attack enemies (team différente)
                 if tower.is_defense_tower():
