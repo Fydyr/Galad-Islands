@@ -31,18 +31,21 @@ for i in range(n_samples):
 
     # --- Danger avoidance rules ---
     # Avoid mines
-    if dist_mine < 50:
+    if dist_mine < 10:
         labels[i] = 1  # decelerate
         continue
 
     # Avoid enemies
-    if dist_enemy < 50:
+    if dist_enemy < 20:
         labels[i] = 1  # decelerate
+        continue
+    elif dist_enemy < 10:
+        labels[i] = 12  # decelerate
         continue
 
     # --- Ally cohesion ---
     # Stay close to allies (but not too close)
-    if dist_ally > 200:
+    if dist_ally > 30:
         # Move closer (rotate toward ally)
         if abs(angle_island) > 45:
             labels[i] = 2 if angle_island < 0 else 3
@@ -60,14 +63,14 @@ for i in range(n_samples):
         continue
 
     # --- Building logic ---
-    if dist_island < 50:
+    if dist_island < 5:
         if money >= 400:  # Enough money to build
             if dist_enemy < 300:
                 labels[i] = 5  # build defense tower
             else:
                 labels[i] = 4  # build attack tower
         else:
-            if dist_ally > 400:
+            if dist_ally > 50:
                 # Move closer (rotate toward ally)
                 if abs(angle_island) > 45:
                     labels[i] = 2 if angle_island < 0 else 3
@@ -86,7 +89,7 @@ for i in range(n_samples):
 
 # Train Decision Tree
 X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=42)
-clf = DecisionTreeClassifier(max_depth=4, random_state=20)
+clf = DecisionTreeClassifier(max_depth=50, random_state=200)
 clf.fit(X_train, y_train)
 
 joblib.dump(clf, 'ia/architectAI.joblib')

@@ -34,8 +34,8 @@ class AIControlProcessor(esper.Processor):
                 x = int(posX) + j
                 if 0 <= y < grid_height and 0 <= x < grid_width:
                     if self.grid[y][x] == 1 or self.grid[y][x] == 2 or self.grid[y][x] == 3:
-                        return True
-        return False
+                        return 1
+        return 0
 
     def findClosestEntity(self, team, ally, currentX, currentY):
         minDistance = float('inf')
@@ -92,6 +92,7 @@ class AIControlProcessor(esper.Processor):
             obstacle = self.isObstacleNearby(pos.x, pos.y)
             
             state = [vel.currentSpeed, distanceIsland, relativeAngleIsland, distanceEnemy, distanceAlly, distanceMine, gold, obstacle]
+            # print(state)
 
         return ai.makeDecision(dt, state)
 
@@ -105,7 +106,7 @@ class AIControlProcessor(esper.Processor):
 
             decision = self.getDecision(dt, entity, ai)
 
-            print(decision)
+            # print(decision)
             if decision is None:
                 continue
 
@@ -127,34 +128,27 @@ class AIControlProcessor(esper.Processor):
             # else:
             #     self.slowing_down = False
 
-            # # Accélération uniquement si le frein n'est pas activé
-            # if not self.slowing_down and controls.is_action_active(controls.ACTION_UNIT_MOVE_FORWARD):
-            #     if esper.has_component(entity, VelocityComponent):
-            #         velocity = esper.component_for_entity(entity, VelocityComponent)
-            #         if velocity.currentSpeed < velocity.maxUpSpeed:
-            #             velocity.currentSpeed += 0.2
-            # if not self.slowing_down and controls.is_action_active(controls.ACTION_UNIT_MOVE_BACKWARD):
-            #     if esper.has_component(entity, VelocityComponent):
-            #         velocity = esper.component_for_entity(entity, VelocityComponent)
-            #         if velocity.currentSpeed > velocity.maxReverseSpeed:
-            #             velocity.currentSpeed -= 0.1
+            # Accélération uniquement si le frein n'est pas activé
+            if not self.slowing_down and decision == "accelerate":
+                if esper.has_component(entity, VelocityComponent):
+                    velocity = esper.component_for_entity(entity, VelocityComponent)
+                    if velocity.currentSpeed < velocity.maxUpSpeed:
+                        velocity.currentSpeed += 0.2
+            if not self.slowing_down and decision == "decelerate":
+                if esper.has_component(entity, VelocityComponent):
+                    velocity = esper.component_for_entity(entity, VelocityComponent)
+                    if velocity.currentSpeed > velocity.maxReverseSpeed:
+                        velocity.currentSpeed -= 0.1
 
-            # if controls.is_action_active(controls.ACTION_UNIT_TURN_RIGHT):
-            #     if esper.has_component(entity, PositionComponent):
-            #         position = esper.component_for_entity(entity, PositionComponent)
-            #         position.direction = (position.direction + 1) % 360
-            # if controls.is_action_active(controls.ACTION_UNIT_TURN_LEFT):
-            #     if esper.has_component(entity, PositionComponent):
-            #         position = esper.component_for_entity(entity, PositionComponent)
-            #         position.direction = (position.direction - 1) % 360
-            # if controls.is_action_active(controls.ACTION_UNIT_PREVIOUS):
-            #     if esper.has_component(entity, BaseComponent):
-            #         base = esper.component_for_entity(entity, BaseComponent)
-            #         base.currentTroop = (base.currentTroop - 1) % len(base.troopList)
-            # if controls.is_action_active(controls.ACTION_UNIT_NEXT):
-            #     if esper.has_component(entity, BaseComponent):
-            #         base = esper.component_for_entity(entity, BaseComponent)
-            #         base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
+            if decision == "rotate_right":
+                if esper.has_component(entity, PositionComponent):
+                    position = esper.component_for_entity(entity, PositionComponent)
+                    position.direction = (position.direction + 1) % 360
+            if decision == "rotate_left":
+                if esper.has_component(entity, PositionComponent):
+                    position = esper.component_for_entity(entity, PositionComponent)
+                    position.direction = (position.direction - 1) % 360
+
             # if radius.cooldown > 0:
             #     radius.cooldown -= 0.1  # Réduction du cooldown
             # else:

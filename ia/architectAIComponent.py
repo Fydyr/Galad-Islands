@@ -26,10 +26,11 @@ class ArchitectAIComponent:
                 state = np.array([state])
                 action_idx = self.model.predict(state)[0]
                 self.currentDecision = self.ACTIONS[action_idx]
-            # else:
+                return self.ACTIONS[action_idx]
+            else:
             #     if (self.vetoTimeRemaining - dt) < 0:
             #         self.vetoTimeRemaining = 0
             #     else:
             #         self.vetoTimeRemaining -= -dt
 
-            return self.currentDecision
+                return self.currentDecision
