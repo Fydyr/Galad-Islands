@@ -39,7 +39,7 @@ class UnitAiProcessor(esper.Processor):
 
     def load_or_train_model(self):
         """Charge le modèle du Kamikaze ou l'entraîne s'il n'existe pas."""
-        model_path = "models/kamikaze_ai_model.pkl"
+        model_path = "src/models/kamikaze_ai_model.pkl"
         if os.path.exists(model_path):
             print("🤖 Chargement du modèle IA pour le Kamikaze...")
             self.model = joblib.load(model_path)
