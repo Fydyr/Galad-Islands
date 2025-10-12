@@ -146,9 +146,11 @@ class AITrainer:
 
         # Reset episode statistics for each AI agent
         # Reduce epsilon over time (exploration -> exploitation)
-        # Use the total episode count (including previous training sessions)
+        # Use exponential decay for better convergence
         total_episodes = self.start_episode + episode_num
-        epsilon_decay = max(0.01, 1.0 - (total_episodes / (self.start_episode + self.episodes)))
+        # Exponential decay: epsilon = max(min_epsilon, initial_epsilon * decay_rate ^ episodes)
+        # Target: reach epsilon=0.01 after 1000 episodes
+        epsilon_decay = max(0.01, 1.0 * (0.995 ** total_episodes))
 
         for entity in self.leviathans:
             if es.has_component(entity, AILeviathanComponent):

@@ -50,6 +50,13 @@ class AILeviathanProcessor(esper.Processor):
         # Training mode flag
         self.training_mode = training_mode
 
+        # Load epsilon from trained model if available
+        self.loaded_epsilon = None
+        if model_path:
+            metadata = self.brain.load_model(model_path) if not self.brain.is_trained else {}
+            self.loaded_epsilon = metadata.get('epsilon', None)
+            logger.info(f"Loaded model epsilon: {self.loaded_epsilon}")
+
         # Reward calculation system (only needed for training)
         self.reward_system = RewardSystem() if training_mode else None
 
@@ -75,7 +82,10 @@ class AILeviathanProcessor(esper.Processor):
         # Log mode (only log in non-training mode for performance)
         if not training_mode:
             mode_str = "INFERENCE ONLY"
-            logger.info(f"AILeviathanProcessor initialized in {mode_str} mode")
+            if self.loaded_epsilon is not None:
+                logger.info(f"AILeviathanProcessor initialized in {mode_str} mode (epsilon={self.loaded_epsilon:.3f})")
+            else:
+                logger.info(f"AILeviathanProcessor initialized in {mode_str} mode")
 
     def _handle_game_over(self, defeated_team_id: int):
         """
@@ -132,7 +142,12 @@ class AILeviathanProcessor(esper.Processor):
 
             current_state = self._extract_state(entity, pos, vel, health, team)
 
-            action = self.brain.select_action(current_state, epsilon=ai_comp.epsilon)
+            # Use epsilon from trained model if available and in inference mode
+            epsilon = ai_comp.epsilon
+            if not self.training_mode and self.loaded_epsilon is not None:
+                epsilon = self.loaded_epsilon
+
+            action = self.brain.select_action(current_state, epsilon=epsilon)
             self.total_actions += 1
             self.actions_by_type[action] += 1
 
