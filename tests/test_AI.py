@@ -15,14 +15,14 @@ class TestBaseAi:
 
     def test_base_ai_initialization(self):
         """Test que l'IA s'initialise correctement."""
-        ai = BaseAi(team_id=2)
-        assert ai.team_id == 2
+        ai = BaseAi(default_team_id=2)
+        assert ai.default_team_id == 2
         assert ai.gold_reserve == 200
         assert ai.action_cooldown == 5.0
 
     def test_decide_action_for_training(self):
         """Test la logique de décision pour l'entraînement."""
-        ai = BaseAi(team_id=2)
+        ai = BaseAi(default_team_id=2)
 
         # Test avec peu d'or
         action = ai.decide_action_for_training(50, 1.0, 5, 5, 0)
@@ -42,7 +42,7 @@ class TestBaseAi:
 
     def test_simulate_game(self):
         """Test la simulation d'une partie."""
-        ai = BaseAi(team_id=2)
+        ai = BaseAi(default_team_id=2)
         features, labels = ai.simulate_game()
 
         assert len(features) == 20  # 20 tours
@@ -58,7 +58,7 @@ class TestBaseAi:
         mock_exists.return_value = True
         mock_load.return_value = MagicMock()
 
-        ai = BaseAi(team_id=2)
+        ai = BaseAi(default_team_id=2)
         mock_load.assert_called_once()
         mock_dump.assert_not_called()
 
@@ -69,13 +69,13 @@ class TestBaseAi:
         mock_exists.return_value = False
 
         with patch.object(BaseAi, 'train_model') as mock_train:
-            ai = BaseAi(team_id=2)
+            ai = BaseAi(default_team_id=2)
             mock_train.assert_called_once()
             mock_dump.assert_called_once()
 
     def test_apply_simulated_action(self):
         """Test l'application d'actions dans la simulation."""
-        ai = BaseAi(team_id=2)
+        ai = BaseAi(default_team_id=2)
 
         gold = [300]
         units = [5]
@@ -97,7 +97,7 @@ class TestBaseAi:
 
     def test_unit_type_mapping(self):
         """Test le mapping des types d'unités."""
-        ai = BaseAi(team_id=2)
+        ai = BaseAi(default_team_id=2)
 
         assert ai.UNIT_TYPE_MAPPING["scout"] == "SCOUT"
         assert ai.UNIT_TYPE_MAPPING["maraudeur"] == "MARAUDEUR"
@@ -106,7 +106,7 @@ class TestBaseAi:
     @patch('builtins.print')  # Pour éviter l'affichage pendant les tests
     def test_train_with_random_data(self, mock_print):
         """Test l'entraînement avec données aléatoires."""
-        ai = BaseAi(team_id=2)
+        ai = BaseAi(default_team_id=2)
         ai.train_with_random_data()
 
         assert ai.model is not None

@@ -24,9 +24,8 @@ import joblib
 class AdvancedBaseAiTrainer:
     """Entraîneur avancé pour l'IA de la base."""
 
-    def __init__(self, team_id=2):
-        self.team_id = team_id
-        self.ai = BaseAi(team_id)
+    def __init__(self, default_team_id=2):
+        self.ai = BaseAi(default_team_id=default_team_id)
         self.gold_reserve = 200
 
     def generate_advanced_training_data(self, n_games=200):
@@ -35,7 +34,7 @@ class AdvancedBaseAiTrainer:
 
         features = []
         labels = []
-        action_counts = [0, 0, 0, 0] # Retrait de l'action "Tir"
+        action_counts = [0, 0, 0, 0, 0, 0] # 6 actions: Rien, Eclaireur, Architecte, Maraudeur, Léviathan, Druide
 
         for game in range(n_games):
             # Utiliser la simulation améliorée de BaseAi
@@ -51,31 +50,13 @@ class AdvancedBaseAiTrainer:
 
         print(f"📈 Données générées: {len(features)} exemples")
         print("🎯 Répartition des actions dans les données:")
-        action_names = ["Rien", "Éclaireur", "Architecte", "Autre unité"]
+        action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide"]
         for i, count in enumerate(action_counts):
             if count > 0:
                 percentage = (count / sum(action_counts)) * 100
                 print(f"   {action_names[i]}: {count} décisions ({percentage:.1f}%)")
 
         return features, labels
-
-    def decide_action_for_training(self, gold, base_health, allied_units, enemy_units, towers_needed):
-        """Logique de décision simplifiée pour l'entraînement (sans tir automatique)."""
-        if gold < 100 + self.gold_reserve:
-            return 0  # Rien
-            
-        if base_health < 0.5 and towers_needed:
-            if gold >= UNIT_COSTS.get("architect", 300) + self.gold_reserve:
-                return 2  # Architecte pour défendre
-                
-        if allied_units < enemy_units:
-            if gold >= UNIT_COSTS.get("scout", 50) + self.gold_reserve:
-                return 1  # Éclaireur
-                
-        if gold >= 300 + self.gold_reserve:
-            return 3  # Autre unité
-            
-        return 0  # Rien
 
     def train_advanced_model(self, n_games=500):
         """Entraîne un modèle avancé avec beaucoup de données."""
@@ -132,13 +113,13 @@ class AdvancedBaseAiTrainer:
 
         # Rapport détaillé par classe
         print("📋 RAPPORT DÉTAILLÉ PAR ACTION:")
-        target_names = ["Rien", "Éclaireur", "Architecte", "Autre unité"]
-        report = classification_report(y_test, y_pred, target_names=target_names, labels=[0,1,2,3], zero_division=0)
+        target_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide"]
+        report = classification_report(y_test, y_pred, target_names=target_names, labels=[0,1,2,3,4,5], zero_division=0)
         print(report)
 
         # Sauvegarder le modèle avancé
-        model_path = "models/base_ai_advanced_model.pkl"
-        os.makedirs("models", exist_ok=True)
+        model_path = "src/models/base_ai_advanced_model.pkl"
+        os.makedirs("src/models", exist_ok=True)
         joblib.dump(model, model_path)
         print(f"💾 Modèle sauvegardé: {model_path}")
 

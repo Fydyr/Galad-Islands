@@ -28,52 +28,61 @@ def demo_ai_decisions():
     print("=" * 50)
 
     # Créer l'IA
-    ai = BaseAi(team_id=2)
+    ai = BaseAi(default_team_id=2)
     print(f"🤖 IA chargée avec modèle: {type(ai.model).__name__}")
 
     # Scénarios de test
     scenarios = [
         {
-            "name": "Situation défensive - base endommagée",
-            "gold": 500,
-            "base_health_ratio": 0.3,
-            "allied_units": 2,
-            "enemy_units": 5,
-            "towers_needed": 1
-        },
-        {
-            "name": "Situation équilibrée",
-            "gold": 400,
-            "base_health_ratio": 0.8,
-            "allied_units": 4,
-            "enemy_units": 4,
-            "towers_needed": 0
-        },
-        {
-            "name": "Situation offensive - beaucoup d'or",
-            "gold": 800,
-            "base_health_ratio": 0.9,
-            "allied_units": 3,
-            "enemy_units": 2,
-            "towers_needed": 0
-        },
-        {
-            "name": "Situation pauvre - peu d'or",
-            "gold": 50,
-            "base_health_ratio": 0.7,
+            "name": "Début de partie - Exploration nécessaire",
+            "gold": 100, # La réalité du jeu
+            "base_health_ratio": 1.0,
             "allied_units": 1,
-            "enemy_units": 3,
-            "towers_needed": 0
+            "enemy_units": 1,
+            "enemy_base_known": 0, # <-- Base ennemie inconnue
+            "towers_needed": 0,
+            "expected": "Éclaireur"
+        },
+        {
+            "name": "Défense prioritaire - Base très endommagée",
+            "gold": 250, # Assez pour un architecte (30 + 200 de réserve)
+            "base_health_ratio": 0.5, # <-- Santé basse
+            "allied_units": 3,
+            "enemy_units": 6,
+            "enemy_base_known": 1,
+            "towers_needed": 1, # <-- Tours nécessaires
+            "expected": "Architecte"
+        },
+        {
+            "name": "Avantage économique - Achat d'une unité lourde",
+            "gold": 300, # Largement assez pour un Léviathan (40 + 200 de réserve)
+            "base_health_ratio": 0.9,
+            "allied_units": 10,
+            "enemy_units": 2,
+            "enemy_base_known": 1,
+            "towers_needed": 0,
+            "expected": "Léviathan" # L'IA devrait choisir une unité chère
+        },
+        {
+            "name": "Infériorité numérique - Renforts nécessaires",
+            "gold": 230, # Assez pour un Maraudeur (20 + 200 de réserve)
+            "base_health_ratio": 0.7,
+            "allied_units": 4,
+            "enemy_units": 7,
+            "enemy_base_known": 1,
+            "towers_needed": 1,
+            "expected": "Maraudeur" # Unité de combat efficace pour se renforcer
         }
     ]
 
-    actions_names = ["Rien", "Éclaireur", "Architecte", "Autre unité"]
+    actions_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide"]
 
     for scenario in scenarios:
         print(f"\n📊 Scénario: {scenario['name']}")
-        print(f"   💰 Or: {scenario['gold']} | ❤️ Santé base: {scenario['base_health_ratio']:.1f}")
-        print(f"   👥 Unités alliées: {scenario['allied_units']} | 👥 Unités ennemies: {scenario['enemy_units']}")
-        print(f"   🏰 Tours nécessaires: {'Oui' if scenario['towers_needed'] else 'Non'}")
+        print(f"   - Or: {scenario['gold']} | Santé base: {scenario['base_health_ratio']:.0%}")
+        print(f"   - Unités: {scenario['allied_units']} (alliées) vs {scenario['enemy_units']} (ennemies)")
+        print(f"   - Base ennemie connue: {'Oui' if scenario['enemy_base_known'] else 'Non'}")
+        print(f"   - Tours nécessaires: {'Oui' if scenario['towers_needed'] else 'Non'}")
 
         # Prédire l'action
         features = [
@@ -81,35 +90,43 @@ def demo_ai_decisions():
             scenario['base_health_ratio'],
             scenario['allied_units'],
             scenario['enemy_units'],
-            1,  # enemy_base_known
+            scenario['enemy_base_known'],
             scenario['towers_needed']
         ]
 
         action = ai.model.predict([features])[0]
         action_name = actions_names[action] if action < len(actions_names) else "Inconnue"
 
-        print(f"   🎯 Décision IA: {action_name} (action {action})")
+        # Comparer avec le résultat attendu
+        is_correct = (action_name == scenario['expected'])
+        result_icon = "✅" if is_correct else "❌"
+        
+        print(f"   => Décision IA: {action_name} (Attendu: {scenario['expected']}) {result_icon}")
 
         # Vérifier si l'action est faisable
         can_afford = False
         if action == 1:  # Éclaireur
-            can_afford = scenario['gold'] >= UNIT_COSTS.get("scout", 50) + ai.gold_reserve
+            can_afford = scenario['gold'] >= UNIT_COSTS.get("scout", 10) # Pas de réserve pour les scouts
         elif action == 2:  # Architecte
-            can_afford = scenario['gold'] >= UNIT_COSTS.get("architect", 300) + ai.gold_reserve
-        elif action == 3:  # Autre unité
-            can_afford = scenario['gold'] >= 300 + ai.gold_reserve  # Coût approximatif
+            can_afford = scenario['gold'] >= UNIT_COSTS.get("architect", 30) + ai.gold_reserve
+        elif action == 3:  # Maraudeur
+            can_afford = scenario['gold'] >= UNIT_COSTS.get("maraudeur", 20) + ai.gold_reserve
+        elif action == 4:  # Léviathan
+            can_afford = scenario['gold'] >= UNIT_COSTS.get("leviathan", 40) + ai.gold_reserve
+        elif action == 5:  # Druide
+            can_afford = scenario['gold'] >= UNIT_COSTS.get("druid", 30) + ai.gold_reserve
         elif action == 0:  # Rien
             can_afford = True
 
-        print(f"   💸 Faisable: {'Oui' if can_afford else 'Non'}")
+        print(f"      (Action faisable avec l'or disponible: {'Oui' if can_afford else 'Non'})")
 
     print("\n" + "=" * 50)
     print("✅ DÉMONSTRATION TERMINÉE")
     print("\n💡 L'IA prend des décisions stratégiques basées sur:")
     print("   • L'or disponible et la réserve")
-    print("   • La santé de la base")
+    print("   • La santé de la base et le besoin de défense")
     print("   • Le nombre d'unités alliées vs ennemies")
-    print("   • Le besoin de tours défensives")
+    print("   • La connaissance de la base ennemie pour l'exploration")
     print("\n🔫 Le tir automatique est géré séparément par TowerComponent")
     print("   quand des ennemis sont à portée de vision!")
 

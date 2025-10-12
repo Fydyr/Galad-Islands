@@ -927,7 +927,7 @@ class GameEngine:
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
         es.add_processor(self.tower_processor, priority=5)
-        es.add_processor(self.enemy_base_ai, priority=7)
+        es.add_processor(self.enemy_base_ai, priority=7) # L'IA est un processeur comme les autres
         es.add_processor(self.lifetime_processor, priority=10)
         
         # Configurer les handlers d'événements
@@ -1666,7 +1666,12 @@ class GameEngine:
             self.storm_processor.process(dt)
         
         # Traiter la logique ECS (sans dt pour les autres processeurs)
-        es.process()
+        # Passer les informations nécessaires aux processeurs qui en ont besoin
+        active_team = self.action_bar.current_camp if self.action_bar else Team.ALLY
+        es.process(
+            dt=dt,  # Passer dt pour les processeurs qui l'utilisent
+            active_player_team_id=active_team
+        )
 
         if self.flying_chest_processor is not None:
             self.flying_chest_processor.process(dt)
