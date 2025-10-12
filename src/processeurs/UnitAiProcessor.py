@@ -372,7 +372,7 @@ class UnitAiProcessor(esper.Processor):
 
     def get_angle_to_target(self, my_pos, target_pos):
         """Calcule l'angle vers une cible."""
-        return math.degrees(math.atan2(target_pos.y - my_pos.y, target_pos.x - my_pos.x))
+        return math.degrees(math.atan2(target_pos.y - my_pos.y, target_pos.x - my_pos.x)) * -1
 
     def turn_away_from(self, my_pos, target_pos):
         """Décide de tourner à gauche ou à droite pour s'éloigner d'un point."""

@@ -118,8 +118,8 @@ class AdvancedBaseAiTrainer:
         print(report)
 
         # Sauvegarder le modèle avancé
-        model_path = "models/base_ai_advanced_model.pkl"
-        os.makedirs("models", exist_ok=True)
+        model_path = "src/models/base_ai_advanced_model.pkl"
+        os.makedirs("src/models", exist_ok=True)
         joblib.dump(model, model_path)
         print(f"💾 Modèle sauvegardé: {model_path}")
 

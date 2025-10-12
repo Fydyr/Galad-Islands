@@ -25,6 +25,7 @@ from src.components.core.projectileComponent import ProjectileComponent
 from src.constants.gameplay import UNIT_COSTS
 from src.factory.unitFactory import UnitFactory
 from src.factory.unitType import UnitType
+from src.constants.team import Team
 from src.settings.settings import TILE_SIZE
 
 
@@ -346,7 +347,11 @@ class BaseAi(esper.Processor):
 
     def process(self, dt: float = 0.016, active_player_team_id: int = 1):
         """Exécute la logique de l'IA de la base à chaque frame."""
-        from src.constants.team import Team
+        # L'IA ne doit contrôler que l'équipe qui n'est PAS activement jouée.
+        # Par défaut, l'IA est initialisée pour l'équipe 2 (ennemi).
+        # Si le joueur actif est l'équipe 2, l'IA ne doit rien faire.
+        if self.default_team_id == active_player_team_id:
+            return # Ne pas exécuter l'IA pour l'équipe du joueur actif
 
         # Déterminer quelle équipe l'IA doit contrôler
         # Si le joueur contrôle les alliés (1), l'IA contrôle les ennemis (2).

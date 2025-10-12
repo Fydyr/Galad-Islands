@@ -926,6 +926,7 @@ class GameEngine:
         # IA des unités individuelles (Kamikaze, etc.)
         self.unit_ai_processor = UnitAiProcessor(grid=self.grid)
 
+        es.add_processor(self.capacities_processor, priority=1)
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)

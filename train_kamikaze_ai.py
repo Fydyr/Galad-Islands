@@ -24,7 +24,7 @@ def train_kamikaze_model():
     print("=" * 70)
 
     # Supprimer l'ancien modèle s'il existe
-    model_path = "models/kamikaze_ai_model.pkl"
+    model_path = "src/models/kamikaze_ai_model.pkl"
     if os.path.exists(model_path):
         os.remove(model_path)
         print(f"🗑️ Ancien modèle supprimé : {model_path}")
