@@ -1,5 +1,44 @@
 # 🧾 Changelog
 
+## v0.7.0 (2025-10-12)
+
+### Feat
+
+- Create LICENSE
+- Ajouter système de récompenses de combat
+- améliorations de performance et système de caméra
+- taille de la map doublé et ajuster la sensibilité de la caméra avec Ctrl
+- ajout du numéro de version et d'indicateurs de mode développeur
+- ajout de l'action "révéler la carte" dans le modal de débogage
+- added build tower to Architect
+- ajouter le système de vision et le brouillard de guerre avec gestion de la visibilité des unités
+
+### Fix
+
+- les nuages réapparait désormais sur la carte, les ressources apparaient sur les bords des iles, et la fenetre debug tient sur l'écran
+- correct MkDocs i18n plugin configuration for GitHub Actions
+- milti firing on sides and front
+- requirements.md
+- requirements.md
+- galad_config.json n'est plus socilité en permanance
+- requirement.txt
+- fin de l'inflation des prix des unités dans la faction ennemi
+- le brouillard de guerre est réinilisialisé quand on relance une partie et le bouton continuer du menu quitter quitte bien
+
+### Refactor
+
+- Améliorer la lisibilité et la structure du BanditsProcessor
+- Add bandits functionality and unlimited vision cheat in debug mode
+- externaliser les récompenses de combat dans un processeur
+- Renommer FlyingChestManager en FlyingChestProcessor et mettre à jour les références dans le code et la documentation
+- Remplacer StormManager par StormProcessor dans le code et la documentation
+- Fusionner RecentHitsComponent dans RadiusComponent
+- deuxième phase d'optimisation du jeu notamment le brouilliard de guerre et le rendu des sprites et ajout d'un profiler pour analyser les performances du jeu
+- optimisation des collisions avec un hachage spatial et amélioration du rendu des frames
+- correction de l'aide en jeu
+- suppression des boosts globaux d'attaque et de défense dans le code et la documentation
+- remove unused bindings
+
 ## v0.6.0 (2025-10-06)
 
 ### ✨ Feat
