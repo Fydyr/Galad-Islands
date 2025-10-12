@@ -28,10 +28,11 @@ if ! python -m commitizen version &>/dev/null; then
     exit 1
 fi
 
-# S'assurer qu'on est sur main et à jour
-echo -e "${YELLOW}📥 Mise à jour de la branche main...${NC}"
-git checkout main
-git pull origin main
+# Branche cible (optionnel: 2ème argument) — default: main
+TARGET_BRANCH="${2:-main}"
+echo -e "${YELLOW}📥 Mise à jour de la branche ${TARGET_BRANCH}...${NC}"
+git checkout "${TARGET_BRANCH}"
+git pull origin "${TARGET_BRANCH}"
 
 # Déterminer le type de bump
 BUMP_TYPE="${1:-auto}"
@@ -101,12 +102,12 @@ echo -e "${YELLOW}❓ Voulez-vous pousser les changements vers GitHub ? (y/N)${N
 read -r response
 if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     echo -e "${YELLOW}📤 Push des changements et tags...${NC}"
-    git push origin main
+    git push origin "${TARGET_BRANCH}"
     git push origin --tags
-    
+
     echo -e "${GREEN}✅ Version $NEW_TAG publiée avec succès !${NC}"
     echo -e "${GREEN}🎯 La release automatique devrait se déclencher sur GitHub Actions${NC}"
 else
     echo -e "${YELLOW}⏸️  Push annulé. Les changements sont prêts localement.${NC}"
-    echo "Pour pousser plus tard: git push origin main && git push origin --tags"
+    echo "Pour pousser plus tard: git push origin ${TARGET_BRANCH} && git push origin --tags"
 fi

@@ -3,6 +3,7 @@ llvmlite==0.44.0
 numba==0.61.2
 numpy==2.2.6
 pygame==2.6.1
-Pillow
+Pillow==10.4.0
+tomli==1.2.0
 scikit-learn>=1.2
 joblib>=1.3

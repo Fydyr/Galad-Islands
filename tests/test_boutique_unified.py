@@ -24,13 +24,13 @@ def test_unified_shop():
     print(f"   - Items bâtiments: 0 (catégorie retirée)")
     
     # Tester le changement de faction
-    ally_shop.switch_faction(ShopFaction.ENEMY)
+    ally_shop.set_faction(ShopFaction.ENEMY)
     print("✅ Basculement vers faction ennemie")
     print(f"   - Items unités: {len(ally_shop.shop_items[ShopCategory.UNITS])}")
     print(f"   - Items bâtiments: 0 (catégorie retirée)")
     
     # Retour à la faction alliée
-    ally_shop.switch_faction(ShopFaction.ALLY)
+    ally_shop.set_faction(ShopFaction.ALLY)
     print("✅ Retour à la faction alliée")
     
     # Test des fonctions de base

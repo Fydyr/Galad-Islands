@@ -40,6 +40,7 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
+*.prof
 
 # Documentation générée
 docs/_build/
@@ -75,3 +76,6 @@ GameDesign.md
 
 # documentation hook
 HOOKS_UNIVERSAL.md
+
+# Fichiers générés par le build de Pyinstaller
+*.spec

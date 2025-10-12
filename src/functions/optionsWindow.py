@@ -14,6 +14,12 @@ from src.settings.settings import (
     set_window_mode,
     set_audio_volume,
     set_camera_sensitivity,
+    get_performance_mode,
+    set_performance_mode,
+    get_disable_particles,
+    set_disable_particles,
+    get_disable_shadows,
+    set_disable_shadows,
     reset_to_defaults,
 )
 from src.settings.localization import (
@@ -119,11 +125,6 @@ KEY_BINDING_GROUPS: List[Tuple[str, List[Tuple[str, str]]]] = [
     ("options.binding_group.system", SYSTEM_BINDINGS),
 ]
 
-CONTROL_GROUP_ACTIONS: Tuple[Tuple[str, str], ...] = (
-    ("options.binding.selection_group_assign", controls.ACTION_SELECTION_GROUP_ASSIGN_PREFIX),
-    ("options.binding.selection_group_select", controls.ACTION_SELECTION_GROUP_SELECT_PREFIX),
-)
-
 MODIFIER_NAMES: Tuple[Tuple[int, str], ...] = (
     (pygame.KMOD_CTRL, "ctrl"),
     (pygame.KMOD_SHIFT, "shift"),
@@ -157,6 +158,9 @@ class OptionsState:
     editing_width: bool
     editing_height: bool
     key_bindings: Dict[str, List[str]]
+    performance_mode: str
+    disable_particles: bool
+    disable_shadows: bool
     
     @classmethod
     def from_config(cls) -> 'OptionsState':
@@ -189,6 +193,9 @@ class OptionsState:
             editing_width=False,
             editing_height=False,
             key_bindings=config_manager.get_key_bindings(),
+            performance_mode=get_performance_mode(),
+            disable_particles=get_disable_particles(),
+            disable_shadows=get_disable_shadows(),
         )
 
 
@@ -268,6 +275,10 @@ class OptionsWindow:
         y_pos = self._create_display_section(content_surface, y_pos)
         y_pos += UIConstants.SECTION_SPACING
         
+        # Section Performance
+        y_pos = self._create_performance_section(content_surface, y_pos)
+        y_pos += UIConstants.SECTION_SPACING
+        
         # Section Résolution
         y_pos = self._create_resolution_section(content_surface, y_pos)
         y_pos += UIConstants.SECTION_SPACING
@@ -314,6 +325,65 @@ class OptionsWindow:
             )
             self.components.append(radio)
             y_pos += UIConstants.LINE_HEIGHT
+        
+        return y_pos
+    
+    def _create_performance_section(self, surface: pygame.Surface, y_pos: int) -> int:
+        """Crée la section des paramètres de performance."""
+        # Titre de section
+        section_surf = self.font_section.render(t("options.performance"), True, Colors.GOLD)
+        surface.blit(section_surf, (0, y_pos))
+        y_pos += 40
+        
+        # Mode de performance
+        mode_label = self.font_normal.render(t("options.performance_mode"), True, Colors.WHITE)
+        surface.blit(mode_label, (0, y_pos))
+        y_pos += UIConstants.LINE_HEIGHT
+        
+        for mode, label_key in [("auto", "options.performance_auto"), 
+                              ("high", "options.performance_high"),
+                              ("medium", "options.performance_medium"),
+                              ("low", "options.performance_low")]:
+            radio_rect = pygame.Rect(20, y_pos, self.modal_width - 80, UIConstants.LINE_HEIGHT)
+            radio = RadioButton(
+                radio_rect, 
+                t(label_key), 
+                self.font_normal,
+                mode,
+                selected=(self.state.performance_mode == mode),
+                callback=self._on_performance_mode_changed
+            )
+            self.components.append(radio)
+            y_pos += UIConstants.LINE_HEIGHT
+        
+        y_pos += 10  # Petit espacement
+        
+        # Options de désactivation
+        # Particules
+        particles_rect = pygame.Rect(0, y_pos, self.modal_width - 60, UIConstants.LINE_HEIGHT)
+        particles_checkbox = RadioButton(
+            particles_rect,
+            t("options.disable_particles"),
+            self.font_normal,
+            "disable_particles",
+            selected=self.state.disable_particles,
+            callback=lambda x: self._on_disable_particles_changed()
+        )
+        self.components.append(particles_checkbox)
+        y_pos += UIConstants.LINE_HEIGHT
+        
+        # Ombres
+        shadows_rect = pygame.Rect(0, y_pos, self.modal_width - 60, UIConstants.LINE_HEIGHT)
+        shadows_checkbox = RadioButton(
+            shadows_rect,
+            t("options.disable_shadows"),
+            self.font_normal,
+            "disable_shadows",
+            selected=self.state.disable_shadows,
+            callback=lambda x: self._on_disable_shadows_changed()
+        )
+        self.components.append(shadows_checkbox)
+        y_pos += UIConstants.LINE_HEIGHT
         
         return y_pos
     
@@ -490,30 +560,6 @@ class OptionsWindow:
                 y_pos += UIConstants.LINE_HEIGHT
 
             y_pos += 15
-
-        group_title = self.font_normal.render(t("options.binding_group.control_groups"), True, Colors.GOLD)
-        surface.blit(group_title, (0, y_pos))
-        y_pos += UIConstants.LINE_HEIGHT
-
-        for label_key, prefix in CONTROL_GROUP_ACTIONS:
-            for slot in controls.CONTROL_GROUP_SLOTS:
-                action_name = controls.get_group_action_name(prefix, slot)
-                label = t(label_key, slot=slot)
-                row_rect = pygame.Rect(0, y_pos, self.modal_width - 60, UIConstants.LINE_HEIGHT)
-                row = KeyBindingRow(
-                    rect=row_rect,
-                    action=action_name,
-                    label=label,
-                    label_font=self.font_normal,
-                    binding_font=self.font_small,
-                    binding_text=self._get_binding_display_text(action_name),
-                    on_rebind=self._start_binding_capture,
-                    capturing=(self.capturing_action == action_name),
-                )
-                self.components.append(row)
-                y_pos += UIConstants.LINE_HEIGHT
-
-            y_pos += 10
 
         return y_pos
     
@@ -714,6 +760,23 @@ class OptionsWindow:
         if set_language(lang_code):
             self.state.current_language = lang_code
             print(f"✅ Langue changée: {lang_code}")
+    
+    def _on_performance_mode_changed(self, mode: str) -> None:
+        """Callback pour le changement de mode de performance."""
+        set_performance_mode(mode)
+        self.state.performance_mode = mode
+    
+    def _on_disable_particles_changed(self) -> None:
+        """Callback pour l'activation/désactivation des particules."""
+        disabled = not self.state.disable_particles  # Inverser l'état
+        set_disable_particles(disabled)
+        self.state.disable_particles = disabled
+    
+    def _on_disable_shadows_changed(self) -> None:
+        """Callback pour l'activation/désactivation des ombres."""
+        disabled = not self.state.disable_shadows  # Inverser l'état
+        set_disable_shadows(disabled)
+        self.state.disable_shadows = disabled
     
     def _on_reset(self) -> None:
         """Callback pour la réinitialisation des paramètres."""

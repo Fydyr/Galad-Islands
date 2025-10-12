@@ -1,5 +1,8 @@
 # Importations standard
 from typing import Dict, List, Optional, Tuple
+import os
+import platform
+import traceback
 
 import pygame
 
@@ -7,7 +10,7 @@ import pygame
 import esper as es
 import src.settings.settings as settings
 import src.components.globals.mapComponent as game_map
-from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, config_manager
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path
 from src.settings import controls
@@ -16,11 +19,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Importations des systèmes
+from src.systems.vision_system import vision_system
+
 # Importations des processeurs
-from src.processeurs import movementProcessor, collisionProcessor, playerControlProcessor
+from src.processeurs.movementProcessor import MovementProcessor
+from src.processeurs.collisionProcessor import CollisionProcessor
+from src.processeurs.playerControlProcessor import PlayerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
+from src.processeurs.towerProcessor import TowerProcessor
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -32,6 +41,7 @@ from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
+from src.components.core.visionComponent import VisionComponent
 
 # Importations des capacités spéciales
 
@@ -43,22 +53,29 @@ from src.components.special.speArchitectComponent import SpeArchitect
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
 
 # import event
-from src.managers.flying_chest_manager import FlyingChestManager
+from src.components.events.banditsComponent import Bandits
+from src.processeurs.flyingChestProcessor import FlyingChestProcessor
 from src.managers.island_resource_manager import IslandResourceManager
-from src.managers.stormManager import StormManager
+from src.processeurs.stormProcessor import StormProcessor
+from src.processeurs.combatRewardProcessor import CombatRewardProcessor
+from src.managers.display import get_display_manager
 
 
 # Importations des factories et fonctions utilitaires
 from src.factory.unitFactory import UnitFactory
 from src.factory.unitType import UnitType
+from src.factory.buildingFactory import create_defense_tower, create_heal_tower
 from src.functions.projectileCreator import create_projectile
 from src.functions.handleHealth import entitiesHit
 from src.functions.afficherModale import afficher_modale
 from src.components.core.baseComponent import BaseComponent
+from src.components.core.towerComponent import TowerComponent
+from src.components.globals.mapComponent import is_tile_island
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
-from src.ui.exit_modal import ExitConfirmationModal
+from src.ui.ingame_menu_modal import InGameMenuModal
+from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.notification_system import get_notification_system
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
@@ -79,6 +96,43 @@ class EventHandler:
         """Gère tous les événements pygame."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                # Ouvrir la modale de confirmation plutôt que quitter directement
+                self.game_engine.open_exit_modal()
+                continue
+
+            # Événement interne: changement de langue — demander aux UI de se rafraîchir
+            if event.type == pygame.USEREVENT and getattr(event, 'subtype', None) == 'language_changed':
+                lang = getattr(event, 'lang', None)
+                # Rafraîchir la barre d'action si présente
+                try:
+                    if getattr(self.game_engine, 'action_bar', None) is not None:
+                        if hasattr(self.game_engine.action_bar, 'refresh'):
+                            self.game_engine.action_bar.refresh()
+                        # forcer recalcul display texts if method exists
+                        if hasattr(self.game_engine.action_bar, '_refresh_texts'):
+                            self.game_engine.action_bar._refresh_texts()
+                except Exception:
+                    pass
+                # Rafraîchir la modale de sortie si elle est active so labels update
+                try:
+                    if getattr(self.game_engine, 'exit_modal', None) is not None:
+                        # Re-open layout to recalc labels next time it is shown
+                        if self.game_engine.exit_modal.is_active():
+                            target_surface = self.game_engine.window or pygame.display.get_surface()
+                            self.game_engine.exit_modal.open(target_surface)
+                except Exception:
+                    pass
+                # Rafraîchir notifications
+                try:
+                    ns = get_notification_system()
+                    if hasattr(ns, 'refresh'):
+                        ns.refresh()
+                except Exception:
+                    pass
+                # Continue to next event
+                continue
+            # Confirmed quit posted by an in-game confirmation dialog
+            if event.type == pygame.USEREVENT and getattr(event, 'subtype', None) == 'confirmed_quit':
                 self._handle_quit()
                 continue
 
@@ -114,9 +168,7 @@ class EventHandler:
         elif event.key == pygame.K_F5:
             # Allow only in debug mode or when configuration enables dev cheats
             try:
-                from src.settings.settings import ConfigManager
-                cfg = ConfigManager()
-                dev_mode = cfg.get('dev_mode', False)
+                dev_mode = config_manager.get('dev_mode', False)
             except Exception:
                 dev_mode = False
 
@@ -155,9 +207,9 @@ class EventHandler:
             return
 
         if event.button == 4:  # Molette vers le haut
-            camera.handle_zoom(1)
+            camera.handle_zoom(1, pygame.key.get_mods())
         elif event.button == 5:  # Molette vers le bas
-            camera.handle_zoom(-1)
+            camera.handle_zoom(-1, pygame.key.get_mods())
         elif event.button == 1:  # Clic gauche : sélection
             self.game_engine.handle_mouse_selection(event.pos)
         elif event.button == 3:  # Clic droit : tir principal
@@ -225,7 +277,7 @@ class GameRenderer:
         """
         self.game_engine = game_engine
         
-    def render_frame(self, dt):
+    def render_frame(self, dt, adaptive_quality=1.0):
         """Effectue le rendu complet d'une frame."""
         window = self.game_engine.window
         grid = self.game_engine.grid
@@ -238,7 +290,15 @@ class GameRenderer:
             return
             
         self._clear_screen(window)
+        
+        # Appliquer les optimisations de qualité depuis la config
+        disable_particles = config_manager.get("disable_particles", False) or adaptive_quality < 0.5
+        disable_shadows = config_manager.get("disable_shadows", False) or adaptive_quality < 0.7
+        
         self._render_game_world(window, grid, images, camera)
+        self._render_fog_of_war(window, camera)
+        if not disable_shadows:
+            self._render_vision_circles(window, camera)
         self._render_sprites(window, camera)
         self._render_ui(window, action_bar)
         
@@ -263,56 +323,237 @@ class GameRenderer:
         if grid is not None and images is not None and camera is not None:
             game_map.afficher_grille(window, grid, images, camera)
             
+    def _render_fog_of_war(self, window, camera):
+        """Rend le brouillard de guerre avec nuages et brouillard léger."""
+        current_team = self.game_engine.action_bar.current_camp
+
+        # Mettre à jour la visibilité pour l'équipe actuelle
+        vision_system.update_visibility(current_team)
+
+        # Créer la surface du brouillard de guerre pour la vue actuelle
+        # Cette méthode est déjà optimisée pour ne dessiner que ce qui est visible à l'écran.
+        fog_surface = vision_system.create_fog_surface(camera)
+
+        # Afficher la surface du brouillard en une seule opération de blit
+        if fog_surface:
+            window.blit(fog_surface, (0, 0))
+
+
+
+    def _render_vision_circles(self, window, camera):
+        """Rend les cercles blancs représentant la portée de vision des unités."""
+        if es is None:
+            return
+
+        # Couleur du cercle de vision
+        vision_color = (255, 255, 255)  # Blanc
+        circle_width = 2  # Épaisseur du cercle
+
+        # N'afficher le cercle que pour l'unité sélectionnée
+        selected_unit_id = self.game_engine.selected_unit_id
+        if selected_unit_id is None:
+            return
+
+        # Vérifier que l'unité sélectionnée existe et a les bons composants
+        if (selected_unit_id not in es._entities or
+            not es.has_component(selected_unit_id, PositionComponent) or
+            not es.has_component(selected_unit_id, TeamComponent) or
+            not es.has_component(selected_unit_id, VisionComponent)):
+            return
+
+        # Récupérer les composants de l'unité sélectionnée
+        pos = es.component_for_entity(selected_unit_id, PositionComponent)
+        team = es.component_for_entity(selected_unit_id, TeamComponent)
+        vision = es.component_for_entity(selected_unit_id, VisionComponent)
+
+        # Vérifier si l'unité appartient à l'équipe actuelle
+        current_team = self.game_engine.action_bar.current_camp
+        if team.team_id == current_team:
+            # Calculer la position à l'écran
+            screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
+            
+            # Calculer le rayon à l'écran (portée de vision en pixels)
+            vision_radius_pixels = vision.range * TILE_SIZE * camera.zoom
+            
+            # Ne dessiner que si le cercle est visible à l'écran
+            if (screen_x + vision_radius_pixels >= 0 and screen_x - vision_radius_pixels <= window.get_width() and
+                screen_y + vision_radius_pixels >= 0 and screen_y - vision_radius_pixels <= window.get_height()):
+                
+                # Optimisation : utiliser une surface pré-rendue pour le cercle si possible
+                circle_key = (int(vision_radius_pixels), vision_color, circle_width)
+                if not hasattr(self, '_vision_circle_cache'):
+                    self._vision_circle_cache = {}
+                
+                if circle_key not in self._vision_circle_cache:
+                    # Créer une surface pour le cercle
+                    size = int(vision_radius_pixels * 2) + circle_width * 2
+                    if size > 0:
+                        circle_surface = pygame.Surface((size, size), pygame.SRCALPHA)
+                        pygame.draw.circle(circle_surface, vision_color, (size//2, size//2), 
+                                         int(vision_radius_pixels), circle_width)
+                        self._vision_circle_cache[circle_key] = circle_surface
+                
+                # Dessiner le cercle pré-rendu
+                if circle_key in self._vision_circle_cache:
+                    circle_surf = self._vision_circle_cache[circle_key]
+                    dest_x = int(screen_x - circle_surf.get_width()//2)
+                    dest_y = int(screen_y - circle_surf.get_height()//2)
+                    window.blit(circle_surf, (dest_x, dest_y))
+
     def _render_sprites(self, window, camera):
         """Rendu manuel des sprites pour contrôler l'ordre d'affichage."""
+        # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
+        if not hasattr(self, '_sprite_render_group'):
+            self._sprite_render_group = pygame.sprite.Group()
+        self._sprite_render_group.empty()
+        # --- FIN OPTIMISATION ---
         if camera is None:
             return
             
-        for ent, (pos, sprite) in es.get_components(PositionComponent, SpriteComponent):
-            self._render_single_sprite(window, camera, ent, pos, sprite)
+        current_team = self.game_engine.action_bar.current_camp
             
+        for ent, (pos, sprite) in es.get_components(PositionComponent, SpriteComponent):
+            # Vérifier si l'entité appartient à l'équipe actuelle ou est visible
+            should_render = False
+            
+            # Les entités de l'équipe actuelle sont toujours visibles
+            if es.has_component(ent, TeamComponent):
+                team_comp = es.component_for_entity(ent, TeamComponent)
+                if team_comp.team_id == current_team:
+                    should_render = True
+                elif es.has_component(ent, Bandits):
+                    # Exception spéciale pour les bandits qui peuvent être en dehors de la carte
+                    should_render = True  # Les bandits sont toujours visibles
+                else:
+                    # Vérifier si l'unité adverse est dans une tuile visible
+                    grid_x = int(pos.x / TILE_SIZE)
+                    grid_y = int(pos.y / TILE_SIZE)
+                    if vision_system.is_tile_visible(grid_x, grid_y, current_team):
+                        should_render = True
+            else:
+                # Entités sans équipe (comme les événements) - vérifier visibilité
+                grid_x = int(pos.x / TILE_SIZE)
+                grid_y = int(pos.y / TILE_SIZE)
+                if vision_system.is_tile_visible(grid_x, grid_y, current_team):
+                    should_render = True
+            
+            if should_render:
+                # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
+                # Au lieu de dessiner directement, on prépare le sprite et on l'ajoute au groupe
+                renderable_sprite = self._render_single_sprite(window, camera, ent, pos, sprite)
+                if renderable_sprite:
+                    self._sprite_render_group.add(renderable_sprite)
+                # --- FIN OPTIMISATION ---
+        
+        # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
+        # Dessiner tous les sprites du groupe en une seule fois.
+        # Pygame gère l'ordre de rendu si nécessaire, mais ici l'ordre n'importe pas.
+        self._sprite_render_group.draw(window)
+        # --- FIN OPTIMISATION ---
+  
     def _render_single_sprite(self, window, camera, entity, pos, sprite):
         """Rend un sprite individuel avec effet visuel spécial si invincible."""
-        from src.components.special.speScoutComponent import SpeScout
-        image = self._get_sprite_image(sprite)
-        if image is None:
-            return
-
-        display_width = int(sprite.width * camera.zoom)
-        display_height = int(sprite.height * camera.zoom)
-        screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
-
-        if display_width <= 0 or display_height <= 0:
-            return
-
-        sprite.scale_sprite(display_width, display_height)
-        if sprite.surface is not None:
-            rotated_image = pygame.transform.rotate(sprite.surface, -pos.direction)
+        
+        # Optimisation : niveaux de zoom discrets pour réduire les recalculs
+        zoom_levels = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5]
+        discrete_zoom = min(zoom_levels, key=lambda x: abs(x - camera.zoom))
+        
+        # Clé de cache optimisée : utiliser zoom discret + rotation arrondie
+        rotation_key = round(pos.direction / 15) * 15  # Arrondir la rotation à 15 degrés près
+        cache_key = (sprite.image_path, discrete_zoom, sprite.width, sprite.height, rotation_key)
+        
+        if not hasattr(self, '_sprite_cache'):
+            self._sprite_cache = {}
+            self._cache_access_order = []
+        
+        if cache_key not in self._sprite_cache:
+            image = self._get_sprite_image(sprite)
+            if image is None:
+                return None
+            
+            # Redimensionner l'image (utiliser scale au lieu de smoothscale pour performance)
+            display_width = int(sprite.width * discrete_zoom)
+            display_height = int(sprite.height * discrete_zoom)
+            if display_width > 0 and display_height > 0:
+                if abs(discrete_zoom - 1.0) < 0.01:
+                    scaled_image = image
+                else:
+                    scaled_image = pygame.transform.scale(image, (display_width, display_height))
+                
+                # Appliquer la rotation arrondie et mettre en cache
+                if rotation_key != 0:
+                    final_image = pygame.transform.rotate(scaled_image, -rotation_key)
+                else:
+                    final_image = scaled_image
+                
+                self._sprite_cache[cache_key] = final_image
+                self._cache_access_order.append(cache_key)
+            else:
+                return None
         else:
-            scaled_image = pygame.transform.scale(image, (display_width, display_height))
-            rotated_image = pygame.transform.rotate(scaled_image, -pos.direction)
+            # Marquer comme récemment utilisé pour LRU
+            if cache_key in self._cache_access_order:
+                self._cache_access_order.remove(cache_key)
+            self._cache_access_order.append(cache_key)
+            
+        final_image = self._sprite_cache[cache_key]
+        display_width = final_image.get_width()
+        display_height = final_image.get_height()
+
+        screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
+        
+        # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
+        # Créer un objet pygame.sprite.Sprite pour le rendu groupé
+        render_sprite = pygame.sprite.Sprite()
+        render_sprite.image = final_image
+        render_sprite.rect = final_image.get_rect(center=(int(screen_x), int(screen_y)))
+        # --- FIN OPTIMISATION ---
+
+        # Vérifier si le sprite est visible à l'écran (optimisation culling)
+        if not window.get_rect().colliderect(render_sprite.rect):
+            return None
+
+        # Positionner le sprite (centré sur la position)
+        # Cette partie est maintenant gérée par render_sprite.rect
+        # --- DEBUT OPTIMISATION: SUPPRESSION BLIT INDIVIDUEL ---
+        """
+        dest_x = int(screen_x - display_width // 2)
+        dest_y = int(screen_y - display_height // 2)
+        
+        # Rendre le sprite
+        window.blit(final_image, (dest_x, dest_y))
+
+        # Gestion du cache : limiter la taille pour éviter la surcharge mémoire
+        """
+        if len(self._sprite_cache) > 150:  # Augmenter la limite
+            # Supprimer les entrées les moins récemment utilisées
+            to_remove = self._cache_access_order[:30]
+            for key in to_remove:
+                if key in self._sprite_cache:
+                    del self._sprite_cache[key]
+                if key in self._cache_access_order:
+                    self._cache_access_order.remove(key)
+
+        # --- FIN OPTIMISATION ---
 
         # Calculer le rect avant tout effet visuel
-        rect = rotated_image.get_rect(center=(screen_x, screen_y))
+        # On utilise maintenant render_sprite.rect
+        rect = render_sprite.rect
 
-        # Effet visuel d'invincibilité pour Zasper : clignotement
-        invincible = False
+        # Effets visuels basés sur les composants
         if es.has_component(entity, SpeScout):
             spe = es.component_for_entity(entity, SpeScout)
             if getattr(spe, 'is_active', False):
-                invincible = True
-
-        if invincible:
-            # Clignote : visible 2 frames sur 3
-            if (pygame.time.get_ticks() // 100) % 3 != 0:
-                temp_img = rotated_image.copy()
-                temp_img.set_alpha(128)  # semi-transparent
-                window.blit(temp_img, rect.topleft)
-            else:
-                # Invisible cette frame (effet de clignotement)
-                pass
+                # Effet visuel d'invincibilité pour Zasper : clignotement
+                if (pygame.time.get_ticks() // 100) % 3 != 0:
+                    temp_img = final_image.copy()
+                    temp_img.set_alpha(128)  # semi-transparent
+                    render_sprite.image = temp_img # Remplacer l'image du sprite
+                # Sinon, ne rien dessiner pour l'effet de clignotement
+                else:
+                    return None # Ne pas ajouter ce sprite au groupe de rendu
         else:
-            window.blit(rotated_image, rect.topleft)
+            window.blit(final_image, rect.topleft)
 
         # Effet visuel : halo bleu pour le bouclier de Barhamus
         if es.has_component(entity, SpeMaraudeur):
@@ -330,12 +571,14 @@ class GameRenderer:
         # Dessiner l'indicateur de sélection si nécessaire
         if es.has_component(entity, PlayerSelectedComponent):
             self._draw_selection_highlight(window, screen_x, screen_y, display_width, display_height)
-        
+
         # Dessiner la barre de vie si nécessaire
         if es.has_component(entity, HealthComponent):
             health = es.component_for_entity(entity, HealthComponent)
             if health.currentHealth < health.maxHealth:
                 self._draw_health_bar(window, screen_x, screen_y, health, display_width, display_height)
+        
+        return render_sprite
                 
     def _get_sprite_image(self, sprite):
         """Obtient l'image d'un sprite selon les données disponibles."""
@@ -344,8 +587,14 @@ class GameRenderer:
         elif sprite.image is not None:
             return sprite.image
         elif sprite.image_path:
-            return pygame.image.load(sprite.image_path).convert_alpha()
+            try:
+                img = pygame.image.load(sprite.image_path).convert_alpha()
+                return img
+            except Exception as e:
+                print(f"[DEBUG] Failed to load image from {sprite.image_path}: {e}")
+                return None
         else:
+            print(f"[DEBUG] No image data available for sprite")
             return None
 
     def _draw_selection_highlight(self, window, screen_x, screen_y, display_width, display_height):
@@ -497,9 +746,11 @@ class GameEngine:
         self.grid = None
         self.images = None
         self.camera = None
-        self.flying_chest_manager = FlyingChestManager()
+        self.camera_positions = {}  # Stockage des positions de caméra par équipe
+        self.flying_chest_processor = FlyingChestProcessor()
         self.island_resource_manager = IslandResourceManager()
-        self.stormManager = StormManager()
+        self.storm_processor = StormProcessor()
+        self.combat_reward_processor = CombatRewardProcessor()
         self.player = None
         self.notification_system = get_notification_system()
         
@@ -526,7 +777,7 @@ class GameEngine:
         # Gestionnaire d'événements et rendu
         self.event_handler = EventHandler(self)
         self.renderer = GameRenderer(self)
-        self.exit_modal = ExitConfirmationModal()
+        self.exit_modal = InGameMenuModal()
         
         # Timer pour le spawn de coffres
         self.chest_spawn_timer = 0.0
@@ -543,12 +794,33 @@ class GameEngine:
         """Initialise tous les composants du jeu."""
         print(t("system.game_launched"))
         
+        # Optimisations SDL pour améliorer les performances
+        
+        # Optimisations spécifiques à Windows
+        if platform.system() == 'Windows':
+            os.environ['SDL_VIDEO_CENTERED'] = '1'
+            os.environ['SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING'] = '1'  # Réduit la surcharge des threads
+            os.environ['SDL_HINT_WINDOWS_INTRESOURCE_ICON'] = '0'  # Désactive les icônes intégrées
+            # Forcer DirectX si disponible (meilleures performances sur Windows)
+            if 'SDL_VIDEODRIVER' not in os.environ:
+                os.environ['SDL_VIDEODRIVER'] = 'directx'
+        else:
+            # Optimisations Linux/Mac
+            os.environ['SDL_VIDEO_CENTERED'] = '1'
+            os.environ['SDL_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR'] = '0'
+            # Essayer les drivers accélérés
+            for driver in ['wayland', 'x11', 'kmsdrm', 'directfb']:
+                try:
+                    os.environ['SDL_VIDEODRIVER'] = driver
+                    break
+                except:
+                    continue
+        
         pygame.init()
         
-        # Configuration de la fenêtre
+        # Configuration de la fenêtre avec optimisations
         if self.window is None:
             try:
-                from src.managers.display import get_display_manager
                 dm = get_display_manager()
                 # prefer to initialize with a sensible size based on the map
                 desired_w = MAP_WIDTH * TILE_SIZE
@@ -557,8 +829,21 @@ class GameEngine:
                 self.window = dm.surface
                 pygame.display.set_caption(t("system.game_window_title"))
             except Exception:
-                # fallback to direct creation
-                self.window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE), pygame.RESIZABLE)
+                # fallback to direct creation avec optimisations pour de meilleures performances
+                flags = pygame.RESIZABLE | pygame.DOUBLEBUF
+                # Désactiver VSync si configuré pour de meilleures performances
+                if not config_manager.get("vsync", True):
+                    flags |= pygame.NOFRAME  # Évite la synchronisation verticale
+                # Utiliser HWSURFACE si disponible (accélération matérielle)
+                try:
+                    test_surface = pygame.display.set_mode((100, 100), flags | pygame.HWSURFACE)
+                    if test_surface:
+                        flags |= pygame.HWSURFACE
+                        pygame.display.quit()  # Fermer le test
+                        pygame.display.init()  # Réinitialiser
+                except:
+                    pass  # HWSURFACE non disponible
+                self.window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE), flags)
                 pygame.display.set_caption(t("system.game_window_title"))
             self.created_local_window = True
         
@@ -583,6 +868,9 @@ class GameEngine:
         # Configurer la caméra
         self._setup_camera()
         
+        # Réinitialiser le système de vision après l'initialisation complète
+        vision_system.reset()
+        
     def _initialize_game_map(self):
         """Initialise la carte du jeu."""
         if self.window is None:
@@ -593,17 +881,17 @@ class GameEngine:
         self.images = game_state["images"]
         self.camera = game_state["camera"]
         
-        # Initialize flying chest manager
-        if self.flying_chest_manager is not None and self.grid is not None:
-            self.flying_chest_manager.initialize_from_grid(self.grid)
+        # Initialize flying chest processor
+        if self.flying_chest_processor is not None and self.grid is not None:
+            self.flying_chest_processor.initialize_from_grid(self.grid)
 
         # Initialize island resource manager
         if self.island_resource_manager is not None and self.grid is not None:
             self.island_resource_manager.initialize_from_grid(self.grid)
 
         # Initialize storm manager
-        if self.stormManager is not None and self.grid is not None:
-            self.stormManager.initializeFromGrid(self.grid)
+        if self.storm_processor is not None and self.grid is not None:
+            self.storm_processor.initializeFromGrid(self.grid)
 
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
@@ -613,7 +901,6 @@ class GameEngine:
         
         # Nettoyer tous les processeurs existants
         es._processors.clear()
-        StormManager().clearAllStorms()
 
         # Réinitialiser les gestionnaires globaux dépendant du monde
         BaseComponent.reset()
@@ -622,15 +909,16 @@ class GameEngine:
         es._world = es
         
         # Créer et ajouter les processeurs
-        self.movement_processor = movementProcessor.MovementProcessor()
-        self.collision_processor = collisionProcessor.CollisionProcessor(graph=self.grid)
-        self.player_controls = playerControlProcessor.PlayerControlProcessor()
+        self.movement_processor = MovementProcessor()
+        self.collision_processor = CollisionProcessor(graph=self.grid)
+        self.player_controls = PlayerControlProcessor(self.grid)
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
-        from src.processeurs.towerProcessor import TowerProcessor
         self.tower_processor = TowerProcessor()
+        # Storm processor (gère les tempêtes)
+        self.storm_processor = StormProcessor()
 
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
@@ -643,13 +931,14 @@ class GameEngine:
         es.set_handler('special_vine_event', create_projectile)
         es.set_handler('entities_hit', entitiesHit)
         es.set_handler('game_over', self._handle_game_over)
-        if self.flying_chest_manager is not None:
-            es.set_handler('flying_chest_collision', self.flying_chest_manager.handle_collision)
+        if self.flying_chest_processor is not None:
+            es.set_handler('flying_chest_collision', self.flying_chest_processor.handle_collision)
         if self.island_resource_manager is not None:
             es.set_handler('island_resource_collision', self.island_resource_manager.handle_collision)
         
     def _create_initial_entities(self):
         """Crée les entités initiales du jeu."""
+        
         # Créer les PlayerComponent pour CHAQUE équipe (alliés ET ennemis)
         # Équipe Alliée (team_id = 1)
         ally_player = es.create_entity()
@@ -679,17 +968,18 @@ class GameEngine:
         enemy_druid = UnitFactory(
             UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
         
+        # Initialiser la visibilité pour l'équipe actuelle
+        vision_system.update_visibility(Team.ALLY)
+        
+        # Initialiser les variables d'optimisation adaptative
+        self._frame_times = []
+        self._adaptive_quality = 1.0
+        
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
-        if self.camera is None:
-            raise RuntimeError("La caméra doit être initialisée avant sa configuration")
-            
-        center_x = (MAP_WIDTH * TILE_SIZE) // 2
-        center_y = (MAP_HEIGHT * TILE_SIZE) // 2
-        
-        self.camera.x = center_x - self.camera.screen_width / (2 * self.camera.zoom)
-        self.camera.y = center_y - self.camera.screen_height / (2 * self.camera.zoom)
-        self.camera._constrain_camera()
+        # La caméra est déjà configurée dans init_game_map()
+        # Ne pas la recentrer automatiquement
+        pass
 
     def _give_dev_gold(self, amount: int = 500) -> None:
         """Ajoute de l'or au joueur de la team active (outil de développement).
@@ -714,7 +1004,6 @@ class GameEngine:
             # Si on arrive ici, aucun PlayerComponent trouvé (ne devrait jamais arriver)
             print(f"[DEV GOLD] ❌ ERREUR: Aucun PlayerComponent trouvé pour team_id={active_team}")
         except Exception as e:
-            import traceback
             print(f"[DEV GOLD] ❌ Exception: {e}")
             traceback.print_exc()
 
@@ -747,17 +1036,40 @@ class GameEngine:
                 self.action_bar.set_camp(team, show_feedback=True)
             return
 
+        # Sauvegarder la position actuelle de la caméra pour l'équipe actuelle
+        if self.camera is not None:
+            self.camera_positions[self.selection_team_filter] = (self.camera.x, self.camera.y, self.camera.zoom)
+
         self.selection_team_filter = team
         self._clear_current_selection()
         self._update_selection_state()
 
         if self.action_bar is not None:
             self.action_bar.set_camp(team, show_feedback=notify)
-        elif notify:
-            camp_name = t("camp.ally") if team == Team.ALLY else t("camp.enemy")
-            feedback = t("camp.feedback", camp=camp_name)
-            print(f"[INFO] {feedback}")
 
+        # Mettre à jour la visibilité pour le brouillard de guerre
+        vision_system.update_visibility(team)
+
+        # Restaurer ou définir la position de la caméra pour la nouvelle équipe
+        if self.camera is not None:
+            if team in self.camera_positions:
+                # Restaurer la position sauvegardée
+                saved_x, saved_y, saved_zoom = self.camera_positions[team]
+                self.camera.x = saved_x
+                self.camera.y = saved_y
+                self.camera.zoom = saved_zoom
+            else:
+                # Position par défaut selon la faction
+                if team == Team.ENEMY:
+                    # Basculer vers le bas à droite pour la faction ennemie
+                    self.camera.x = MAP_WIDTH * TILE_SIZE
+                    self.camera.y = MAP_HEIGHT * TILE_SIZE
+                else:
+                    # Coin supérieur gauche pour la faction alliée
+                    self.camera.x = 0
+                    self.camera.y = 0
+            self.camera._constrain_camera()
+        
     def cycle_selection_team(self) -> None:
         """Bascule sur la faction suivante pour la sélection."""
         order = (Team.ALLY, Team.ENEMY)
@@ -792,7 +1104,11 @@ class GameEngine:
         result = self.exit_modal.handle_event(event, target_surface)
 
         if result == "quit":
-            self._quit_game()
+            # Pour InGameMenuModal, "quit" ouvre une modale de confirmation, ne pas quitter directement
+            if not isinstance(self.exit_modal, InGameMenuModal):
+                self._quit_game()
+                return True
+            # Pour InGameMenuModal, continuer normalement (le callback a ouvert la modale de confirmation)
             return True
 
         if result == "stay":
@@ -1259,13 +1575,41 @@ class GameEngine:
         if self.clock is None:
             raise RuntimeError("L'horloge doit être initialisée")
         
+        # Variables pour l'optimisation adaptative
+        self._frame_times = []
+        self._adaptive_quality = 1.0  # 1.0 = qualité maximale, 0.5 = qualité réduite
+        
         while self.running:
+            frame_start = pygame.time.get_ticks()
             dt = self.clock.tick(60) / 1000.0
             
             self.event_handler.handle_events()
             self._update_game(dt)
             self._render_game(dt)
             
+            # Calcul du FPS adaptatif
+            frame_time = pygame.time.get_ticks() - frame_start
+            self._frame_times.append(frame_time)
+            if len(self._frame_times) > 10:  # Garder les 10 dernières frames
+                self._frame_times.pop(0)
+            
+            avg_frame_time = sum(self._frame_times) / len(self._frame_times)
+            target_frame_time = 1000 / 60  # 16.67ms pour 60 FPS
+            
+            # Ajuster la qualité adaptative
+            performance_mode = config_manager.get("performance_mode", "auto")
+            if performance_mode == "auto":
+                if avg_frame_time > target_frame_time * 1.2:  # Si on dépasse 20% du temps cible
+                    self._adaptive_quality = max(0.3, self._adaptive_quality * 0.95)  # Réduire progressivement
+                elif avg_frame_time < target_frame_time * 0.8:  # Si on est bien en dessous
+                    self._adaptive_quality = min(1.0, self._adaptive_quality * 1.05)  # Augmenter progressivement
+            elif performance_mode == "high":
+                self._adaptive_quality = 1.0
+            elif performance_mode == "medium":
+                self._adaptive_quality = 0.7
+            elif performance_mode == "low":
+                self._adaptive_quality = 0.4
+        
         self._cleanup()
         
 
@@ -1313,25 +1657,28 @@ class GameEngine:
         if self.tower_processor is not None:
             self.tower_processor.process(dt)
         
+        # Traiter le StormProcessor (avec dt)
+        if self.storm_processor is not None:
+            self.storm_processor.process(dt)
+        
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
 
-        if self.flying_chest_manager is not None:
-            self.flying_chest_manager.update(dt)
+        if self.flying_chest_processor is not None:
+            self.flying_chest_processor.process(dt)
         if self.island_resource_manager is not None:
             self.island_resource_manager.update(dt)
             
-        if self.stormManager is not None:
-            self.stormManager.update(dt)
+        # Les tempêtes sont gérées par storm_processor (processeur ECS)
 
         # Synchroniser les informations affichées avec l'état courant
         self._refresh_selected_unit_info()
         
-        # Les coffres volants sont gérés par flying_chest_manager.update(dt) plus haut
+        # Les coffres volants sont gérés par flying_chest_processor.process(dt) plus haut
         
     def _render_game(self, dt):
         """Effectue le rendu du jeu."""
-        self.renderer.render_frame(dt)
+        self.renderer.render_frame(dt, self._adaptive_quality)
         
     def _quit_game(self):
         """Quitte le jeu proprement."""
@@ -1341,7 +1688,6 @@ class GameEngine:
         """Nettoie les ressources avant de quitter."""
         if self.created_local_window:
             try:
-                from src.managers.display import get_display_manager
                 dm = get_display_manager()
                 dm.apply_resolution_and_recreate(settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
                 pygame.display.set_caption(t("system.main_window_title"))
@@ -1446,14 +1792,12 @@ class GameEngine:
         position_was_adjusted = distance_moved > TILE_SIZE * 0.1  # Seuil de 10% de TILE_SIZE
         
         # Vérifier que la position est sur une île
-        from src.components.globals.mapComponent import is_tile_island
         if not is_tile_island(self.grid, snapped_x, snapped_y):
             if hasattr(self, 'action_bar') and self.action_bar:
                 self.action_bar._show_feedback('warning', t('placement.must_be_on_island'))
             return False
         
         # Vérifier qu'il n'y a pas déjà une tour à cette position exacte (tolérance de 1 pixel)
-        from src.components.core.towerComponent import TowerComponent
         for tower_ent, (tower_pos, tower_comp) in es.get_components(PositionComponent, TowerComponent):
             distance = ((tower_pos.x - snapped_x) ** 2 + (tower_pos.y - snapped_y) ** 2) ** 0.5
             if distance < 1.0:  # Moins d'1 pixel de distance
@@ -1462,7 +1806,7 @@ class GameEngine:
                 return False
         
         # Vérifier l'or du joueur
-        current_gold = self._get_current_player_gold()
+        current_gold = self.action_bar._get_current_player_gold()
         if current_gold < self.tower_cost:
             if hasattr(self, 'action_bar') and self.action_bar:
                 self.action_bar._show_feedback('warning', t('shop.insufficient_gold'))
@@ -1475,32 +1819,24 @@ class GameEngine:
         # Créer la tour à la position snappée
         try:
             if self.tower_type_to_place == "defense":
-                from src.factory.buildingFactory import create_defense_tower
                 new_ent = create_defense_tower(snapped_x, snapped_y, team_id=self.tower_team_id)
             elif self.tower_type_to_place == "heal":
-                from src.factory.buildingFactory import create_heal_tower
                 new_ent = create_heal_tower(snapped_x, snapped_y, team_id=self.tower_team_id)
             else:
                 return False
             
             # Ajouter à la base
-            from src.components.core.baseComponent import BaseComponent
-            BaseComponent.add_unit_to_base(new_ent, is_enemy=(self.tower_team_id != 1))
+            # Les tours sont automatiquement associées via leur team_id
             
-            # Déduire le coût
-            self._set_current_player_gold(current_gold - self.tower_cost)
+            # Déduire l'or du joueur
+            self.action_bar._set_current_player_gold(current_gold - self.tower_cost)
             
-            # Afficher un message de succès
+            # Feedback visuel
             if hasattr(self, 'action_bar') and self.action_bar:
-                building_name = t(f'shop.{self.tower_type_to_place}_tower')
-                # Si la position a été ajustée de manière significative, informer l'utilisateur
-                if position_was_adjusted:
-                    self.action_bar._show_feedback('success', t('shop.buildings.built_snapped', building=building_name))
-                else:
-                    self.action_bar._show_feedback('success', t('shop.buildings.built', building=building_name))
+                tower_name = t('tower.defense') if self.tower_type_to_place == "defense" else t('tower.heal')
+                self.action_bar._show_feedback('success', t('placement.tower_placed', tower=tower_name))
             
-            # Désactiver le mode de placement
-            self.tower_placement_mode = False
+            # Réinitialiser l'état de placement
             self.tower_type_to_place = None
             self.tower_team_id = None
             self.tower_cost = 0
@@ -1508,14 +1844,10 @@ class GameEngine:
             return True
             
         except Exception as e:
-            print(f"[ERROR] Failed to place tower: {e}")
+            print(f"Erreur lors du placement de la tour: {e}")
             if hasattr(self, 'action_bar') and self.action_bar:
-                self.action_bar._show_feedback('error', t('feedback.error', default='Error occurred'))
+                self.action_bar._show_feedback('error', t('placement.error', default='Erreur lors du placement'))
             return False
-    
-    def _get_current_player_gold(self) -> int:
-        """Retourne la quantité d'or du joueur actuel."""
-        team_id = Team.ENEMY if self.selection_team_filter == Team.ENEMY else Team.ALLY
         
         for entity, (player_comp, team_comp) in es.get_components(PlayerComponent, TeamComponent):
             if team_comp.team_id == team_id:
@@ -1543,4 +1875,3 @@ def game(window=None, bg_original=None, select_sound=None):
     """
     engine = GameEngine(window, bg_original, select_sound)
     engine.run()
-
