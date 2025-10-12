@@ -173,7 +173,7 @@ class GenericModal:
             # Layout vertical : plus grand en hauteur pour plus de boutons
             panel_width = max(400, min(580, int(width * 0.5)))
             button_count = len(self.button_actions)
-            panel_height = max(300, 180 + button_count * 85)  # Hauteur dynamique augmentée
+            panel_height = max(250, 140 + button_count * 50)  # Hauteur dynamique réduite
         else:
             # Layout horizontal classique — augmenter la largeur pour les menus
             # Utiliser une proportion plus large et des bornes supérieures/inférieures accrues
@@ -184,14 +184,14 @@ class GenericModal:
         self.modal_rect.center = (width // 2, height // 2)
 
         button_width = 200 if self.vertical_layout else 150
-        button_height = 56
-        spacing = 20 if self.vertical_layout else 30
+        button_height = 40 if self.vertical_layout else 56
+        spacing = 10 if self.vertical_layout else 30
 
         self.button_rects = []
         
         if self.vertical_layout:
             # Boutons arrangés verticalement
-            start_y = 140  # Commencer après le titre et message
+            start_y = 120  # Commencer après le titre et message
             for i in range(len(self.button_actions)):
                 x = (panel_width - button_width) // 2
                 y = start_y + i * (button_height + spacing)

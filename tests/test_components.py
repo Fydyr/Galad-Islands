@@ -135,16 +135,12 @@ class TestSpriteComponent:
         # Créer une vraie surface pygame pour le test
         test_surface = pygame.Surface((32, 32))
 
-        # Utiliser un mock pour éviter de charger un fichier réel
-        import unittest.mock
-        with unittest.mock.patch('pygame.image.load') as mock_load:
-            mock_load.return_value = test_surface
-
-            sprite = SpriteComponent("test.png", 32, 32)
-            assert sprite.image_path == "test.png"
-            assert sprite.width == 32
-            assert sprite.height == 32
-            assert sprite.surface is not None
+        # Fournir directement l'image et la surface pour éviter les opérations pygame
+        sprite = SpriteComponent("test.png", 32, 32, image=test_surface, surface=test_surface)
+        assert sprite.image_path == "test.png"
+        assert sprite.width == 32
+        assert sprite.height == 32
+        assert sprite.surface is not None
 
     def test_sprite_initialization_full(self):
         """Test l'initialisation complète d'un composant sprite."""
