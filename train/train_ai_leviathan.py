@@ -5,8 +5,9 @@ import os
 import time
 import random
 
-# Add the project root to the path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add the project root to the path (parent directory of train/)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 import esper as es
 import numpy as np
