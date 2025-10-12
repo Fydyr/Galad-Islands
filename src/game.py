@@ -30,6 +30,7 @@ from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProc
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
+from src.ia.BaseAi import BaseAi
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -917,6 +918,8 @@ class GameEngine:
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
         self.tower_processor = TowerProcessor()
+        # IA de la base ennemie
+        self.enemy_base_ai = BaseAi(team_id=2)
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
 
@@ -924,6 +927,7 @@ class GameEngine:
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
         es.add_processor(self.tower_processor, priority=5)
+        es.add_processor(self.enemy_base_ai, priority=7)
         es.add_processor(self.lifetime_processor, priority=10)
         
         # Configurer les handlers d'événements

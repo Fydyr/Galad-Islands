@@ -16,6 +16,17 @@ UNIT_COST_ARCHITECT = 120
 UNIT_COST_ATTACK_TOWER = 80
 UNIT_COST_HEAL_TOWER = 100
 
+# Dictionnaire des coûts pour l'IA
+UNIT_COSTS = {
+    "scout": UNIT_COST_SCOUT,
+    "maraudeur": UNIT_COST_MARAUDEUR,
+    "leviathan": UNIT_COST_LEVIATHAN,
+    "druid": UNIT_COST_DRUID,
+    "architect": UNIT_COST_ARCHITECT,
+    "attack_tower": UNIT_COST_ATTACK_TOWER,
+    "heal_tower": UNIT_COST_HEAL_TOWER,
+}
+
 # =============================================================================
 # CONSTANTES DE VISION ET BROUILLARD DE GUERRE
 # =============================================================================
