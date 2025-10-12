@@ -130,13 +130,11 @@ class LeviathanBrain:
         # Exploration: take a random action
         if np.random.random() < epsilon:
             action = np.random.randint(0, self.NUM_ACTIONS)
-            logger.debug(f"Random action (exploration): {self.ACTION_NAMES[action]}")
             return action
 
         # Exploitation: choose the best action according to the model
         q_values = self.predict_q_values(state)
         action = int(np.argmax(q_values))
-        logger.debug(f"Optimal action (exploitation): {self.ACTION_NAMES[action]} (Q={q_values[action]:.2f})")
         return action
 
     def train(
@@ -203,13 +201,14 @@ class LeviathanBrain:
             self.is_trained = True
             self.training_samples += len(states)
 
-            # Calculate the mean squared error (loss)
+            # Calculate the mean squared error (loss) - removed logging for performance
             loss = np.mean((target_q_values - np.array([current_q_values[i, actions[i]] for i in range(len(actions))])) ** 2)
-            logger.info(f"Training: {len(states)} samples, loss={loss:.4f}, total_samples={self.training_samples}")
             return float(loss)
 
         except Exception as e:
-            logger.error(f"Training error: {e}")
+            # Only log critical errors
+            if self.training_samples % 1000 == 0:  # Log only every 1000 trainings
+                logger.error(f"Training error: {e}")
             return 0.0
 
     def save_model(self, path: str, metadata: dict = None):

@@ -135,7 +135,10 @@ class AITrainer:
             episode_num: The current episode number
         """
         total_episode = self.start_episode + episode_num + 1
-        print(f"[EPISODE] {episode_num + 1}/{self.episodes} (Total: {total_episode})")
+
+        # Only print episode header every 10 episodes for performance
+        if episode_num % 10 == 0 or episode_num == self.episodes - 1:
+            print(f"[EPISODE] {episode_num + 1}/{self.episodes} (Total: {total_episode})")
 
         # Reset entities for the new episode
         self.setup_entities()
@@ -162,14 +165,15 @@ class AITrainer:
         for step in range(self.steps_per_episode):
             step_count += 1
 
-            # Simulate random movements for target enemies
-            self._simulate_enemy_movements()
+            # Simulate random movements for target enemies (every 3 frames for performance)
+            if step % 3 == 0:
+                self._simulate_enemy_movements()
 
             # Process the AI processor
             self.ai_processor.process(self.dt)
 
-            # Display progress every 200 steps
-            if (step + 1) % 200 == 0:
+            # Display progress less frequently (every 500 steps instead of 200)
+            if (step + 1) % 500 == 0 and (episode_num % 10 == 0):
                 # Calculate CURRENT total reward across all agents (not accumulated)
                 current_total_reward = 0.0
                 for entity in self.leviathans:
@@ -186,7 +190,8 @@ class AITrainer:
             # Check if the enemy base is destroyed to end the episode early
             base_destroyed = self._check_base_destroyed()
             if base_destroyed:
-                print(f"   [WIN] ENEMY BASE DESTROYED! Huge reward assigned.")
+                if episode_num % 10 == 0:
+                    print(f"   [WIN] ENEMY BASE DESTROYED! Huge reward assigned.")
                 break
 
         # Final episode statistics - calculate final average reward
@@ -197,31 +202,37 @@ class AITrainer:
                 final_total_reward += ai_comp.episode_reward
 
         avg_reward = final_total_reward / len(self.leviathans) if self.leviathans else 0
-        stats = self.ai_processor.get_statistics()
 
-        print(f"   [DONE] Episode finished - {step_count} steps")
-        print(f"   [REWARD] Average reward: {avg_reward:.2f}")
-        print(f"   [TRAIN] Trainings: {stats['training_count']}")
-        print(f"   [ACTIONS] Total actions: {stats['total_actions']}")
-        print()
+        # Only get stats and print every 10 episodes
+        if episode_num % 10 == 0 or episode_num == self.episodes - 1:
+            stats = self.ai_processor.get_statistics()
+            print(f"   [DONE] Episode finished - {step_count} steps")
+            print(f"   [REWARD] Average reward: {avg_reward:.2f}")
+            print(f"   [TRAIN] Trainings: {stats['training_count']}")
+            print(f"   [ACTIONS] Total actions: {stats['total_actions']}")
+            print()
 
         return avg_reward
 
     def _simulate_enemy_movements(self):
-        """Simulates random movements for non-AI entities."""
+        """Simulates random movements for non-AI entities (optimized)."""
         # Make allied enemies (targets for the AI) move randomly
+        # Pre-check for AI components to avoid repeated lookups
+        ai_entities = set()
+        for entity, _ in es.get_component(AILeviathanComponent):
+            ai_entities.add(entity)
+
         for entity, (pos, vel, team) in es.get_components(
             PositionComponent, VelocityComponent, TeamComponent
         ):
-            # Ignore the AI-controlled Leviathans
-            if es.has_component(entity, AILeviathanComponent):
+            # Ignore the AI-controlled Leviathans (using pre-built set)
+            if entity in ai_entities:
                 continue
 
             # Random movement for allied units (AI's enemies)
-            if team.team_id == 1:
-                if random.random() < 0.1:  # 10% chance to change direction
-                    pos.direction = random.randint(0, 360)
-                    vel.currentSpeed = vel.maxUpSpeed if random.random() > 0.5 else 0
+            if team.team_id == 1 and random.random() < 0.1:  # 10% chance to change direction
+                pos.direction = random.randint(0, 360)
+                vel.currentSpeed = vel.maxUpSpeed if random.random() > 0.5 else 0
 
     def _check_base_destroyed(self) -> bool:
         """Checks if the enemy base has been destroyed."""

@@ -58,18 +58,24 @@ class AILeviathanProcessor(esper.Processor):
 
         # Training counter (only used in training mode)
         self.training_count = 0
-        self.training_frequency = 60  # Train every 60 frames (~1 second)
+        self.training_frequency = 32  # Train every 32 frames (optimized for faster training)
 
         # Statistics
         self.total_actions = 0
         self.actions_by_type = {i: 0 for i in range(LeviathanBrain.NUM_ACTIONS)}
 
+        # Cache for entity detection (optimization)
+        self.entity_cache = {}
+        self.cache_update_frequency = 5  # Update cache every 5 frames
+        self.cache_frame_counter = 0
+
         # Register the event handler for game_over
         esper.set_handler('game_over', self._handle_game_over)
 
-        # Log mode
-        mode_str = "TRAINING" if training_mode else "INFERENCE ONLY"
-        logger.info(f"AILeviathanProcessor initialized in {mode_str} mode")
+        # Log mode (only log in non-training mode for performance)
+        if not training_mode:
+            mode_str = "INFERENCE ONLY"
+            logger.info(f"AILeviathanProcessor initialized in {mode_str} mode")
 
     def _handle_game_over(self, defeated_team_id: int):
         """
@@ -102,6 +108,12 @@ class AILeviathanProcessor(esper.Processor):
             dt: Delta time (time elapsed since the last frame)
         """
         self.elapsed_time += dt
+        self.cache_frame_counter += 1
+
+        # Update entity cache periodically for performance
+        if self.cache_frame_counter >= self.cache_update_frequency:
+            self._update_entity_cache()
+            self.cache_frame_counter = 0
 
         # Iterate through all Leviathans with an AI component
         for entity, (ai_comp, spe_lev, pos, vel, health, team) in esper.get_components(
@@ -234,11 +246,51 @@ class AILeviathanProcessor(esper.Processor):
 
         return state
 
+    def _update_entity_cache(self):
+        """Updates the entity cache for faster queries (optimization)."""
+        # Cache positions for enemies and allies
+        self.entity_cache = {
+            'enemies': {},
+            'allies': {},
+            'mines': [],
+            'events': {'storms': [], 'bandits': [], 'resources': []}
+        }
+
+        # Cache enemies and allies by team
+        for entity, (other_pos, other_team) in esper.get_components(PositionComponent, TeamComponent):
+            team_id = other_team.team_id
+            if team_id not in self.entity_cache['enemies']:
+                self.entity_cache['enemies'][team_id] = []
+            if team_id not in self.entity_cache['allies']:
+                self.entity_cache['allies'][team_id] = []
+
+            self.entity_cache['enemies'][team_id].append((entity, other_pos.x, other_pos.y))
+            self.entity_cache['allies'][team_id].append((entity, other_pos.x, other_pos.y))
+
+        # Cache mines
+        for mine_entity, (mine_pos, mine_health, mine_team, mine_attack) in esper.get_components(
+            PositionComponent, HealthComponent, TeamComponent, AttackComponent
+        ):
+            if (mine_health.maxHealth == 1 and mine_team.team_id == 0 and int(mine_attack.hitPoints) == 40):
+                self.entity_cache['mines'].append((mine_pos.x, mine_pos.y))
+
+        # Cache events
+        for storm_entity, (storm_comp, storm_pos) in esper.get_components(Storm, PositionComponent):
+            self.entity_cache['events']['storms'].append((storm_pos.x, storm_pos.y))
+
+        for bandit_entity, (bandit_comp, bandit_pos) in esper.get_components(Bandits, PositionComponent):
+            self.entity_cache['events']['bandits'].append((bandit_pos.x, bandit_pos.y))
+
+        for resource_entity, (resource_comp, resource_pos) in esper.get_components(
+            IslandResourceComponent, PositionComponent
+        ):
+            self.entity_cache['events']['resources'].append((resource_pos.x, resource_pos.y))
+
     def _get_nearest_enemies(
         self, entity: int, pos: PositionComponent, team: TeamComponent
     ) -> Tuple[float, float, float]:
         """
-        Finds nearby enemies.
+        Finds nearby enemies using cached data (optimized).
 
         Returns:
             (enemy_count, min_normalized_distance, angle_to_nearest)
@@ -248,25 +300,32 @@ class AILeviathanProcessor(esper.Processor):
         angle_to_nearest = 0.0
         detection_radius = 500.0  # Pixels
 
-        for other_entity, (other_pos, other_team) in esper.get_components(
-            PositionComponent, TeamComponent
-        ):
-            if other_entity == entity or other_team.team_id == team.team_id:
+        # Use cached data if available
+        if not self.entity_cache:
+            self._update_entity_cache()
+
+        # Get enemies from cache (all entities not in our team)
+        for team_id, entities in self.entity_cache['enemies'].items():
+            if team_id == team.team_id:
                 continue
 
-            dx = other_pos.x - pos.x
-            dy = other_pos.y - pos.y
-            distance = (dx ** 2 + dy ** 2) ** 0.5
+            for other_entity, other_x, other_y in entities:
+                if other_entity == entity:
+                    continue
 
-            if distance < detection_radius:
-                enemies_nearby += 1
+                dx = other_x - pos.x
+                dy = other_y - pos.y
+                distance_sq = dx * dx + dy * dy
 
-                if distance < min_distance:
-                    min_distance = distance
-                    angle_to_nearest = np.arctan2(dy, dx) / np.pi  # Normalize to [-1, 1]
+                if distance_sq < detection_radius * detection_radius:
+                    enemies_nearby += 1
+
+                    if distance_sq < min_distance * min_distance:
+                        min_distance = distance_sq ** 0.5
+                        angle_to_nearest = np.arctan2(dy, dx) / np.pi  # Normalize to [-1, 1]
 
         # Normaliser distance
-        min_distance_norm = min(min_distance / detection_radius, 1.0)
+        min_distance_norm = min(min_distance / detection_radius, 1.0) if min_distance != float('inf') else 1.0
 
         return (float(enemies_nearby), min_distance_norm, angle_to_nearest)
 
@@ -274,7 +333,7 @@ class AILeviathanProcessor(esper.Processor):
         self, entity: int, pos: PositionComponent, team: TeamComponent
     ) -> Tuple[float, float]:
         """
-        Finds nearby allies.
+        Finds nearby allies using cached data (optimized).
 
         Returns:
             (ally_count, min_normalized_distance)
@@ -283,17 +342,22 @@ class AILeviathanProcessor(esper.Processor):
         min_distance = float('inf')
         detection_radius = 500.0
 
-        for other_entity, (other_pos, other_team) in esper.get_components(
-            PositionComponent, TeamComponent
-        ):
-            if other_entity == entity or other_team.team_id != team.team_id:
-                continue
+        # Use cached data if available
+        if not self.entity_cache:
+            self._update_entity_cache()
 
-            distance = ((other_pos.x - pos.x) ** 2 + (other_pos.y - pos.y) ** 2) ** 0.5
+        # Get allies from cache (same team)
+        if team.team_id in self.entity_cache['allies']:
+            for other_entity, other_x, other_y in self.entity_cache['allies'][team.team_id]:
+                if other_entity == entity:
+                    continue
 
-            if distance < detection_radius:
-                allies_nearby += 1
-                min_distance = min(min_distance, distance)
+                distance_sq = (other_x - pos.x) ** 2 + (other_y - pos.y) ** 2
+
+                if distance_sq < detection_radius * detection_radius:
+                    allies_nearby += 1
+                    distance = distance_sq ** 0.5
+                    min_distance = min(min_distance, distance)
 
         min_distance_norm = min(min_distance / detection_radius, 1.0) if allies_nearby > 0 else 1.0
 
@@ -301,7 +365,7 @@ class AILeviathanProcessor(esper.Processor):
 
     def _get_nearby_events(self, pos: PositionComponent) -> Tuple[float, float, float]:
         """
-        Detects nearby events (storms, bandits, resources).
+        Detects nearby events using cached data (optimized).
 
         Returns:
             (nearby_storm, bandit_count, resource_count)
@@ -310,32 +374,35 @@ class AILeviathanProcessor(esper.Processor):
         bandits_count = 0.0
         resources_count = 0.0
         detection_radius = 300.0
+        detection_radius_sq = detection_radius * detection_radius
 
-        # Tempêtes
-        for storm_entity, (storm_comp, storm_pos) in esper.get_components(Storm, PositionComponent):
-            distance = ((storm_pos.x - pos.x) ** 2 + (storm_pos.y - pos.y) ** 2) ** 0.5
-            if distance < detection_radius:
+        # Use cached data if available
+        if not self.entity_cache:
+            self._update_entity_cache()
+
+        # Storms
+        for storm_x, storm_y in self.entity_cache['events']['storms']:
+            distance_sq = (storm_x - pos.x) ** 2 + (storm_y - pos.y) ** 2
+            if distance_sq < detection_radius_sq:
                 storm_nearby = 1.0
 
         # Bandits
-        for bandit_entity, (bandit_comp, bandit_pos) in esper.get_components(Bandits, PositionComponent):
-            distance = ((bandit_pos.x - pos.x) ** 2 + (bandit_pos.y - pos.y) ** 2) ** 0.5
-            if distance < detection_radius:
+        for bandit_x, bandit_y in self.entity_cache['events']['bandits']:
+            distance_sq = (bandit_x - pos.x) ** 2 + (bandit_y - pos.y) ** 2
+            if distance_sq < detection_radius_sq:
                 bandits_count += 1.0
 
-        # Ressources
-        for resource_entity, (resource_comp, resource_pos) in esper.get_components(
-            IslandResourceComponent, PositionComponent
-        ):
-            distance = ((resource_pos.x - pos.x) ** 2 + (resource_pos.y - pos.y) ** 2) ** 0.5
-            if distance < detection_radius:
+        # Resources
+        for resource_x, resource_y in self.entity_cache['events']['resources']:
+            distance_sq = (resource_x - pos.x) ** 2 + (resource_y - pos.y) ** 2
+            if distance_sq < detection_radius_sq:
                 resources_count += 1.0
 
         return (storm_nearby, bandits_count, resources_count)
 
     def _get_nearby_mines(self, pos: PositionComponent) -> Tuple[float, float]:
         """
-        Detects nearby mines.
+        Detects nearby mines using cached data (optimized).
 
         Mines are identified by: HP=1, team_id=0, attack=40
 
@@ -345,21 +412,20 @@ class AILeviathanProcessor(esper.Processor):
         mines_count = 0.0
         min_distance = float('inf')
         detection_radius = 400.0  # Detection within a 400 pixel radius
+        detection_radius_sq = detection_radius * detection_radius
 
-        # Search for entities that match the mine criteria
-        for mine_entity, (mine_pos, mine_health, mine_team, mine_attack) in esper.get_components(
-            PositionComponent, HealthComponent, TeamComponent, AttackComponent
-        ):
-            # Vérifier si c'est une mine (HP=1, team=0, attack=40)
-            if (mine_health.maxHealth == 1 and
-                mine_team.team_id == 0 and
-                int(mine_attack.hitPoints) == 40):
+        # Use cached data if available
+        if not self.entity_cache:
+            self._update_entity_cache()
 
-                distance = ((mine_pos.x - pos.x) ** 2 + (mine_pos.y - pos.y) ** 2) ** 0.5
+        # Get mines from cache
+        for mine_x, mine_y in self.entity_cache['mines']:
+            distance_sq = (mine_x - pos.x) ** 2 + (mine_y - pos.y) ** 2
 
-                if distance < detection_radius:
-                    mines_count += 1.0
-                    min_distance = min(min_distance, distance)
+            if distance_sq < detection_radius_sq:
+                mines_count += 1.0
+                distance = distance_sq ** 0.5
+                min_distance = min(min_distance, distance)
 
         min_distance_norm = min(min_distance / detection_radius, 1.0) if mines_count > 0 else 1.0
 
@@ -383,8 +449,7 @@ class AILeviathanProcessor(esper.Processor):
             vel: Velocity component
             spe_lev: Special ability component
         """
-        action_name = LeviathanBrain.ACTION_NAMES.get(action, "Unknown")
-        logger.debug(f"Entity {entity} exécute action : {action_name}")
+        # Removed debug logging for performance in training mode
 
         if action == LeviathanBrain.ACTION_IDLE:
             vel.currentSpeed = 0
@@ -467,11 +532,13 @@ class AILeviathanProcessor(esper.Processor):
         )
 
         self.training_count += 1
-        logger.info(
-            f"Training #{self.training_count}: "
-            f"batch_size={len(states)}, loss={loss:.4f}, "
-            f"epsilon={ai_comp.epsilon:.3f}, total_reward={ai_comp.total_reward:.2f}"
-        )
+        # Only log every 50 trainings to improve performance
+        if self.training_count % 50 == 0:
+            logger.info(
+                f"Training #{self.training_count}: "
+                f"batch_size={len(states)}, loss={loss:.4f}, "
+                f"epsilon={ai_comp.epsilon:.3f}, total_reward={ai_comp.total_reward:.2f}"
+            )
 
     def save_model(self, path: str, metadata: dict = None):
         """Saves the trained model with optional metadata."""
