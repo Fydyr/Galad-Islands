@@ -110,7 +110,7 @@ def demo_ai_decisions():
     print("   • La santé de la base")
     print("   • Le nombre d'unités alliées vs ennemies")
     print("   • Le besoin de tours défensives")
-    print("\n🔫 Le tir automatique est géré séparément par BaseAttackProcessor")
+    print("\n🔫 Le tir automatique est géré séparément par TowerComponent")
     print("   quand des ennemis sont à portée de vision!")
 
 
