@@ -197,30 +197,43 @@ class BaseAi(esper.Processor):
 
     def simulate_game(self):
         """Simule une partie pour collecter des données d'entraînement."""
-        # État initial
-        ally_gold = [500]
-        ally_base_health = [1.0]
-        ally_units = [5]
-        enemy_units = [5]
-        enemy_base_known = 0
-        towers_needed = [1]
+        # Simuler différents scénarios de difficulté pour un entraînement plus riche
+        difficulty = np.random.choice(['easy', 'medium', 'hard'], p=[0.3, 0.5, 0.2])
+
+        if difficulty == 'easy':
+            ally_gold = [np.random.randint(400, 700)]
+            ally_base_health = [np.random.uniform(0.8, 1.0)]
+            ally_units = [np.random.randint(8, 15)]
+            enemy_units = [np.random.randint(3, 8)]
+        elif difficulty == 'medium':
+            ally_gold = [np.random.randint(250, 500)]
+            ally_base_health = [np.random.uniform(0.6, 0.9)]
+            ally_units = [np.random.randint(5, 10)]
+            enemy_units = [np.random.randint(5, 12)]
+        else:  # 'hard'
+            ally_gold = [np.random.randint(150, 350)]
+            ally_base_health = [np.random.uniform(0.3, 0.7)]
+            ally_units = [np.random.randint(2, 7)]
+            enemy_units = [np.random.randint(8, 15)]
+
+        enemy_base_known = np.random.choice([0, 1], p=[0.4, 0.6])
+        towers_needed = [1 if ally_base_health[0] < 0.7 else 0]
         
         features = []
         labels = []
         
-        # Simuler 20 tours
-        for turn in range(20):
+        # Simuler un nombre variable de tours pour plus de diversité
+        for turn in range(np.random.randint(15, 25)):
             current_features = [ally_gold[0], ally_base_health[0], ally_units[0], enemy_units[0], enemy_base_known, towers_needed[0]]
             features.append(current_features)
             
             action = self.decide_action_for_training(ally_gold[0], ally_base_health[0], ally_units[0], enemy_units[0], towers_needed[0])
             labels.append(action)
             
-            # Appliquer l'action
             self.apply_simulated_action(action, ally_gold, ally_units, towers_needed)
             
-            # Simuler réactions ennemies
-            if random.random() < 0.3:
+            # Simuler les réactions ennemies et l'évolution du jeu
+            if random.random() < 0.35: # Chance augmentée pour plus de pression
                 enemy_units[0] += 1
                 ally_base_health[0] -= 0.05
             if random.random() < 0.1:
@@ -229,7 +242,7 @@ class BaseAi(esper.Processor):
             ally_gold[0] += 20
             ally_base_health[0] = max(0.1, min(1.0, ally_base_health[0]))
             
-            if ally_base_health[0] < 0.3:
+            if ally_base_health[0] < 0.5: # Seuil de besoin de tours plus élevé
                 towers_needed[0] = 1
                 
         return features, labels

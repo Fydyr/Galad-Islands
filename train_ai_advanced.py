@@ -35,88 +35,27 @@ class AdvancedBaseAiTrainer:
 
         features = []
         labels = []
-        action_counts = [0, 0, 0, 0, 0]
+        action_counts = [0, 0, 0, 0] # Retrait de l'action "Tir"
 
         for game in range(n_games):
-            # Simuler différents scénarios de difficulté
-            difficulty = np.random.choice(['easy', 'medium', 'hard'], p=[0.3, 0.5, 0.2])
-
-            if difficulty == 'easy':
-                ally_gold = np.random.randint(300, 600)
-                ally_base_health = np.random.uniform(0.8, 1.0)
-                ally_units = np.random.randint(8, 15)
-                enemy_units = np.random.randint(3, 8)
-            elif difficulty == 'medium':
-                ally_gold = np.random.randint(200, 400)
-                ally_base_health = np.random.uniform(0.5, 0.8)
-                ally_units = np.random.randint(5, 10)
-                enemy_units = np.random.randint(5, 12)
-            else:  # hard
-                ally_gold = np.random.randint(100, 300)
-                ally_base_health = np.random.uniform(0.2, 0.6)
-                ally_units = np.random.randint(2, 6)
-                enemy_units = np.random.randint(8, 15)
-
-            enemy_base_known = np.random.choice([0, 1], p=[0.4, 0.6])
-            towers_needed = np.random.choice([0, 1], p=[0.7, 0.3])
-
-            # Simuler quelques tours pour cette partie
-            for turn in range(np.random.randint(5, 15)):
-                current_features = [
-                    ally_gold,
-                    ally_base_health,
-                    ally_units,
-                    enemy_units,
-                    enemy_base_known,
-                    towers_needed
-                ]
-                features.append(current_features)
-
-                action = self.decide_action_for_training(
-                    ally_gold, ally_base_health, ally_units, enemy_units, towers_needed
-                )
-                labels.append(action)
+            # Utiliser la simulation améliorée de BaseAi
+            game_features, game_labels = self.ai.simulate_game()
+            features.extend(game_features)
+            labels.extend(game_labels)
+            
+            for action in game_labels:
                 action_counts[action] += 1
-
-                # Évoluer l'état du jeu
-                if action == 1 and ally_gold >= 50 + self.gold_reserve:
-                    ally_gold -= 50
-                    ally_units += 1
-                elif action == 2 and ally_gold >= 120 + self.gold_reserve:
-                    ally_gold -= 120
-                    towers_needed = 0
-                elif action == 3:
-                    costs = [100, 200, 150]  # maraudeur, leviathan, druid
-                    cost = np.random.choice(costs)
-                    if ally_gold >= cost + self.gold_reserve:
-                        ally_gold -= cost
-                        ally_units += 1
-
-                # Réactions ennemies
-                if np.random.random() < 0.25:  # 25% chance
-                    enemy_units += 1
-                    ally_base_health -= np.random.uniform(0.02, 0.08)
-
-                if np.random.random() < 0.15:  # 15% chance d'attaque directe
-                    ally_base_health -= np.random.uniform(0.05, 0.15)
-
-                # Gain d'or et limites
-                ally_gold += np.random.randint(15, 30)
-                ally_base_health = max(0.1, min(1.0, ally_base_health))
-
-                if ally_base_health < 0.4:
-                    towers_needed = 1
 
             if (game + 1) % 50 == 0:
                 print(f"  📊 Parties générées: {game + 1}/{n_games}")
 
         print(f"📈 Données générées: {len(features)} exemples")
         print("🎯 Répartition des actions dans les données:")
-        action_names = ["Rien", "Éclaireur", "Architecte", "Autre unité", "Tir"]
+        action_names = ["Rien", "Éclaireur", "Architecte", "Autre unité"]
         for i, count in enumerate(action_counts):
             if count > 0:
                 percentage = (count / sum(action_counts)) * 100
-                print(".1f")
+                print(f"   {action_names[i]}: {count} décisions ({percentage:.1f}%)")
 
         return features, labels
 
