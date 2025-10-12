@@ -297,6 +297,9 @@ def afficher_grille(window, grid, images, camera):
                 elif val == TileType.MINE:
                     scaled_img = pygame.transform.scale(images['mine'], (display_size, display_size))
                     window.blit(scaled_img, (screen_x, screen_y))
+                elif val == TileType.CLOUD:
+                    scaled_img = pygame.transform.scale(images['cloud'], (display_size, display_size))
+                    window.blit(scaled_img, (screen_x, screen_y))
 
     # --- DEBUT CORRECTION DU RENDU DES BASES ---
     # CORRECTION MAJEURE: Rendu des bases en dehors de la boucle principale

@@ -134,8 +134,9 @@ class IslandResourceManager:
 
         index = int(self._rng.integers(0, len(self._island_positions)))
         grid_y, grid_x = map(int, self._island_positions[index])
-        world_x = (grid_x + 0.5) * TILE_SIZE
-        world_y = (grid_y + 0.5) * TILE_SIZE
+        # Spawn aléatoirement dans la tuile pour plus de variété et visibilité sur les bords
+        world_x = (grid_x + self._rng.random()) * TILE_SIZE
+        world_y = (grid_y + self._rng.random()) * TILE_SIZE
         return world_x, world_y
 
     def _create_resource_entity(self, world_position: Tuple[float, float]) -> None:
@@ -152,7 +153,7 @@ class IslandResourceManager:
             sprite_size = (int(TILE_SIZE * 1.2), int(TILE_SIZE * 1.2))  # Plus gros pour être plus visible
         else:
             # Augmenter la taille par rapport à la taille par défaut
-            sprite_size = (int(sprite_size[0] * 1.5), int(sprite_size[1] * 1.5))
+            sprite_size = (int(sprite_size[0] * 2.0), int(sprite_size[1] * 2.0))
         
         sprite_component = sprite_manager.create_sprite_component(SpriteID.GOLD_RESOURCE, sprite_size[0], sprite_size[1])
         esper.add_component(entity, sprite_component)
