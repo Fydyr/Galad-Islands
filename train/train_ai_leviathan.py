@@ -41,11 +41,19 @@ class AITrainer:
         self.episodes = episodes
         self.steps_per_episode = steps_per_episode
         self.save_interval = save_interval
-        self.dt = 0.016  # ~60 FPS
+        self.dt = 0.030
 
         print("[INIT] Initializing AI processor in TRAINING mode...")
         # Initialize in training mode for the trainer
         self.ai_processor = AILeviathanProcessor(model_path="models/leviathan_ai.pkl", training_mode=True)
+
+        # Initialize map grid for obstacle detection
+        print("[INIT] Initializing map grid for obstacle detection...")
+        from src.components.globals.mapComponent import creer_grille, placer_elements
+        self.map_grid = creer_grille()
+        placer_elements(self.map_grid)
+        self.ai_processor.map_grid = self.map_grid
+        print("[OK] Map grid initialized")
 
         # Model save manager
         self.model_manager = AIModelManager(self.ai_processor)
@@ -168,14 +176,14 @@ class AITrainer:
         for step in range(self.steps_per_episode):
             step_count += 1
 
-            # Simulate random movements for target enemies (every 3 frames for performance)
-            if step % 3 == 0:
+            # Simulate random movements for target enemies (every 5 frames for better performance)
+            if step % 5 == 0:
                 self._simulate_enemy_movements()
 
             # Process the AI processor
             self.ai_processor.process(self.dt)
 
-            # Display progress less frequently (every 500 steps instead of 200)
+            # Display progress less frequently (every 500 steps)
             if (step + 1) % 500 == 0 and (episode_num % 10 == 0):
                 # Calculate CURRENT total reward across all agents (not accumulated)
                 current_total_reward = 0.0
