@@ -659,12 +659,12 @@ class GameEngine:
         # Créer les PlayerComponent pour CHAQUE équipe (alliés ET ennemis)
         # Équipe Alliée (team_id = 1)
         ally_player = es.create_entity()
-        es.add_component(ally_player, PlayerComponent(stored_gold=100))
+        es.add_component(ally_player, PlayerComponent(stored_gold=1000))
         es.add_component(ally_player, TeamComponent(Team.ALLY))
         
         # Équipe Ennemie (team_id = 2)
         enemy_player = es.create_entity()
-        es.add_component(enemy_player, PlayerComponent(stored_gold=100))
+        es.add_component(enemy_player, PlayerComponent(stored_gold=1000))
         es.add_component(enemy_player, TeamComponent(Team.ENEMY))
         
         # Garder une référence au joueur allié par défaut

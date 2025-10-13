@@ -41,9 +41,14 @@ class BarhamusAI:
         self.last_state = None
         self.last_action = None
         self.last_reward = 0
+        # Death penalty tracking (forte pénalité pour encourager la survie)
+        self.death_penalty = 100.0  # montant soustrait si l'unité meurt
+        self.death_penalized = False
         
         # Performance tracking
         self.survival_time = 0.0
+        # Timer for periodic survival reward (grant at most once every N seconds)
+        self.last_survival_reward_time = -9999.0
         self.damage_dealt = 0
         self.damage_taken = 0
         self.successful_attacks = 0
@@ -129,8 +134,8 @@ class BarhamusAI:
         self.last_state = current_state.copy()
         self.last_action = action
         
-        # Entraîner le modèle périodiquement
-        if len(self.experiences) > 50 and len(self.experiences) % 25 == 0:
+        # Entraîner le modèle BEAUCOUP PLUS SOUVENT pour apprentissage rapide
+        if len(self.experiences) >= 10 and len(self.experiences) % 5 == 0:
             self._retrain_model()
         
         # Adapter la stratégie basée sur les performances
@@ -184,7 +189,11 @@ class BarhamusAI:
     
     def _predict_best_action(self, state):
         """Prédit la meilleure action à partir de l'état actuel"""
-        if not self.is_trained or len(self.training_data) < 10:
+        # Utiliser le modèle seulement s'il a été entraîné.
+        # Ne pas dépendre de `training_data` qui n'est pas utilisé directement
+        if not self.is_trained:
+            # Log utile pour debug apprentissage
+            print(f"Barhamus {self.entity}: Modèle non entraîné -> action par défaut")
             return self._get_default_action(state)
         
         try:
@@ -194,10 +203,11 @@ class BarhamusAI:
             # Prédire l'action avec l'arbre de décision
             predicted_action = self.decision_tree.predict(state_scaled)[0]
             
-            # Ajouter un peu d'exploration (10% de chance d'action aléatoire)
-            if random.random() < 0.1:
+            # Ajouter de l'exploration (30% de chance d'action aléatoire pour apprendre plus vite)
+            if random.random() < 0.3:
                 return random.randint(0, 7)  # 8 actions possibles
             
+            print(f"Barhamus {self.entity}: Action PRÉDITE par modèle = {predicted_action}")
             return int(predicted_action)
             
         except Exception as e:
@@ -314,13 +324,15 @@ class BarhamusAI:
             # Garder une distance optimale pour le tir (6-8 tiles)
             distance = enemies[0][1]
             if distance < 6 * TILE_SIZE:  # Trop proche, reculer
-                angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
+                # IMPORTANT : inverser direction car movementProcessor soustrait
+                angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
                 vel.currentSpeed = 2.0
             elif distance > 8 * TILE_SIZE:  # Trop loin, s'approcher
-                angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
+                # IMPORTANT : inverser direction
+                angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                 vel.currentSpeed = 3.5
             else:  # Distance parfaite, cercler
-                angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y) + 90
+                angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y) + 90
                 vel.currentSpeed = 2.5
                 
             pos.direction = angle
@@ -331,8 +343,8 @@ class BarhamusAI:
         try:
             base_pos = self._find_team_base(world, team)
             if base_pos:
-                # Retourner vers la base
-                angle = self._angle_to(base_pos[0] - pos.x, base_pos[1] - pos.y)
+                # Retourner vers la base - IMPORTANT : inverser direction
+                angle = self._angle_to(pos.x - base_pos[0], pos.y - base_pos[1])
                 pos.direction = angle
                 vel.currentSpeed = 3.0
                 print(f"Barhamus {self.entity}: Retour défensif vers la base")
@@ -399,10 +411,10 @@ class BarhamusAI:
         else:
             # Près de la base, défendre activement
             enemies = self._find_nearby_enemies(world, pos, team)
-            if enemies and enemies[0][1] <= 6 * TILE_SIZE:  # Ennemi proche
+            if enemies and enemies[0][1] <= 8 * TILE_SIZE:  # Ennemi à portée
                 return 1  # Attaque
             else:
-                return 5  # Position défensive
+                return 0  # Approche pour se rapprocher de l'ennemi
     
     def _decide_offensive_action(self, world, pos, team):
         """Décide de l'action offensive à prendre"""
@@ -491,8 +503,14 @@ class BarhamusAI:
         """Calcule la récompense pour l'action précédente"""
         reward = 0
         
-        # Récompense de survie
-        reward += 1
+        # Récompense de survie — limitée à une fois toutes les 15 secondes
+        try:
+            if (self.survival_time - getattr(self, 'last_survival_reward_time', -9999.0)) >= 15.0:
+                reward += 1
+                self.last_survival_reward_time = self.survival_time
+        except Exception:
+            # En cas de problème, donner quand même la récompense (sécurité)
+            reward += 1
         
         # Pénalité pour dégâts subis
         if hasattr(self, 'last_health'):
@@ -512,6 +530,11 @@ class BarhamusAI:
         tactical_advantage = current_state[9]
         reward += tactical_advantage * 3
         
+        # GRANDE récompense pour attaquer (encourager le combat)
+        enemy_count = current_state[3] * 5  # Nombre d'ennemis
+        if enemy_count > 0:
+            reward += 3  # Bonus pour être près d'ennemis
+        
         # Récompense pour évitement d'obstacles
         if current_state[6] < 0.3:  # Peu d'îles autour
             reward += 2
@@ -522,13 +545,21 @@ class BarhamusAI:
         border_penalty = self._calculate_border_penalty(current_state)
         if border_penalty > 0:
             reward -= border_penalty
-            print(f"Barhamus {self.entity}: Pénalité bord de carte: -{border_penalty:.1f}")
+            # Retiré le log pour réduire le spam
         
         # NOUVELLE: Récompense pour attaquer la base ennemie
         enemy_base_bonus = self._calculate_enemy_base_bonus(current_state)
         if enemy_base_bonus > 0:
             reward += enemy_base_bonus
-            print(f"Barhamus {self.entity}: Bonus attaque base ennemie: +{enemy_base_bonus:.1f}")
+        
+        # PÉNALITÉ DE MORT : appliquer une forte pénalité unique si l'unité meurt
+        try:
+            if health.currentHealth <= 0 and not getattr(self, 'death_penalized', False):
+                reward -= self.death_penalty
+                self.death_penalized = True
+                print(f"Barhamus {self.entity}: MORT - Pénalité appliquée: -{self.death_penalty}")
+        except Exception:
+            pass
         
         self.last_health = health.currentHealth
         return reward
@@ -545,17 +576,17 @@ class BarhamusAI:
         # Distance aux bords (0 = sur le bord, 0.5 = au centre)
         dist_to_edge_x = min(norm_x, 1.0 - norm_x)
         dist_to_edge_y = min(norm_y, 1.0 - norm_y)
-        
-        # Pénalité si trop près des bords (moins de 15% de la carte)
-        edge_threshold = 0.15
+
+        # Pénalité si trop près des bords (moins de 5% de la carte)
+        edge_threshold = 0.5
         penalty = 0
         
         if dist_to_edge_x < edge_threshold:
-            penalty += (edge_threshold - dist_to_edge_x) * 10  # Pénalité max = 1.5
+            penalty += (edge_threshold - dist_to_edge_x) * 10  # Pénalité max = 5.0
         
         if dist_to_edge_y < edge_threshold:
-            penalty += (edge_threshold - dist_to_edge_y) * 10  # Pénalité max = 1.5
-        
+            penalty += (edge_threshold - dist_to_edge_y) * 10  # Pénalité max = 5.0
+
         return penalty
     
     def _calculate_enemy_base_bonus(self, current_state):
@@ -577,6 +608,9 @@ class BarhamusAI:
             'next_state': next_state.copy()
         }
         self.experiences.append(experience)
+        # Log d'appoint pour vérifier que les expériences s'accumulent
+        if len(self.experiences) % 10 == 0 or len(self.experiences) < 20:
+            print(f"Barhamus {self.entity}: Expérience enregistrée (total={len(self.experiences)})")
         
         # Garder seulement les 1000 dernières expériences
         if len(self.experiences) > 1000:
@@ -584,10 +618,12 @@ class BarhamusAI:
     
     def _retrain_model(self):
         """Réentraîne le modèle avec les nouvelles expériences"""
-        if len(self.experiences) < 20:
+        if len(self.experiences) < 10:
+            print(f"Barhamus {self.entity}: Pas assez d'expériences pour réentraîner ({len(self.experiences)})")
             return
         
         try:
+            print(f"Barhamus {self.entity}: Démarrage réentraînement avec {len(self.experiences)} expériences")
             # Préparer les données d'entraînement
             X = []
             y = []
@@ -610,8 +646,11 @@ class BarhamusAI:
             # Entraîner l'arbre de décision
             self.decision_tree.fit(X_scaled, y)
             self.is_trained = True
-            
-            print(f"Modèle IA réentraîné avec {len(X)} expériences")
+            # Pour compatibilité/diagnostic, exposer aussi training_data/labels
+            self.training_data = X.tolist() if isinstance(X, np.ndarray) else list(X)
+            self.training_labels = y.tolist() if isinstance(y, np.ndarray) else list(y)
+
+            print(f"Modèle IA réentraîné avec {len(X)} expériences (Barhamus {self.entity})")
             
         except Exception as e:
             print(f"Erreur lors du réentraînement: {e}")
@@ -668,7 +707,8 @@ class BarhamusAI:
         if enemies:
             # Attaquer l'ennemi le plus proche
             target_pos = world.component_for_entity(enemies[0][0], PositionComponent)
-            angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
+            # IMPORTANT : movementProcessor SOUSTRAIT cos/sin, donc inverser la direction
+            angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
             pos.direction = angle
             vel.currentSpeed = 4.5  # Vitesse élevée
             print(f"Barhamus {self.entity}: Approche agressive vers ennemi - angle={angle:.1f}°")
@@ -676,7 +716,8 @@ class BarhamusAI:
             # Pas d'ennemi, aller vers la base ennemie
             enemy_base = self._find_enemy_base(world, team)
             if enemy_base:
-                angle = self._angle_to(enemy_base[0] - pos.x, enemy_base[1] - pos.y)
+                # IMPORTANT : inverser la direction pour le movementProcessor
+                angle = self._angle_to(pos.x - enemy_base[0], pos.y - enemy_base[1])
                 pos.direction = angle
                 vel.currentSpeed = 4.0
                 print(f"Barhamus {self.entity}: Approche vers base ennemie - angle={angle:.1f}°")
@@ -693,7 +734,8 @@ class BarhamusAI:
             closest = enemies[0]
             if closest[1] <= 8 * TILE_SIZE:  # À portée
                 target_pos = world.component_for_entity(closest[0], PositionComponent)
-                angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
+                # IMPORTANT : inverser direction pour movementProcessor
+                angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                 pos.direction = angle
                 vel.currentSpeed = 1.0  # Ralentir pour viser
                 
@@ -726,7 +768,8 @@ class BarhamusAI:
                 avoid_y += (pos.y - enemy_pos.y) * weight
             
             if avoid_x != 0 or avoid_y != 0:
-                angle = self._angle_to(avoid_x, avoid_y)
+                # IMPORTANT : inverser pour movementProcessor (déjà dans la bonne direction ici)
+                angle = self._angle_to(-avoid_x, -avoid_y)
                 pos.direction = angle
                 vel.currentSpeed = 3.5
     
@@ -744,7 +787,8 @@ class BarhamusAI:
         # Chercher une position sûre
         safe_pos = self._find_safe_position(pos)
         if safe_pos:
-            angle = self._angle_to(safe_pos[0] - pos.x, safe_pos[1] - pos.y)
+            # IMPORTANT : inverser direction pour movementProcessor
+            angle = self._angle_to(pos.x - safe_pos[0], pos.y - safe_pos[1])
             pos.direction = angle
             vel.currentSpeed = 2.0
     
@@ -755,7 +799,10 @@ class BarhamusAI:
             # Fuir dans la direction opposée à l'ennemi le plus proche
             closest = enemies[0]
             enemy_pos = world.component_for_entity(closest[0], PositionComponent)
+            # IMPORTANT : déjà inversé (pos - enemy) donc garder tel quel
             retreat_angle = self._angle_to(pos.x - enemy_pos.x, pos.y - enemy_pos.y)
+            # Mais pour movementProcessor qui soustrait, ré-inverser !
+            retreat_angle = self._angle_to(enemy_pos.x - pos.x, enemy_pos.y - pos.y)
             pos.direction = retreat_angle
             vel.currentSpeed = 4.0  # Vitesse de fuite
     
@@ -766,7 +813,8 @@ class BarhamusAI:
         enemies = self._find_nearby_enemies(world, pos, team)
         if enemies:
             target_pos = world.component_for_entity(enemies[0][0], PositionComponent)
-            angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
+            # IMPORTANT : inverser pour movementProcessor
+            angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
             pos.direction = angle
 
     def _calculate_border_penalty(self, current_state):
