@@ -49,8 +49,17 @@ from src.components.core.visionComponent import VisionComponent
 from src.settings.localization import t
 
 
-def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
-    """Instancie une entité Esper correspondant au type d'unité fourni."""
+def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: bool = None):
+    """
+    Instancie une entité Esper correspondant au type d'unité fourni.
+
+    Args:
+        unit: Type d'unité à créer
+        enemy: Si True, créé une unité ennemie (team 2), sinon alliée (team 1)
+        pos: Position initiale de l'unité
+        enable_ai: Si True/False, force l'activation/désactivation de l'IA.
+                   Si None (défaut), l'IA est activée uniquement pour les ennemis.
+    """
     entity = None
     match(unit):
         case UnitType.SCOUT:
@@ -104,9 +113,14 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpeLeviathan())
             es.add_component(entity, VisionComponent(UNIT_VISION_LEVIATHAN))
-            # Ajouter le composant IA pour les Léviathans ennemis
-            if enemy:
+
+            # Ajouter le composant IA pour les Léviathans
+            # Par défaut, IA activée pour les ennemis uniquement
+            # Peut être forcée avec enable_ai=True/False
+            should_enable_ai = enemy if enable_ai is None else enable_ai
+            if should_enable_ai:
                 es.add_component(entity, AILeviathanComponent(enabled=True))
+
             sprite_id = SpriteID.ALLY_LEVIATHAN if not enemy else SpriteID.ENEMY_LEVIATHAN
             size = sprite_manager.get_default_size(sprite_id)
             if size:

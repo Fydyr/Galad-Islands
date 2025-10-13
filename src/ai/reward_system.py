@@ -40,6 +40,12 @@ class RewardSystem:
     REWARD_APPROACH_ENEMY_BASE = 1.0  # Better reward for getting closer to enemy base
     REWARD_RETREAT_FROM_BASE = -0.1  # Smaller penalty for moving away from enemy base
 
+    # Cooperation rewards (NEW)
+    REWARD_HELP_ALLY = 15.0  # Reward for being near an ally in danger
+    REWARD_STAY_WITH_GROUP = 5.0  # Reward for staying with allies
+    REWARD_COORDINATE_ATTACK = 10.0  # Reward for attacking while near allies
+    REWARD_ABANDON_ALLY = -5.0  # Penalty for leaving an ally in danger
+
     STATIONARY_THRESHOLD = 0.1  # Minimum distance to be considered as movement
     STATIONARY_TIME_PENALTY = 3.0  # Time in seconds before immobility penalty
 
@@ -97,6 +103,10 @@ class RewardSystem:
         # Reward for approaching enemy base (encourages objective-focused behavior)
         base_approach_reward = RewardSystem._calculate_base_approach_reward(entity, ai_comp)
         total_reward += base_approach_reward
+
+        # Cooperation rewards (NEW)
+        cooperation_reward = RewardSystem._calculate_cooperation_reward(entity, ai_comp)
+        total_reward += cooperation_reward
 
         return total_reward
 
@@ -310,3 +320,69 @@ class RewardSystem:
             return RewardSystem.REWARD_RETREAT_FROM_BASE
 
         return 0.0
+
+    @staticmethod
+    def _calculate_cooperation_reward(entity: int, ai_comp: AILeviathanComponent) -> float:
+        """
+        Calculates rewards for cooperative behavior.
+        Encourages staying with allies, helping allies in danger, and coordinating attacks.
+        """
+        from src.components.core.teamComponent import TeamComponent
+
+        if not es.has_component(entity, PositionComponent):
+            return 0.0
+
+        if not es.has_component(entity, TeamComponent):
+            return 0.0
+
+        pos = es.component_for_entity(entity, PositionComponent)
+        team = es.component_for_entity(entity, TeamComponent)
+        total_reward = 0.0
+
+        # Count nearby allies and check for allies in danger
+        allies_nearby = 0
+        ally_in_danger_nearby = False
+        ally_in_danger_count = 0
+        detection_radius = 500.0
+
+        for other_entity, (other_pos, other_health, other_team) in es.get_components(
+            PositionComponent, HealthComponent, TeamComponent
+        ):
+            if other_entity == entity or other_team.team_id != team.team_id:
+                continue
+
+            distance = ((other_pos.x - pos.x) ** 2 + (other_pos.y - pos.y) ** 2) ** 0.5
+
+            if distance < detection_radius:
+                allies_nearby += 1
+                health_ratio = other_health.currentHealth / other_health.maxHealth
+
+                # Check if ally is in danger
+                if health_ratio < 0.4:
+                    ally_in_danger_nearby = True
+                    ally_in_danger_count += 1
+
+        # Reward for staying with group (encourage teamwork)
+        if allies_nearby >= 2:
+            total_reward += RewardSystem.REWARD_STAY_WITH_GROUP
+
+        # Reward for being near an ally in danger (encourage support)
+        if ally_in_danger_nearby:
+            total_reward += RewardSystem.REWARD_HELP_ALLY * ally_in_danger_count
+
+        # Reward for coordinated attacks (attacking while near allies)
+        if hasattr(ai_comp, 'attack_actions') and ai_comp.attack_actions > 0 and allies_nearby >= 1:
+            total_reward += RewardSystem.REWARD_COORDINATE_ATTACK
+
+        # Track if we were near an ally in danger last frame
+        if not hasattr(ai_comp, 'was_near_danger_ally'):
+            ai_comp.was_near_danger_ally = False
+
+        # Penalty for abandoning an ally in danger
+        if ai_comp.was_near_danger_ally and not ally_in_danger_nearby:
+            total_reward += RewardSystem.REWARD_ABANDON_ALLY
+
+        # Update tracking
+        ai_comp.was_near_danger_ally = ally_in_danger_nearby
+
+        return total_reward

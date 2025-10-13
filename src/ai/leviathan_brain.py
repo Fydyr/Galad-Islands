@@ -35,8 +35,11 @@ class LeviathanBrain:
     ACTION_SPECIAL_ABILITY = 6  # Use special ability
     ACTION_AVOID_STORM = 7  # Avoid storm
     ACTION_COLLECT_RESOURCE = 8  # Collect resource
+    ACTION_MOVE_TO_BASE = 9  # Move towards enemy base using pathfinding
+    ACTION_HELP_ALLY = 10  # Move towards ally in danger
+    ACTION_RETREAT = 11  # Retreat from danger
 
-    NUM_ACTIONS = 9  # Total number of actions
+    NUM_ACTIONS = 12  # Total number of actions (increased from 9 to 12)
 
     # Action names (for debugging)
     ACTION_NAMES = {
@@ -49,14 +52,17 @@ class LeviathanBrain:
         ACTION_SPECIAL_ABILITY: "Special Ability",
         ACTION_AVOID_STORM: "Avoid Storm",
         ACTION_COLLECT_RESOURCE: "Collect Resource",
+        ACTION_MOVE_TO_BASE: "Move to Enemy Base",
+        ACTION_HELP_ALLY: "Help Ally",
+        ACTION_RETREAT: "Retreat",
     }
 
-    def __init__(self, state_size: int = 22, model_path: Optional[str] = None):
+    def __init__(self, state_size: int = 30, model_path: Optional[str] = None):
         """
         Initializes the Leviathan's brain.
 
         Args:
-            state_size: Size of the state vector (number of features)
+            state_size: Size of the state vector (number of features) - increased to 30 for better context
             model_path: Path to a saved model (optional)
         """
         self.state_size = state_size
@@ -66,15 +72,17 @@ class LeviathanBrain:
         self.scaler = StandardScaler()
 
         # Main model: multi-layer perceptron
-        # Architecture: [state_size] -> [128, 64] -> [NUM_ACTIONS]
+        # Architecture: [state_size] -> [256, 128, 64] -> [NUM_ACTIONS]
+        # Increased capacity for better learning with more features
         self.model = MLPRegressor(
-            hidden_layer_sizes=(128, 64),  # 2 hidden layers
+            hidden_layer_sizes=(256, 128, 64),  # 3 hidden layers (increased capacity)
             activation='relu',  # ReLU activation function
             solver='adam',  # Adam optimizer (efficient)
-            learning_rate_init=0.001,  # Learning rate
+            learning_rate_init=0.0005,  # Reduced learning rate for stability (was 0.001)
             max_iter=1,  # 1 iteration per call (incremental learning)
             warm_start=True,  # Continue training (do not reinitialize)
             random_state=42,
+            alpha=0.0001,  # L2 regularization to prevent overfitting
         )
 
         # Backup model: Random Forest (more robust but less precise)

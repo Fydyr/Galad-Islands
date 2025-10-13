@@ -17,7 +17,9 @@ from src.components.events.banditsComponent import Bandits
 from src.components.events.islandResourceComponent import IslandResourceComponent
 from src.ai.leviathan_brain import LeviathanBrain
 from src.ai.reward_system import RewardSystem
+from src.ai.pathfinding import AStarPathfinder, PathfindingCache
 from src.settings.settings import TILE_SIZE
+from src.constants.map_tiles import TileType
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +46,8 @@ class AILeviathanProcessor(esper.Processor):
         """
         super().__init__()
 
-        # Leviathan's brain (ML model)
-        self.brain = LeviathanBrain(state_size=22, model_path=model_path)
+        # Leviathan's brain (ML model) - increased state size for better context
+        self.brain = LeviathanBrain(state_size=30, model_path=model_path)
 
         # Training mode flag
         self.training_mode = training_mode
@@ -65,7 +67,7 @@ class AILeviathanProcessor(esper.Processor):
 
         # Training counter (only used in training mode)
         self.training_count = 0
-        self.training_frequency = 32  # Train every 32 frames (optimized for faster training)
+        self.training_frequency = 16  # Train every 16 frames (optimized for faster training - reduced from 32)
 
         # Statistics
         self.total_actions = 0
@@ -75,6 +77,13 @@ class AILeviathanProcessor(esper.Processor):
         self.entity_cache = {}
         self.cache_update_frequency = 5  # Update cache every 5 frames
         self.cache_frame_counter = 0
+
+        # Pathfinding system (only create if training mode for performance)
+        self.pathfinder = AStarPathfinder(grid_size=50) if training_mode else None
+        self.path_cache = PathfindingCache(max_size=50, ttl=20) if training_mode else None
+
+        # Map grid for island detection (will be set by external code)
+        self.map_grid = None
 
         # Register the event handler for game_over
         esper.set_handler('game_over', self._handle_game_over)
@@ -189,23 +198,25 @@ class AILeviathanProcessor(esper.Processor):
         """
         Extracts the current game state for the given entity.
 
-        The state includes 22 features:
+        The state includes 30 features (improved from 22):
         - Normalized position (x, y)
         - Direction (angle)
         - Velocity (vx, vy)
         - Health (current, max, ratio)
-        - Nearby enemies (count, min distance, angle to nearest)
-        - Nearby allies (count, min distance)
+        - Nearby enemies (count, min distance, angle to nearest, avg health)
+        - Nearby allies (count, min distance, avg health, needs help)
         - Events (nearby storm, nearby bandits, nearby resources)
         - Special ability state (available, cooldown)
         - Timestamp
         - Accumulated reward
         - Nearby mines (count, distance to nearest)
+        - Distance to enemy base (normalized, angle to base)
+        - Ally in danger nearby (boolean, distance to ally)
 
         Returns:
-            State vector of size 22
+            State vector of size 30
         """
-        state = np.zeros(22)
+        state = np.zeros(30)
 
         # [0-1] Normalized position (0-1)
         state[0] = pos.x / (TILE_SIZE * 50)  # Normalize by map size
@@ -223,41 +234,55 @@ class AILeviathanProcessor(esper.Processor):
         state[6] = health.currentHealth / 100.0
         state[7] = health.maxHealth / 100.0
 
-        # [8-10] Nearby enemies
+        # [8-11] Nearby enemies (enhanced with avg health)
         enemy_info = self._get_nearest_enemies(entity, pos, team)
         state[8] = enemy_info[0]  # Number of enemies within a 500px radius
         state[9] = enemy_info[1]  # Distance to the nearest (normalized)
         state[10] = enemy_info[2]  # Angle to the nearest
+        state[11] = enemy_info[3]  # Average health ratio of nearby enemies
 
-        # [11-12] Nearby allies
+        # [12-15] Nearby allies (enhanced with health and danger detection)
         ally_info = self._get_nearest_allies(entity, pos, team)
-        state[11] = ally_info[0]  # Number of nearby allies
-        state[12] = ally_info[1]  # Distance to the nearest
+        state[12] = ally_info[0]  # Number of nearby allies
+        state[13] = ally_info[1]  # Distance to the nearest
+        state[14] = ally_info[2]  # Average health ratio of nearby allies
+        state[15] = ally_info[3]  # Ally in danger nearby (0 or 1)
 
-        # [13-15] Events
+        # [16-18] Events
         event_info = self._get_nearby_events(pos)
-        state[13] = event_info[0]  # Nearby storm (0 or 1)
-        state[14] = event_info[1]  # Nearby bandits (count)
-        state[15] = event_info[2]  # Nearby resources (count)
+        state[16] = event_info[0]  # Nearby storm (0 or 1)
+        state[17] = event_info[1]  # Nearby bandits (count)
+        state[18] = event_info[2]  # Nearby resources (count)
 
-        # [16-17] Special ability
+        # [19-20] Special ability
         if esper.has_component(entity, SpeLeviathan):
             spe = esper.component_for_entity(entity, SpeLeviathan)
-            state[16] = 1.0 if spe.available else 0.0
-            state[17] = spe.cooldown_timer / spe.cooldown if spe.cooldown > 0 else 0.0
+            state[19] = 1.0 if spe.available else 0.0
+            state[20] = spe.cooldown_timer / spe.cooldown if spe.cooldown > 0 else 0.0
 
-        # [18] Elapsed time (normalized)
-        state[18] = self.elapsed_time / 100.0
+        # [21] Elapsed time (normalized)
+        state[21] = self.elapsed_time / 100.0
 
-        # [19] Accumulated reward (normalized)
+        # [22] Accumulated reward (normalized)
         if esper.has_component(entity, AILeviathanComponent):
             ai = esper.component_for_entity(entity, AILeviathanComponent)
-            state[19] = ai.episode_reward / 100.0
+            state[22] = ai.episode_reward / 100.0
 
-        # [20-21] Mines proches (nombre, distance à la plus proche)
+        # [23-24] Nearby mines (count, distance to nearest)
         mine_info = self._get_nearby_mines(pos)
-        state[20] = mine_info[0]  # Nombre de mines proches
-        state[21] = mine_info[1]  # Distance à la plus proche (normalisée)
+        state[23] = mine_info[0]  # Number of nearby mines
+        state[24] = mine_info[1]  # Distance to nearest (normalized)
+
+        # [25-26] Distance and angle to enemy base
+        base_info = self._get_enemy_base_info(entity, pos, team)
+        state[25] = base_info[0]  # Distance to enemy base (normalized)
+        state[26] = base_info[1]  # Angle to enemy base (normalized)
+
+        # [27-29] Ally in danger detection
+        danger_info = self._get_ally_danger_info(entity, pos, team)
+        state[27] = danger_info[0]  # Ally in danger nearby (0 or 1)
+        state[28] = danger_info[1]  # Distance to ally in danger (normalized)
+        state[29] = danger_info[2]  # Health ratio of ally in danger
 
         return state
 
@@ -303,16 +328,17 @@ class AILeviathanProcessor(esper.Processor):
 
     def _get_nearest_enemies(
         self, entity: int, pos: PositionComponent, team: TeamComponent
-    ) -> Tuple[float, float, float]:
+    ) -> Tuple[float, float, float, float]:
         """
         Finds nearby enemies using cached data (optimized).
 
         Returns:
-            (enemy_count, min_normalized_distance, angle_to_nearest)
+            (enemy_count, min_normalized_distance, angle_to_nearest, avg_health_ratio)
         """
         enemies_nearby = 0
         min_distance = float('inf')
         angle_to_nearest = 0.0
+        total_health_ratio = 0.0
         detection_radius = 500.0  # Pixels
 
         # Use cached data if available
@@ -335,26 +361,37 @@ class AILeviathanProcessor(esper.Processor):
                 if distance_sq < detection_radius * detection_radius:
                     enemies_nearby += 1
 
+                    # Get health info
+                    if esper.has_component(other_entity, HealthComponent):
+                        health_comp = esper.component_for_entity(other_entity, HealthComponent)
+                        health_ratio = health_comp.currentHealth / health_comp.maxHealth
+                        total_health_ratio += health_ratio
+
                     if distance_sq < min_distance * min_distance:
                         min_distance = distance_sq ** 0.5
                         angle_to_nearest = np.arctan2(dy, dx) / np.pi  # Normalize to [-1, 1]
 
-        # Normaliser distance
+        # Normalize distance
         min_distance_norm = min(min_distance / detection_radius, 1.0) if min_distance != float('inf') else 1.0
 
-        return (float(enemies_nearby), min_distance_norm, angle_to_nearest)
+        # Calculate average health ratio
+        avg_health_ratio = total_health_ratio / enemies_nearby if enemies_nearby > 0 else 0.0
+
+        return (float(enemies_nearby), min_distance_norm, angle_to_nearest, avg_health_ratio)
 
     def _get_nearest_allies(
         self, entity: int, pos: PositionComponent, team: TeamComponent
-    ) -> Tuple[float, float]:
+    ) -> Tuple[float, float, float, float]:
         """
         Finds nearby allies using cached data (optimized).
 
         Returns:
-            (ally_count, min_normalized_distance)
+            (ally_count, min_normalized_distance, avg_health_ratio, ally_in_danger)
         """
         allies_nearby = 0
         min_distance = float('inf')
+        total_health_ratio = 0.0
+        ally_in_danger = 0.0
         detection_radius = 500.0
 
         # Use cached data if available
@@ -374,9 +411,20 @@ class AILeviathanProcessor(esper.Processor):
                     distance = distance_sq ** 0.5
                     min_distance = min(min_distance, distance)
 
-        min_distance_norm = min(min_distance / detection_radius, 1.0) if allies_nearby > 0 else 1.0
+                    # Get health info
+                    if esper.has_component(other_entity, HealthComponent):
+                        health_comp = esper.component_for_entity(other_entity, HealthComponent)
+                        health_ratio = health_comp.currentHealth / health_comp.maxHealth
+                        total_health_ratio += health_ratio
 
-        return (float(allies_nearby), min_distance_norm)
+                        # Check if ally is in danger (low health)
+                        if health_ratio < 0.3:  # Less than 30% health
+                            ally_in_danger = 1.0
+
+        min_distance_norm = min(min_distance / detection_radius, 1.0) if allies_nearby > 0 else 1.0
+        avg_health_ratio = total_health_ratio / allies_nearby if allies_nearby > 0 else 0.0
+
+        return (float(allies_nearby), min_distance_norm, avg_health_ratio, ally_in_danger)
 
     def _get_nearby_events(self, pos: PositionComponent) -> Tuple[float, float, float]:
         """
@@ -446,6 +494,75 @@ class AILeviathanProcessor(esper.Processor):
 
         return (mines_count, min_distance_norm)
 
+    def _get_enemy_base_info(
+        self, entity: int, pos: PositionComponent, team: TeamComponent
+    ) -> Tuple[float, float]:
+        """
+        Get information about the enemy base.
+
+        Returns:
+            (normalized_distance, angle_to_base)
+        """
+        from src.components.core.baseComponent import BaseComponent
+
+        # Find enemy base
+        enemy_base_pos = None
+        for base_entity, (base_comp, base_pos, base_team) in esper.get_components(
+            BaseComponent, PositionComponent, TeamComponent
+        ):
+            if base_team.team_id != team.team_id:
+                enemy_base_pos = (base_pos.x, base_pos.y)
+                break
+
+        if enemy_base_pos is None:
+            return (1.0, 0.0)  # No base found
+
+        # Calculate distance and angle
+        dx = enemy_base_pos[0] - pos.x
+        dy = enemy_base_pos[1] - pos.y
+        distance = (dx * dx + dy * dy) ** 0.5
+        angle = np.arctan2(dy, dx) / np.pi  # Normalize to [-1, 1]
+
+        # Normalize distance (assuming max map size is ~7000 pixels)
+        normalized_distance = min(distance / 7000.0, 1.0)
+
+        return (normalized_distance, angle)
+
+    def _get_ally_danger_info(
+        self, entity: int, pos: PositionComponent, team: TeamComponent
+    ) -> Tuple[float, float, float]:
+        """
+        Get information about allies in danger.
+
+        Returns:
+            (ally_in_danger, distance_to_ally, health_ratio_of_ally)
+        """
+        ally_in_danger = 0.0
+        distance_to_ally = 1.0
+        health_ratio = 0.0
+        detection_radius = 600.0  # Slightly larger radius for support detection
+
+        # Find allies with low health
+        for other_entity, (other_pos, other_health, other_team) in esper.get_components(
+            PositionComponent, HealthComponent, TeamComponent
+        ):
+            if other_entity == entity or other_team.team_id != team.team_id:
+                continue
+
+            distance = ((other_pos.x - pos.x) ** 2 + (other_pos.y - pos.y) ** 2) ** 0.5
+
+            if distance < detection_radius:
+                health_ratio_check = other_health.currentHealth / other_health.maxHealth
+
+                # Check if ally needs help (below 40% health)
+                if health_ratio_check < 0.4:
+                    ally_in_danger = 1.0
+                    distance_to_ally = min(distance / detection_radius, 1.0)
+                    health_ratio = health_ratio_check
+                    break  # Focus on the nearest ally in danger
+
+        return (ally_in_danger, distance_to_ally, health_ratio)
+
     def _execute_action(
         self,
         entity: int,
@@ -509,6 +626,218 @@ class AILeviathanProcessor(esper.Processor):
 
         elif action == LeviathanBrain.ACTION_COLLECT_RESOURCE:
             # Head towards resources (simple implementation: move forward)
+            vel.currentSpeed = vel.maxUpSpeed
+
+        elif action == LeviathanBrain.ACTION_MOVE_TO_BASE:
+            # Move towards enemy base using pathfinding
+            self._navigate_to_enemy_base(entity, pos, vel)
+
+        elif action == LeviathanBrain.ACTION_HELP_ALLY:
+            # Move towards ally in danger
+            self._navigate_to_ally_in_danger(entity, pos, vel)
+
+        elif action == LeviathanBrain.ACTION_RETREAT:
+            # Retreat from enemies (move backward and turn)
+            vel.currentSpeed = -vel.maxReverseSpeed
+            pos.direction = (pos.direction + 180) % 360
+
+    def _is_island_at_position(self, x: float, y: float) -> bool:
+        """
+        Check if there's an island at the given world position.
+
+        Args:
+            x: World X coordinate (pixels)
+            y: World Y coordinate (pixels)
+
+        Returns:
+            True if position is on an island
+        """
+        if self.map_grid is None:
+            return False
+
+        try:
+            grid_x = int(x // TILE_SIZE)
+            grid_y = int(y // TILE_SIZE)
+
+            # Check grid bounds
+            from src.settings.settings import MAP_WIDTH, MAP_HEIGHT
+            if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
+                tile_type = self.map_grid[grid_y][grid_x]
+                # Check if it's an island tile
+                return TileType(tile_type).is_island()
+        except Exception:
+            return False
+
+        return False
+
+    def _get_obstacles_around(self, pos: PositionComponent, radius: float = 1000) -> list:
+        """
+        Get all obstacles (islands, mines, storms) around a position.
+
+        Args:
+            pos: Position to check around
+            radius: Search radius in pixels
+
+        Returns:
+            List of obstacles as (x, y, radius) tuples
+        """
+        obstacles = []
+
+        # Add islands from map grid
+        if self.map_grid is not None:
+            from src.settings.settings import MAP_WIDTH, MAP_HEIGHT
+
+            # Convert position to grid coordinates
+            center_grid_x = int(pos.x // TILE_SIZE)
+            center_grid_y = int(pos.y // TILE_SIZE)
+
+            # Check tiles in radius
+            tile_radius = int(radius // TILE_SIZE) + 2
+
+            for dy in range(-tile_radius, tile_radius + 1):
+                for dx in range(-tile_radius, tile_radius + 1):
+                    grid_x = center_grid_x + dx
+                    grid_y = center_grid_y + dy
+
+                    if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
+                        tile_type = self.map_grid[grid_y][grid_x]
+
+                        # Check if it's an island or mine
+                        if TileType(tile_type).is_island() or tile_type == TileType.MINE:
+                            # Convert grid to world coordinates (center of tile)
+                            world_x = (grid_x + 0.5) * TILE_SIZE
+                            world_y = (grid_y + 0.5) * TILE_SIZE
+
+                            # Check if within radius
+                            dist = ((world_x - pos.x) ** 2 + (world_y - pos.y) ** 2) ** 0.5
+                            if dist < radius:
+                                # Island obstacle radius = 1.5 tiles
+                                obstacle_radius = TILE_SIZE * 1.5
+                                obstacles.append((world_x, world_y, obstacle_radius))
+
+        # Add storms
+        for storm_entity, (storm_comp, storm_pos) in esper.get_components(Storm, PositionComponent):
+            dist = ((storm_pos.x - pos.x) ** 2 + (storm_pos.y - pos.y) ** 2) ** 0.5
+            if dist < radius:
+                storm_radius = TILE_SIZE * 2  # Storms have a larger danger zone
+                obstacles.append((storm_pos.x, storm_pos.y, storm_radius))
+
+        return obstacles
+
+    def _navigate_to_enemy_base(
+        self,
+        entity: int,
+        pos: PositionComponent,
+        vel: VelocityComponent
+    ):
+        """
+        Navigate towards enemy base using pathfinding (if available).
+        Falls back to direct navigation if pathfinding is not available.
+        Avoids islands and obstacles.
+        """
+        from src.components.core.baseComponent import BaseComponent
+
+        # Find enemy base
+        team = esper.component_for_entity(entity, TeamComponent)
+        enemy_base_pos = None
+
+        for base_entity, (base_comp, base_pos, base_team) in esper.get_components(
+            BaseComponent, PositionComponent, TeamComponent
+        ):
+            if base_team.team_id != team.team_id:
+                enemy_base_pos = (base_pos.x, base_pos.y)
+                break
+
+        if enemy_base_pos is None:
+            # No base found, move forward
+            vel.currentSpeed = vel.maxUpSpeed
+            return
+
+        # Check if there's an obstacle directly ahead
+        current_pos = (pos.x, pos.y)
+        obstacles = self._get_obstacles_around(pos, radius=500)
+
+        # Simple obstacle avoidance: if island ahead, turn
+        angle_rad = pos.direction * np.pi / 180
+        look_ahead_distance = 100
+        ahead_x = pos.x + look_ahead_distance * np.cos(angle_rad)
+        ahead_y = pos.y + look_ahead_distance * np.sin(angle_rad)
+
+        # Check if we're about to hit an island
+        if self._is_island_at_position(ahead_x, ahead_y):
+            # Turn to avoid obstacle
+            pos.direction = (pos.direction + 45) % 360
+            vel.currentSpeed = vel.maxUpSpeed * 0.5
+            return
+
+        # Calculate angle to base
+        dx = enemy_base_pos[0] - pos.x
+        dy = enemy_base_pos[1] - pos.y
+        target_angle = np.arctan2(dy, dx) * 180 / np.pi
+
+        # Adjust direction towards base
+        angle_diff = (target_angle - pos.direction + 180) % 360 - 180
+
+        if abs(angle_diff) > 10:
+            # Turn towards base
+            if angle_diff > 0:
+                pos.direction = (pos.direction + 10) % 360
+            else:
+                pos.direction = (pos.direction - 10) % 360
+        else:
+            # Move towards base
+            vel.currentSpeed = vel.maxUpSpeed
+
+    def _navigate_to_ally_in_danger(
+        self,
+        entity: int,
+        pos: PositionComponent,
+        vel: VelocityComponent
+    ):
+        """
+        Navigate towards the nearest ally in danger.
+        """
+        team = esper.component_for_entity(entity, TeamComponent)
+        nearest_ally = None
+        min_distance = float('inf')
+
+        # Find nearest ally with low health
+        for other_entity, (other_pos, other_health, other_team) in esper.get_components(
+            PositionComponent, HealthComponent, TeamComponent
+        ):
+            if other_entity == entity or other_team.team_id != team.team_id:
+                continue
+
+            health_ratio = other_health.currentHealth / other_health.maxHealth
+
+            if health_ratio < 0.4:  # Ally in danger
+                distance = ((other_pos.x - pos.x) ** 2 + (other_pos.y - pos.y) ** 2) ** 0.5
+
+                if distance < min_distance:
+                    min_distance = distance
+                    nearest_ally = (other_pos.x, other_pos.y)
+
+        if nearest_ally is None:
+            # No ally in danger, just move forward
+            vel.currentSpeed = vel.maxUpSpeed
+            return
+
+        # Navigate towards ally
+        dx = nearest_ally[0] - pos.x
+        dy = nearest_ally[1] - pos.y
+        target_angle = np.arctan2(dy, dx) * 180 / np.pi
+
+        # Adjust direction towards ally
+        angle_diff = (target_angle - pos.direction + 180) % 360 - 180
+
+        if abs(angle_diff) > 10:
+            # Turn towards ally
+            if angle_diff > 0:
+                pos.direction = (pos.direction + 10) % 360
+            else:
+                pos.direction = (pos.direction - 10) % 360
+        else:
+            # Move towards ally
             vel.currentSpeed = vel.maxUpSpeed
 
     def _train_brain(self, ai_comp: AILeviathanComponent):
