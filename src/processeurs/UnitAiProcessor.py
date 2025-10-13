@@ -257,26 +257,20 @@ class UnitAiProcessor(esper.Processor):
         action_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
         print(f"🤖 IA Kamikaze (entité {ent}): Action {action} - {action_names[action] if 0 <= action < len(action_names) else 'Inconnue'}")
 
-        # Ajuster la direction vers la cible si nécessaire
-        target_angle = self.get_angle_to_target(pos, target_pos)
-        angle_diff = (target_angle - pos.direction) % 360
-        if angle_diff > 180:
-            angle_diff -= 360
-        if abs(angle_diff) > 10:  # Si différence > 10°, tourner vers la cible
-            if angle_diff > 0:
-                pos.direction = (pos.direction + 5) % 360
-            else:
-                pos.direction = (pos.direction - 5) % 360
-
         # 4. Exécuter l'action
         if action == 1: # Tourner à gauche
-            pos.direction = (pos.direction - 5) % 360
+            pos.direction = (pos.direction - 15) % 360 # Augmentation de l'angle pour des virages plus serrés
         elif action == 2: # Tourner à droite
-            pos.direction = (pos.direction + 5) % 360
+            pos.direction = (pos.direction + 15) % 360
         elif action == 3: # Activer le boost
             if esper.has_component(ent, SpeKamikazeComponent):
                 esper.component_for_entity(ent, SpeKamikazeComponent).activate()
-        # Toujours avancer, sauf si bloqué
+        else: # Action 0: Continuer, donc s'aligner sur la cible
+            target_angle = self.get_angle_to_target(pos, target_pos)
+            angle_diff = (target_angle - pos.direction + 180) % 360 - 180
+            # Tourner progressivement vers la cible
+            pos.direction = (pos.direction + np.sign(angle_diff) * min(abs(angle_diff), 5)) % 360
+
         vel.currentSpeed = vel.maxUpSpeed
 
     def decide_kamikaze_action(self, my_pos, target_pos, obstacles, threats, can_boost=True):
@@ -298,14 +292,6 @@ class UnitAiProcessor(esper.Processor):
         distance_to_target = math.hypot(target_pos.x - my_pos.x, target_pos.y - my_pos.y)
         angle_to_target = self.get_angle_to_target(my_pos, target_pos)
         angle_diff = abs((angle_to_target - my_pos.direction + 180) % 360 - 180)
-
-        # Si pas bien aligné avec la cible, tourner pour se corriger (seuil plus permissif)
-        if angle_diff > 15 and distance_to_target > 8 * TILE_SIZE:
-            # Décider de tourner vers la cible
-            if (angle_to_target - my_pos.direction + 180) % 360 - 180 > 0:
-                return 2  # Tourner droite
-            else:
-                return 1  # Tourner gauche
 
         # PRIORITÉ 3.5: Si bien aligné avec la base ennemie, foncer dessus !
         if angle_diff <= 15 and can_boost and distance_to_target > 5 * TILE_SIZE:
@@ -397,7 +383,7 @@ class UnitAiProcessor(esper.Processor):
 
     def get_angle_to_target(self, my_pos, target_pos):
         """Calcule l'angle vers une cible."""
-        return math.degrees(math.atan2(target_pos.y - my_pos.y, target_pos.x - my_pos.x)) * -1
+        return math.degrees(math.atan2(target_pos.y - my_pos.y, target_pos.x - my_pos.x))
 
     def turn_away_from(self, my_pos, target_pos):
         """Décide de tourner à gauche ou à droite pour s'éloigner d'un point."""

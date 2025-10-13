@@ -136,59 +136,71 @@ class SelfPlayBaseAiTrainer:
             enemy_known_key = 'enemy_base_known_enemy'
 
         gold = game_state[gold_key]
-        reward = -1  # Coût léger par action
+        reward = 0
 
+        # Récompenser l'IA pour économiser de l'or
         if action == 0:
-            # Pénalité pour "Rien" si on a de l'or
-            if gold >= 30:
-                reward -= 5
-        elif action == 1 and gold >= 30:  # Éclaireur
-            game_state[gold_key] -= 30
+            if gold > 500:
+                reward += 15
+            elif gold > 250:
+                reward += 5
+
+        cost = 0
+        if action == 1: cost = UNIT_COSTS["scout"]
+        elif action == 2: cost = UNIT_COSTS["architect"]
+        elif action == 3: cost = UNIT_COSTS["maraudeur"]
+        elif action == 4: cost = UNIT_COSTS["leviathan"]
+        elif action == 5: cost = UNIT_COSTS["druid"]
+        elif action == 6: cost = UNIT_COSTS["kamikaze"]
+
+        if action != 0 and gold >= cost:
+            game_state[gold_key] -= cost
+            # Récompense proportionnelle au coût de l'unité
+            reward += cost / 15
+
+            # Logique spécifique à l'action
             game_state[units_key] += 1
-            game_state[enemy_known_key] = 1
-            reward += 10  # Récompense pour exploration
-        elif action == 2 and gold >= 50:  # Architecte
-            game_state[gold_key] -= 50
-            game_state[towers_key] = max(0, game_state[towers_key] - 1)
-            reward += 15  # Récompense pour défense
-        elif action == 3 and gold >= 40:  # Maraudeur
-            game_state[gold_key] -= 40
-            game_state[units_key] += 1
-            reward += 12  # Récompense pour unité d'attaque
-        elif action == 4 and gold >= 120:  # Léviathan
-            game_state[gold_key] -= 120
-            game_state[units_key] += 1
-            reward += 20  # Grande récompense pour unité lourde
-        elif action == 5 and gold >= 80:  # Druide
-            game_state[gold_key] -= 80
-            game_state[units_key] += 1
-            reward += 18  # Récompense pour unité de soin
-        elif action == 6 and gold >= 60:  # Kamikaze
-            game_state[gold_key] -= 60
-            game_state[enemy_health_key] -= 0.2
-            reward += 25  # Grande récompense pour attaque directe
+            if action == 1: # Éclaireur
+                game_state[enemy_known_key] = 1
+                reward += 5 # Bonus pour exploration
+            elif action == 2: # Architecte
+                game_state[towers_key] = max(0, game_state[towers_key] - 1)
+                reward += 10 # Bonus pour défense
+            elif action == 6: # Kamikaze
+                game_state[enemy_health_key] -= 0.15 # Dégâts réalistes
+                reward += 15 # Bonus pour attaque directe
 
         return reward
 
     def _evolve_world(self, game_state):
         """Fait évoluer le monde entre les tours."""
-        # Revenus
-        game_state['ally_gold'] += random.randint(15, 30)
-        game_state['enemy_gold'] += random.randint(15, 30)
+        # 1. Revenus
+        game_state['ally_gold'] += random.randint(10, 20)
+        game_state['enemy_gold'] += random.randint(10, 20)
 
-        # Production ennemie (simplifiée)
-        if random.random() < 0.3:
-            game_state['enemy_units'] += 1
-        if random.random() < 0.3:
-            game_state['ally_units'] += 1
+        # 2. Simulation de combat et de pertes
+        advantage = game_state['ally_units'] - game_state['enemy_units']
+        
+        # Pertes alliées et dégâts à la base
+        loss_chance_ally = 0.25 - 0.05 * advantage
+        if random.random() < loss_chance_ally:
+            losses = random.randint(1, max(1, game_state['ally_units'] // 3))
+            game_state['ally_units'] = max(0, game_state['ally_units'] - losses)
+            game_state['ally_base_health'] -= losses * 0.02
 
-        # Combats aléatoires
-        if random.random() < 0.4:
-            damage = random.uniform(0.05, 0.15)
-            if random.random() < 0.5:
-                game_state['ally_base_health'] -= damage
-            else:
-                game_state['enemy_base_health'] -= damage
+        # Pertes ennemies et dégâts à leur base
+        loss_chance_enemy = 0.25 + 0.05 * advantage
+        if random.random() < loss_chance_enemy:
+            losses = random.randint(1, max(1, game_state['enemy_units'] // 3))
+            game_state['enemy_units'] = max(0, game_state['enemy_units'] - losses)
+            if game_state['enemy_base_known_ally']:
+                game_state['enemy_base_health'] -= losses * 0.02
+
+        # 3. Découverte de la base ennemie
+        # L'IA alliée découvre la base ennemie si elle a plus de 5 unités (simule l'exploration)
+        if not game_state['enemy_base_known_ally'] and game_state['ally_units'] > 5 and random.random() < 0.2:
+            game_state['enemy_base_known_ally'] = 1
+            game_state['enemy_base_known_enemy'] = 1 # Supposons que la découverte est mutuelle
 
         # Limites
         game_state['ally_base_health'] = max(0, min(1.0, game_state['ally_base_health']))

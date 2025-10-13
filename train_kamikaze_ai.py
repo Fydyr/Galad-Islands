@@ -144,6 +144,10 @@ class AdvancedKamikazeAiTrainer:
         print("🎉 ENTRAÎNEMENT AVANCÉ TERMINÉ AVEC SUCCÈS!")
         print("=" * 70)
 
+        # Sauvegarder le modèle après l'entraînement
+        model_path = "src/models/kamikaze_ai_model.pkl"
+        joblib.dump(model, model_path)
+        print(f"💾 Modèle sauvegardé: {model_path}")
         return model, accuracy
 
 

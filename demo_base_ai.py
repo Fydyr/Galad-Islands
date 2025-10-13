@@ -36,7 +36,7 @@ def demo_ai_decisions():
     scenarios = [
         {
             "name": "Début de partie - Exploration nécessaire",
-            "gold": 100, # La réalité du jeu
+            "gold": 100,
             "base_health_ratio": 1.0,
             "allied_units": 1,
             "enemy_units": 1,
@@ -46,7 +46,7 @@ def demo_ai_decisions():
         },
         {
             "name": "Défense prioritaire - Base très endommagée",
-            "gold": 250, # Assez pour un architecte (30 + 200 de réserve)
+            "gold": 150, # Assez pour un architecte (100 + 50 de réserve)
             "base_health_ratio": 0.5, # <-- Santé basse
             "allied_units": 3,
             "enemy_units": 6,
@@ -56,7 +56,7 @@ def demo_ai_decisions():
         },
         {
             "name": "Avantage économique - Achat d'une unité lourde",
-            "gold": 300, # Largement assez pour un Léviathan (40 + 200 de réserve)
+            "gold": 350, # Largement assez pour un Léviathan (300 + 50 de réserve)
             "base_health_ratio": 0.9,
             "allied_units": 10,
             "enemy_units": 2,
@@ -66,7 +66,7 @@ def demo_ai_decisions():
         },
         {
             "name": "Infériorité numérique - Renforts nécessaires",
-            "gold": 230, # Assez pour un Maraudeur (20 + 200 de réserve)
+            "gold": 150, # Assez pour un Maraudeur (100 + 50 de réserve)
             "base_health_ratio": 0.7,
             "allied_units": 4,
             "enemy_units": 7,
@@ -76,7 +76,7 @@ def demo_ai_decisions():
         },
         {
             "name": "Contre-attaque rapide - Peu d'or mais besoin de pression",
-            "gold": 260, # Assez pour un Kamikaze (50) ou un Scout (50)
+            "gold": 120, # Assez pour un Kamikaze (50 + 50 de réserve)
             "base_health_ratio": 0.8,
             "allied_units": 2,
             "enemy_units": 4, # En infériorité
@@ -87,7 +87,7 @@ def demo_ai_decisions():
         },
         {
             "name": "Coup de grâce - Base ennemie mourante",
-            "gold": 280, # Assez pour un Kamikaze
+            "gold": 150, # Assez pour un Kamikaze
             "base_health_ratio": 0.9,
             "allied_units": 3,
             "enemy_units": 2,
@@ -122,17 +122,8 @@ def demo_ai_decisions():
             enemy_base_health
         ]
 
-        # Nouvelle logique de prédiction (Q-learning)
-        # On calcule la valeur Q pour chaque action et on choisit la meilleure
-        q_values = []
-        for act in range(len(actions_names)):
-            state_action = features + [act]
-            q_value = ai.model.predict([state_action])[0]
-            q_values.append(q_value)
-        
-        best_action_index = np.argmax(q_values)
+        best_action_index = ai._decide_action(features)
         action_name = actions_names[best_action_index]
-
         # Comparer avec le résultat attendu (plus flexible)
         # Pour le scénario "Infériorité numérique", Maraudeur ou Kamikaze sont acceptables
         if scenario['name'] == "Infériorité numérique - Renforts nécessaires" and action_name in ["Maraudeur", "Kamikaze"]:

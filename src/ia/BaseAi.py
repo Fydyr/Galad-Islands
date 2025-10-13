@@ -213,9 +213,8 @@ class BaseAi(esper.Processor):
         reward = -1  # Coût léger par action
         
         if action == 0:
-            # Pénalité pour "Rien" si on a de l'or
-            if gold >= 30:
-                reward -= 5
+            # Aucune action, aucune récompense ni pénalité
+            return reward
         elif action == 1 and gold >= 30:  # Éclaireur
             game_state['gold'] -= 30
             game_state['allied_units'] += 1
@@ -277,45 +276,39 @@ class BaseAi(esper.Processor):
         print(f"Erreur quadratique moyenne du modèle IA base (aléatoire): {mean_squared_error(y_test, y_pred):.2f}")
 
     def decide_action_for_training(self, gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known, enemy_base_health=1.0):
-        """Logique de décision simplifiée pour l'entraînement - optimisée pour réussir les scénarios de test."""
-        # Priorité absolue : se défendre si la base est en danger
+        """Logique de décision à base de règles (professeur) pour l'entraînement."""
+        
+        # 1. Défense d'urgence
         if base_health < 0.6 and towers_needed and gold >= UNIT_COSTS["architect"] + self.gold_reserve:
             return 2  # Acheter un Architecte
 
-        # Priorité 2 : exploration si nécessaire
-        if not enemy_base_known and gold >= UNIT_COSTS["scout"]: # Pas de réserve pour les scouts
-            return 1  # Acheter un éclaireur pour l'exploration
+        # 2. Exploration si nécessaire
+        if not enemy_base_known and gold >= UNIT_COSTS["scout"]:
+            return 1  # Éclaireur (pas de réserve d'or nécessaire)
 
-        # Situation d'urgence : base très endommagée même sans tours nécessaires
-        if base_health < 0.5 and gold >= UNIT_COSTS["architect"] + self.gold_reserve:
-            return 2  # Acheter un Architecte pour se défendre
+        # 3. Coup de grâce
+        if enemy_base_known and enemy_base_health < 0.3 and gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
+            return 6  # Kamikaze pour finir
 
-        # Avantage économique : acheter des unités lourdes si on a beaucoup d'or
-        if gold >= 280 and allied_units >= enemy_units:  # Seuil réduit pour Léviathan
-            if random.random() < 0.6:  # 60% de chance d'acheter un Léviathan
-                return 4  # Léviathan
-            elif random.random() < 0.5:  # 50% de chance restante d'acheter un Druide
-                return 5  # Druide
-            else:
-                return 3  # Maraudeur
+        # 4. Renforcement en cas d'infériorité
+        if allied_units < enemy_units and gold >= UNIT_COSTS["maraudeur"] + self.gold_reserve:
+            return 3  # Maraudeur pour se défendre
 
-        # Attaque finale : si base ennemie très endommagée et connue
-        if enemy_base_known and enemy_base_health < 0.25 and gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
-            return 6  # Kamikaze pour finir la base ennemie (priorité absolue)
+        # 5. Investissement en cas d'avantage
+        if gold > 300 and allied_units > enemy_units:
+            # Choix pondéré entre les unités coûteuses
+            choices = {
+                4: UNIT_COSTS["leviathan"], # Léviathan
+                5: UNIT_COSTS["druid"],     # Druide
+                3: UNIT_COSTS["maraudeur"]  # Maraudeur
+            }
+            possible_choices = [k for k, v in choices.items() if gold >= v + self.gold_reserve]
+            if possible_choices:
+                return random.choice(possible_choices)
 
-        # Infériorité numérique : se renforcer
-        if allied_units < enemy_units:
-            if enemy_base_known and gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
-                return 6  # Kamikaze prioritaire si base connue (attaque directe)
-            elif gold >= UNIT_COSTS["maraudeur"] + self.gold_reserve:
-                return 3  # Maraudeur prioritaire
-            elif gold >= UNIT_COSTS["kamikaze"]:  # Kamikaze moins cher
-                return 6  # Kamikaze pour contre-attaque
-
-        # Contre-attaque rapide : si désavantage et base ennemie connue
-        if allied_units <= enemy_units + 1 and enemy_base_known and gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
-            if random.random() < 0.7:  # 70% de chance de Kamikaze quand base connue
-                return 6  # Kamikaze pour attaquer la base directement
+        # 6. Achat opportuniste
+        if gold >= UNIT_COSTS["maraudeur"] + self.gold_reserve and random.random() < 0.4:
+            return 3
 
         # Achat d'unité équilibrée si or suffisant
         if gold >= UNIT_COSTS["maraudeur"] + self.gold_reserve:
@@ -325,9 +318,8 @@ class BaseAi(esper.Processor):
         if gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
             return 6  # Kamikaze
 
-        # Rien si pas assez d'or
+        # 7. Ne rien faire pour économiser
         return 0
-
 
     def simulate_game(self):
         """Simule une partie pour collecter des données d'entraînement."""
@@ -608,26 +600,22 @@ class BaseAi(esper.Processor):
             # Si toutes les Q-values sont (pratiquement) identiques, appliquer un tie-breaker
             if max(q_values) - min(q_values) < 1e-9:
                 # Priorité simple : préférer une action non nulle abordable (éclaireur d'abord)
-                preferred_actions = [1, 2, 3, 6, 5, 4]
+                # Scout, Maraudeur, Architecte, Kamikaze...
+                preferred_actions = [1, 3, 2, 6, 5, 4]
                 chosen = 0
                 for a in preferred_actions:
                     if is_affordable(a, features[0]):
                         chosen = a
                         break
-                print(f"🤖 IA Base (équipe {self.default_team_id}): Tie-breaker utilisé, action choisie {chosen}")
-                action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
-                print(f"🤖 IA Base (équipe {self.default_team_id}): Action {chosen} - {action_names[chosen] if 0 <= chosen < len(action_names) else 'Inconnue'}")
                 return int(chosen)
 
-
+            # Comportement normal : choisir la meilleure action exécutable
             chosen = 0
             for a in action_order:
                 if is_affordable(a, features[0]):
                     chosen = a
                     break
 
-            action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
-            print(f"🤖 IA Base (équipe {self.default_team_id}): Action {chosen} - {action_names[chosen] if 0 <= chosen < len(action_names) else 'Inconnue'}")
             return int(chosen)
 
         except Exception as e:
