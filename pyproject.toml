@@ -18,6 +18,10 @@ authors = [
 name = "cz_conventional_commits" 
 version_provider = "pep621"
 tag_format = "v$version"
+version_files = [
+    "pyproject.toml:version",
+    "src/version.py"
+]
 update_changelog_on_bump = true
 bump_message = "chore: bump version $current_version → $new_version"
 

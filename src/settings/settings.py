@@ -373,6 +373,19 @@ def set_disable_shadows(disabled: bool) -> bool:
     return config_manager.save_config()
 
 
+def is_dev_mode_enabled() -> bool:
+    """
+    Check if dev mode is enabled in the configuration.
+
+    Returns:
+        True if dev mode is enabled, False otherwise.
+    """
+    try:
+        return config_manager.get('dev_mode', False)
+    except Exception:
+        return False
+
+
 # =============================================================================
 # COMPATIBILITÉ (DEPRECATED)
 # =============================================================================
