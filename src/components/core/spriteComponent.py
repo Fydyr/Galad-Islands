@@ -25,7 +25,18 @@ class SpriteComponent:
     def load_sprite(self):
         """Retourne le chemin du sprite (à charger avec pygame ou autre moteur graphique)"""
         if self.image_path:
-            self.image = pygame.image.load(self.image_path).convert_alpha()
+            try:
+                img = pygame.image.load(self.image_path)
+                try:
+                    # convert_alpha may fail if display not initialized; try safely
+                    self.image = img.convert_alpha()
+                except Exception:
+                    # Fallback: keep raw loaded Surface without conversion
+                    self.image = img
+            except Exception as e:
+                # Ne pas émettre d'exception : en mode test/headless on continue sans sprite
+                print(f"Warning: impossible de charger sprite '{self.image_path}': {e}")
+                self.image = None
 
     def scale_sprite(self, width, height):
         if self.image is not None:

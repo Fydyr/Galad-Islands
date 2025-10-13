@@ -790,6 +790,9 @@ class GameEngine:
         self.game_over_message = ""
         self.game_over_timer = 0.0
         
+        # Mode spécial: self-play (IA vs IA). Quand True, les contrôles joueurs sont désactivés
+        self.self_play_mode = False
+        
         # tempest manager
         
     def initialize(self):
@@ -943,6 +946,20 @@ class GameEngine:
         ally_ai = getattr(self, 'ally_base_ai', None)
         enemy_ai = getattr(self, 'enemy_base_ai', None)
 
+        # Si on est en mode self-play, activer les deux IA et désactiver le contrôle joueur
+        if getattr(self, 'self_play_mode', False):
+            if ally_ai is not None:
+                ally_ai.enabled = True
+            if enemy_ai is not None:
+                enemy_ai.enabled = True
+            # Désactiver les contrôles joueurs si possible
+            try:
+                if getattr(self, 'player_controls', None) is not None:
+                    self.player_controls.enabled = False
+            except Exception:
+                pass
+            return
+
         # Si le joueur contrôle les alliés, désactive l'IA alliée et active l'IA ennemie
         if active_team == Team.ALLY:
             if ally_ai is not None:
@@ -1009,38 +1026,58 @@ class GameEngine:
         # Initialiser les variables d'optimisation adaptative
         self._frame_times = []
         self._adaptive_quality = 1.0
+
+    def enable_self_play(self):
+        """Active le mode self-play : IA vs IA et désactive le contrôle joueur."""
+        self.self_play_mode = True
+        # Activer les deux IA
+        if getattr(self, 'ally_base_ai', None) is not None:
+            self.ally_base_ai.enabled = True
+        if getattr(self, 'enemy_base_ai', None) is not None:
+            self.enemy_base_ai.enabled = True
+
+        # Désactiver le processeur de contrôle joueur si présent dans esper
+        try:
+            # retirer le PlayerControlProcessor si présent
+            es.remove_processor(PlayerControlProcessor)
+        except Exception:
+            pass
+
+        # Signaler à l'ActionBar (si présente)
+        try:
+            if getattr(self, 'action_bar', None) is not None:
+                self.action_bar.self_play_mode = True
+        except Exception:
+            pass
+
+    def disable_self_play(self):
+        """Désactive le mode self-play et restaure le contrôle joueur."""
+        self.self_play_mode = False
+        # Rétablir activation normale des IA via _update_base_ai_activation lors du prochain tick
+
+        # Réactiver le processeur de contrôle joueur : tenter de ré-ajouter si absent
+        try:
+            # tenter de ré-ajouter le PlayerControlProcessor
+            try:
+                # créer une instance légère et l'ajouter
+                self.player_controls = PlayerControlProcessor(self.grid)
+                es.add_processor(self.player_controls, priority=4)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+        try:
+            if getattr(self, 'action_bar', None) is not None:
+                self.action_bar.self_play_mode = False
+        except Exception:
+            pass
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
         # La caméra est déjà configurée dans init_game_map()
         # Ne pas la recentrer automatiquement
         pass
-
-    def _give_dev_gold(self, amount: int = 500) -> None:
-        """Ajoute de l'or au joueur de la team active (outil de développement).
-        Méthode exposée sur GameEngine pour être appelée par l'EventHandler.
-        Cette fonction doit être appelée uniquement en mode debug/dev.
-        """
-        try:
-            # Obtenir la team active depuis l'action_bar (source de vérité)
-            active_team = Team.ALLY  # Par défaut alliés
-            if hasattr(self, 'action_bar') and self.action_bar is not None:
-                active_team = self.action_bar.current_camp
-            
-            # Chercher le PlayerComponent de la team active
-            for ent, (pcomp, tcomp) in es.get_components(PlayerComponent, TeamComponent):
-                if tcomp.team_id == active_team:
-                    old_gold = pcomp.get_gold()
-                    pcomp.add_gold(amount)
-                    team_name = "Alliés" if active_team == Team.ALLY else "Ennemis"
-                    print(f"[DEV GOLD] {team_name} (team {active_team}): {old_gold} → {pcomp.get_gold()} (+{amount})")
-                    return
-            
-            # Si on arrive ici, aucun PlayerComponent trouvé (ne devrait jamais arriver)
-            print(f"[DEV GOLD] ❌ ERREUR: Aucun PlayerComponent trouvé pour team_id={active_team}")
-        except Exception as e:
-            print(f"[DEV GOLD] ❌ Exception: {e}")
-            traceback.print_exc()
 
     def toggle_camera_follow_mode(self) -> None:
         """Bascule entre une caméra libre et le suivi de l'unité sélectionnée."""

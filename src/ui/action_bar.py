@@ -278,7 +278,17 @@ class ActionBar:
         
         # Boutons globaux
         global_buttons = [
-            
+            # Bouton self-play (toggle IA vs IA)
+            ActionButton(
+                action_type=ActionType.SWITCH_CAMP,  # reuse a type for hotkey mapping if needed
+                icon_path="assets/sprites/ui/self_play.png",
+                text="Self-Play",
+                cost=0,
+                hotkey="",
+                tooltip="Toggle IA vs IA (Self-Play)",
+                is_global=True,
+                callback=self._toggle_self_play
+            ),
         ]
         
         # Vérifier si le mode debug ou dev_mode est activé pour afficher le bouton
@@ -827,6 +837,24 @@ class ActionBar:
     
     def draw(self, surface: pygame.Surface):
         """Dessine la barre d'action."""
+        # Bannière self-play (au dessus de la barre)
+        try:
+            if getattr(self, 'self_play_mode', False):
+                banner_font = pygame.font.Font(None, 28)
+                banner_text = "IA vs IA — Contrôles joueur désactivés"
+                banner_surf = banner_font.render(banner_text, True, (255, 200, 0))
+                banner_rect = banner_surf.get_rect()
+                banner_rect.centerx = surface.get_width() // 2
+                banner_rect.y = 8
+                bg = pygame.Surface((banner_rect.width + 16, banner_rect.height + 8), pygame.SRCALPHA)
+                bg.fill((0, 0, 0, 160))
+                bg_rect = bg.get_rect()
+                bg_rect.centerx = banner_rect.centerx
+                bg_rect.y = banner_rect.y - 4
+                surface.blit(bg, bg_rect)
+                surface.blit(banner_surf, banner_rect)
+        except Exception:
+            pass
         # Fond avec dégradé
         self._draw_background(surface)
         
@@ -921,6 +949,21 @@ class ActionBar:
         shortcut_rect.centerx = self.camp_button_rect.centerx
         shortcut_rect.bottom = self.camp_button_rect.bottom - 2
         surface.blit(shortcut_surface, shortcut_rect)
+
+    def _toggle_self_play(self):
+        """Callback du bouton Self-Play: bascule le mode IA vs IA."""
+        if not getattr(self, 'game_engine', None):
+            return
+
+        try:
+            if getattr(self.game_engine, 'self_play_mode', False):
+                self.game_engine.disable_self_play()
+                self.self_play_mode = False
+            else:
+                self.game_engine.enable_self_play()
+                self.self_play_mode = True
+        except Exception:
+            pass
     
     def _draw_button(self, surface: pygame.Surface, button: ActionButton, rect: pygame.Rect, 
                      is_hovered: bool, is_global: bool = False):

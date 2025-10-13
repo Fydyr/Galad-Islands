@@ -25,6 +25,7 @@ from src.components.core.projectileComponent import ProjectileComponent
 from src.constants.gameplay import UNIT_COSTS
 from src.factory.unitFactory import UnitFactory
 from src.factory.unitType import UnitType
+from src.components.core.positionComponent import PositionComponent
 from src.constants.team import Team
 from src.settings.settings import TILE_SIZE
 
@@ -60,10 +61,37 @@ class BaseAi(esper.Processor):
 
     def load_or_train_model(self):
         """Charge le modèle ou l'entraîne si inexistant."""
-        # Essayer d'abord le modèle avancé
+        # Priorité au modèle produit par self-play (final ou dernier itératif)
+        selfplay_final = "src/models/base_ai_selfplay_final.pkl"
+        # Pattern pour itérations (ex: base_ai_selfplay_iter_1.pkl ...)
+        selfplay_iter_pattern = "src/models/base_ai_selfplay_iter_*.pkl"
+
         advanced_model_path = "src/models/base_ai_advanced_model.pkl"
         basic_model_path = "src/models/base_ai_model.pkl"
-        
+
+        # 1) Si un modèle self-play final existe, l'utiliser
+        if os.path.exists(selfplay_final):
+            print("🤖 Chargement du modèle IA (self-play final)...")
+            self.model = joblib.load(selfplay_final)
+            print("✅ Modèle self-play final chargé !")
+            return
+
+        # 2) Sinon, si des itérations self-play existent, choisir la dernière par date
+        import glob
+        iters = glob.glob(selfplay_iter_pattern)
+        if iters:
+            # choisir le plus récent par timestamp
+            latest = max(iters, key=lambda p: os.path.getmtime(p))
+            try:
+                print(f"🤖 Chargement du dernier modèle self-play ({os.path.basename(latest)})...")
+                self.model = joblib.load(latest)
+                print("✅ Modèle self-play chargé !")
+                return
+            except Exception:
+                # continuer vers les autres options si chargement échoue
+                print("⚠️ Échec du chargement du modèle self-play itératif, tentative d'autres modèles...")
+
+        # 3) Ensuite tenter le modèle avancé puis de base
         if os.path.exists(advanced_model_path):
             print("🤖 Chargement du modèle IA avancé...")
             self.model = joblib.load(advanced_model_path)
@@ -75,8 +103,8 @@ class BaseAi(esper.Processor):
         else:
             print("🤖 Aucun modèle trouvé, entraînement d'un nouveau modèle...")
             self.train_model()
-            os.makedirs("models", exist_ok=True)
-            joblib.dump(self.model, "src/models/base_ai_model.pkl")
+            os.makedirs("src/models", exist_ok=True)
+            joblib.dump(self.model, basic_model_path)
             print("💾 Nouveau modèle sauvegardé!")
 
     def train_model(self):
@@ -555,14 +583,52 @@ class BaseAi(esper.Processor):
                 q_value = self.model.predict([state_action])[0]
                 q_values.append(q_value)
             
+            # Fonction utilitaire pour vérifier si l'action est abordable selon la politique
+            def is_affordable(action_idx, gold_amount):
+                if action_idx == 0:
+                    return True
+                # coût selon mapping
+                action_map = {
+                    1: UNIT_COSTS.get('scout', 0),
+                    2: UNIT_COSTS.get('architect', 0),
+                    3: UNIT_COSTS.get('maraudeur', 0),
+                    4: UNIT_COSTS.get('leviathan', 0),
+                    5: UNIT_COSTS.get('druid', 0),
+                    6: UNIT_COSTS.get('kamikaze', 0),
+                }
+                cost = action_map.get(action_idx, 0)
+                # autoriser l'achat d'un scout sans réserve
+                reserve = 0 if action_idx == 1 else self.gold_reserve
+                return gold_amount >= cost + reserve
+
             # Choisir l'action avec la plus haute valeur Q
-            action = np.argmax(q_values)
-            
-            # Afficher la décision en console
+            # Trier les actions par Q décroissante et choisir la première exécutable
+            action_order = sorted(range(len(q_values)), key=lambda a: q_values[a], reverse=True)
+
+            # Si toutes les Q-values sont (pratiquement) identiques, appliquer un tie-breaker
+            if max(q_values) - min(q_values) < 1e-9:
+                # Priorité simple : préférer une action non nulle abordable (éclaireur d'abord)
+                preferred_actions = [1, 2, 3, 6, 5, 4]
+                chosen = 0
+                for a in preferred_actions:
+                    if is_affordable(a, features[0]):
+                        chosen = a
+                        break
+                print(f"🤖 IA Base (équipe {self.default_team_id}): Tie-breaker utilisé, action choisie {chosen}")
+                action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
+                print(f"🤖 IA Base (équipe {self.default_team_id}): Action {chosen} - {action_names[chosen] if 0 <= chosen < len(action_names) else 'Inconnue'}")
+                return int(chosen)
+
+
+            chosen = 0
+            for a in action_order:
+                if is_affordable(a, features[0]):
+                    chosen = a
+                    break
+
             action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
-            print(f"🤖 IA Base (équipe {self.default_team_id}): Action {action} - {action_names[action] if 0 <= action < len(action_names) else 'Inconnue'}")
-            
-            return int(action)
+            print(f"🤖 IA Base (équipe {self.default_team_id}): Action {chosen} - {action_names[chosen] if 0 <= chosen < len(action_names) else 'Inconnue'}")
+            return int(chosen)
 
         except Exception as e:
             print(f"Erreur dans _decide_action: {e}")
@@ -619,11 +685,33 @@ class BaseAi(esper.Processor):
                 unit_to_spawn = UnitType.KAMIKAZE
                 cost = UNIT_COSTS["kamikaze"]
 
-            if unit_to_spawn and gold >= cost + self.gold_reserve:
-                self._spawn_unit(unit_to_spawn, base_entity, ai_team_id)
-                player_comp.spend_gold(cost)
-                print(f"IA Base (team {ai_team_id}): Achète {unit_to_spawn}")
-                return True
+            if unit_to_spawn:
+                # Pour l'exécution, appliquer la réserve sauf pour l'éclaireur
+                reserve = 0 if action == 1 else self.gold_reserve
+                required = cost + reserve
+
+                # Vérifier via PlayerComponent
+                if not player_comp.can_afford(required):
+                    # Si c'est un éclaireur et qu'on peut au moins payer son coût, autoriser
+                    if action == 1 and player_comp.can_afford(cost):
+                        # autoriser
+                        pass
+                    else:
+                        print(f"IA Base (team {ai_team_id}): Pas assez d'or pour action {action} (nécessaire: {required}, disponible: {gold})")
+                        return False
+
+                # Effectuer l'achat (ne débite que le coût de l'unité)
+                if player_comp.spend_gold(cost):
+                    try:
+                        self._spawn_unit(unit_to_spawn, base_entity, ai_team_id)
+                    except Exception as e:
+                        print(f"Erreur lors du spawn unit: {e}")
+                    print(f"IA Base (team {ai_team_id}): Achète {unit_to_spawn}")
+                    return True
+                else:
+                    # Cas rare: can_afford était vrai pour required mais spend_gold échoue
+                    print(f"IA Base (team {ai_team_id}): Échec dépense or pour {unit_to_spawn} (coût {cost})")
+                    return False
 
             # Action 0 (rien) ou action invalide
             return True
@@ -640,7 +728,13 @@ class BaseAi(esper.Processor):
             spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=is_enemy)
 
             # Utiliser la factory pour créer l'unité
-            UnitFactory.create_unit(unit_type, spawn_x, spawn_y, is_enemy)
+            # UnitFactory attend (unit, enemy, PositionComponent)
+            pos = PositionComponent(spawn_x, spawn_y, 0)
+            new_entity = UnitFactory(unit_type, is_enemy, pos)
+
+            # Si l'entité a bien été créée, l'ajouter à la base
+            if new_entity is not None:
+                BaseComponent.add_unit_to_base(new_entity, is_enemy=is_enemy)
 
         except Exception as e:
             print(f"Erreur dans _spawn_unit: {e}")
