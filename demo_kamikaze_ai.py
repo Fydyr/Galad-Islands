@@ -11,6 +11,7 @@ from pathlib import Path
 # Ajouter le répertoire src au path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+import numpy as np
 import esper
 from processeurs.UnitAiProcessor import UnitAiProcessor
 from src.components.core.positionComponent import PositionComponent
@@ -101,10 +102,17 @@ def demo_kamikaze_ai():
 
         # Prédire l'action
         if ai_processor.model:
-            action = ai_processor.model.predict([features])[0]
-
+            # Nouvelle logique de prédiction (Q-learning)
+            q_values = []
             action_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
-            predicted_action = action_names[action]
+            for act in range(len(action_names)):
+                state_action = features + [act]
+                q_value = ai_processor.model.predict([state_action])[0]
+                q_values.append(q_value)
+
+            best_action_index = np.argmax(q_values)
+            predicted_action = action_names[best_action_index]
+
 
             print(f"   => Décision IA: {predicted_action}")
 

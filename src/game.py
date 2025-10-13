@@ -919,7 +919,8 @@ class GameEngine:
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
         self.tower_processor = TowerProcessor()
-        # IA de la base ennemie
+        # IA de la base alliée et ennemie
+        self.ally_base_ai = BaseAi(team_id=1)
         self.enemy_base_ai = BaseAi(team_id=2)
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
@@ -932,8 +933,33 @@ class GameEngine:
         es.add_processor(self.player_controls, priority=4)
         es.add_processor(self.tower_processor, priority=5)
         es.add_processor(self.unit_ai_processor, priority=6) # L'IA des unités décide avant l'IA de la base
-        es.add_processor(self.enemy_base_ai, priority=7) # L'IA est un processeur comme les autres
+        es.add_processor(self.ally_base_ai, priority=7)
+        es.add_processor(self.enemy_base_ai, priority=8)
         es.add_processor(self.lifetime_processor, priority=10)
+        
+    def _update_base_ai_activation(self, active_team):
+        """Active ou désactive les IA de base selon la faction jouée."""
+        # Défensive : vérifier que les processeurs existent
+        ally_ai = getattr(self, 'ally_base_ai', None)
+        enemy_ai = getattr(self, 'enemy_base_ai', None)
+
+        # Si le joueur contrôle les alliés, désactive l'IA alliée et active l'IA ennemie
+        if active_team == Team.ALLY:
+            if ally_ai is not None:
+                ally_ai.enabled = False
+            if enemy_ai is not None:
+                enemy_ai.enabled = True
+        # Si le joueur contrôle les ennemis, désactive l'IA ennemie et active l'IA alliée
+        elif active_team == Team.ENEMY:
+            if ally_ai is not None:
+                ally_ai.enabled = True
+            if enemy_ai is not None:
+                enemy_ai.enabled = False
+        else:
+            if ally_ai is not None:
+                ally_ai.enabled = True
+            if enemy_ai is not None:
+                enemy_ai.enabled = True
         
         # Configurer les handlers d'événements
         es.set_handler('attack_event', create_projectile)
@@ -1673,6 +1699,7 @@ class GameEngine:
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         # Passer les informations nécessaires aux processeurs qui en ont besoin
         active_team = self.action_bar.current_camp if self.action_bar else Team.ALLY
+        self._update_base_ai_activation(active_team)
         es.process(
             dt=dt,  # Passer dt pour les processeurs qui l'utilisent
             active_player_team_id=active_team

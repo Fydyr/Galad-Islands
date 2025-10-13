@@ -20,6 +20,7 @@ from components.core.teamComponent import TeamComponent
 from components.core.baseComponent import BaseComponent
 from components.core.healthComponent import HealthComponent
 from components.core.positionComponent import PositionComponent
+import numpy as np
 
 
 def demo_ai_decisions():
@@ -121,8 +122,16 @@ def demo_ai_decisions():
             enemy_base_health
         ]
 
-        action = ai.model.predict([features])[0]
-        action_name = actions_names[action] if action < len(actions_names) else "Inconnue"
+        # Nouvelle logique de prédiction (Q-learning)
+        # On calcule la valeur Q pour chaque action et on choisit la meilleure
+        q_values = []
+        for act in range(len(actions_names)):
+            state_action = features + [act]
+            q_value = ai.model.predict([state_action])[0]
+            q_values.append(q_value)
+        
+        best_action_index = np.argmax(q_values)
+        action_name = actions_names[best_action_index]
 
         # Comparer avec le résultat attendu (plus flexible)
         # Pour le scénario "Infériorité numérique", Maraudeur ou Kamikaze sont acceptables
@@ -133,21 +142,21 @@ def demo_ai_decisions():
         
         print(f"   => Décision IA: {action_name} (Attendu: {scenario['expected']}) {result_icon}")
 
-        # Vérifier si l'action est faisable
+        # Vérifier si l'action est faisable (basé sur l'index de l'action)
         can_afford = False
-        if action == 1:  # Éclaireur 
+        if best_action_index == 1:  # Éclaireur 
             can_afford = scenario['gold'] >= UNIT_COSTS["scout"] # Pas de réserve pour les scouts
-        elif action == 2:  # Architecte
+        elif best_action_index == 2:  # Architecte
             can_afford = scenario['gold'] >= UNIT_COSTS["architect"] + ai.gold_reserve
-        elif action == 3:  # Maraudeur
+        elif best_action_index == 3:  # Maraudeur
             can_afford = scenario['gold'] >= UNIT_COSTS["maraudeur"] + ai.gold_reserve
-        elif action == 4:  # Léviathan
+        elif best_action_index == 4:  # Léviathan
             can_afford = scenario['gold'] >= UNIT_COSTS["leviathan"] + ai.gold_reserve
-        elif action == 5:  # Druide
+        elif best_action_index == 5:  # Druide
             can_afford = scenario['gold'] >= UNIT_COSTS["druid"] + ai.gold_reserve
-        elif action == 6:  # Kamikaze
+        elif best_action_index == 6:  # Kamikaze
             can_afford = scenario['gold'] >= UNIT_COSTS["kamikaze"] + ai.gold_reserve
-        elif action == 0:  # Rien
+        elif best_action_index == 0:  # Rien
             can_afford = True
 
         print(f"      (Action faisable avec l'or disponible: {'Oui' if can_afford else 'Non'})")

@@ -45,7 +45,7 @@ class AdvancedBaseAiTrainer:
             
             # Compter les actions (approximatif, basé sur les state_action)
             for state_action in game_states_actions:
-                action = state_action[-1]  # Dernier élément est l'action
+                action = int(state_action[-1])  # Dernier élément est l'action
                 action_counts[action] += 1
 
             if (game + 1) % 50 == 0:
@@ -104,9 +104,9 @@ class AdvancedBaseAiTrainer:
         X = np.array(states_actions)
         y = np.array(rewards)
 
-        # Split avec stratification pour équilibrer les classes
+        # Split
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
+            X, y, test_size=0.2, random_state=42
         )
 
         # Modèle avec paramètres optimisés pour RL
@@ -137,7 +137,7 @@ class AdvancedBaseAiTrainer:
         print(f"   - Échantillons de test: {len(X_test)}")
         print()
 
-        return model, mse
+        # Sauvegarder le modèle avancé
         model_path = "src/models/base_ai_advanced_model.pkl"
         os.makedirs("src/models", exist_ok=True)
         joblib.dump(model, model_path)
@@ -148,7 +148,7 @@ class AdvancedBaseAiTrainer:
         print("🎉 ENTRAÎNEMENT AVANCÉ TERMINÉ AVEC SUCCÈS!")
         print("=" * 70)
 
-        return model, accuracy
+        return model, mse
 
 
 def main():

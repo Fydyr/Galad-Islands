@@ -380,7 +380,7 @@ class UnitAiProcessor(esper.Processor):
 
         # 2. Scanner les entités "mine" (team_id=0)
         for ent, (pos, team) in esper.get_components(PositionComponent, TeamComponent):
-            if team.team_id == 0 and esper.has_component(ent, AttackComponent): # Les mines sont neutres et ont une attaque
+            if team.team_id == 0 and esper.has_component(ent, TeamComponent): # Les mines sont neutres et ont une attaque
                 if math.hypot(pos.x - my_pos.x, pos.y - my_pos.y) < radius:
                     obstacles.append(pos)
         return obstacles

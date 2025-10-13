@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import esper
 import numpy as np
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import joblib
@@ -106,7 +106,7 @@ class AdvancedKamikazeAiTrainer:
         )
 
         # Modèle avec paramètres optimisés pour le Kamikaze
-        model = DecisionTreeClassifier(
+        model = DecisionTreeRegressor(
             max_depth=8,  # Profondeur adaptée aux décisions de mouvement
             min_samples_split=20,  # Évite le surapprentissage
             min_samples_leaf=10,
