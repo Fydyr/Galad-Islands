@@ -1,5 +1,6 @@
 # Main menu in Pygame
 
+from src.version import __version__
 import pygame
 import sys
 import os
@@ -17,7 +18,7 @@ from src.functions.optionsWindow import show_options_window
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 from src.functions.resource_path import get_resource_path
-from src.utils.version_utils import get_project_version, is_dev_mode_enabled
+
 
 
 
@@ -273,8 +274,8 @@ class MainMenu:
         width, height = self.display_manager.get_size()
 
         # Get version and dev mode status
-        version = get_project_version()
-        dev_mode = is_dev_mode_enabled()
+        version = __version__
+        dev_mode = settings.is_dev_mode_enabled()
 
         # Version text
         version_text = f"v{version}"
