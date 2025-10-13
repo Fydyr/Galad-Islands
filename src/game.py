@@ -885,6 +885,10 @@ class GameEngine:
         if self.storm_processor is not None and self.grid is not None:
             self.storm_processor.initializeFromGrid(self.grid)
 
+        # Initialize AI processor with map grid for pathfinding
+        if self.ai_processor is not None and self.grid is not None:
+            self.ai_processor.map_grid = self.grid
+
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
         # Nettoyer toutes les entités existantes

@@ -90,30 +90,59 @@ class AITrainer:
         es.add_component(enemy_base, TeamComponent(2))
         es.add_component(enemy_base, BaseComponent())
 
-        # Create 4 Leviathans with AI (enemy team)
-        print("[SETUP] Creating 4 Leviathans with AI...")
+        # Create AI Leviathans for BOTH teams (allies and enemies)
+        print("[SETUP] Creating AI Leviathans for both teams...")
         self.leviathans = []
 
-        for i in range(4):
-            x = random.randint(2000, 4000)
-            y = random.randint(2000, 4000)
+        # Create 3 Allied Leviathans with AI (team 1)
+        print("[SETUP] - Creating 3 Allied Leviathans with AI (team 1)...")
+        for i in range(3):
+            x = random.randint(1500, 2500)
+            y = random.randint(1500, 2500)
 
             leviathan = UnitFactory(
                 UnitType.LEVIATHAN,
-                enemy=True,  # AI is automatically enabled for enemies
+                enemy=False,  # Allied team
+                pos=PositionComponent(x, y),
+                enable_ai=True  # Force AI activation for allies
+            )
+            self.leviathans.append(leviathan)
+
+        # Create 3 Enemy Leviathans with AI (team 2)
+        print("[SETUP] - Creating 3 Enemy Leviathans with AI (team 2)...")
+        for i in range(3):
+            x = random.randint(3500, 4500)
+            y = random.randint(3500, 4500)
+
+            leviathan = UnitFactory(
+                UnitType.LEVIATHAN,
+                enemy=True,  # Enemy team - AI automatically enabled
                 pos=PositionComponent(x, y)
             )
             self.leviathans.append(leviathan)
 
-        # Create some enemies (allied team, for the AI to fight)
-        print("[SETUP] Creating enemies for training...")
-        for i in range(5):
-            x = random.randint(2500, 3500)
-            y = random.randint(2500, 3500)
+        # Create some additional units for both teams (non-AI controlled)
+        print("[SETUP] Creating additional support units...")
+        # Allied support units
+        for i in range(2):
+            x = random.randint(1500, 2500)
+            y = random.randint(1500, 2500)
 
-            enemy = UnitFactory(
-                UnitType.LEVIATHAN if random.random() > 0.5 else UnitType.MARAUDEUR,
-                enemy=False,  # Allied team (enemies for the AI)
+            UnitFactory(
+                UnitType.MARAUDEUR if random.random() > 0.5 else UnitType.SCOUT,
+                enemy=False,  # Allied team
+                pos=PositionComponent(x, y),
+                enable_ai=False  # No AI for support units
+            )
+
+        # Enemy support units
+        for i in range(2):
+            x = random.randint(3500, 4500)
+            y = random.randint(3500, 4500)
+
+            UnitFactory(
+                UnitType.MARAUDEUR if random.random() > 0.5 else UnitType.SCOUT,
+                enemy=True,  # Enemy team
                 pos=PositionComponent(x, y)
             )
 
@@ -133,7 +162,7 @@ class AITrainer:
             es.add_component(mine, AttackComponent(40))
             es.add_component(mine, CanCollideComponent())
 
-        print(f"[OK] {len(self.leviathans)} AI Leviathans created")
+        print(f"[OK] {len(self.leviathans)} AI Leviathans created (3 allies + 3 enemies)")
         print()
 
     def run_episode(self, episode_num: int):
@@ -198,11 +227,11 @@ class AITrainer:
                       f"Avg Reward: {avg_reward:.2f} - "
                       f"Epsilon: {epsilon:.3f}")
 
-            # Check if the enemy base is destroyed to end the episode early
+            # Check if any base is destroyed to end the episode early
             base_destroyed = self._check_base_destroyed()
             if base_destroyed:
                 if episode_num % 10 == 0:
-                    print(f"   [WIN] ENEMY BASE DESTROYED! Huge reward assigned.")
+                    print(f"   [END] A BASE WAS DESTROYED! Episode ended.")
                 break
 
         # Final episode statistics - calculate final average reward
@@ -227,31 +256,31 @@ class AITrainer:
 
     def _simulate_enemy_movements(self):
         """Simulates random movements for non-AI entities (optimized)."""
-        # Make allied enemies (targets for the AI) move randomly
+        # Make non-AI units move randomly (support units)
         # Pre-check for AI components to avoid repeated lookups
         ai_entities = set()
         for entity, _ in es.get_component(AILeviathanComponent):
             ai_entities.add(entity)
 
-        for entity, (pos, vel, team) in es.get_components(
-            PositionComponent, VelocityComponent, TeamComponent
+        for entity, (pos, vel) in es.get_components(
+            PositionComponent, VelocityComponent
         ):
             # Ignore the AI-controlled Leviathans (using pre-built set)
             if entity in ai_entities:
                 continue
 
-            # Random movement for allied units (AI's enemies)
-            if team.team_id == 1 and random.random() < 0.1:  # 10% chance to change direction
+            # Random movement for non-AI support units (both teams)
+            if random.random() < 0.1:  # 10% chance to change direction
                 pos.direction = random.randint(0, 360)
                 vel.currentSpeed = vel.maxUpSpeed if random.random() > 0.5 else 0
 
     def _check_base_destroyed(self) -> bool:
-        """Checks if the enemy base has been destroyed."""
-        for entity, (base, health, team) in es.get_components(
-            BaseComponent, HealthComponent, TeamComponent
+        """Checks if any base has been destroyed (ends the episode)."""
+        for entity, (base, health) in es.get_components(
+            BaseComponent, HealthComponent
         ):
-            # The AI's goal is to destroy the enemy base (team 2)
-            if team.team_id == 2 and health.currentHealth <= 0:
+            # Episode ends when either base is destroyed
+            if health.currentHealth <= 0:
                 return True
         return False
 

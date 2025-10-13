@@ -78,9 +78,9 @@ class AILeviathanProcessor(esper.Processor):
         self.cache_update_frequency = 5  # Update cache every 5 frames
         self.cache_frame_counter = 0
 
-        # Pathfinding system (only create if training mode for performance)
-        self.pathfinder = AStarPathfinder(grid_size=50) if training_mode else None
-        self.path_cache = PathfindingCache(max_size=50, ttl=20) if training_mode else None
+        # Pathfinding system (always create for navigation)
+        self.pathfinder = AStarPathfinder(grid_size=50)
+        self.path_cache = PathfindingCache(max_size=50, ttl=20)
 
         # Map grid for island detection (will be set by external code)
         self.map_grid = None
@@ -230,7 +230,7 @@ class AILeviathanProcessor(esper.Processor):
         state[4] = vel.maxUpSpeed / 100.0
 
         # [5-7] Health
-        state[5] = health.currentHealth / health.maxHealth  # Health ratio
+        state[5] = health.currentHealth / health.maxHealth if health.maxHealth > 0 else 0.0  # Health ratio
         state[6] = health.currentHealth / 100.0
         state[7] = health.maxHealth / 100.0
 
@@ -354,6 +354,10 @@ class AILeviathanProcessor(esper.Processor):
                 if other_entity == entity:
                     continue
 
+                # Check if entity still exists
+                if not esper.entity_exists(other_entity):
+                    continue
+
                 dx = other_x - pos.x
                 dy = other_y - pos.y
                 distance_sq = dx * dx + dy * dy
@@ -364,7 +368,7 @@ class AILeviathanProcessor(esper.Processor):
                     # Get health info
                     if esper.has_component(other_entity, HealthComponent):
                         health_comp = esper.component_for_entity(other_entity, HealthComponent)
-                        health_ratio = health_comp.currentHealth / health_comp.maxHealth
+                        health_ratio = health_comp.currentHealth / health_comp.maxHealth if health_comp.maxHealth > 0 else 0.0
                         total_health_ratio += health_ratio
 
                     if distance_sq < min_distance * min_distance:
@@ -404,6 +408,10 @@ class AILeviathanProcessor(esper.Processor):
                 if other_entity == entity:
                     continue
 
+                # Check if entity still exists
+                if not esper.entity_exists(other_entity):
+                    continue
+
                 distance_sq = (other_x - pos.x) ** 2 + (other_y - pos.y) ** 2
 
                 if distance_sq < detection_radius * detection_radius:
@@ -414,7 +422,7 @@ class AILeviathanProcessor(esper.Processor):
                     # Get health info
                     if esper.has_component(other_entity, HealthComponent):
                         health_comp = esper.component_for_entity(other_entity, HealthComponent)
-                        health_ratio = health_comp.currentHealth / health_comp.maxHealth
+                        health_ratio = health_comp.currentHealth / health_comp.maxHealth if health_comp.maxHealth > 0 else 0.0
                         total_health_ratio += health_ratio
 
                         # Check if ally is in danger (low health)
@@ -552,7 +560,7 @@ class AILeviathanProcessor(esper.Processor):
             distance = ((other_pos.x - pos.x) ** 2 + (other_pos.y - pos.y) ** 2) ** 0.5
 
             if distance < detection_radius:
-                health_ratio_check = other_health.currentHealth / other_health.maxHealth
+                health_ratio_check = other_health.currentHealth / other_health.maxHealth if other_health.maxHealth > 0 else 0.0
 
                 # Check if ally needs help (below 40% health)
                 if health_ratio_check < 0.4:
@@ -731,9 +739,8 @@ class AILeviathanProcessor(esper.Processor):
         vel: VelocityComponent
     ):
         """
-        Navigate towards enemy base using pathfinding (if available).
-        Falls back to direct navigation if pathfinding is not available.
-        Avoids islands and obstacles.
+        Navigate towards enemy base using A* pathfinding.
+        Avoids islands and obstacles intelligently.
         """
         from src.components.core.baseComponent import BaseComponent
 
@@ -753,40 +760,77 @@ class AILeviathanProcessor(esper.Processor):
             vel.currentSpeed = vel.maxUpSpeed
             return
 
-        # Check if there's an obstacle directly ahead
+        # Get current position
         current_pos = (pos.x, pos.y)
-        obstacles = self._get_obstacles_around(pos, radius=500)
 
-        # Simple obstacle avoidance: if island ahead, turn
-        angle_rad = pos.direction * np.pi / 180
-        look_ahead_distance = 100
-        ahead_x = pos.x + look_ahead_distance * np.cos(angle_rad)
-        ahead_y = pos.y + look_ahead_distance * np.sin(angle_rad)
+        # Try to get cached path first
+        cached_path = self.path_cache.get(current_pos, enemy_base_pos)
+        next_waypoint = None
 
-        # Check if we're about to hit an island
-        if self._is_island_at_position(ahead_x, ahead_y):
-            # Turn to avoid obstacle
-            pos.direction = (pos.direction + 45) % 360
-            vel.currentSpeed = vel.maxUpSpeed * 0.5
+        if cached_path and len(cached_path) > 1:
+            # Use cached path
+            next_waypoint = cached_path[1]
+        else:
+            # Calculate new path using A*
+            obstacles = self._get_obstacles_around(pos, radius=1000)
+            path = self.pathfinder.find_path(
+                start=current_pos,
+                goal=enemy_base_pos,
+                obstacles=obstacles,
+                max_iterations=500
+            )
+
+            if path and len(path) > 1:
+                # Cache the path for future use
+                self.path_cache.put(current_pos, enemy_base_pos, path)
+                next_waypoint = path[1]
+
+        if next_waypoint is None:
+            # Fallback: direct navigation with simple obstacle avoidance
+            angle_rad = pos.direction * np.pi / 180
+            look_ahead_distance = 100
+            ahead_x = pos.x + look_ahead_distance * np.cos(angle_rad)
+            ahead_y = pos.y + look_ahead_distance * np.sin(angle_rad)
+
+            if self._is_island_at_position(ahead_x, ahead_y):
+                # Turn to avoid obstacle
+                pos.direction = (pos.direction + 45) % 360
+                vel.currentSpeed = vel.maxUpSpeed * 0.5
+                return
+
+            # Direct navigation to base
+            dx = enemy_base_pos[0] - pos.x
+            dy = enemy_base_pos[1] - pos.y
+            target_angle = np.arctan2(dy, dx) * 180 / np.pi
+
+            angle_diff = (target_angle - pos.direction + 180) % 360 - 180
+
+            if abs(angle_diff) > 10:
+                if angle_diff > 0:
+                    pos.direction = (pos.direction + 10) % 360
+                else:
+                    pos.direction = (pos.direction - 10) % 360
+            else:
+                vel.currentSpeed = vel.maxUpSpeed
             return
 
-        # Calculate angle to base
-        dx = enemy_base_pos[0] - pos.x
-        dy = enemy_base_pos[1] - pos.y
+        # Navigate towards the next waypoint from A* path
+        dx = next_waypoint[0] - pos.x
+        dy = next_waypoint[1] - pos.y
         target_angle = np.arctan2(dy, dx) * 180 / np.pi
 
-        # Adjust direction towards base
+        # Adjust direction towards waypoint
         angle_diff = (target_angle - pos.direction + 180) % 360 - 180
 
         if abs(angle_diff) > 10:
-            # Turn towards base
+            # Turn towards waypoint
             if angle_diff > 0:
                 pos.direction = (pos.direction + 10) % 360
             else:
                 pos.direction = (pos.direction - 10) % 360
-        else:
-            # Move towards base
-            vel.currentSpeed = vel.maxUpSpeed
+
+        # Always move forward when navigating with A*
+        vel.currentSpeed = vel.maxUpSpeed
 
     def _navigate_to_ally_in_danger(
         self,
@@ -808,7 +852,7 @@ class AILeviathanProcessor(esper.Processor):
             if other_entity == entity or other_team.team_id != team.team_id:
                 continue
 
-            health_ratio = other_health.currentHealth / other_health.maxHealth
+            health_ratio = other_health.currentHealth / other_health.maxHealth if other_health.maxHealth > 0 else 0.0
 
             if health_ratio < 0.4:  # Ally in danger
                 distance = ((other_pos.x - pos.x) ** 2 + (other_pos.y - pos.y) ** 2) ** 0.5

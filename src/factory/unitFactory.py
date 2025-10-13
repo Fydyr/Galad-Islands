@@ -115,9 +115,9 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             es.add_component(entity, VisionComponent(UNIT_VISION_LEVIATHAN))
 
             # Ajouter le composant IA pour les Léviathans
-            # Par défaut, IA activée pour les ennemis uniquement
-            # Peut être forcée avec enable_ai=True/False
-            should_enable_ai = enemy if enable_ai is None else enable_ai
+            # Par défaut, IA activée pour tous les léviathans (alliés et ennemis)
+            # Peut être désactivée avec enable_ai=False
+            should_enable_ai = True if enable_ai is None else enable_ai
             if should_enable_ai:
                 es.add_component(entity, AILeviathanComponent(enabled=True))
 
