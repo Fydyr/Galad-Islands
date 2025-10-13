@@ -5,7 +5,7 @@ L'IA décide des actions de la base : achat d'unités, tir, etc.
 
 import esper
 import random
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import numpy as np
@@ -123,7 +123,7 @@ class BaseAi(esper.Processor):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         print(f"🔧 Entraînement du modèle (Decision Tree)...")
-        self.model = DecisionTreeClassifier(max_depth=10, random_state=42)
+        self.model = DecisionTreeRegressor(max_depth=10, random_state=42)
         self.model.fit(X_train, y_train)
 
         y_pred = self.model.predict(X_test)
@@ -137,6 +137,140 @@ class BaseAi(esper.Processor):
         print("=" * 60)
         print("✨ IA DE BASE PRÊTE À JOUER !")
         print("=" * 60)
+
+    def simulate_game(self):
+        """Simule une partie complète avec récompenses pour RL."""
+        states_actions = []
+        rewards = []
+        
+        # État initial simulé
+        gold = 100
+        base_health = 1.0
+        allied_units = 1
+        enemy_units = 1
+        enemy_base_known = False
+        towers_needed = 0
+        enemy_base_health = 1.0
+        
+        max_turns = 50
+        game_reward = 0
+        
+        for turn in range(max_turns):
+            # État actuel
+            game_state = {
+                'gold': gold,
+                'base_health_ratio': base_health,
+                'allied_units': allied_units,
+                'enemy_units': enemy_units,
+                'enemy_base_known': enemy_base_known,
+                'towers_needed': towers_needed,
+                'enemy_base_health_ratio': enemy_base_health
+            }
+            
+            features = [
+                game_state['gold'],
+                game_state['base_health_ratio'],
+                game_state['allied_units'],
+                game_state['enemy_units'],
+                game_state['enemy_base_known'],
+                game_state['towers_needed'],
+                game_state['enemy_base_health_ratio']
+            ]
+            
+            # Décider action avec exploration
+            if random.random() < 0.1:  # 10% exploration
+                action = random.randint(0, 6)
+            else:
+                action = self._decide_action_with_logic(game_state)
+            
+            # Sauvegarder état-action
+            state_action = features + [action]
+            states_actions.append(state_action)
+            
+            # Appliquer action
+            reward = self._apply_action_simulation(action, game_state)
+            rewards.append(reward)
+            game_reward += reward
+            
+            # Mettre à jour état
+            gold = game_state['gold']
+            base_health = game_state['base_health_ratio']
+            allied_units = game_state['allied_units']
+            enemy_units = game_state['enemy_units']
+            enemy_base_known = game_state['enemy_base_known']
+            towers_needed = game_state['towers_needed']
+            enemy_base_health = game_state['enemy_base_health_ratio']
+            
+            # Simulation simplifiée de l'évolution
+            base_health -= random.uniform(0, 0.05)  # Dégâts aléatoires
+            enemy_base_health -= random.uniform(0, 0.05)
+            allied_units += random.randint(-1, 2)  # Unités changent
+            enemy_units += random.randint(-1, 2)
+            
+            # Conditions de fin
+            if base_health <= 0:
+                rewards[-1] -= 100  # Grande pénalité pour défaite
+                break
+            if enemy_base_health <= 0:
+                rewards[-1] += 100  # Grande récompense pour victoire
+                break
+        
+        return states_actions, rewards
+
+    def _decide_action_with_logic(self, game_state):
+        """Logique de décision à base de règles (professeur)."""
+        gold = game_state['gold']
+        base_health = game_state['base_health_ratio']
+        allied_units = game_state['allied_units']
+        enemy_units = game_state['enemy_units']
+        enemy_base_known = game_state['enemy_base_known']
+        towers_needed = game_state['towers_needed']
+        enemy_base_health = game_state['enemy_base_health_ratio']
+        
+        # Logique simplifiée
+        if gold >= 100 and allied_units < enemy_units:
+            return random.choice([1, 3, 4, 5, 6])  # Acheter unité
+        elif base_health < 0.5 and gold >= 50:
+            return 2  # Architecte
+        elif enemy_base_known and enemy_base_health < 0.3 and gold >= 60:
+            return 6  # Kamikaze
+        else:
+            return 0  # Rien
+
+    def _apply_action_simulation(self, action, game_state):
+        """Applique une action en simulation et retourne la récompense."""
+        gold = game_state['gold']
+        reward = -1  # Coût léger par action
+        
+        if action == 0:
+            pass  # Rien
+        elif action == 1 and gold >= 30:  # Éclaireur
+            game_state['gold'] -= 30
+            game_state['allied_units'] += 1
+            game_state['enemy_base_known'] = True
+            reward += 5
+        elif action == 2 and gold >= 50:  # Architecte
+            game_state['gold'] -= 50
+            game_state['towers_needed'] -= 1
+            reward += 10
+        elif action == 3 and gold >= 40:  # Maraudeur
+            game_state['gold'] -= 40
+            game_state['allied_units'] += 1
+            reward += 5
+        elif action == 4 and gold >= 120:  # Léviathan
+            game_state['gold'] -= 120
+            game_state['allied_units'] += 1
+            reward += 15
+        elif action == 5 and gold >= 80:  # Druide
+            game_state['gold'] -= 80
+            game_state['allied_units'] += 1
+            reward += 10
+        elif action == 6 and gold >= 60:  # Kamikaze
+            game_state['gold'] -= 60
+            game_state['enemy_base_health_ratio'] -= 0.2
+            reward += 20
+        
+        return reward
 
     def train_with_random_data(self):
         """Entraînement avec données aléatoires (fallback)."""
@@ -164,7 +298,7 @@ class BaseAi(esper.Processor):
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        self.model = DecisionTreeClassifier(max_depth=10, random_state=42)
+        self.model = DecisionTreeRegressor(max_depth=10, random_state=42)
         self.model.fit(X_train, y_train)
 
         y_pred = self.model.predict(X_test)
@@ -371,6 +505,10 @@ class BaseAi(esper.Processor):
         # Décider de l'action
         action = self._decide_action(game_state)
 
+        # Afficher la décision en console
+        action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
+        print(f"🤖 IA Base (équipe {ai_team_id}): Action {action} - {action_names[action] if 0 <= action < len(action_names) else 'Inconnue'}")
+
         # Exécuter l'action
         if self._execute_action(action, ai_team_id):
             self.last_action_time = 0  # Reset cooldown
@@ -460,7 +598,20 @@ class BaseAi(esper.Processor):
                 game_state['enemy_base_health_ratio']
             ]
 
-            action = self.model.predict([features])[0]
+            # Calculer Q pour chaque action possible
+            q_values = []
+            for action in range(7):  # 7 actions
+                state_action = features + [action]
+                q_value = self.model.predict([state_action])[0]
+                q_values.append(q_value)
+            
+            # Choisir l'action avec la plus haute valeur Q
+            action = np.argmax(q_values)
+            
+            # Afficher la décision en console
+            action_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
+            print(f"🤖 IA Base (équipe {self.default_team_id}): Action {action} - {action_names[action] if 0 <= action < len(action_names) else 'Inconnue'}")
+            
             return int(action)
 
         except Exception as e:
@@ -534,15 +685,12 @@ class BaseAi(esper.Processor):
     def _spawn_unit(self, unit_type, base_entity, ai_team_id: int):
         """Fait apparaître une unité depuis la base."""
         try:
-            # Obtenir la position de la base
-            base_pos = esper.component_for_entity(base_entity, PositionComponent)
-
-            # Créer l'unité près de la base
-            spawn_x = base_pos.x + random.randint(-50, 50)
-            spawn_y = base_pos.y + random.randint(-50, 50)
+            # Utiliser la méthode centralisée pour obtenir une position de spawn valide
+            is_enemy = (ai_team_id == Team.ENEMY)
+            spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=is_enemy)
 
             # Utiliser la factory pour créer l'unité
-            UnitFactory.create_unit(unit_type, spawn_x, spawn_y, ai_team_id)
+            UnitFactory.create_unit(unit_type, spawn_x, spawn_y, is_enemy)
 
         except Exception as e:
             print(f"Erreur dans _spawn_unit: {e}")

@@ -8,13 +8,13 @@ import time
 import joblib
 import random
 import numpy as np
-from sklearn.tree import DecisionTreeClassifier
-
-from src.components.core.attackComponent import AttackComponent
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 from src.factory.unitType import UnitType
 from src.settings.settings import TILE_SIZE
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
 
@@ -70,8 +70,8 @@ class UnitAiProcessor(esper.Processor):
             X, y, test_size=0.2, random_state=42, stratify=y
         )
 
-        # Modèle optimisé pour les décisions de mouvement
-        self.model = DecisionTreeClassifier(
+        # Modèle optimisé pour les décisions de mouvement avec apprentissage par renforcement
+        self.model = DecisionTreeRegressor(
             max_depth=8,
             min_samples_split=20,
             min_samples_leaf=10,
@@ -82,51 +82,35 @@ class UnitAiProcessor(esper.Processor):
         
         # Évaluation
         y_pred = self.model.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
+        mse = mean_squared_error(y_test, y_pred)
         
-        print(f"✅ Entraînement terminé - Précision: {accuracy:.3f} ({accuracy*100:.1f}%)")
+        print(f"✅ Entraînement terminé - Erreur quadratique moyenne: {mse:.3f}")
         print(f"📊 Données d'entraînement: {len(X_train)} exemples")
         print(f"📊 Données de test: {len(X_test)} exemples")
-        
-        # Rapport détaillé
-        from sklearn.metrics import classification_report
-        target_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
-        print("\n📋 Rapport détaillé:")
-        print(classification_report(y_test, y_pred, target_names=target_names))
 
     def generate_advanced_training_data(self, n_simulations=1000):
-        """Génère des données d'entraînement avec simulations complètes de trajectoires."""
-        print(f"🎯 Génération de données avancées: {n_simulations} simulations de trajectoires...")
+        """Génère des données d'entraînement avec simulations complètes de trajectoires pour RL."""
+        print(f"🎯 Génération de données RL: {n_simulations} simulations...")
         
-        all_features = []
-        all_labels = []
-        action_counts = [0] * 4  # 4 actions: continuer, gauche, droite, boost
+        all_states_actions = []
+        all_rewards = []
         
         for sim in range(n_simulations):
-            features, labels = self.simulate_kamikaze_trajectory()
-            all_features.extend(features)
-            all_labels.extend(labels)
-            
-            for action in labels:
-                action_counts[action] += 1
+            states_actions, rewards = self.simulate_kamikaze_trajectory()
+            all_states_actions.extend(states_actions)
+            all_rewards.extend(rewards)
             
             if (sim + 1) % 100 == 0:
                 print(f"  📊 Simulations terminées: {sim + 1}/{n_simulations}")
 
-        print(f"📈 Données générées: {len(all_features)} exemples d'entraînement")
-        print("🎯 Répartition des actions:")
-        action_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
-        for i, count in enumerate(action_counts):
-            if count > 0:
-                percentage = (count / sum(action_counts)) * 100
-                print(f"   {action_names[i]}: {count} décisions ({percentage:.1f}%)")
+        print(f"📈 Données RL générées: {len(all_states_actions)} exemples (état-action, récompense)")
 
-        return all_features, all_labels
+        return all_states_actions, all_rewards
 
     def simulate_kamikaze_trajectory(self):
-        """Simule une trajectoire complète de Kamikaze vers la base ennemie."""
-        features = []
-        labels = []
+        """Simule une trajectoire complète de Kamikaze avec récompenses pour RL."""
+        states_actions = []
+        rewards = []
         
         # === ÉTAT INITIAL ===
         # Position de départ aléatoire (loin de la base ennemie)
@@ -157,30 +141,28 @@ class UnitAiProcessor(esper.Processor):
         
         # === SIMULATION DE TRAJECTOIRE ===
         max_steps = 100  # Nombre maximum d'étapes par trajectoire
+        total_reward = 0
         success = False
         
         for step in range(max_steps):
-            # Vérifier si objectif atteint
-            distance_to_target = math.hypot(target_x - unit_pos.x, target_y - unit_pos.y)
-            if distance_to_target < 50:  # Arrivé à la base
-                success = True
-                break
-            
-            # Générer des menaces dynamiques (projectiles ennemis)
-            threats = []
-            if random.random() < 0.3:  # 30% de chance d'avoir des projectiles à proximité
-                for _ in range(random.randint(1, 3)):
-                    threat_x = unit_pos.x + random.uniform(-200, 200)
-                    threat_y = unit_pos.y + random.uniform(-200, 200)
-                    threats.append(PositionComponent(x=threat_x, y=threat_y))
+            # Calculer récompense pour l'étape précédente (sauf première)
+            if step > 0:
+                rewards.append(step_reward)
             
             # Obtenir les features pour l'état actuel
-            current_features = self._get_features_for_state(unit_pos, PositionComponent(x=target_x, y=target_y), obstacles, threats, boost_cooldown)
-            features.append(current_features)
+            current_features = self._get_features_for_state(unit_pos, PositionComponent(x=target_x, y=target_y), obstacles, [], boost_cooldown)
             
-            # Décider de l'action avec la logique à base de règles (professeur)
-            action = self.decide_kamikaze_action(unit_pos, PositionComponent(x=target_x, y=target_y), obstacles, threats, can_boost=(boost_cooldown <= 0))
-            labels.append(action)
+            # Décider de l'action avec epsilon-greedy (exploration)
+            if random.random() < 0.1:  # 10% exploration
+                action = random.randint(0, 3)
+            else:
+                # Utiliser la logique à base de règles comme politique
+                can_boost = boost_cooldown <= 0
+                action = self.decide_kamikaze_action(unit_pos, PositionComponent(x=target_x, y=target_y), obstacles, [], can_boost)
+            
+            # Sauvegarder état-action
+            state_action = current_features + [action]
+            states_actions.append(state_action)
             
             # Appliquer l'action
             if action == 1:  # Tourner à gauche
@@ -202,16 +184,37 @@ class UnitAiProcessor(esper.Processor):
             unit_pos.x = max(50, min(2050, unit_pos.x))
             unit_pos.y = max(50, min(1450, unit_pos.y))
             
+            # Calculer récompense pour cette action
+            distance_to_target = math.hypot(target_x - unit_pos.x, target_y - unit_pos.y)
+            step_reward = -0.1  # Pénalité légère par étape
+            
+            # Récompense pour approche de la cible
+            if distance_to_target < 100:
+                step_reward += 10  # Grande récompense proche de la cible
+                success = True
+                break
+            elif distance_to_target < 200:
+                step_reward += 1  # Récompense moyenne
+            
+            # Pénalité pour collision avec obstacles
+            for obs in obstacles:
+                if math.hypot(obs.x - unit_pos.x, obs.y - unit_pos.y) < 30:
+                    step_reward -= 5  # Grande pénalité pour collision
+                    break
+            
             # Réduire le cooldown du boost
             if boost_cooldown > 0:
                 boost_cooldown -= 0.1
             
-            # Vérifier collision avec obstacles (fin prématurée)
-            for obs in obstacles:
-                if math.hypot(obs.x - unit_pos.x, obs.y - unit_pos.y) < 30:
-                    break  # Trajectoire terminée par collision
+            total_reward += step_reward
         
-        return features, labels
+        # Récompense finale
+        if success:
+            rewards.append(50)  # Grande récompense pour succès
+        else:
+            rewards.append(-10)  # Pénalité pour échec
+        
+        return states_actions, rewards
 
     def process(self, dt, **kwargs):
         # Itérer sur toutes les unités contrôlées par l'IA
@@ -237,11 +240,33 @@ class UnitAiProcessor(esper.Processor):
         # Action: 0=continuer, 1=tourner_gauche, 2=tourner_droite, 3=activer_boost
         if self.model:
             features = self._get_features_for_state(pos, target_pos, obstacles, threats)
-            action = self.model.predict([features])[0]
+            # Pour chaque action possible, prédire la valeur Q
+            q_values = []
+            for action in range(4):
+                state_action = features + [action]
+                q_value = self.model.predict([state_action])[0]
+                q_values.append(q_value)
+            # Choisir l'action avec la plus haute valeur Q
+            action = np.argmax(q_values)
         else:
             # Fallback sur la logique à base de règles si le modèle n'est pas chargé
             can_boost = esper.has_component(ent, SpeKamikazeComponent) and esper.component_for_entity(ent, SpeKamikazeComponent).can_activate()
             action = self.decide_kamikaze_action(pos, target_pos, obstacles, threats, can_boost)
+
+        # Afficher la décision en console
+        action_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
+        print(f"🤖 IA Kamikaze (entité {ent}): Action {action} - {action_names[action] if 0 <= action < len(action_names) else 'Inconnue'}")
+
+        # Ajuster la direction vers la cible si nécessaire
+        target_angle = self.get_angle_to_target(pos, target_pos)
+        angle_diff = (target_angle - pos.direction) % 360
+        if angle_diff > 180:
+            angle_diff -= 360
+        if abs(angle_diff) > 10:  # Si différence > 10°, tourner vers la cible
+            if angle_diff > 0:
+                pos.direction = (pos.direction + 5) % 360
+            else:
+                pos.direction = (pos.direction - 5) % 360
 
         # 4. Exécuter l'action
         if action == 1: # Tourner à gauche

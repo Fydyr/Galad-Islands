@@ -16,7 +16,7 @@ import esper
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import mean_squared_error
 import joblib
 
 from src.processeurs.UnitAiProcessor import UnitAiProcessor
@@ -27,6 +27,7 @@ class AdvancedKamikazeAiTrainer:
 
     def __init__(self):
         self.processor = None
+        self.data_path = "src/models/kamikaze_ai_training_data.npz"
 
     def generate_advanced_training_data(self, n_simulations=1000):
         """Génère des données d'entraînement avancées avec plus de simulations."""
@@ -43,22 +44,37 @@ class AdvancedKamikazeAiTrainer:
         self.processor = UnitAiProcessor(grid=dummy_grid)
 
         # Utiliser la méthode existante pour générer les données
-        features, labels = self.processor.generate_advanced_training_data(n_simulations)
+        states_actions, rewards = self.processor.generate_advanced_training_data(n_simulations)
 
-        print(f"📈 Données générées: {len(features)} exemples")
-        print("🎯 Répartition des actions dans les données:")
-        action_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
-        action_counts = [0] * 4
-        for action in labels:
-            action_counts[action] += 1
-        for i, count in enumerate(action_counts):
-            if count > 0:
-                percentage = (count / sum(action_counts)) * 100
-                print(f"   {action_names[i]}: {count} décisions ({percentage:.1f}%)")
+        print(f"📈 Données générées: {len(states_actions)} exemples")
+        print("🎯 Répartition des récompenses:")
+        positive = sum(1 for r in rewards if r > 0)
+        negative = sum(1 for r in rewards if r < 0)
+        zero = sum(1 for r in rewards if r == 0)
+        print(f"   Positives: {positive} ({positive/len(rewards)*100:.1f}%)")
+        print(f"   Négatives: {negative} ({negative/len(rewards)*100:.1f}%)")
+        print(f"   Neutres: {zero} ({zero/len(rewards)*100:.1f}%)")
 
-        return features, labels
+        return states_actions, rewards
 
-    def train_advanced_model(self, n_simulations=1000):
+    def _save_training_data(self, states_actions, rewards):
+        """Sauvegarde les données d'entraînement dans un fichier."""
+        print(f"💾 Sauvegarde des données d'entraînement dans {self.data_path}...")
+        os.makedirs(os.path.dirname(self.data_path), exist_ok=True)
+        np.savez_compressed(self.data_path, states_actions=np.array(states_actions, dtype=object), rewards=np.array(rewards, dtype=object))
+        print("✅ Données sauvegardées.")
+
+    def _load_training_data(self):
+        """Charge les données d'entraînement depuis un fichier."""
+        if not os.path.exists(self.data_path):
+            return None, None
+        
+        print(f"💾 Chargement des données d'entraînement depuis {self.data_path}...")
+        data = np.load(self.data_path, allow_pickle=True)
+        print(f"✅ Données chargées: {len(data['states_actions'])} exemples.")
+        return data['states_actions'].tolist(), data['rewards'].tolist()
+
+    def train_advanced_model(self, n_simulations=1000, use_cached_data=False):
         """Entraîne un modèle avancé avec beaucoup de simulations."""
         start_time = time.time()
 
@@ -69,18 +85,24 @@ class AdvancedKamikazeAiTrainer:
         print(f"⏰ Temps estimé: ~{n_simulations * 0.01:.1f} secondes")
         print()
 
-        # Générer les données d'entraînement
-        features, labels = self.generate_advanced_training_data(n_simulations)
+        states_actions, rewards = None, None
+        if use_cached_data:
+            states_actions, rewards = self._load_training_data()
+
+        if states_actions is None or rewards is None:
+            # Générer les données d'entraînement
+            states_actions, rewards = self.generate_advanced_training_data(n_simulations)
+            self._save_training_data(states_actions, rewards)
 
         print()
         print("🔧 Phase d'entraînement...")
 
-        X = np.array(features)
-        y = np.array(labels)
+        X = np.array(states_actions)
+        y = np.array(rewards)
 
         # Split avec stratification pour équilibrer les classes
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
+            X, y, test_size=0.2, random_state=42
         )
 
         # Modèle avec paramètres optimisés pour le Kamikaze
@@ -95,7 +117,7 @@ class AdvancedKamikazeAiTrainer:
 
         # Évaluation
         y_pred = model.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
+        mse = mean_squared_error(y_test, y_pred)
 
         training_time = time.time() - start_time
 
@@ -104,20 +126,14 @@ class AdvancedKamikazeAiTrainer:
         print("� RÉSULTATS DE L'ENTRAÎNEMENT:")
         print("-" * 40)
         print(f"⏰ Temps d'entraînement: {training_time:.2f} secondes")
-        print(f"🎯 Précision finale: {accuracy:.3f} ({accuracy*100:.1f}%)")
+        print(f"🎯 Erreur quadratique moyenne finale: {mse:.3f}")
         print(f"   - Profondeur du modèle: {model.get_depth()}")
         print(f"   - Nombre de feuilles: {model.get_n_leaves()}")
         print(f"   - Échantillons d'entraînement: {len(X_train)}")
         print(f"   - Échantillons de test: {len(X_test)}")
         print()
 
-        # Rapport détaillé par classe
-        print("📋 RAPPORT DÉTAILLÉ PAR ACTION:")
-        target_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
-        report = classification_report(y_test, y_pred, target_names=target_names, labels=list(range(len(target_names))), zero_division=0)
-        print(report)
-
-        # Sauvegarder le modèle avancé
+        return model, mse
         model_path = "models/kamikaze_ai_model.pkl"
         os.makedirs("models", exist_ok=True)
         joblib.dump(model, model_path)
@@ -142,11 +158,22 @@ def main():
     except ValueError:
         n_simulations = 1000
 
+    # Demander si on utilise les données en cache
+    use_cached_data = False
+    data_path = "src/models/kamikaze_ai_training_data.npz"
+    if os.path.exists(data_path):
+        try:
+            answer = input(f"Des données d'entraînement existent déjà ({data_path}). Les réutiliser ? [O/n]: ").strip().lower()
+            if answer in ('', 'o', 'oui', 'y', 'yes'):
+                use_cached_data = True
+        except (IOError, EOFError):
+            pass
+
     print(f"🔥 Lancement de l'entraînement avec {n_simulations} simulations...")
     print()
 
     trainer = AdvancedKamikazeAiTrainer()
-    model, accuracy = trainer.train_advanced_model(n_simulations)
+    model, mse = trainer.train_advanced_model(n_simulations, use_cached_data=use_cached_data)
 
     print()
     print("🎮 Le modèle avancé du Kamikaze est prêt à être utilisé dans le jeu!")
