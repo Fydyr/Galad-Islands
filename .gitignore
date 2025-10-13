@@ -79,3 +79,6 @@ HOOKS_UNIVERSAL.md
 
 # Fichiers générés par le build de Pyinstaller
 *.spec
+
+# Fichiers générés par l'IA
+*.npz
