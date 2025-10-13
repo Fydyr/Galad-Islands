@@ -134,6 +134,7 @@ TRANSLATIONS = {
     "debug.modal.spawn_bandits": "Créer une vague de bandits",
     "debug.modal.clear_events": "Nettoyer les événements",
     "debug.modal.reveal_map": "Révéler la carte",
+    "debug.modal.unlimited_vision": "Vision illimitée",
     "debug.modal.close": "Fermer",
     
     # Tooltips pour le placement de tours
@@ -149,6 +150,9 @@ TRANSLATIONS = {
     "debug.feedback.events_cleared": "Événements nettoyés avec succès",
     "debug.feedback.no_valid_position": "Aucune position valide trouvée",
     "debug.feedback.bandits_spawned": "Vague de bandits créée avec succès",
+    "debug.feedback.bandits_failed": "Échec de création des bandits",
+    "debug.feedback.bandits_unavailable": "Système de bandits non disponible",
+    "debug.feedback.unlimited_vision": "Vision illimitée {status}",
     "placement.must_be_on_island": "Les tours doivent être placées sur une île",
     "placement.tower_already_here": "Une tour est déjà présente à cet endroit",
     

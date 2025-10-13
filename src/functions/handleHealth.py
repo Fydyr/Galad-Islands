@@ -8,6 +8,8 @@ from src.components.special.speScoutComponent import SpeScout
 from src.components.core.attackComponent import AttackComponent as Attack
 from src.components.core.classeComponent import ClasseComponent
 from src.processeurs.combatRewardProcessor import CombatRewardProcessor
+from src.components.events.banditsComponent import Bandits
+from src.components.core.projectileComponent import ProjectileComponent
 
 
 # Global instance of the combat reward processor
@@ -43,6 +45,23 @@ def processHealth(entity, damage, attacker_entity=None):
         if invincibility.is_invincible():
             # Scout invincible — silenced debug log
             damage = 0
+
+    # Vérifie si la cible est un bandit
+    if esper.has_component(entity, Bandits):
+        if attacker_entity is not None and esper.has_component(attacker_entity, ProjectileComponent):
+            damage = 0
+        # Vérifier si l'attaquant est une mine (health max = 1, team_id = 0, attack = 40)
+        elif (attacker_entity is not None and 
+              esper.has_component(attacker_entity, Health) and 
+              esper.has_component(attacker_entity, Team) and 
+              esper.has_component(attacker_entity, Attack)):
+            attacker_health = esper.component_for_entity(attacker_entity, Health)
+            attacker_team = esper.component_for_entity(attacker_entity, Team)
+            attacker_attack = esper.component_for_entity(attacker_entity, Attack)
+            if (attacker_health.maxHealth == 1 and 
+                attacker_team.team_id == 0 and 
+                attacker_attack.hitPoints == 40):
+                damage = 0  # Bandits immunisés aux mines
     # Sinon, applique les dégâts normalement
     # Appliquer les dégâts si la valeur de santé est accessible
     try:

@@ -1,4 +1,4 @@
-"""Composant de base et gestionnaire de bases intégré."""
+"""Composant de la base et gestionnaire des bases intégré."""
 
 import random
 from dataclasses import dataclass as component

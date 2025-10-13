@@ -23,6 +23,7 @@ from src.components.events.flyChestComponent import FlyingChestComponent
 from src.components.events.islandResourceComponent import IslandResourceComponent
 from src.components.core.towerComponent import TowerComponent
 from src.functions.handleHealth import processHealth
+from src.components.events.banditsComponent import Bandits
 
 class CollisionProcessor(esper.Processor):
     def __init__(self, graph=None):
@@ -183,6 +184,13 @@ class CollisionProcessor(esper.Processor):
                     if (is_tower1 and is_chest2) or (is_tower2 and is_chest1):
                         continue
                     
+                    # Ignorer les collisions entre bandits
+                    is_bandit1 = esper.has_component(ent, Bandits)
+                    is_bandit2 = esper.has_component(other_ent, Bandits)
+                    if is_bandit1 and is_bandit2:
+                        continue
+
+
                     # Si c'est la même équipe, ignorer SAUF si une des deux est une mine (team_id=0)
                     if team.team_id == other_team.team_id and team.team_id != 0 and other_team.team_id != 0:
                         continue
@@ -216,30 +224,32 @@ class CollisionProcessor(esper.Processor):
             # - Si la cible est une mine, NE PAS lui infliger de dégâts (comportement voulu),
             #   détruire seulement le projectile et créer une explosion d'impact.
             # - Sinon, appliquer les dégâts via processHealth si le projectile a un Attack.
-            try:
-                # Détecter mine
-                is_mine_target = self._is_mine_entity(target_entity)
-                if is_mine_target:
-                    # Explosion d'impact et suppression du projectile (la mine reste intacte)
+            # Détecter mine
+            is_mine_target = self._is_mine_entity(target_entity)
+            if is_mine_target:
+                # Explosion d'impact et suppression du projectile (la mine reste intacte)
+                self._create_explosion_at_entity(projectile_entity)
+                if esper.entity_exists(projectile_entity):
+                    esper.delete_entity(projectile_entity)
+                return
+
+            # Détecter bandit
+            is_bandit_target = esper.has_component(target_entity, Bandits)
+            if is_bandit_target:
+                # Les projectiles passent à travers les bandits, ignorer la collision
+                return
+
+            # Cible non-mine et non-bandit : appliquer dégâts si possible
+            if esper.has_component(projectile_entity, Attack) and esper.has_component(target_entity, Health):
+                attack_comp = esper.component_for_entity(projectile_entity, Attack)
+                dmg = int(attack_comp.hitPoints) if attack_comp is not None else 0
+                if dmg > 0:
+                    processHealth(target_entity, dmg, projectile_entity)
+                    # Explosion d'impact et suppression du projectile
                     self._create_explosion_at_entity(projectile_entity)
                     if esper.entity_exists(projectile_entity):
                         esper.delete_entity(projectile_entity)
                     return
-
-                # Cible non-mine : appliquer dégâts si possible
-                if esper.has_component(projectile_entity, Attack) and esper.has_component(target_entity, Health):
-                    attack_comp = esper.component_for_entity(projectile_entity, Attack)
-                    dmg = int(attack_comp.hitPoints) if attack_comp is not None else 0
-                    if dmg > 0:
-                        processHealth(target_entity, dmg, projectile_entity)
-                        # Explosion d'impact et suppression du projectile
-                        self._create_explosion_at_entity(projectile_entity)
-                        if esper.entity_exists(projectile_entity):
-                            esper.delete_entity(projectile_entity)
-                        return
-            except Exception:
-                # En cas d'erreur, laisser le flux normal gérer via entities_hit fallback
-                pass
         
         # Si ce n'est pas un projectile, vérifier les cooldowns pour éviter les dégâts continus
         elif not projectile_entity:
@@ -302,6 +312,13 @@ class CollisionProcessor(esper.Processor):
                     return
         except Exception:
             pass
+        
+        # Si une mine heurte un bandit, ignorer totalement (bandits immunisés aux mines)
+        is_bandit1 = esper.has_component(entity1, Bandits)
+        is_bandit2 = esper.has_component(entity2, Bandits)
+        if (is_mine1 and is_bandit2) or (is_mine2 and is_bandit1):
+            # Ignorer la collision - les bandits sont immunisés aux mines
+            return
         
         # Obtenir les composants d'attaque et de santé
         attack1 = esper.component_for_entity(entity1, Attack) if esper.has_component(entity1, Attack) else None
