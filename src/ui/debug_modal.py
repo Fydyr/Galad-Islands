@@ -28,72 +28,7 @@ from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
 from src.components.events.banditsComponent import Bandits
 import esper
 from src.processeurs.events.banditsProcessor import BanditsProcessor
-
-# Scénarios de démonstration (issus de demo_base_ai.py)
-scenarios = [
-    {
-        "name": "Début de partie - Exploration nécessaire",
-        "gold": 100,
-        "base_health_ratio": 1.0,
-        "allied_units": 1,
-        "enemy_units": 1,
-        "enemy_base_known": 0,
-        "towers_needed": 0,
-        "expected": "Éclaireur"
-    },
-    {
-        "name": "Défense prioritaire - Base très endommagée",
-        "gold": 150,
-        "base_health_ratio": 0.5,
-        "allied_units": 3,
-        "enemy_units": 6,
-        "enemy_base_known": 1,
-        "towers_needed": 1,
-        "expected": "Architecte"
-    },
-    {
-        "name": "Avantage économique - Achat d'une unité lourde",
-        "gold": 350,
-        "base_health_ratio": 0.9,
-        "allied_units": 10,
-        "enemy_units": 2,
-        "enemy_base_known": 1,
-        "towers_needed": 0,
-        "expected": "Léviathan"
-    },
-    {
-        "name": "Infériorité numérique - Renforts nécessaires",
-        "gold": 150,
-        "base_health_ratio": 0.7,
-        "allied_units": 4,
-        "enemy_units": 7,
-        "enemy_base_known": 1,
-        "towers_needed": 1,
-        "expected": "Maraudeur"
-    },
-    {
-        "name": "Contre-attaque rapide - Peu d'or mais besoin de pression",
-        "gold": 120,
-        "base_health_ratio": 0.8,
-        "allied_units": 2,
-        "enemy_units": 4,
-        "enemy_base_known": 1,
-        "towers_needed": 0,
-        "enemy_base_health": 0.25,
-        "expected": "Kamikaze"
-    },
-    {
-        "name": "Coup de grâce - Base ennemie mourante",
-        "gold": 150,
-        "base_health_ratio": 0.9,
-        "allied_units": 3,
-        "enemy_units": 2,
-        "enemy_base_known": 1,
-        "towers_needed": 0,
-        "enemy_base_health": 0.15,
-        "expected": "Kamikaze"
-    }
-]
+from src.systems.vision_system import vision_system
 
 class DebugModal:
     """Modal debug séparé pour les actions de développement."""
@@ -120,7 +55,6 @@ class DebugModal:
             ("clear_events", "debug.modal.clear_events"),
             ("reveal_map", "debug.modal.reveal_map"),
             ("unlimited_vision", "debug.modal.unlimited_vision"),
-            ("test_scenarios", "debug.modal.test_scenarios"),
             ("close", "debug.modal.close"),
         ]
         self.modal = GenericModal(
@@ -172,8 +106,6 @@ class DebugModal:
             self._handle_reveal_map()
         elif action == "unlimited_vision":
             self._handle_unlimited_vision()
-        elif action == "test_scenarios":
-            self._handle_test_scenarios()
         elif action == "close":
             self.close()
     
@@ -509,7 +441,6 @@ class DebugModal:
             current_team = self.game_engine.action_bar.current_camp
         
         # Toggle unlimited vision for this team
-        from src.systems.vision_system import vision_system
         current_state = vision_system.unlimited_vision.get(current_team, False)
         new_state = not current_state
         
@@ -517,129 +448,6 @@ class DebugModal:
         
         status_text = 'enabled' if new_state else 'disabled'
         self._show_feedback('success', t('debug.feedback.unlimited_vision', default=f'Unlimited vision {status_text}'))
-    
-    def _handle_test_scenarios(self):
-        """Handle the test scenarios action."""
-        # Create scenario selection modal
-        scenario_buttons = [(f"scenario_{i}", scenario["name"]) for i, scenario in enumerate(scenarios)]
-        scenario_buttons.append(("close", "debug.modal.close"))
-        
-        self.scenario_modal = GenericModal(
-            title_key="debug.modal.scenario_title",
-            message_key="debug.modal.scenario_message",
-            buttons=scenario_buttons,
-            callback=self._handle_scenario_selection,
-            vertical_layout=True
-        )
-        self.scenario_modal.open()
-    
-    def _handle_scenario_selection(self, action: str):
-        """Handle scenario selection."""
-        if action == "close":
-            self.scenario_modal.close()
-            return
-        
-        if action.startswith("scenario_"):
-            try:
-                scenario_index = int(action.split("_")[1])
-                scenario = scenarios[scenario_index]
-                self._apply_scenario(scenario)
-                self.scenario_modal.close()
-            except (IndexError, ValueError):
-                self._show_feedback('warning', t('feedback.error', default='Invalid scenario'))
-    
-    def _apply_scenario(self, scenario):
-        """Apply the selected scenario to the game state."""
-        if not self.game_engine:
-            self._show_feedback('warning', t('shop.cannot_purchase'))
-            return
-        
-        # Set gold for both players
-        for entity, (player_comp, team_comp) in esper.get_components(PlayerComponent, TeamComponent):
-            player_comp.set_gold(scenario['gold'])
-        
-        # Set base health
-        from src.components.core.baseComponent import BaseComponent
-        from src.components.core.healthComponent import HealthComponent
-        
-        ally_base = BaseComponent.get_ally_base()
-        enemy_base = BaseComponent.get_enemy_base()
-        
-        if ally_base and esper.has_component(ally_base, HealthComponent):
-            hc = esper.component_for_entity(ally_base, HealthComponent)
-            hc.currentHealth = int(scenario['base_health_ratio'] * 2500)
-        
-        if enemy_base and esper.has_component(enemy_base, HealthComponent):
-            hc = esper.component_for_entity(enemy_base, HealthComponent)
-            hc.currentHealth = int((scenario.get('enemy_base_health', 1.0)) * 2500)
-        
-        # Spawn initial units
-        self._spawn_scenario_units(scenario['allied_units'], 1)  # Team 1 = Ally
-        self._spawn_scenario_units(scenario['enemy_units'], 2)  # Team 2 = Enemy
-        
-        print(f"[DEV] Scénario appliqué: {scenario['name']}")
-        self._show_feedback('success', t('debug.feedback.scenario_applied', default=f'Scenario applied: {scenario["name"]}'))
-    
-    def _spawn_scenario_units(self, count: int, team_id: int):
-        """Spawn units for a team near their base."""
-        from src.components.core.baseComponent import BaseComponent
-        from src.components.core.positionComponent import PositionComponent
-        from src.components.core.healthComponent import HealthComponent
-        from src.components.core.attackComponent import AttackComponent
-        from src.components.core.canCollideComponent import CanCollideComponent
-        from src.components.core.spriteComponent import SpriteComponent
-        from src.managers.sprite_manager import SpriteID, sprite_manager
-        
-        UNIT_STATS = {
-            1: {'hp': 10, 'dmg': 4},   # Scout
-            3: {'hp': 30, 'dmg': 8},   # Maraudeur
-            5: {'hp': 18, 'dmg': 5},   # Druide
-            6: {'hp': 12, 'dmg': 12},  # Kamikaze
-        }
-        
-        base_entity = BaseComponent.get_ally_base() if team_id == 1 else BaseComponent.get_enemy_base()
-        if not base_entity or not esper.has_component(base_entity, PositionComponent):
-            return
-        
-        base_pos = esper.component_for_entity(base_entity, PositionComponent)
-        base_x, base_y = base_pos.x, base_pos.y
-        
-        for i in range(count):
-            unit_type = random.choice([1, 3, 5, 6])  # Scout, Maraudeur, Druide, Kamikaze
-            stats = UNIT_STATS.get(unit_type, {'hp': 10, 'dmg': 3})
-            
-            # Position around base
-            angle = (i / count) * 2 * 3.14159
-            distance = 50 + random.randint(0, 20)
-            x = base_x + distance * 0.7 * (1 if team_id == 1 else -1)  # Ally right, enemy left
-            y = base_y + (i - count/2) * 30
-            
-            # Create entity
-            entity = esper.create_entity()
-            esper.add_component(entity, PositionComponent(x, y))
-            esper.add_component(entity, HealthComponent(currentHealth=stats['hp'], maxHealth=stats['hp']))
-            esper.add_component(entity, AttackComponent(stats['dmg']))
-            esper.add_component(entity, CanCollideComponent())
-            esper.add_component(entity, TeamComponent(team_id))
-            
-            # Skip sprite for now to avoid errors
-            # Add sprite if possible
-            try:
-                sprite_id_map = {
-                    1: getattr(SpriteID, 'SCOUT_ALLY', None) if team_id == 1 else getattr(SpriteID, 'SCOUT_ENEMY', None),
-                    3: getattr(SpriteID, 'MARAUDEUR_ALLY', None) if team_id == 1 else getattr(SpriteID, 'MARAUDEUR_ENEMY', None),
-                    5: getattr(SpriteID, 'DRUIDE_ALLY', None) if team_id == 1 else getattr(SpriteID, 'DRUIDE_ENEMY', None),
-                    6: getattr(SpriteID, 'KAMIKAZE_ALLY', None) if team_id == 1 else getattr(SpriteID, 'KAMIKAZE_ENEMY', None),
-                }
-                sprite_id = sprite_id_map.get(unit_type)
-                if sprite_id:
-                    size = sprite_manager.get_default_size(sprite_id)
-                    if size:
-                        width, height = size
-                        sprite_component = sprite_manager.create_sprite_component(sprite_id, width, height)
-                        esper.add_component(entity, sprite_component)
-            except:
-                pass  # Skip if sprite not available
     
     def _find_sea_position(self):
         """Find a random sea position for spawning events."""
