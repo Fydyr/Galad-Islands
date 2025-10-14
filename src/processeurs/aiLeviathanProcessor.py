@@ -46,49 +46,37 @@ class AILeviathanProcessor(esper.Processor):
         """
         super().__init__()
 
-        # Leviathan's brain (ML model) - increased state size for better context
         self.brain = LeviathanBrain(state_size=30, model_path=model_path)
 
-        # Training mode flag
         self.training_mode = training_mode
 
-        # Load epsilon from trained model if available
         self.loaded_epsilon = None
         if model_path:
             metadata = self.brain.load_model(model_path) if not self.brain.is_trained else {}
             self.loaded_epsilon = metadata.get('epsilon', None)
             logger.info(f"Loaded model epsilon: {self.loaded_epsilon}")
 
-        # Reward calculation system (only needed for training)
         self.reward_system = RewardSystem() if training_mode else None
 
-        # Elapsed time (for cooldowns)
         self.elapsed_time = 0.0
 
-        # Training counter (only used in training mode)
         self.training_count = 0
-        self.training_frequency = 16  # Train every 16 frames (optimized for faster training - reduced from 32)
+        self.training_frequency = 16
 
-        # Statistics
         self.total_actions = 0
         self.actions_by_type = {i: 0 for i in range(LeviathanBrain.NUM_ACTIONS)}
 
-        # Cache for entity detection (optimization)
         self.entity_cache = {}
-        self.cache_update_frequency = 5  # Update cache every 5 frames
+        self.cache_update_frequency = 5
         self.cache_frame_counter = 0
 
-        # Pathfinding system (always create for navigation)
         self.pathfinder = AStarPathfinder(grid_size=50)
         self.path_cache = PathfindingCache(max_size=50, ttl=20)
 
-        # Map grid for island detection (will be set by external code)
         self.map_grid = None
 
-        # Register the event handler for game_over
         esper.set_handler('game_over', self._handle_game_over)
 
-        # Log mode (only log in non-training mode for performance)
         if not training_mode:
             mode_str = "INFERENCE ONLY"
             if self.loaded_epsilon is not None:
@@ -114,10 +102,9 @@ class AILeviathanProcessor(esper.Processor):
         elif defeated_team_id == 1:
             logger.info("Allied base destroyed! Penalty for enemy AIs.")
 
-            # Les Léviathans IA ennemis ne reçoivent pas de récompense (défaite)
             for entity, (ai_comp, team) in esper.get_components(AILeviathanComponent, TeamComponent):
-                if ai_comp.enabled and team.team_id == 2:  # Équipe ennemie
-                    logger.info(f"Léviathan IA ennemi #{entity} n'a pas réussi sa mission.")
+                if ai_comp.enabled and team.team_id == 2:
+                    logger.info(f"Enemy AI Leviathan #{entity} mission failed.")
 
     def process(self, dt: float):
         """
@@ -129,12 +116,10 @@ class AILeviathanProcessor(esper.Processor):
         self.elapsed_time += dt
         self.cache_frame_counter += 1
 
-        # Update entity cache periodically for performance
         if self.cache_frame_counter >= self.cache_update_frequency:
             self._update_entity_cache()
             self.cache_frame_counter = 0
 
-        # Iterate through all Leviathans with an AI component
         for entity, (ai_comp, spe_lev, pos, vel, health, team) in esper.get_components(
             AILeviathanComponent,
             SpeLeviathan,
@@ -151,7 +136,6 @@ class AILeviathanProcessor(esper.Processor):
 
             current_state = self._extract_state(entity, pos, vel, health, team)
 
-            # Use epsilon from trained model if available and in inference mode
             epsilon = ai_comp.epsilon
             if not self.training_mode and self.loaded_epsilon is not None:
                 epsilon = self.loaded_epsilon
@@ -162,12 +146,9 @@ class AILeviathanProcessor(esper.Processor):
 
             self._execute_action(entity, action, pos, vel, spe_lev)
 
-            # Only calculate rewards and store experiences in training mode
             if self.training_mode:
-                # Calculate the reward
                 reward = self.reward_system.calculate_reward(entity, ai_comp, dt)
 
-                # Store the experience
                 if ai_comp.current_state is not None:
                     ai_comp.add_experience(
                         state=ai_comp.current_state,
@@ -175,16 +156,13 @@ class AILeviathanProcessor(esper.Processor):
                         reward=reward,
                     )
 
-                # Update the current state
                 ai_comp.current_state = current_state
                 ai_comp.last_action = action
                 ai_comp.last_action_time = self.elapsed_time
 
-                # Train the model periodically
                 if self.total_actions % self.training_frequency == 0:
                     self._train_brain(ai_comp)
             else:
-                # In inference mode, just update the last action time
                 ai_comp.last_action_time = self.elapsed_time
 
     def _extract_state(
@@ -218,77 +196,63 @@ class AILeviathanProcessor(esper.Processor):
         """
         state = np.zeros(30)
 
-        # [0-1] Normalized position (0-1)
-        state[0] = pos.x / (TILE_SIZE * 50)  # Normalize by map size
+        state[0] = pos.x / (TILE_SIZE * 50)
         state[1] = pos.y / (TILE_SIZE * 50)
 
-        # [2] Direction (normalized angle in degrees)
         state[2] = pos.direction / 360.0
 
-        # [3-4] Velocity
         state[3] = vel.currentSpeed / 100.0
         state[4] = vel.maxUpSpeed / 100.0
 
-        # [5-7] Health
-        state[5] = health.currentHealth / health.maxHealth if health.maxHealth > 0 else 0.0  # Health ratio
+        state[5] = health.currentHealth / health.maxHealth if health.maxHealth > 0 else 0.0
         state[6] = health.currentHealth / 100.0
         state[7] = health.maxHealth / 100.0
 
-        # [8-11] Nearby enemies (enhanced with avg health)
         enemy_info = self._get_nearest_enemies(entity, pos, team)
-        state[8] = enemy_info[0]  # Number of enemies within a 500px radius
-        state[9] = enemy_info[1]  # Distance to the nearest (normalized)
-        state[10] = enemy_info[2]  # Angle to the nearest
-        state[11] = enemy_info[3]  # Average health ratio of nearby enemies
+        state[8] = enemy_info[0]
+        state[9] = enemy_info[1]
+        state[10] = enemy_info[2]
+        state[11] = enemy_info[3]
 
-        # [12-15] Nearby allies (enhanced with health and danger detection)
         ally_info = self._get_nearest_allies(entity, pos, team)
-        state[12] = ally_info[0]  # Number of nearby allies
-        state[13] = ally_info[1]  # Distance to the nearest
-        state[14] = ally_info[2]  # Average health ratio of nearby allies
-        state[15] = ally_info[3]  # Ally in danger nearby (0 or 1)
+        state[12] = ally_info[0]
+        state[13] = ally_info[1]
+        state[14] = ally_info[2]
+        state[15] = ally_info[3]
 
-        # [16-18] Events
         event_info = self._get_nearby_events(pos)
-        state[16] = event_info[0]  # Nearby storm (0 or 1)
-        state[17] = event_info[1]  # Nearby bandits (count)
-        state[18] = event_info[2]  # Nearby resources (count)
+        state[16] = event_info[0]
+        state[17] = event_info[1]
+        state[18] = event_info[2]
 
-        # [19-20] Special ability
         if esper.has_component(entity, SpeLeviathan):
             spe = esper.component_for_entity(entity, SpeLeviathan)
             state[19] = 1.0 if spe.available else 0.0
             state[20] = spe.cooldown_timer / spe.cooldown if spe.cooldown > 0 else 0.0
 
-        # [21] Elapsed time (normalized)
         state[21] = self.elapsed_time / 100.0
 
-        # [22] Accumulated reward (normalized)
         if esper.has_component(entity, AILeviathanComponent):
             ai = esper.component_for_entity(entity, AILeviathanComponent)
             state[22] = ai.episode_reward / 100.0
 
-        # [23-24] Nearby mines (count, distance to nearest)
         mine_info = self._get_nearby_mines(pos)
-        state[23] = mine_info[0]  # Number of nearby mines
-        state[24] = mine_info[1]  # Distance to nearest (normalized)
+        state[23] = mine_info[0]
+        state[24] = mine_info[1]
 
-        # [25-26] Distance and angle to enemy base
         base_info = self._get_enemy_base_info(entity, pos, team)
-        state[25] = base_info[0]  # Distance to enemy base (normalized)
-        state[26] = base_info[1]  # Angle to enemy base (normalized)
+        state[25] = base_info[0]
+        state[26] = base_info[1]
 
-        # [27-29] Ally in danger detection
         danger_info = self._get_ally_danger_info(entity, pos, team)
-        state[27] = danger_info[0]  # Ally in danger nearby (0 or 1)
-        state[28] = danger_info[1]  # Distance to ally in danger (normalized)
-        state[29] = danger_info[2]  # Health ratio of ally in danger
+        state[27] = danger_info[0]
+        state[28] = danger_info[1]
+        state[29] = danger_info[2]
 
         return state
 
     def _update_entity_cache(self):
-        """Updates the entity cache for faster queries (optimization)."""
-        # Cache positions for enemies and allies
+        """Updates the entity cache for faster queries."""
         self.entity_cache = {
             'enemies': {},
             'allies': {},
@@ -296,7 +260,6 @@ class AILeviathanProcessor(esper.Processor):
             'events': {'storms': [], 'bandits': [], 'resources': []}
         }
 
-        # Cache enemies and allies by team
         for entity, (other_pos, other_team) in esper.get_components(PositionComponent, TeamComponent):
             team_id = other_team.team_id
             if team_id not in self.entity_cache['enemies']:
@@ -307,14 +270,12 @@ class AILeviathanProcessor(esper.Processor):
             self.entity_cache['enemies'][team_id].append((entity, other_pos.x, other_pos.y))
             self.entity_cache['allies'][team_id].append((entity, other_pos.x, other_pos.y))
 
-        # Cache mines
         for mine_entity, (mine_pos, mine_health, mine_team, mine_attack) in esper.get_components(
             PositionComponent, HealthComponent, TeamComponent, AttackComponent
         ):
             if (mine_health.maxHealth == 1 and mine_team.team_id == 0 and int(mine_attack.hitPoints) == 40):
                 self.entity_cache['mines'].append((mine_pos.x, mine_pos.y))
 
-        # Cache events
         for storm_entity, (storm_comp, storm_pos) in esper.get_components(Storm, PositionComponent):
             self.entity_cache['events']['storms'].append((storm_pos.x, storm_pos.y))
 
@@ -330,7 +291,7 @@ class AILeviathanProcessor(esper.Processor):
         self, entity: int, pos: PositionComponent, team: TeamComponent
     ) -> Tuple[float, float, float, float]:
         """
-        Finds nearby enemies using cached data (optimized).
+        Finds nearby enemies using cached data.
 
         Returns:
             (enemy_count, min_normalized_distance, angle_to_nearest, avg_health_ratio)
@@ -339,13 +300,11 @@ class AILeviathanProcessor(esper.Processor):
         min_distance = float('inf')
         angle_to_nearest = 0.0
         total_health_ratio = 0.0
-        detection_radius = 500.0  # Pixels
+        detection_radius = 500.0
 
-        # Use cached data if available
         if not self.entity_cache:
             self._update_entity_cache()
 
-        # Get enemies from cache (all entities not in our team)
         for team_id, entities in self.entity_cache['enemies'].items():
             if team_id == team.team_id:
                 continue
@@ -354,7 +313,6 @@ class AILeviathanProcessor(esper.Processor):
                 if other_entity == entity:
                     continue
 
-                # Check if entity still exists
                 if not esper.entity_exists(other_entity):
                     continue
 
@@ -365,7 +323,6 @@ class AILeviathanProcessor(esper.Processor):
                 if distance_sq < detection_radius * detection_radius:
                     enemies_nearby += 1
 
-                    # Get health info
                     if esper.has_component(other_entity, HealthComponent):
                         health_comp = esper.component_for_entity(other_entity, HealthComponent)
                         health_ratio = health_comp.currentHealth / health_comp.maxHealth if health_comp.maxHealth > 0 else 0.0
@@ -373,12 +330,10 @@ class AILeviathanProcessor(esper.Processor):
 
                     if distance_sq < min_distance * min_distance:
                         min_distance = distance_sq ** 0.5
-                        angle_to_nearest = np.arctan2(dy, dx) / np.pi  # Normalize to [-1, 1]
+                        angle_to_nearest = np.arctan2(dy, dx) / np.pi
 
-        # Normalize distance
         min_distance_norm = min(min_distance / detection_radius, 1.0) if min_distance != float('inf') else 1.0
 
-        # Calculate average health ratio
         avg_health_ratio = total_health_ratio / enemies_nearby if enemies_nearby > 0 else 0.0
 
         return (float(enemies_nearby), min_distance_norm, angle_to_nearest, avg_health_ratio)
@@ -387,7 +342,7 @@ class AILeviathanProcessor(esper.Processor):
         self, entity: int, pos: PositionComponent, team: TeamComponent
     ) -> Tuple[float, float, float, float]:
         """
-        Finds nearby allies using cached data (optimized).
+        Finds nearby allies using cached data.
 
         Returns:
             (ally_count, min_normalized_distance, avg_health_ratio, ally_in_danger)
@@ -436,7 +391,7 @@ class AILeviathanProcessor(esper.Processor):
 
     def _get_nearby_events(self, pos: PositionComponent) -> Tuple[float, float, float]:
         """
-        Detects nearby events using cached data (optimized).
+        Detects nearby events using cached data.
 
         Returns:
             (nearby_storm, bandit_count, resource_count)
@@ -473,23 +428,19 @@ class AILeviathanProcessor(esper.Processor):
 
     def _get_nearby_mines(self, pos: PositionComponent) -> Tuple[float, float]:
         """
-        Detects nearby mines using cached data (optimized).
-
-        Mines are identified by: HP=1, team_id=0, attack=40
+        Detects nearby mines using cached data.
 
         Returns:
             (mine_count, min_normalized_distance)
         """
         mines_count = 0.0
         min_distance = float('inf')
-        detection_radius = 400.0  # Detection within a 400 pixel radius
+        detection_radius = 400.0
         detection_radius_sq = detection_radius * detection_radius
 
-        # Use cached data if available
         if not self.entity_cache:
             self._update_entity_cache()
 
-        # Get mines from cache
         for mine_x, mine_y in self.entity_cache['mines']:
             distance_sq = (mine_x - pos.x) ** 2 + (mine_y - pos.y) ** 2
 
@@ -513,7 +464,6 @@ class AILeviathanProcessor(esper.Processor):
         """
         from src.components.core.baseComponent import BaseComponent
 
-        # Find enemy base
         enemy_base_pos = None
         for base_entity, (base_comp, base_pos, base_team) in esper.get_components(
             BaseComponent, PositionComponent, TeamComponent
@@ -523,15 +473,13 @@ class AILeviathanProcessor(esper.Processor):
                 break
 
         if enemy_base_pos is None:
-            return (1.0, 0.0)  # No base found
+            return (1.0, 0.0)
 
-        # Calculate distance and angle
         dx = enemy_base_pos[0] - pos.x
         dy = enemy_base_pos[1] - pos.y
         distance = (dx * dx + dy * dy) ** 0.5
-        angle = np.arctan2(dy, dx) / np.pi  # Normalize to [-1, 1]
+        angle = np.arctan2(dy, dx) / np.pi
 
-        # Normalize distance (assuming max map size is ~7000 pixels)
         normalized_distance = min(distance / 7000.0, 1.0)
 
         return (normalized_distance, angle)
@@ -548,9 +496,8 @@ class AILeviathanProcessor(esper.Processor):
         ally_in_danger = 0.0
         distance_to_ally = 1.0
         health_ratio = 0.0
-        detection_radius = 600.0  # Slightly larger radius for support detection
+        detection_radius = 600.0
 
-        # Find allies with low health
         for other_entity, (other_pos, other_health, other_team) in esper.get_components(
             PositionComponent, HealthComponent, TeamComponent
         ):
@@ -562,12 +509,11 @@ class AILeviathanProcessor(esper.Processor):
             if distance < detection_radius:
                 health_ratio_check = other_health.currentHealth / other_health.maxHealth if other_health.maxHealth > 0 else 0.0
 
-                # Check if ally needs help (below 40% health)
                 if health_ratio_check < 0.4:
                     ally_in_danger = 1.0
                     distance_to_ally = min(distance / detection_radius, 1.0)
                     health_ratio = health_ratio_check
-                    break  # Focus on the nearest ally in danger
+                    break
 
         return (ally_in_danger, distance_to_ally, health_ratio)
 
@@ -589,8 +535,6 @@ class AILeviathanProcessor(esper.Processor):
             vel: Velocity component
             spe_lev: Special ability component
         """
-        # Removed debug logging for performance in training mode
-
         if action == LeviathanBrain.ACTION_IDLE:
             vel.currentSpeed = 0
 
@@ -612,10 +556,8 @@ class AILeviathanProcessor(esper.Processor):
                 if radius.cooldown <= 0:
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
-                    # Give small reward for attacking (encourages aggressive behavior)
                     if esper.has_component(entity, AILeviathanComponent):
                         ai_comp = esper.component_for_entity(entity, AILeviathanComponent)
-                        # This will be picked up by the reward system through a counter
                         if not hasattr(ai_comp, 'attack_actions'):
                             ai_comp.attack_actions = 0
                         ai_comp.attack_actions += 1
@@ -633,19 +575,15 @@ class AILeviathanProcessor(esper.Processor):
             vel.currentSpeed = vel.maxUpSpeed
 
         elif action == LeviathanBrain.ACTION_COLLECT_RESOURCE:
-            # Head towards resources (simple implementation: move forward)
             vel.currentSpeed = vel.maxUpSpeed
 
         elif action == LeviathanBrain.ACTION_MOVE_TO_BASE:
-            # Move towards enemy base using pathfinding
             self._navigate_to_enemy_base(entity, pos, vel)
 
         elif action == LeviathanBrain.ACTION_HELP_ALLY:
-            # Move towards ally in danger
             self._navigate_to_ally_in_danger(entity, pos, vel)
 
         elif action == LeviathanBrain.ACTION_RETREAT:
-            # Retreat from enemies (move backward and turn)
             vel.currentSpeed = -vel.maxReverseSpeed
             pos.direction = (pos.direction + 180) % 360
 
@@ -667,11 +605,9 @@ class AILeviathanProcessor(esper.Processor):
             grid_x = int(x // TILE_SIZE)
             grid_y = int(y // TILE_SIZE)
 
-            # Check grid bounds
             from src.settings.settings import MAP_WIDTH, MAP_HEIGHT
             if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
                 tile_type = self.map_grid[grid_y][grid_x]
-                # Check if it's an island tile
                 return TileType(tile_type).is_island()
         except Exception:
             return False
@@ -691,15 +627,12 @@ class AILeviathanProcessor(esper.Processor):
         """
         obstacles = []
 
-        # Add islands from map grid
         if self.map_grid is not None:
             from src.settings.settings import MAP_WIDTH, MAP_HEIGHT
 
-            # Convert position to grid coordinates
             center_grid_x = int(pos.x // TILE_SIZE)
             center_grid_y = int(pos.y // TILE_SIZE)
 
-            # Check tiles in radius
             tile_radius = int(radius // TILE_SIZE) + 2
 
             for dy in range(-tile_radius, tile_radius + 1):
@@ -710,24 +643,19 @@ class AILeviathanProcessor(esper.Processor):
                     if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
                         tile_type = self.map_grid[grid_y][grid_x]
 
-                        # Check if it's an island or mine
                         if TileType(tile_type).is_island() or tile_type == TileType.MINE:
-                            # Convert grid to world coordinates (center of tile)
                             world_x = (grid_x + 0.5) * TILE_SIZE
                             world_y = (grid_y + 0.5) * TILE_SIZE
 
-                            # Check if within radius
                             dist = ((world_x - pos.x) ** 2 + (world_y - pos.y) ** 2) ** 0.5
                             if dist < radius:
-                                # Island obstacle radius = 1.5 tiles
                                 obstacle_radius = TILE_SIZE * 1.5
                                 obstacles.append((world_x, world_y, obstacle_radius))
 
-        # Add storms
         for storm_entity, (storm_comp, storm_pos) in esper.get_components(Storm, PositionComponent):
             dist = ((storm_pos.x - pos.x) ** 2 + (storm_pos.y - pos.y) ** 2) ** 0.5
             if dist < radius:
-                storm_radius = TILE_SIZE * 2  # Storms have a larger danger zone
+                storm_radius = TILE_SIZE * 2
                 obstacles.append((storm_pos.x, storm_pos.y, storm_radius))
 
         return obstacles
@@ -744,7 +672,6 @@ class AILeviathanProcessor(esper.Processor):
         """
         from src.components.core.baseComponent import BaseComponent
 
-        # Find enemy base
         team = esper.component_for_entity(entity, TeamComponent)
         enemy_base_pos = None
 
@@ -756,22 +683,17 @@ class AILeviathanProcessor(esper.Processor):
                 break
 
         if enemy_base_pos is None:
-            # No base found, move forward
             vel.currentSpeed = vel.maxUpSpeed
             return
 
-        # Get current position
         current_pos = (pos.x, pos.y)
 
-        # Try to get cached path first
         cached_path = self.path_cache.get(current_pos, enemy_base_pos)
         next_waypoint = None
 
         if cached_path and len(cached_path) > 1:
-            # Use cached path
             next_waypoint = cached_path[1]
         else:
-            # Calculate new path using A*
             obstacles = self._get_obstacles_around(pos, radius=1000)
             path = self.pathfinder.find_path(
                 start=current_pos,
@@ -781,24 +703,20 @@ class AILeviathanProcessor(esper.Processor):
             )
 
             if path and len(path) > 1:
-                # Cache the path for future use
                 self.path_cache.put(current_pos, enemy_base_pos, path)
                 next_waypoint = path[1]
 
         if next_waypoint is None:
-            # Fallback: direct navigation with simple obstacle avoidance
             angle_rad = pos.direction * np.pi / 180
             look_ahead_distance = 100
             ahead_x = pos.x + look_ahead_distance * np.cos(angle_rad)
             ahead_y = pos.y + look_ahead_distance * np.sin(angle_rad)
 
             if self._is_island_at_position(ahead_x, ahead_y):
-                # Turn to avoid obstacle
                 pos.direction = (pos.direction + 45) % 360
                 vel.currentSpeed = vel.maxUpSpeed * 0.5
                 return
 
-            # Direct navigation to base
             dx = enemy_base_pos[0] - pos.x
             dy = enemy_base_pos[1] - pos.y
             target_angle = np.arctan2(dy, dx) * 180 / np.pi
@@ -814,22 +732,18 @@ class AILeviathanProcessor(esper.Processor):
                 vel.currentSpeed = vel.maxUpSpeed
             return
 
-        # Navigate towards the next waypoint from A* path
         dx = next_waypoint[0] - pos.x
         dy = next_waypoint[1] - pos.y
         target_angle = np.arctan2(dy, dx) * 180 / np.pi
 
-        # Adjust direction towards waypoint
         angle_diff = (target_angle - pos.direction + 180) % 360 - 180
 
         if abs(angle_diff) > 10:
-            # Turn towards waypoint
             if angle_diff > 0:
                 pos.direction = (pos.direction + 10) % 360
             else:
                 pos.direction = (pos.direction - 10) % 360
 
-        # Always move forward when navigating with A*
         vel.currentSpeed = vel.maxUpSpeed
 
     def _navigate_to_ally_in_danger(
@@ -845,7 +759,6 @@ class AILeviathanProcessor(esper.Processor):
         nearest_ally = None
         min_distance = float('inf')
 
-        # Find nearest ally with low health
         for other_entity, (other_pos, other_health, other_team) in esper.get_components(
             PositionComponent, HealthComponent, TeamComponent
         ):
@@ -854,7 +767,7 @@ class AILeviathanProcessor(esper.Processor):
 
             health_ratio = other_health.currentHealth / other_health.maxHealth if other_health.maxHealth > 0 else 0.0
 
-            if health_ratio < 0.4:  # Ally in danger
+            if health_ratio < 0.4:
                 distance = ((other_pos.x - pos.x) ** 2 + (other_pos.y - pos.y) ** 2) ** 0.5
 
                 if distance < min_distance:
@@ -862,31 +775,26 @@ class AILeviathanProcessor(esper.Processor):
                     nearest_ally = (other_pos.x, other_pos.y)
 
         if nearest_ally is None:
-            # No ally in danger, just move forward
             vel.currentSpeed = vel.maxUpSpeed
             return
 
-        # Navigate towards ally
         dx = nearest_ally[0] - pos.x
         dy = nearest_ally[1] - pos.y
         target_angle = np.arctan2(dy, dx) * 180 / np.pi
 
-        # Adjust direction towards ally
         angle_diff = (target_angle - pos.direction + 180) % 360 - 180
 
         if abs(angle_diff) > 10:
-            # Turn towards ally
             if angle_diff > 0:
                 pos.direction = (pos.direction + 10) % 360
             else:
                 pos.direction = (pos.direction - 10) % 360
         else:
-            # Move towards ally
             vel.currentSpeed = vel.maxUpSpeed
 
     def _train_brain(self, ai_comp: AILeviathanComponent):
         """
-        Entraîne le cerveau du Léviathan sur les expériences collectées.
+        Trains the Leviathan's brain on collected experiences.
 
         Args:
             ai_comp: AI component containing the history
@@ -920,7 +828,6 @@ class AILeviathanProcessor(esper.Processor):
         )
 
         self.training_count += 1
-        # Only log every 50 trainings to improve performance
         if self.training_count % 50 == 0:
             logger.info(
                 f"Training #{self.training_count}: "

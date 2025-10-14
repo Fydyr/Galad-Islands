@@ -5,7 +5,6 @@ import os
 import time
 import random
 
-# Add the project root to the path (parent directory of train/)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
@@ -23,7 +22,6 @@ from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
 from src.ai.model_manager import AIModelManager
 from src.managers.sprite_manager import sprite_manager
 
-# Disable sprite loading for GUI-less training
 sprite_manager.image_loading_enabled = False
 
 class AITrainer:
@@ -46,10 +44,8 @@ class AITrainer:
         self.dt = 0.030
 
         print("[INIT] Initializing AI processor in TRAINING mode...")
-        # Initialize in training mode for the trainer
         self.ai_processor = AILeviathanProcessor(model_path="models/leviathan_ai.pkl", training_mode=True)
 
-        # Initialize map grid for obstacle detection
         print("[INIT] Initializing map grid for obstacle detection...")
         from src.components.globals.mapComponent import creer_grille, placer_elements
         self.map_grid = creer_grille()
@@ -57,10 +53,8 @@ class AITrainer:
         self.ai_processor.map_grid = self.map_grid
         print("[OK] Map grid initialized")
 
-        # Model save manager
         self.model_manager = AIModelManager(self.ai_processor)
 
-        # Load training metadata if resuming
         self.training_metadata = self.model_manager.load_model_if_exists()
         self.start_episode = self.training_metadata.get('episodes_completed', 0)
         self.current_epsilon = self.training_metadata.get('epsilon', 1.0)
@@ -72,31 +66,26 @@ class AITrainer:
 
     def setup_entities(self):
         """Creates entities for training (Leviathans, bases, mines...)."""
-        # Clean up existing entities from the previous episode
         for entity in list(es._entities.keys()):
             es.delete_entity(entity)
 
         print("[SETUP] Creating bases...")
 
-        # Base alliée
         ally_base = es.create_entity()
         es.add_component(ally_base, PositionComponent(1000, 1000, 0))
         es.add_component(ally_base, HealthComponent(500, 500))
         es.add_component(ally_base, TeamComponent(1))
         es.add_component(ally_base, BaseComponent())
 
-        # Base ennemie
         enemy_base = es.create_entity()
         es.add_component(enemy_base, PositionComponent(5000, 5000, 0))
         es.add_component(enemy_base, HealthComponent(500, 500))
         es.add_component(enemy_base, TeamComponent(2))
         es.add_component(enemy_base, BaseComponent())
 
-        # Create AI Leviathans for BOTH teams (allies and enemies)
         print("[SETUP] Creating AI Leviathans for both teams...")
         self.leviathans = []
 
-        # Create 3 Allied Leviathans with AI (team 1)
         print("[SETUP] - Creating 3 Allied Leviathans with AI (team 1)...")
         for i in range(3):
             x = random.randint(1500, 2500)
@@ -104,13 +93,12 @@ class AITrainer:
 
             leviathan = UnitFactory(
                 UnitType.LEVIATHAN,
-                enemy=False,  # Allied team
+                enemy=False,
                 pos=PositionComponent(x, y),
-                enable_ai=True  # Force AI activation for allies
+                enable_ai=True
             )
             self.leviathans.append(leviathan)
 
-        # Create 3 Enemy Leviathans with AI (team 2)
         print("[SETUP] - Creating 3 Enemy Leviathans with AI (team 2)...")
         for i in range(3):
             x = random.randint(3500, 4500)
@@ -118,37 +106,33 @@ class AITrainer:
 
             leviathan = UnitFactory(
                 UnitType.LEVIATHAN,
-                enemy=True,  # Enemy team - AI automatically enabled
+                enemy=True,
                 pos=PositionComponent(x, y)
             )
             self.leviathans.append(leviathan)
 
-        # Create some additional units for both teams (non-AI controlled)
         print("[SETUP] Creating additional support units...")
-        # Allied support units
         for i in range(2):
             x = random.randint(1500, 2500)
             y = random.randint(1500, 2500)
 
             UnitFactory(
                 UnitType.MARAUDEUR if random.random() > 0.5 else UnitType.SCOUT,
-                enemy=False,  # Allied team
+                enemy=False,
                 pos=PositionComponent(x, y),
-                enable_ai=False  # No AI for support units
+                enable_ai=False
             )
 
-        # Enemy support units
         for i in range(2):
             x = random.randint(3500, 4500)
             y = random.randint(3500, 4500)
 
             UnitFactory(
                 UnitType.MARAUDEUR if random.random() > 0.5 else UnitType.SCOUT,
-                enemy=True,  # Enemy team
+                enemy=True,
                 pos=PositionComponent(x, y)
             )
 
-        # Create some mines
         print("[SETUP] Creating mines...")
         from src.components.core.attackComponent import AttackComponent
         from src.components.core.canCollideComponent import CanCollideComponent
@@ -160,7 +144,7 @@ class AITrainer:
             mine = es.create_entity()
             es.add_component(mine, PositionComponent(x, y, 0))
             es.add_component(mine, HealthComponent(1, 1))
-            es.add_component(mine, TeamComponent(0))  # Neutral
+            es.add_component(mine, TeamComponent(0))
             es.add_component(mine, AttackComponent(40))
             es.add_component(mine, CanCollideComponent())
 
@@ -176,56 +160,40 @@ class AITrainer:
         """
         total_episode = self.start_episode + episode_num + 1
 
-        # Only print episode header every 10 episodes for performance (or always in verbose mode)
         if self.verbose or episode_num % 10 == 0 or episode_num == self.episodes - 1:
             print(f"[EPISODE] {episode_num + 1}/{self.episodes} (Total: {total_episode})")
 
-        # Reset entities for the new episode
         self.setup_entities()
 
-        # Reset episode statistics for each AI agent
-        # Reduce epsilon over time (exploration -> exploitation)
-        # Use exponential decay for better convergence
         total_episodes = self.start_episode + episode_num
-        # Exponential decay: epsilon = max(min_epsilon, initial_epsilon * decay_rate ^ episodes)
-        # Target: reach epsilon=0.01 after 1000 episodes
         epsilon_decay = max(0.01, 1.0 * (0.995 ** total_episodes))
 
         for entity in self.leviathans:
             if es.has_component(entity, AILeviathanComponent):
                 ai_comp = es.component_for_entity(entity, AILeviathanComponent)
                 ai_comp.reset_episode()
-                # Apply epsilon decay for progressive learning
                 ai_comp.epsilon = epsilon_decay
 
-        # Store current epsilon for saving
         self.current_epsilon = epsilon_decay
 
         step_count = 0
 
-        # Simulate the steps (frames)
         for step in range(self.steps_per_episode):
             step_count += 1
 
-            # Simulate random movements for target enemies (every 5 frames for better performance)
             if step % 5 == 0:
                 self._simulate_enemy_movements()
 
-            # Print detailed AI actions if verbose mode is enabled
             if self.verbose and step % 50 == 0:
                 self._print_ai_states(step)
 
-            # Process the AI processor
             self.ai_processor.process(self.dt)
 
-            # Print AI actions after processing if verbose
             if self.verbose and step % 50 == 0:
                 self._print_ai_actions(step)
                 self._print_learning_info()
 
-            # Display progress less frequently (every 500 steps)
             if (step + 1) % 500 == 0 and (episode_num % 10 == 0):
-                # Calculate CURRENT total reward across all agents (not accumulated)
                 current_total_reward = 0.0
                 for entity in self.leviathans:
                     if es.has_component(entity, AILeviathanComponent):
@@ -238,14 +206,12 @@ class AITrainer:
                       f"Avg Reward: {avg_reward:.2f} - "
                       f"Epsilon: {epsilon:.3f}")
 
-            # Check if any base is destroyed to end the episode early
             base_destroyed = self._check_base_destroyed()
             if base_destroyed:
                 if episode_num % 10 == 0:
                     print(f"   [END] A BASE WAS DESTROYED! Episode ended.")
                 break
 
-        # Final episode statistics - calculate final average reward
         final_total_reward = 0.0
         for entity in self.leviathans:
             if es.has_component(entity, AILeviathanComponent):
@@ -254,7 +220,6 @@ class AITrainer:
 
         avg_reward = final_total_reward / len(self.leviathans) if self.leviathans else 0
 
-        # Only get stats and print every 10 episodes (or always in verbose mode)
         if self.verbose or episode_num % 10 == 0 or episode_num == self.episodes - 1:
             stats = self.ai_processor.get_statistics()
             print(f"   [DONE] Episode finished - {step_count} steps")
@@ -262,7 +227,6 @@ class AITrainer:
             print(f"   [TRAIN] Trainings: {stats['training_count']}")
             print(f"   [ACTIONS] Total actions: {stats['total_actions']}")
 
-            # In verbose mode, print detailed rewards for each AI
             if self.verbose:
                 print(f"\n   --- EPISODE SUMMARY ---")
                 for entity in self.leviathans:
@@ -283,9 +247,7 @@ class AITrainer:
         return avg_reward
 
     def _simulate_enemy_movements(self):
-        """Simulates random movements for non-AI entities (optimized)."""
-        # Make non-AI units move randomly (support units)
-        # Pre-check for AI components to avoid repeated lookups
+        """Simulates random movements for non-AI entities."""
         ai_entities = set()
         for entity, _ in es.get_component(AILeviathanComponent):
             ai_entities.add(entity)
@@ -293,21 +255,18 @@ class AITrainer:
         for entity, (pos, vel) in es.get_components(
             PositionComponent, VelocityComponent
         ):
-            # Ignore the AI-controlled Leviathans (using pre-built set)
             if entity in ai_entities:
                 continue
 
-            # Random movement for non-AI support units (both teams)
-            if random.random() < 0.1:  # 10% chance to change direction
+            if random.random() < 0.1:
                 pos.direction = random.randint(0, 360)
                 vel.currentSpeed = vel.maxUpSpeed if random.random() > 0.5 else 0
 
     def _check_base_destroyed(self) -> bool:
-        """Checks if any base has been destroyed (ends the episode)."""
+        """Checks if any base has been destroyed."""
         for entity, (base, health) in es.get_components(
             BaseComponent, HealthComponent
         ):
-            # Episode ends when either base is destroyed
             if health.currentHealth <= 0:
                 return True
         return False
@@ -333,11 +292,9 @@ class AITrainer:
             print(f"      Episode Reward: {ai_comp.episode_reward:.2f}")
             print(f"      Total Reward: {ai_comp.total_reward:.2f}")
 
-            # Print last reward from history if available
             if ai_comp.reward_history:
                 print(f"      Last Reward: {ai_comp.reward_history[-1]:.2f}")
 
-            # Print state vector if available
             if ai_comp.current_state is not None:
                 state = ai_comp.current_state
                 print(f"      State Vector ({len(state)} values):")
@@ -364,7 +321,6 @@ class AITrainer:
 
             team_str = "ALLY" if team.team_id == 1 else "ENEMY"
 
-            # Get last action if available
             last_action = getattr(ai_comp, 'last_action', None)
             action_name = LeviathanBrain.ACTION_NAMES.get(last_action, "Unknown") if last_action is not None else "None"
 
@@ -373,16 +329,14 @@ class AITrainer:
             print(f"      Current Speed: {vel.currentSpeed:.1f}/{vel.maxUpSpeed}")
             print(f"      Exploration (epsilon): {ai_comp.epsilon:.3f}")
 
-            # Print action history stats
             if ai_comp.action_history:
                 print(f"      Total actions taken: {len(ai_comp.action_history)}")
                 print(f"      Buffer size: {len(ai_comp.state_history)} experiences")
 
     def _print_learning_info(self):
-        """Prints information about the learning process (memory and training)."""
+        """Prints information about the learning process."""
         print(f"\n   --- LEARNING INFO ---")
 
-        # Get memory size from all AI components
         total_experiences = 0
         max_buffer = 0
         for entity in self.leviathans:
@@ -395,17 +349,14 @@ class AITrainer:
         print(f"      Average per AI: {total_experiences / len(self.leviathans):.0f}")
         print(f"      Max buffer per AI: {max_buffer}")
 
-        # Get training statistics
         stats = self.ai_processor.get_statistics()
         print(f"      Total trainings: {stats['training_count']}")
         print(f"      Total actions taken: {stats['total_actions']}")
 
-        # Brain training samples
         brain = self.ai_processor.brain
         print(f"      Brain training samples: {brain.training_samples}")
         print(f"      Model trained: {'Yes' if brain.is_trained else 'No'}")
 
-        # Show most common actions
         if stats['total_actions'] > 0:
             from src.ai.leviathan_brain import LeviathanBrain
             actions = stats['actions_by_type']
@@ -440,7 +391,6 @@ class AITrainer:
                     }
                     self.model_manager.save_model(metadata=metadata)
 
-                    # Also show training progress
                     if len(rewards_history) >= 10:
                         recent_avg = sum(rewards_history[-10:]) / 10
                         print(f"[STATS] Last 10 episodes average reward: {recent_avg:.2f}")
@@ -451,7 +401,6 @@ class AITrainer:
             print("[WARN] Training interrupted by user")
             print()
 
-        # Final save with complete metadata
         print("[SAVE] Final model save...")
         final_metadata = {
             'episodes_completed': self.start_episode + len(rewards_history),
@@ -461,7 +410,6 @@ class AITrainer:
         }
         self.model_manager.save_model(metadata=final_metadata)
 
-        # Final statistics
         elapsed_time = time.time() - start_time
         stats = self.ai_processor.get_statistics()
 
@@ -479,7 +427,6 @@ class AITrainer:
         print(f"[EPSILON] Final epsilon: {self.current_epsilon:.3f}")
         print(f"[PROGRESS] {rewards_history[0]:.2f} -> {rewards_history[-1]:.2f}" if len(rewards_history) > 1 else "")
 
-        # Favorite actions
         print()
         print("[ACTIONS] Most used actions:")
         actions = stats['actions_by_type']

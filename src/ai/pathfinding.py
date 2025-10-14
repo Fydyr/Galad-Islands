@@ -11,8 +11,8 @@ class Node:
     """Node for A* pathfinding."""
     x: float
     y: float
-    g: float  # Cost from start
-    h: float  # Heuristic to goal
+    g: float
+    h: float
     parent: Optional['Node'] = None
 
     @property
@@ -79,15 +79,12 @@ class AStarPathfinder:
         if obstacles is None:
             obstacles = []
 
-        # Quick check: if goal is unreachable due to obstacle
         if self._is_in_obstacle(goal, obstacles):
             return None
 
-        # Initialize start and goal nodes
         start_node = Node(start[0], start[1], 0, self._heuristic(start, goal))
         goal_node = Node(goal[0], goal[1], 0, 0)
 
-        # Open and closed sets
         open_set = []
         heapq.heappush(open_set, start_node)
         closed_set: Set[Node] = set()
@@ -98,11 +95,9 @@ class AStarPathfinder:
         while open_set and iterations < max_iterations:
             iterations += 1
 
-            # Get node with lowest f score
             current = heapq.heappop(open_set)
             del open_dict[current]
 
-            # Check if we reached goal
             if self._distance(
                 (current.x, current.y),
                 (goal_node.x, goal_node.y)
@@ -111,22 +106,18 @@ class AStarPathfinder:
 
             closed_set.add(current)
 
-            # Check neighbors (8 directions)
             for neighbor in self._get_neighbors(current, goal):
                 if neighbor in closed_set:
                     continue
 
-                # Check if neighbor is in obstacle
                 if self._is_in_obstacle((neighbor.x, neighbor.y), obstacles):
                     continue
 
-                # Calculate tentative g score
                 tentative_g = current.g + self._distance(
                     (current.x, current.y),
                     (neighbor.x, neighbor.y)
                 )
 
-                # Check if this path to neighbor is better
                 if neighbor in open_dict:
                     if tentative_g < neighbor.g:
                         neighbor.g = tentative_g
@@ -138,7 +129,6 @@ class AStarPathfinder:
                     heapq.heappush(open_set, neighbor)
                     open_dict[neighbor] = neighbor
 
-        # No path found
         return None
 
     def get_next_waypoint(
@@ -163,7 +153,6 @@ class AStarPathfinder:
         if not path or len(path) < 2:
             return None
 
-        # Return second waypoint (first is current position)
         return path[1]
 
     def _heuristic(
@@ -204,23 +193,21 @@ class AStarPathfinder:
         """
         neighbors = []
 
-        # 8 directions (N, NE, E, SE, S, SW, W, NW)
         directions = [
-            (0, self.grid_size),      # N
-            (self.grid_size, self.grid_size),   # NE
-            (self.grid_size, 0),      # E
-            (self.grid_size, -self.grid_size),  # SE
-            (0, -self.grid_size),     # S
-            (-self.grid_size, -self.grid_size), # SW
-            (-self.grid_size, 0),     # W
-            (-self.grid_size, self.grid_size),  # NW
+            (0, self.grid_size),
+            (self.grid_size, self.grid_size),
+            (self.grid_size, 0),
+            (self.grid_size, -self.grid_size),
+            (0, -self.grid_size),
+            (-self.grid_size, -self.grid_size),
+            (-self.grid_size, 0),
+            (-self.grid_size, self.grid_size),
         ]
 
         for dx, dy in directions:
             x = node.x + dx
             y = node.y + dy
 
-            # Basic bounds check (optional, depends on map size)
             if x < 0 or y < 0:
                 continue
 
@@ -305,12 +292,10 @@ class PathfindingCache:
         key = self._make_key(start, goal)
 
         if key in self.cache:
-            # Check if cache entry is still valid
             if self.ages[key] < self.ttl:
                 self.ages[key] += 1
                 return self.cache[key]
             else:
-                # Cache expired
                 del self.cache[key]
                 del self.ages[key]
 
@@ -330,9 +315,7 @@ class PathfindingCache:
             goal: Goal position
             path: Path to cache
         """
-        # Limit cache size
         if len(self.cache) >= self.max_size:
-            # Remove oldest entry
             oldest_key = min(self.ages, key=self.ages.get)
             del self.cache[oldest_key]
             del self.ages[oldest_key]
@@ -347,7 +330,6 @@ class PathfindingCache:
         goal: Tuple[float, float]
     ) -> str:
         """Create cache key from positions."""
-        # Round to grid for better cache hits
         sx, sy = int(start[0] / 50), int(start[1] / 50)
         gx, gy = int(goal[0] / 50), int(goal[1] / 50)
         return f"{sx},{sy}-{gx},{gy}"

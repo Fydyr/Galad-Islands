@@ -24,7 +24,7 @@ class AIModelManager:
     DEFAULT_MODEL_DIR = "models"
     DEFAULT_MODEL_NAME = "leviathan_ai.pkl"
     BACKUP_MODEL_NAME = "leviathan_ai_backup.pkl"
-    AUTO_SAVE_INTERVAL = 300.0  # Sauvegarder toutes les 5 minutes (300 secondes)
+    AUTO_SAVE_INTERVAL = 300.0
 
     def __init__(self, ai_processor: "AILeviathanProcessor", model_dir: Optional[str] = None):
         """
@@ -39,15 +39,11 @@ class AIModelManager:
         self.model_path = os.path.join(self.model_dir, self.DEFAULT_MODEL_NAME)
         self.backup_path = os.path.join(self.model_dir, self.BACKUP_MODEL_NAME)
 
-        # Créer le répertoire s'il n'existe pas
-        # Create the directory if it doesn't exist
         os.makedirs(self.model_dir, exist_ok=True)
 
-        # Timer for auto-saving
         self.time_since_last_save = 0.0
         self.auto_save_enabled = True
 
-        # Load the model on startup if it exists
         self.load_model_if_exists()
 
     def load_model_if_exists(self) -> dict:
@@ -64,7 +60,6 @@ class AIModelManager:
                 return metadata
             except Exception as e:
                 logger.error(f"Error loading model: {e}")
-                # Attempt to load the backup
                 if os.path.exists(self.backup_path):
                     try:
                         metadata = self.ai_processor.load_model(self.backup_path)
@@ -117,10 +112,8 @@ class AIModelManager:
         if self.time_since_last_save >= self.AUTO_SAVE_INTERVAL:
             logger.info(f"Auto-saving model after {self.time_since_last_save:.1f}s")
 
-            # First, save to the backup file
             backup_success = self.save_model(backup=True)
 
-            # Then, save to the main file if the backup was successful
             if backup_success:
                 return self.save_model(backup=False)
 
