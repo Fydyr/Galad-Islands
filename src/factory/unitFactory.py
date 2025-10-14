@@ -46,7 +46,6 @@ from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.core.visionComponent import VisionComponent
 from ia.architectAIComponent import ArchitectAIComponent
-from ia.architectAIComponent2 import QLearningArchitectAIComponent # New Q-Learning AI component
 from src.settings.localization import t
 
 
@@ -166,27 +165,6 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             ))
             es.add_component(entity, VisionComponent(UNIT_VISION_ARCHITECT))
         
-        # New Q-Learning Architect type
-        case UnitType.Q_ARCHITECT:
-            entity = es.create_entity()
-            es.add_component(entity, PositionComponent(pos.x, pos.y, ALLY_DEFAULT_DIRECTION if not enemy else ENEMY_DEFAULT_DIRECTION))
-            es.add_component(entity, VelocityComponent(0, UNIT_SPEED_ARCHITECT, UNIT_REVERSE_SPEED_ARCHITECT))
-            es.add_component(entity, RadiusComponent(bullet_cooldown=UNIT_COOLDOWN_ARCHITECT))
-            es.add_component(entity, TeamComponent(1 if not enemy else 2))
-            es.add_component(entity, AttackComponent(UNIT_ATTACK_ARCHITECT))
-            es.add_component(entity, HealthComponent(UNIT_HEALTH_ARCHITECT, UNIT_HEALTH_ARCHITECT))
-            es.add_component(entity, QLearningArchitectAIComponent(decisionVetoTime=0.5)) # Use the new Q-learning AI
-            es.add_component(entity, CanCollideComponent())
-            sprite_id = SpriteID.ALLY_ARCHITECT if not enemy else SpriteID.ENEMY_ARCHITECT # Use same sprite for now
-            size = sprite_manager.get_default_size(sprite_id)
-            if size:
-                width, height = size
-                es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
-            else:
-                es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Architect.png" if not enemy else "assets/sprites/units/enemy/Architect.png", 130, 150))
-            es.add_component(entity, SpeArchitect(is_active=False, available=True, radius=ARCHITECT_RADIUS, reload_factor=ARCHITECT_RELOAD_FACTOR, affected_units=[], duration=ARCHITECT_DURATION, timer=0.0))
-            es.add_component(entity, VisionComponent(UNIT_VISION_ARCHITECT))
-
         case UnitType.ATTACK_TOWER:
             pass
         case UnitType.HEAL_TOWER:

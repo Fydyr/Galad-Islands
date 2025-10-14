@@ -141,8 +141,12 @@ def a_star(grid, start, goal):
         close_set.add(current)
         for i, j in neighbors:
             neighbor = current[0] + i, current[1] + j
-            if 0 <= neighbor[0] < grid.shape[0] and 0 <= neighbor[1] < grid.shape[1]:
-                if grid[neighbor] == 1:
+            # Check boundaries using len() for list of lists compatibility
+            grid_height = len(grid)
+            grid_width = len(grid[0]) if grid_height > 0 else 0
+            
+            if 0 <= neighbor[0] < grid_height and 0 <= neighbor[1] < grid_width:
+                if grid[neighbor[0]][neighbor[1]] == 1: # Use list-style indexing
                     continue
             else:
                 continue

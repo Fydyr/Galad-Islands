@@ -14,7 +14,6 @@ from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.core.teamComponent import TeamComponent
-from ia.architectAIComponent2 import QLearningArchitectAIComponent # New Q-Learning AI component
 from src.functions.buildingCreator import createDefenseTower, createHealTower
 from src.settings import controls
 
@@ -24,220 +23,97 @@ class AIControlProcessor(esper.Processor):
         self.grid = grid
         self.fire_event = False  # Initialisation de l'état de l'événement de tir
         self.slowing_down = False  # Indique si le frein est activé
-        self.last_states = {} # To store previous states for reward calculation
-        self.last_distances_to_island = {} # For reward calculation
-        self.last_distances_to_enemy = {} # For reward calculation
-        self.last_money = {} # For reward calculation
         self.change_mode_cooldown = 0
 
-    def isObstacleNearby(self, posX, posY):
-        height, width = 2, 2
-        grid_height = len(self.grid)
-        grid_width = len(self.grid[0]) if grid_height > 0 else 0
-        for i in range(-height, height):
-            for j in range(-width, width):
-                y = int(posY) + i
-                x = int(posX) + j
-                if 0 <= y < grid_height and 0 <= x < grid_width:
-                    if self.grid[y][x] == 1 or self.grid[y][x] == 2 or self.grid[y][x] == 3:
-                        return 1
-        return 0
+    # def findClosestEntity(self, team, ally, currentX, currentY):
+    #     minDistance = float('inf')
 
-    def findClosestEntity(self, team, ally, currentX, currentY):
-        minDistance = float('inf')
-
-        for ent, (pos, opposition) in esper.get_components(PositionComponent, TeamComponent):
-            if (team.team_id == opposition.team_id) == ally :
-                distance = abs(pos.y - currentY) + abs(pos.x - currentX)
-                if distance < minDistance:
-                    minDistance = distance
-        return minDistance
+    #     for ent, (pos, opposition) in esper.get_components(PositionComponent, TeamComponent):
+    #         if (team.team_id == opposition.team_id) == ally :
+    #             distance = abs(pos.y - currentY) + abs(pos.x - currentX)
+    #             if distance < minDistance:
+    #                 minDistance = distance
+    #     return minDistance
     
-    def findClosestInGrid(self, targetValue, currentX, currentY):
-        closestPos = None
-        minDistance = float('inf')
+    # def findClosestInGrid(self, targetValue, currentX, currentY):
+    #     closestPos = None
+    #     minDistance = float('inf')
 
-        for row in range(len(self.grid)):
-            for col in range(len(self.grid[0])):
-                if self.grid[row][col] == targetValue:
-                    distance = abs(row - currentY) + abs(col - currentX)
-                    if distance < minDistance:
-                        minDistance = distance
-                        closestPos = (col, row)
-        return closestPos
+    #     for row in range(len(self.grid)):
+    #         for col in range(len(self.grid[0])):
+    #             if self.grid[row][col] == targetValue:
+    #                 distance = abs(row - currentY) + abs(col - currentX)
+    #                 if distance < minDistance:
+    #                     minDistance = distance
+    #                     closestPos = (col, row)
+    #     return closestPos
     
-    def getCurrentMoney(self, team):
-        gold = 0
-        for ent, (opposition, player) in esper.get_components(TeamComponent, PlayerComponent):
-            if team.team_id == opposition.team_id:
-                gold = player.get_gold()
-        return gold
+    # def getCurrentMoney(self, team):
+    #     gold = 0
+    #     for ent, (opposition, player) in esper.get_components(TeamComponent, PlayerComponent):
+    #         if team.team_id == opposition.team_id:
+    #             gold = player.get_gold()
+    #     return gold
 
-    def _discretize_state(self, state_raw):
-        """
-        Discretizes the continuous game state into a hashable tuple for Q-learning.
-        State: [current_speed, angle_to_island, distance_to_island, distance_to_enemy,
-                distance_to_ally, distance_to_mine, money, obstacle_ahead]
-        """
-        speed, angle_island, dist_island, dist_enemy, dist_ally, dist_mine, money, obstacle = state_raw
+    # def _get_raw_state(self, entity):
+    #     pos = esper.component_for_entity(entity, PositionComponent)
+    #     vel = esper.component_for_entity(entity, VelocityComponent)
+    #     team = esper.component_for_entity(entity, TeamComponent)
 
-        # Discretize speed (0-100 -> 0-3)
-        discrete_speed = int(speed // 25) # 0, 1, 2, 3
+    #     if pos is None or vel is None or team is None:
+    #         return None # Should not happen if entity has these components
 
-        # Discretize angle_to_island (-180 to 180)
-        # Bins: -180 to -90 (0), -90 to 0 (1), 0 to 90 (2), 90 to 180 (3)
-        if angle_island < -90:
-            discrete_angle = 0
-        elif angle_island < 0:
-            discrete_angle = 1
-        elif angle_island < 90:
-            discrete_angle = 2
-        else:
-            discrete_angle = 3
+    #         posMine = self.findClosestInGrid(3, pos.x, pos.y)
+    #         posIsland = self.findClosestInGrid(2, pos.x, pos.y)
 
-        # Discretize distances (0-1000+)
-        # Bins: [0, 50) (0), [50, 200) (1), [200, 500) (2), [500, inf) (3)
-        def discretize_dist(d):
-            if d < 50: return 0
-            if d < 200: return 1
-            if d < 500: return 2
-            return 3
+    #         dxMine = abs(pos.x - posMine[0])
+    #         dyMine = abs(pos.y - posMine[1])
+    #         distanceMine = math.sqrt(dxMine**2 + dyMine**2)
 
-        discrete_dist_island = discretize_dist(dist_island)
-        discrete_dist_enemy = discretize_dist(dist_enemy)
-        discrete_dist_ally = discretize_dist(dist_ally)
-        discrete_dist_mine = discretize_dist(dist_mine)
-
-        # Discretize money (0-2000+)
-        # Bins: [0, 100) (0), [100, 500) (1), [500, 1500) (2), [1500, inf) (3)
-        if money < 100:
-            discrete_money = 0
-        elif money < 500:
-            discrete_money = 1
-        elif money < 1500:
-            discrete_money = 2
-        else:
-            discrete_money = 3
-
-        # Obstacle is already binary (0 or 1)
-        discrete_obstacle = int(obstacle)
-
-        return (discrete_speed, discrete_angle, discrete_dist_island, discrete_dist_enemy,
-                discrete_dist_ally, discrete_dist_mine, discrete_money, discrete_obstacle)
-
-    def _calculate_reward(self, entity, prev_state_raw, current_state_raw, action_taken):
-        """
-        Calculates the reward for the Q-learning agent based on state changes and actions.
-        """
-        reward = -1 # Small penalty for each step
-
-        # Unpack states
-        prev_speed, prev_angle_island, prev_dist_island, prev_dist_enemy, prev_dist_ally, prev_dist_mine, prev_money, prev_obstacle = prev_state_raw
-        curr_speed, curr_angle_island, curr_dist_island, curr_dist_enemy, curr_dist_ally, curr_dist_mine, curr_money, curr_obstacle = current_state_raw
-
-        # Reward for getting closer to island
-        if curr_dist_island < prev_dist_island:
-            reward += 5
-        elif curr_dist_island > prev_dist_island:
-            reward -= 2
-
-        # Reward for reaching island (close enough to build)
-        if curr_dist_island < 50 and curr_money >= 400:
-            reward += 20 # Encourage being in a buildable state
-
-        # Reward/Penalty for building actions
-        if action_taken in ['build_defense_tower', 'build_attack_tower']:
-            # Check if building was successful (e.g., money spent, on island)
-            # This requires more complex game state checks, for now, assume success if money was sufficient
-            if curr_money < prev_money: # Simple heuristic: money decreased means building happened
-                reward += 50
-            else: # Failed to build (not enough money, not on island, etc.)
-                reward -= 30
-
-        # Penalty for being too close to enemy or mine
-        if curr_dist_enemy < 100:
-            reward -= 10
-        if curr_dist_mine < 50:
-            reward -= 20
-
-        # Penalty for hitting obstacle
-        if curr_obstacle == 1 and curr_speed > 0: # If there's an obstacle and unit is moving
-            reward -= 15
-
-        return reward
-
-    def _get_raw_state(self, entity):
-        pos = esper.component_for_entity(entity, PositionComponent)
-        vel = esper.component_for_entity(entity, VelocityComponent)
-        team = esper.component_for_entity(entity, TeamComponent)
-
-        if pos is None or vel is None or team is None:
-            return None # Should not happen if entity has these components
-
-            posMine = self.findClosestInGrid(3, pos.x, pos.y)
-            posIsland = self.findClosestInGrid(2, pos.x, pos.y)
-
-            dxMine = abs(pos.x - posMine[0])
-            dyMine = abs(pos.y - posMine[1])
-            distanceMine = math.sqrt(dxMine**2 + dyMine**2)
-
-            dxIsland = abs(pos.x - posIsland[0])
-            dyIsland = abs(pos.y - posIsland[1])
-            distanceIsland = math.sqrt(dxIsland**2 + dyIsland**2)
+    #         dxIsland = abs(pos.x - posIsland[0])
+    #         dyIsland = abs(pos.y - posIsland[1])
+    #         distanceIsland = math.sqrt(dxIsland**2 + dyIsland**2)
             
-            # Calculate angle to island relative to unit's direction
-            # Angle from unit to island
-            angle_to_target_rad = math.atan2(posIsland[1] - pos.y, posIsland[0] - pos.x)
-            # Unit's direction in radians (assuming pos.direction is degrees 0-359)
-            unit_direction_rad = math.radians(pos.direction)
+    #         # Calculate angle to island relative to unit's direction
+    #         # Angle from unit to island
+    #         angle_to_target_rad = math.atan2(posIsland[1] - pos.y, posIsland[0] - pos.x)
+    #         # Unit's direction in radians (assuming pos.direction is degrees 0-359)
+    #         unit_direction_rad = math.radians(pos.direction)
             
-            # Relative angle: difference between target angle and unit's direction
-            relativeAngleIsland_rad = angle_to_target_rad - unit_direction_rad
-            # Normalize to -pi to pi
-            relativeAngleIsland_rad = (relativeAngleIsland_rad + math.pi) % (2 * math.pi) - math.pi
-            relativeAngleIsland_deg = math.degrees(relativeAngleIsland_rad)
+    #         # Relative angle: difference between target angle and unit's direction
+    #         relativeAngleIsland_rad = angle_to_target_rad - unit_direction_rad
+    #         # Normalize to -pi to pi
+    #         relativeAngleIsland_rad = (relativeAngleIsland_rad + math.pi) % (2 * math.pi) - math.pi
+    #         relativeAngleIsland_deg = math.degrees(relativeAngleIsland_rad)
 
-            distanceAlly = self.findClosestEntity(team, True, pos.x, pos.y)
-            distanceEnemy = self.findClosestEntity(team, False, pos.x, pos.y)
-            gold = self.getCurrentMoney(team)
-            obstacle = self.isObstacleNearby(pos.x, pos.y)
+    #         distanceAlly = self.findClosestEntity(team, True, pos.x, pos.y)
+    #         distanceEnemy = self.findClosestEntity(team, False, pos.x, pos.y)
+    #         gold = self.getCurrentMoney(team)
+    #         obstacle = self.isObstacleNearby(pos.x, pos.y)
             
-            return [vel.currentSpeed, relativeAngleIsland_deg, distanceIsland, distanceEnemy, distanceAlly, distanceMine, gold, obstacle]
-        return None
+    #         return [vel.currentSpeed, relativeAngleIsland_deg, distanceIsland, distanceEnemy, distanceAlly, distanceMine, gold, obstacle]
+    #     return None
 
     def getDecision(self, dt, entity, ai_component):
         """
         Gets the decision from the AI component and handles Q-learning updates.
         """
-        current_state_raw = self._get_raw_state(entity)
-        if current_state_raw is None:
-            return None
-
-        current_state_discrete = self._discretize_state(current_state_raw)
-
-        # If this is a Q-learning agent, perform learning step
-        if isinstance(ai_component, QLearningArchitectAIComponent):
-            if entity in self.last_states:
-                prev_state_raw = self.last_states[entity]
-                action_taken = ai_component.currentDecision # The action that was just executed
-                reward = self._calculate_reward(entity, prev_state_raw, current_state_raw, action_taken)
-                ai_component.learn(reward, current_state_discrete)
-            self.last_states[entity] = current_state_raw # Store raw state for next reward calculation
-
-        return ai_component.makeDecision(dt, current_state_discrete)
+        # This method is now a simple wrapper.
+        # You might want to refactor it further to pass the state directly.
+        return ai_component.makeDecision(dt, []) # Pass an empty state for now
 
     def process(self, dt: float, grid):
         self.grid = grid
         
         # Process both types of AI components
-        all_ai_components = esper.get_components(archAI, QLearningArchitectAIComponent)
+        all_ai_components = esper.get_components(archAI)
 
         for entity, (ai_components) in all_ai_components:
             ai = next((comp for comp in ai_components if comp is not None), None)
             if ai is None:
                 continue
 
-            decision = self.getDecision(dt, entity, ai)
+            decision = ai.processor.getDecision(dt, entity, ai) if hasattr(ai, 'processor') and ai.processor is not None else self.getDecision(dt, entity, ai)
             if decision is None:
                 continue
 
