@@ -44,9 +44,9 @@ class AIModelManager:
         self.time_since_last_save = 0.0
         self.auto_save_enabled = True
 
-        self.load_model_if_exists()
+        self.loadModelIfExists()
 
-    def load_model_if_exists(self) -> dict:
+    def loadModelIfExists(self) -> dict:
         """
         Loads a pre-trained model if it exists.
 
@@ -55,14 +55,14 @@ class AIModelManager:
         """
         if os.path.exists(self.model_path):
             try:
-                metadata = self.ai_processor.load_model(self.model_path)
+                metadata = self.ai_processor.loadModel(self.model_path)
                 logger.info(f"AI model loaded from: {self.model_path}")
                 return metadata
             except Exception as e:
                 logger.error(f"Error loading model: {e}")
                 if os.path.exists(self.backup_path):
                     try:
-                        metadata = self.ai_processor.load_model(self.backup_path)
+                        metadata = self.ai_processor.loadModel(self.backup_path)
                         logger.info(f"Backup model loaded from: {self.backup_path}")
                         return metadata
                     except Exception as e2:
@@ -72,7 +72,7 @@ class AIModelManager:
             logger.info("No pre-trained model found, starting with a new model.")
             return {}
 
-    def save_model(self, backup: bool = False, metadata: dict = None) -> bool:
+    def saveModel(self, backup: bool = False, metadata: dict = None) -> bool:
         """
         Saves the current model with optional metadata.
 
@@ -86,7 +86,7 @@ class AIModelManager:
         save_path = self.backup_path if backup else self.model_path
 
         try:
-            self.ai_processor.save_model(save_path, metadata)
+            self.ai_processor.saveModel(save_path, metadata)
             logger.info(f"AI model saved to: {save_path}")
             self.time_since_last_save = 0.0
             return True
@@ -94,7 +94,7 @@ class AIModelManager:
             logger.error(f"Error saving model: {e}")
             return False
 
-    def auto_save(self, dt: float) -> bool:
+    def autoSave(self, dt: float) -> bool:
         """
         Manages the automatic saving of the model.
 
@@ -112,23 +112,23 @@ class AIModelManager:
         if self.time_since_last_save >= self.AUTO_SAVE_INTERVAL:
             logger.info(f"Auto-saving model after {self.time_since_last_save:.1f}s")
 
-            backup_success = self.save_model(backup=True)
+            backup_success = self.saveModel(backup=True)
 
             if backup_success:
-                return self.save_model(backup=False)
+                return self.saveModel(backup=False)
 
             return False
 
         return False
 
-    def get_model_stats(self) -> dict:
+    def getModelStats(self) -> dict:
         """
         Returns statistics for the current model.
 
         Returns:
             A dictionary containing the statistics
         """
-        stats = self.ai_processor.get_statistics()
+        stats = self.ai_processor.getStatistics()
         stats['model_path'] = self.model_path
         stats['auto_save_enabled'] = self.auto_save_enabled
         stats['time_until_next_save'] = self.AUTO_SAVE_INTERVAL - self.time_since_last_save
@@ -151,7 +151,7 @@ class AIModelManager:
         """
         snapshot_path = os.path.join(self.model_dir, f"{name}.pkl")
         try:
-            self.ai_processor.save_model(snapshot_path)
+            self.ai_processor.saveModel(snapshot_path)
             logger.info(f"Snapshot created: {snapshot_path}")
             return True
         except Exception as e:

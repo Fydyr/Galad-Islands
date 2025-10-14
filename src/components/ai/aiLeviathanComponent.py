@@ -51,7 +51,7 @@ class AILeviathanComponent:
     last_action_time: float = 0.0
     action_cooldown: float = 0.5
 
-    def add_experience(self, state: np.ndarray, action: int, reward: float):
+    def addExperience(self, state: np.ndarray, action: int, reward: float):
         """Adds an experience (state, action, reward) to the history buffer."""
         self.state_history.append(state)
         self.action_history.append(action)
@@ -65,7 +65,7 @@ class AILeviathanComponent:
         self.total_reward += reward
         self.episode_reward += reward
 
-    def reset_episode(self):
+    def resetEpisode(self):
         """Resets the statistics for a new learning episode."""
         self.episode_reward = 0.0
         self.kills_count = 0
@@ -81,10 +81,10 @@ class AILeviathanComponent:
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-    def get_buffer_size(self) -> int:
+    def getBufferSize(self) -> int:
         """Returns the current size of the experience buffer."""
         return len(self.state_history)
 
-    def is_ready_for_action(self, current_time: float) -> bool:
+    def isReadyForAction(self, current_time: float) -> bool:
         """Checks if enough time has passed since the last action."""
         return (current_time - self.last_action_time) >= self.action_cooldown

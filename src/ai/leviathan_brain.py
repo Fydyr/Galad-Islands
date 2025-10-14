@@ -90,9 +90,9 @@ class LeviathanBrain:
         self.training_samples = 0
 
         if model_path and os.path.exists(model_path):
-            self.load_model(model_path)
+            self.loadModel(model_path)
 
-    def predict_q_values(self, state: np.ndarray) -> np.ndarray:
+    def predictQValues(self, state: np.ndarray) -> np.ndarray:
         """
         Predicts the Q-values for all actions in the given state.
 
@@ -102,19 +102,19 @@ class LeviathanBrain:
         Returns:
             Array of Q-values for each action [Q(s,a0), Q(s,a1), ...]
         """
-        state_normalized = self._normalize_state(state)
+        state_normalized = self._normalizeState(state)
 
         if not self.is_trained:
-            return self._random_q_values()
+            return self._randomQValues()
 
         try:
             q_values = self.model.predict(state_normalized.reshape(1, -1))[0]
             return q_values
         except Exception as e:
             logger.warning(f"Prediction error : {e}, using random values")
-            return self._random_q_values()
+            return self._randomQValues()
 
-    def select_action(self, state: np.ndarray, epsilon: float = 0.1) -> int:
+    def selectAction(self, state: np.ndarray, epsilon: float = 0.1) -> int:
         """
         Selects an action using an epsilon-greedy strategy.
 
@@ -129,7 +129,7 @@ class LeviathanBrain:
             action = np.random.randint(0, self.NUM_ACTIONS)
             return action
 
-        q_values = self.predict_q_values(state)
+        q_values = self.predictQValues(state)
         action = int(np.argmax(q_values))
         return action
 
@@ -165,8 +165,8 @@ class LeviathanBrain:
         rewards = np.array(rewards)
         next_states = np.array(next_states)
 
-        states_normalized = self._normalize_batch_states(states)
-        next_states_normalized = self._normalize_batch_states(next_states)
+        states_normalized = self._normalizeBatchStates(states)
+        next_states_normalized = self._normalizeBatchStates(next_states)
 
         if self.is_trained:
             next_q_values = self.model.predict(next_states_normalized)
@@ -197,7 +197,7 @@ class LeviathanBrain:
                 logger.error(f"Training error: {e}")
             return 0.0
 
-    def save_model(self, path: str, metadata: dict = None):
+    def saveModel(self, path: str, metadata: dict = None):
         """Saves the trained model with optional training metadata."""
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -215,7 +215,7 @@ class LeviathanBrain:
         except Exception as e:
             logger.error(f"Save error: {e}")
 
-    def load_model(self, path: str) -> dict:
+    def loadModel(self, path: str) -> dict:
         """Loads a pre-trained model and returns metadata."""
         try:
             with open(path, 'rb') as f:
@@ -232,7 +232,7 @@ class LeviathanBrain:
             logger.error(f"Load error: {e}")
             return {}
 
-    def _normalize_state(self, state: np.ndarray) -> np.ndarray:
+    def _normalizeState(self, state: np.ndarray) -> np.ndarray:
         """Normalizes a single state."""
         if not self.is_trained:
             return state
@@ -241,7 +241,7 @@ class LeviathanBrain:
         except:
             return state
 
-    def _normalize_batch_states(self, states: np.ndarray) -> np.ndarray:
+    def _normalizeBatchStates(self, states: np.ndarray) -> np.ndarray:
         """Normalizes a batch of states."""
         if not self.is_trained or len(states) == 0:
             self.scaler.fit(states)
@@ -251,6 +251,6 @@ class LeviathanBrain:
         except:
             return states
 
-    def _random_q_values(self) -> np.ndarray:
+    def _randomQValues(self) -> np.ndarray:
         """Generates random Q-values for initialization."""
         return np.random.randn(self.NUM_ACTIONS) * 0.1

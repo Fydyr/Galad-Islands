@@ -57,7 +57,7 @@ class AStarPathfinder:
         self.cache_lifetime = 10  # Frames before cache refresh
         self.cache_age = 0
 
-    def find_path(
+    def findPath(
         self,
         start: Tuple[float, float],
         goal: Tuple[float, float],
@@ -79,7 +79,7 @@ class AStarPathfinder:
         if obstacles is None:
             obstacles = []
 
-        if self._is_in_obstacle(goal, obstacles):
+        if self._isInObstacle(goal, obstacles):
             return None
 
         start_node = Node(start[0], start[1], 0, self._heuristic(start, goal))
@@ -102,15 +102,15 @@ class AStarPathfinder:
                 (current.x, current.y),
                 (goal_node.x, goal_node.y)
             ) < self.grid_size:
-                return self._reconstruct_path(current)
+                return self._reconstructPath(current)
 
             closed_set.add(current)
 
-            for neighbor in self._get_neighbors(current, goal):
+            for neighbor in self._getNeighbors(current, goal):
                 if neighbor in closed_set:
                     continue
 
-                if self._is_in_obstacle((neighbor.x, neighbor.y), obstacles):
+                if self._isInObstacle((neighbor.x, neighbor.y), obstacles):
                     continue
 
                 tentative_g = current.g + self._distance(
@@ -131,7 +131,7 @@ class AStarPathfinder:
 
         return None
 
-    def get_next_waypoint(
+    def getNextWaypoint(
         self,
         start: Tuple[float, float],
         goal: Tuple[float, float],
@@ -148,7 +148,7 @@ class AStarPathfinder:
         Returns:
             Next waypoint to navigate to, or None if no path
         """
-        path = self.find_path(start, goal, obstacles, max_iterations=300)
+        path = self.findPath(start, goal, obstacles, max_iterations=300)
 
         if not path or len(path) < 2:
             return None
@@ -180,7 +180,7 @@ class AStarPathfinder:
         """Calculate Euclidean distance between two points."""
         return ((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2) ** 0.5
 
-    def _get_neighbors(self, node: Node, goal: Tuple[float, float]) -> List[Node]:
+    def _getNeighbors(self, node: Node, goal: Tuple[float, float]) -> List[Node]:
         """
         Get valid neighbors for a node (8 directions).
 
@@ -216,7 +216,7 @@ class AStarPathfinder:
 
         return neighbors
 
-    def _is_in_obstacle(
+    def _isInObstacle(
         self,
         pos: Tuple[float, float],
         obstacles: List[Tuple[float, float, float]]
@@ -237,7 +237,7 @@ class AStarPathfinder:
                 return True
         return False
 
-    def _reconstruct_path(self, node: Node) -> List[Tuple[float, float]]:
+    def _reconstructPath(self, node: Node) -> List[Tuple[float, float]]:
         """
         Reconstruct path from goal to start.
 
@@ -289,7 +289,7 @@ class PathfindingCache:
         Returns:
             Cached path or None
         """
-        key = self._make_key(start, goal)
+        key = self._makeKey(start, goal)
 
         if key in self.cache:
             if self.ages[key] < self.ttl:
@@ -320,11 +320,11 @@ class PathfindingCache:
             del self.cache[oldest_key]
             del self.ages[oldest_key]
 
-        key = self._make_key(start, goal)
+        key = self._makeKey(start, goal)
         self.cache[key] = path
         self.ages[key] = 0
 
-    def _make_key(
+    def _makeKey(
         self,
         start: Tuple[float, float],
         goal: Tuple[float, float]

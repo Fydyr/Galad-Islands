@@ -27,19 +27,19 @@ sprite_manager.image_loading_enabled = False
 class AITrainer:
     """Automatic trainer for the Leviathan AI."""
 
-    def __init__(self, episodes: int = 100, steps_per_episode: int = 1000, save_interval: int = 10, verbose: bool = False):
+    def __init__(self, episodes: int = 100, stepsPerEpisode: int = 1000, saveInterval: int = 10, verbose: bool = False):
         """
         Initializes the trainer.
 
         Args:
             episodes: Number of training episodes
-            steps_per_episode: Number of steps per episode (simulated frames)
-            save_interval: Save model every N episodes
+            stepsPerEpisode: Number of steps per episode (simulated frames)
+            saveInterval: Save model every N episodes
             verbose: If True, prints detailed AI actions during training
         """
         self.episodes = episodes
-        self.steps_per_episode = steps_per_episode
-        self.save_interval = save_interval
+        self.stepsPerEpisode = stepsPerEpisode
+        self.saveInterval = saveInterval
         self.verbose = verbose
         self.dt = 0.030
 
@@ -48,40 +48,40 @@ class AITrainer:
 
         print("[INIT] Initializing map grid for obstacle detection...")
         from src.components.globals.mapComponent import creer_grille, placer_elements
-        self.map_grid = creer_grille()
-        placer_elements(self.map_grid)
-        self.ai_processor.map_grid = self.map_grid
+        self.mapGrid = creer_grille()
+        placer_elements(self.mapGrid)
+        self.ai_processor.map_grid = self.mapGrid
         print("[OK] Map grid initialized")
 
-        self.model_manager = AIModelManager(self.ai_processor)
+        self.modelManager = AIModelManager(self.ai_processor)
 
-        self.training_metadata = self.model_manager.load_model_if_exists()
-        self.start_episode = self.training_metadata.get('episodes_completed', 0)
-        self.current_epsilon = self.training_metadata.get('epsilon', 1.0)
+        self.trainingMetadata = self.modelManager.loadModelIfExists()
+        self.startEpisode = self.trainingMetadata.get('episodes_completed', 0)
+        self.currentEpsilon = self.trainingMetadata.get('epsilon', 1.0)
 
         print(f"[OK] AI processor created (state_size={self.ai_processor.brain.state_size})")
-        if self.start_episode > 0:
-            print(f"[RESUME] Resuming from episode {self.start_episode}, epsilon={self.current_epsilon:.3f}")
+        if self.startEpisode > 0:
+            print(f"[RESUME] Resuming from episode {self.startEpisode}, epsilon={self.currentEpsilon:.3f}")
         print()
 
-    def setup_entities(self):
+    def setupEntities(self):
         """Creates entities for training (Leviathans, bases, mines...)."""
         for entity in list(es._entities.keys()):
             es.delete_entity(entity)
 
         print("[SETUP] Creating bases...")
 
-        ally_base = es.create_entity()
-        es.add_component(ally_base, PositionComponent(1000, 1000, 0))
-        es.add_component(ally_base, HealthComponent(500, 500))
-        es.add_component(ally_base, TeamComponent(1))
-        es.add_component(ally_base, BaseComponent())
+        allyBase = es.create_entity()
+        es.add_component(allyBase, PositionComponent(1000, 1000, 0))
+        es.add_component(allyBase, HealthComponent(500, 500))
+        es.add_component(allyBase, TeamComponent(1))
+        es.add_component(allyBase, BaseComponent())
 
-        enemy_base = es.create_entity()
-        es.add_component(enemy_base, PositionComponent(5000, 5000, 0))
-        es.add_component(enemy_base, HealthComponent(500, 500))
-        es.add_component(enemy_base, TeamComponent(2))
-        es.add_component(enemy_base, BaseComponent())
+        enemyBase = es.create_entity()
+        es.add_component(enemyBase, PositionComponent(5000, 5000, 0))
+        es.add_component(enemyBase, HealthComponent(500, 500))
+        es.add_component(enemyBase, TeamComponent(2))
+        es.add_component(enemyBase, BaseComponent())
 
         print("[SETUP] Creating AI Leviathans for both teams...")
         self.leviathans = []
@@ -151,49 +151,49 @@ class AITrainer:
         print(f"[OK] {len(self.leviathans)} AI Leviathans created (3 allies + 3 enemies)")
         print()
 
-    def run_episode(self, episode_num: int):
+    def runEpisode(self, episodeNum: int):
         """
         Runs a training episode.
 
         Args:
-            episode_num: The current episode number
+            episodeNum: The current episode number
         """
-        total_episode = self.start_episode + episode_num + 1
+        totalEpisode = self.startEpisode + episodeNum + 1
 
-        if self.verbose or episode_num % 10 == 0 or episode_num == self.episodes - 1:
-            print(f"[EPISODE] {episode_num + 1}/{self.episodes} (Total: {total_episode})")
+        if self.verbose or episodeNum % 10 == 0 or episodeNum == self.episodes - 1:
+            print(f"[EPISODE] {episodeNum + 1}/{self.episodes} (Total: {totalEpisode})")
 
-        self.setup_entities()
+        self.setupEntities()
 
-        total_episodes = self.start_episode + episode_num
-        epsilon_decay = max(0.01, 1.0 * (0.995 ** total_episodes))
+        totalEpisodes = self.startEpisode + episodeNum
+        epsilonDecay = max(0.01, 1.0 * (0.995 ** totalEpisodes))
 
         for entity in self.leviathans:
             if es.has_component(entity, AILeviathanComponent):
                 ai_comp = es.component_for_entity(entity, AILeviathanComponent)
-                ai_comp.reset_episode()
-                ai_comp.epsilon = epsilon_decay
+                ai_comp.resetEpisode()
+                ai_comp.epsilon = epsilonDecay
 
-        self.current_epsilon = epsilon_decay
+        self.currentEpsilon = epsilonDecay
 
-        step_count = 0
+        stepCount = 0
 
-        for step in range(self.steps_per_episode):
-            step_count += 1
+        for step in range(self.stepsPerEpisode):
+            stepCount += 1
 
             if step % 5 == 0:
-                self._simulate_enemy_movements()
+                self._simulateEnemyMovements()
 
             if self.verbose and step % 50 == 0:
-                self._print_ai_states(step)
+                self._printAiStates(step)
 
             self.ai_processor.process(self.dt)
 
             if self.verbose and step % 50 == 0:
-                self._print_ai_actions(step)
-                self._print_learning_info()
+                self._printAiActions(step)
+                self._printLearningInfo()
 
-            if (step + 1) % 500 == 0 and (episode_num % 10 == 0):
+            if (step + 1) % 500 == 0 and (episodeNum % 10 == 0):
                 current_total_reward = 0.0
                 for entity in self.leviathans:
                     if es.has_component(entity, AILeviathanComponent):
@@ -202,27 +202,27 @@ class AITrainer:
 
                 avg_reward = current_total_reward / len(self.leviathans) if self.leviathans else 0
                 epsilon = ai_comp.epsilon if 'ai_comp' in locals() else 0.0
-                print(f"   Step {step + 1}/{self.steps_per_episode} - "
+                print(f"   Step {step + 1}/{self.stepsPerEpisode} - "
                       f"Avg Reward: {avg_reward:.2f} - "
                       f"Epsilon: {epsilon:.3f}")
 
-            base_destroyed = self._check_base_destroyed()
-            if base_destroyed:
-                if episode_num % 10 == 0:
+            baseDestroyed = self._checkBaseDestroyed()
+            if baseDestroyed:
+                if episodeNum % 10 == 0:
                     print(f"   [END] A BASE WAS DESTROYED! Episode ended.")
                 break
 
-        final_total_reward = 0.0
+        finalTotalReward = 0.0
         for entity in self.leviathans:
             if es.has_component(entity, AILeviathanComponent):
                 ai_comp = es.component_for_entity(entity, AILeviathanComponent)
-                final_total_reward += ai_comp.episode_reward
+                finalTotalReward += ai_comp.episode_reward
 
-        avg_reward = final_total_reward / len(self.leviathans) if self.leviathans else 0
+        avg_reward = finalTotalReward / len(self.leviathans) if self.leviathans else 0
 
-        if self.verbose or episode_num % 10 == 0 or episode_num == self.episodes - 1:
-            stats = self.ai_processor.get_statistics()
-            print(f"   [DONE] Episode finished - {step_count} steps")
+        if self.verbose or episodeNum % 10 == 0 or episodeNum == self.episodes - 1:
+            stats = self.ai_processor.getStatistics()
+            print(f"   [DONE] Episode finished - {stepCount} steps")
             print(f"   [REWARD] Average reward: {avg_reward:.2f}")
             print(f"   [TRAIN] Trainings: {stats['training_count']}")
             print(f"   [ACTIONS] Total actions: {stats['total_actions']}")
@@ -246,23 +246,23 @@ class AITrainer:
 
         return avg_reward
 
-    def _simulate_enemy_movements(self):
+    def _simulateEnemyMovements(self):
         """Simulates random movements for non-AI entities."""
-        ai_entities = set()
+        aiEntities = set()
         for entity, _ in es.get_component(AILeviathanComponent):
-            ai_entities.add(entity)
+            aiEntities.add(entity)
 
         for entity, (pos, vel) in es.get_components(
             PositionComponent, VelocityComponent
         ):
-            if entity in ai_entities:
+            if entity in aiEntities:
                 continue
 
             if random.random() < 0.1:
                 pos.direction = random.randint(0, 360)
                 vel.currentSpeed = vel.maxUpSpeed if random.random() > 0.5 else 0
 
-    def _check_base_destroyed(self) -> bool:
+    def _checkBaseDestroyed(self) -> bool:
         """Checks if any base has been destroyed."""
         for entity, (base, health) in es.get_components(
             BaseComponent, HealthComponent
@@ -271,7 +271,7 @@ class AITrainer:
                 return True
         return False
 
-    def _print_ai_states(self, step: int):
+    def _printAiStates(self, step: int):
         """Prints the current state of all AI-controlled Leviathans."""
         print(f"\n   --- [STEP {step}] AI STATES BEFORE ACTION ---")
         from src.ai.leviathan_brain import LeviathanBrain
@@ -306,7 +306,7 @@ class AITrainer:
                     if len(state) > 6:
                         print(f"         Nearest enemy direction: {state[5]:.3f}, {state[6]:.3f}")
 
-    def _print_ai_actions(self, step: int):
+    def _printAiActions(self, step: int):
         """Prints the actions taken by all AI-controlled Leviathans."""
         print(f"\n   --- [STEP {step}] AI ACTIONS TAKEN ---")
         from src.ai.leviathan_brain import LeviathanBrain
@@ -333,7 +333,7 @@ class AITrainer:
                 print(f"      Total actions taken: {len(ai_comp.action_history)}")
                 print(f"      Buffer size: {len(ai_comp.state_history)} experiences")
 
-    def _print_learning_info(self):
+    def _printLearningInfo(self):
         """Prints information about the learning process."""
         print(f"\n   --- LEARNING INFO ---")
 
@@ -349,7 +349,7 @@ class AITrainer:
         print(f"      Average per AI: {total_experiences / len(self.leviathans):.0f}")
         print(f"      Max buffer per AI: {max_buffer}")
 
-        stats = self.ai_processor.get_statistics()
+        stats = self.ai_processor.getStatistics()
         print(f"      Total trainings: {stats['training_count']}")
         print(f"      Total actions taken: {stats['total_actions']}")
 
@@ -372,27 +372,27 @@ class AITrainer:
         print(f"[TIME] Estimated duration: {self.episodes * 2:.0f} seconds (~{self.episodes * 2 / 60:.1f} minutes)")
         print()
 
-        start_time = time.time()
-        rewards_history = []
+        startTime = time.time()
+        rewardsHistory = []
 
         try:
             for episode in range(self.episodes):
-                avg_reward = self.run_episode(episode)
-                rewards_history.append(avg_reward)
+                avg_reward = self.runEpisode(episode)
+                rewardsHistory.append(avg_reward)
 
                 # Save the model every N episodes with metadata
-                if (episode + 1) % self.save_interval == 0:
+                if (episode + 1) % self.saveInterval == 0:
                     print(f"[SAVE] Saving model (episode {episode + 1})...")
                     metadata = {
-                        'episodes_completed': self.start_episode + episode + 1,
-                        'epsilon': self.current_epsilon,
-                        'total_rewards': rewards_history,
-                        'last_avg_reward': rewards_history[-1] if rewards_history else 0
+                        'episodes_completed': self.startEpisode + episode + 1,
+                        'epsilon': self.currentEpsilon,
+                        'total_rewards': rewardsHistory,
+                        'last_avg_reward': rewardsHistory[-1] if rewardsHistory else 0
                     }
-                    self.model_manager.save_model(metadata=metadata)
+                    self.modelManager.saveModel(metadata=metadata)
 
-                    if len(rewards_history) >= 10:
-                        recent_avg = sum(rewards_history[-10:]) / 10
+                    if len(rewardsHistory) >= 10:
+                        recent_avg = sum(rewardsHistory[-10:]) / 10
                         print(f"[STATS] Last 10 episodes average reward: {recent_avg:.2f}")
                     print()
 
@@ -402,30 +402,30 @@ class AITrainer:
             print()
 
         print("[SAVE] Final model save...")
-        final_metadata = {
-            'episodes_completed': self.start_episode + len(rewards_history),
-            'epsilon': self.current_epsilon,
-            'total_rewards': rewards_history,
-            'last_avg_reward': rewards_history[-1] if rewards_history else 0
+        finalMetadata = {
+            'episodes_completed': self.startEpisode + len(rewardsHistory),
+            'epsilon': self.currentEpsilon,
+            'total_rewards': rewardsHistory,
+            'last_avg_reward': rewardsHistory[-1] if rewardsHistory else 0
         }
-        self.model_manager.save_model(metadata=final_metadata)
+        self.modelManager.saveModel(metadata=finalMetadata)
 
-        elapsed_time = time.time() - start_time
-        stats = self.ai_processor.get_statistics()
+        elapsedTime = time.time() - startTime
+        stats = self.ai_processor.getStatistics()
 
         print()
         print("=" * 60)
         print("[FINAL STATISTICS]")
         print("=" * 60)
-        total_completed = self.start_episode + len(rewards_history)
-        print(f"[TIME] Total time: {elapsed_time:.1f} seconds ({elapsed_time / 60:.1f} minutes)")
-        print(f"[EPISODES] Completed this session: {len(rewards_history)}/{self.episodes}")
-        print(f"[EPISODES] Total trained: {total_completed}")
+        totalCompleted = self.startEpisode + len(rewardsHistory)
+        print(f"[TIME] Total time: {elapsedTime:.1f} seconds ({elapsedTime / 60:.1f} minutes)")
+        print(f"[EPISODES] Completed this session: {len(rewardsHistory)}/{self.episodes}")
+        print(f"[EPISODES] Total trained: {totalCompleted}")
         print(f"[ACTIONS] Total actions: {stats['total_actions']}")
         print(f"[TRAIN] Trainings: {stats['training_count']}")
-        print(f"[REWARD] Final average reward: {rewards_history[-1] if rewards_history else 0:.2f}")
-        print(f"[EPSILON] Final epsilon: {self.current_epsilon:.3f}")
-        print(f"[PROGRESS] {rewards_history[0]:.2f} -> {rewards_history[-1]:.2f}" if len(rewards_history) > 1 else "")
+        print(f"[REWARD] Final average reward: {rewardsHistory[-1] if rewardsHistory else 0:.2f}")
+        print(f"[EPSILON] Final epsilon: {self.currentEpsilon:.3f}")
+        print(f"[PROGRESS] {rewardsHistory[0]:.2f} -> {rewardsHistory[-1]:.2f}" if len(rewardsHistory) > 1 else "")
 
         print()
         print("[ACTIONS] Most used actions:")
@@ -465,9 +465,9 @@ def main():
         print(f"Steps per episode: {steps}")
         print(f"Verbose mode: {'ENABLED' if verbose else 'DISABLED'}")
     except (IndexError, ValueError):
-        print("Usage: python train_ai_leviathan.py [episodes] [steps_per_episode] [verbose]")
+        print("Usage: python trainAiLeviathan.py [episodes] [stepsPerEpisode] [verbose]")
         print(f"Using default values: {episodes} episodes, {steps} steps, verbose={verbose}")
-        print("Example: python train_ai_leviathan.py 100 1000 true")
+        print("Example: python trainAiLeviathan.py 100 1000 true")
 
     print()
 
@@ -476,7 +476,7 @@ def main():
         print()
 
     # Create and run the trainer
-    trainer = AITrainer(episodes=episodes, steps_per_episode=steps, verbose=verbose)
+    trainer = AITrainer(episodes=episodes, stepsPerEpisode=steps, verbose=verbose)
     trainer.train()
 
 

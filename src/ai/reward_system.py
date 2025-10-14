@@ -53,7 +53,7 @@ class RewardSystem:
     STATIONARY_TIME_PENALTY = 3.0
 
     @staticmethod
-    def calculate_reward(
+    def calculateReward(
         entity: int,
         ai_comp: AILeviathanComponent,
         dt: float,
@@ -71,46 +71,46 @@ class RewardSystem:
         """
         total_reward = 0.0
 
-        movement_reward = RewardSystem._calculate_movement_reward(entity, ai_comp, dt)
+        movement_reward = RewardSystem._calculateMovementReward(entity, ai_comp, dt)
         total_reward += movement_reward
 
-        health_reward = RewardSystem._calculate_health_reward(entity, ai_comp)
+        health_reward = RewardSystem._calculateHealthReward(entity, ai_comp)
         total_reward += health_reward
 
-        kill_reward = RewardSystem._calculate_kill_reward(ai_comp)
+        kill_reward = RewardSystem._calculateKillReward(ai_comp)
         total_reward += kill_reward
 
-        special_reward = RewardSystem._calculate_special_ability_reward(ai_comp)
+        special_reward = RewardSystem._calculateSpecialAbilityReward(ai_comp)
         total_reward += special_reward
 
-        event_reward = RewardSystem._calculate_event_reward(entity, ai_comp)
+        event_reward = RewardSystem._calculateEventReward(entity, ai_comp)
         total_reward += event_reward
 
-        resource_reward = RewardSystem._calculate_resource_reward(ai_comp)
+        resource_reward = RewardSystem._calculateResourceReward(ai_comp)
         total_reward += resource_reward
 
-        mine_reward = RewardSystem._calculate_mine_reward(entity, ai_comp)
+        mine_reward = RewardSystem._calculateMineReward(entity, ai_comp)
         total_reward += mine_reward
 
-        base_reward = RewardSystem._calculate_base_destruction_reward(ai_comp)
+        base_reward = RewardSystem._calculateBaseDestructionReward(ai_comp)
         total_reward += base_reward
 
         survival_reward = RewardSystem.REWARD_SURVIVAL
         total_reward += survival_reward
 
-        attack_reward = RewardSystem._calculate_attack_reward(ai_comp)
+        attack_reward = RewardSystem._calculateAttackReward(ai_comp)
         total_reward += attack_reward
 
-        base_approach_reward = RewardSystem._calculate_base_approach_reward(entity, ai_comp)
+        base_approach_reward = RewardSystem._calculateBaseApproachReward(entity, ai_comp)
         total_reward += base_approach_reward
 
-        cooperation_reward = RewardSystem._calculate_cooperation_reward(entity, ai_comp)
+        cooperation_reward = RewardSystem._calculateCooperationReward(entity, ai_comp)
         total_reward += cooperation_reward
 
         return total_reward
 
     @staticmethod
-    def _calculate_movement_reward(
+    def _calculateMovementReward(
         entity: int,
         ai_comp: AILeviathanComponent,
         dt: float,
@@ -140,7 +140,7 @@ class RewardSystem:
         return 0.0
 
     @staticmethod
-    def _calculate_health_reward(entity: int, ai_comp: AILeviathanComponent) -> float:
+    def _calculateHealthReward(entity: int, ai_comp: AILeviathanComponent) -> float:
         """Calculates the reward related to health changes."""
         if not es.has_component(entity, HealthComponent):
             return 0.0
@@ -162,14 +162,14 @@ class RewardSystem:
         return 0.0
 
     @staticmethod
-    def _calculate_kill_reward(ai_comp: AILeviathanComponent) -> float:
+    def _calculateKillReward(ai_comp: AILeviathanComponent) -> float:
         """Calculates the reward for killing enemies."""
         if ai_comp.kills_count > 0:
             return ai_comp.kills_count * RewardSystem.REWARD_KILL
         return 0.0
 
     @staticmethod
-    def _calculate_special_ability_reward(ai_comp: AILeviathanComponent) -> float:
+    def _calculateSpecialAbilityReward(ai_comp: AILeviathanComponent) -> float:
         """Calculates the reward for using the special ability."""
         if ai_comp.special_ability_uses > 0:
             reward = ai_comp.special_ability_uses * RewardSystem.REWARD_SPECIAL_ABILITY_USE
@@ -177,7 +177,7 @@ class RewardSystem:
         return 0.0
 
     @staticmethod
-    def _calculate_event_reward(entity: int, ai_comp: AILeviathanComponent) -> float:
+    def _calculateEventReward(entity: int, ai_comp: AILeviathanComponent) -> float:
         """Calculates the reward related to events (storms, bandits)."""
         total_reward = 0.0
 
@@ -206,7 +206,7 @@ class RewardSystem:
         return total_reward
 
     @staticmethod
-    def _calculate_resource_reward(ai_comp: AILeviathanComponent) -> float:
+    def _calculateResourceReward(ai_comp: AILeviathanComponent) -> float:
         """Calculates the reward for collecting resources."""
         if ai_comp.resources_collected > 0:
             reward = ai_comp.resources_collected * RewardSystem.REWARD_RESOURCE_COLLECTED
@@ -214,7 +214,7 @@ class RewardSystem:
         return 0.0
 
     @staticmethod
-    def _calculate_mine_reward(entity: int, ai_comp: AILeviathanComponent) -> float:
+    def _calculateMineReward(entity: int, ai_comp: AILeviathanComponent) -> float:
         """Calculates the reward/penalty related to mines."""
         from src.components.core.attackComponent import AttackComponent
         from src.components.core.teamComponent import TeamComponent
@@ -248,7 +248,7 @@ class RewardSystem:
         return reward
 
     @staticmethod
-    def _calculate_base_destruction_reward(ai_comp: AILeviathanComponent) -> float:
+    def _calculateBaseDestructionReward(ai_comp: AILeviathanComponent) -> float:
         """Calculates the reward for destroying the enemy base."""
         if hasattr(ai_comp, 'base_destroyed') and ai_comp.base_destroyed:
             ai_comp.base_destroyed = False
@@ -256,7 +256,7 @@ class RewardSystem:
         return 0.0
 
     @staticmethod
-    def _calculate_attack_reward(ai_comp: AILeviathanComponent) -> float:
+    def _calculateAttackReward(ai_comp: AILeviathanComponent) -> float:
         """Calculates reward for attacking actions."""
         if hasattr(ai_comp, 'attack_actions') and ai_comp.attack_actions > 0:
             reward = ai_comp.attack_actions * RewardSystem.REWARD_ATTACK_ACTION
@@ -265,7 +265,7 @@ class RewardSystem:
         return 0.0
 
     @staticmethod
-    def _calculate_base_approach_reward(entity: int, ai_comp: AILeviathanComponent) -> float:
+    def _calculateBaseApproachReward(entity: int, ai_comp: AILeviathanComponent) -> float:
         """Calculates reward based on proximity to enemy base."""
         from src.components.core.baseComponent import BaseComponent
         from src.components.core.teamComponent import TeamComponent
@@ -316,7 +316,7 @@ class RewardSystem:
         return total_reward
 
     @staticmethod
-    def _calculate_cooperation_reward(entity: int, ai_comp: AILeviathanComponent) -> float:
+    def _calculateCooperationReward(entity: int, ai_comp: AILeviathanComponent) -> float:
         """Calculates rewards for cooperative behavior with allies."""
         from src.components.core.teamComponent import TeamComponent
 
