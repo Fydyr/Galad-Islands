@@ -28,12 +28,7 @@ from src.constants.gameplay import (
     UNIT_COST_SCOUT, UNIT_COST_MARAUDEUR, UNIT_COST_LEVIATHAN,
     UNIT_COST_DRUID, UNIT_COST_ARCHITECT, UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER
 )
-from src.settings.settings import ConfigManager, TILE_SIZE, config_manager
-from src.components.core.positionComponent import PositionComponent
-from src.components.globals.mapComponent import is_tile_island
-from src.factory.buildingFactory import create_defense_tower
-from src.components.core.baseComponent import BaseComponent
-
+from src.settings.settings import config_manager
 
 # Couleurs de l'interface améliorées
 class UIColors:
@@ -278,17 +273,6 @@ class ActionBar:
         
         # Boutons globaux
         global_buttons = [
-            # Bouton self-play (toggle IA vs IA)
-            ActionButton(
-                action_type=ActionType.SWITCH_CAMP,  # reuse a type for hotkey mapping if needed
-                icon_path="assets/sprites/ui/self_play.png",
-                text="Self-Play",
-                cost=0,
-                hotkey="",
-                tooltip="Toggle IA vs IA (Self-Play)",
-                is_global=True,
-                callback=self._toggle_self_play
-            ),
         ]
         
         # Vérifier si le mode debug ou dev_mode est activé pour afficher le bouton
@@ -949,21 +933,6 @@ class ActionBar:
         shortcut_rect.centerx = self.camp_button_rect.centerx
         shortcut_rect.bottom = self.camp_button_rect.bottom - 2
         surface.blit(shortcut_surface, shortcut_rect)
-
-    def _toggle_self_play(self):
-        """Callback du bouton Self-Play: bascule le mode IA vs IA."""
-        if not getattr(self, 'game_engine', None):
-            return
-
-        try:
-            if getattr(self.game_engine, 'self_play_mode', False):
-                self.game_engine.disable_self_play()
-                self.self_play_mode = False
-            else:
-                self.game_engine.enable_self_play()
-                self.self_play_mode = True
-        except Exception:
-            pass
     
     def _draw_button(self, surface: pygame.Surface, button: ActionButton, rect: pygame.Rect, 
                      is_hovered: bool, is_global: bool = False):

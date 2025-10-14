@@ -24,14 +24,17 @@ from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.baseComponent import BaseComponent
 from src.components.core.projectileComponent import ProjectileComponent
+from src.components.core.healthComponent import HealthComponent
 from src.components.core.UnitAiComponent import UnitAiComponent
 from src.constants.gameplay import SPECIAL_ABILITY_COOLDOWN
+
 
 class UnitAiProcessor(esper.Processor):
     """
     Gère les décisions tactiques pour les unités contrôlées par l'IA.
     Utilise un modèle scikit-learn pour le Kamikaze.
     """
+
     def __init__(self, grid):
         self.grid = grid
         self.model = None
@@ -39,35 +42,42 @@ class UnitAiProcessor(esper.Processor):
 
     def load_or_train_model(self):
         """Charge le modèle du Kamikaze ou l'entraîne s'il n'existe pas."""
-        model_path = "src/models/kamikaze_ai_model.pkl"
+        model_path = "src/models/kamikaze_rf_ai_model.pkl"
         if os.path.exists(model_path):
-            print("🤖 Chargement du modèle IA pour le Kamikaze...")
+            print("🤖 Chargement du modèle IA RF pour le Kamikaze...")
             self.model = joblib.load(model_path)
             print("✅ Modèle IA Kamikaze chargé.")
+        elif os.path.exists("src/models/kamikaze_ai_model.pkl"):
+            print("🤖 Chargement du modèle IA pour le Kamikaze...")
+            self.model = joblib.load("src/models/kamikaze_ai_model.pkl")
+            print("✅ Modèle IA Kamikaze chargé.")
         else:
-            print("🤖 Aucun modèle trouvé pour le Kamikaze, entraînement d'un nouveau modèle...")
+            print(
+                "🤖 Aucun modèle trouvé pour le Kamikaze, entraînement d'un nouveau modèle...")
             self.train_model()
-            os.makedirs("models", exist_ok=True)
+            os.makedirs("src/models", exist_ok=True)
             joblib.dump(self.model, model_path)
             print(f"💾 Nouveau modèle Kamikaze sauvegardé : {model_path}")
 
     def train_model(self):
         """Entraîne le modèle de décision pour le Kamikaze avec des simulations avancées."""
         print("🚀 Début de l'entraînement avancé de l'IA du Kamikaze...")
-        
-        # Générer des données d'entraînement avec simulations complètes
-        features, labels = self.generate_advanced_training_data(n_simulations=1000)
-        
-        if not features:
+
+        # Générer des données d'entraînement avec la nouvelle simulation RL
+        states, actions, rewards = self.generate_advanced_training_data(
+            n_simulations=1000)
+
+        if not states:
             print("⚠️ Aucune donnée d'entraînement générée pour le Kamikaze.")
             return
 
-        X = np.array(features)
-        y = np.array(labels)
+        X = np.array(states)
+        y_actions = np.array(actions)
+        y_rewards = np.array(rewards)
 
         # Split pour évaluation
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
+            X, y_rewards, test_size=0.2, random_state=42
         )
 
         # Modèle optimisé pour les décisions de mouvement avec apprentissage par renforcement
@@ -77,148 +87,291 @@ class UnitAiProcessor(esper.Processor):
             min_samples_leaf=10,
             random_state=42
         )
-        
+
         self.model.fit(X_train, y_train)
-        
+
         # Évaluation
         y_pred = self.model.predict(X_test)
         mse = mean_squared_error(y_test, y_pred)
-        
-        print(f"✅ Entraînement terminé - Erreur quadratique moyenne: {mse:.3f}")
+
+        print(
+            f"✅ Entraînement terminé - Erreur quadratique moyenne: {mse:.3f}")
         print(f"📊 Données d'entraînement: {len(X_train)} exemples")
         print(f"📊 Données de test: {len(X_test)} exemples")
 
     def generate_advanced_training_data(self, n_simulations=1000):
-        """Génère des données d'entraînement avec simulations complètes de trajectoires pour RL."""
-        print(f"🎯 Génération de données RL: {n_simulations} simulations...")
-        
-        all_states_actions = []
+        """Génère des données d'entraînement avec simulations RL + scénarios d'évitement explicites."""
+        print(f"🎯 Génération de données RL pour Kamikaze: {n_simulations} simulations...")
+
+        all_states = []
+        all_actions = []
         all_rewards = []
-        
+
+
+        # SCÉNARIOS EXPLICITES : LIGNE DROITE (boost dispo ET boost indisponible)
+        for _ in range(n_simulations // 10):
+            # Ligne droite, boost dispo
+            unit_pos = PositionComponent(x=200, y=750, direction=0)
+            target_pos = PositionComponent(x=1800, y=750)
+            obstacles = []
+            threats = []
+            # Boost dispo
+            features = self._get_features_for_state(unit_pos, target_pos, obstacles, threats, boost_cooldown=0.0)
+            for act in range(4):
+                reward = 50 if act == 0 else -30  # Continuer = récompense, autres = pénalité
+                all_states.append(features)
+                all_actions.append(act)
+                all_rewards.append(reward)
+            # Boost indisponible
+            features = self._get_features_for_state(unit_pos, target_pos, obstacles, threats, boost_cooldown=5.0)
+            for act in range(4):
+                reward = 50 if act == 0 else -30
+                all_states.append(features)
+                all_actions.append(act)
+                all_rewards.append(reward)
+
+        # SCÉNARIOS D'ÉVITEMENT EXPLICITES (obstacle/menace devant)
+        for _ in range(n_simulations // 10):
+            # Obstacle droit devant
+            unit_pos = PositionComponent(x=200, y=750, direction=0)
+            target_pos = PositionComponent(x=1800, y=750)
+            obstacles = [PositionComponent(x=400, y=750)]
+            threats = []
+            features = self._get_features_for_state(unit_pos, target_pos, obstacles, threats, boost_cooldown=0.0)
+            for act in range(4):
+                reward = -50 if act == 0 else 20
+                all_states.append(features)
+                all_actions.append(act)
+                all_rewards.append(reward)
+            # Menace droit devant
+            obstacles = []
+            threats = [PositionComponent(x=400, y=750)]
+            features = self._get_features_for_state(unit_pos, target_pos, obstacles, threats, boost_cooldown=0.0)
+            for act in range(4):
+                reward = -50 if act == 0 else 20
+                all_states.append(features)
+                all_actions.append(act)
+                all_rewards.append(reward)
+
+
+        # GÉNÉRATION RL CLASSIQUE AVEC GRILLE RÉALISTE (îles, nuages, mines)
         for sim in range(n_simulations):
-            states_actions, rewards = self.simulate_kamikaze_trajectory()
-            all_states_actions.extend(states_actions)
+            # Génère une grille réaliste :
+            if hasattr(self, '_mines_for_training') and self._mines_for_training is not None:
+                grid = self.grid
+                mines = [PositionComponent(x=m['x'], y=m['y']) for m in self._mines_for_training]
+            else:
+                grid = [[0 for _ in range(30)] for _ in range(30)]
+                for _ in range(random.randint(6, 10)):
+                    ix = random.randint(3, 26)
+                    iy = random.randint(3, 26)
+                    grid[ix][iy] = 2
+                for _ in range(random.randint(3, 7)):
+                    ix = random.randint(3, 26)
+                    iy = random.randint(3, 26)
+                    if grid[ix][iy] == 0:
+                        grid[ix][iy] = 3
+                mines = [PositionComponent(x=random.uniform(200, 1800), y=random.uniform(200, 1300)) for _ in range(random.randint(2, 5))]
+
+            # Position initiale et cible
+            unit_pos = PositionComponent(x=random.uniform(100, 500), y=random.uniform(100, 1400), direction=random.uniform(0, 360))
+            if random.random() < 0.7:
+                target_pos = PositionComponent(x=1800, y=750)
+            else:
+                target_pos = PositionComponent(x=random.uniform(1000, 1600), y=random.uniform(400, 1100))
+
+            # Obstacles = îles + nuages (convertis en positions)
+            obstacles = []
+            for ix in range(30):
+                for iy in range(30):
+                    if grid[ix][iy] in (2, 3):
+                        obstacles.append(PositionComponent(x=ix * 60 + 30, y=iy * 60 + 30))
+            obstacles += mines
+
+            # Menaces (aléatoires)
+            threats = [PositionComponent(x=random.uniform(200, 1800), y=random.uniform(200, 1300)) for _ in range(random.randint(0, 2))]
+
+            # Simule la trajectoire RL
+            states, actions, rewards = self.simulate_kamikaze_trajectory_rl_custom(unit_pos, target_pos, obstacles, threats)
+            all_states.extend(states)
+            all_actions.extend(actions)
             all_rewards.extend(rewards)
-            
+
             if (sim + 1) % 100 == 0:
                 print(f"  📊 Simulations terminées: {sim + 1}/{n_simulations}")
 
-        print(f"📈 Données RL générées: {len(all_states_actions)} exemples (état-action, récompense)")
+        print(f"📈 Données RL générées: {len(all_states)} exemples")
 
-        return all_states_actions, all_rewards
-
-    def simulate_kamikaze_trajectory(self):
-        """Simule une trajectoire complète de Kamikaze avec récompenses pour RL."""
-        states_actions = []
+        return all_states, all_actions, all_rewards
+    def simulate_kamikaze_trajectory_rl_custom(self, unit_pos, target_pos, obstacles, threats):
+        """Simule une trajectoire RL personnalisée avec obstacles/menaces donnés."""
+        states = []
+        actions = []
         rewards = []
-        
-        # === ÉTAT INITIAL ===
-        # Position de départ aléatoire (loin de la base ennemie)
-        start_x = random.uniform(100, 1900)
-        start_y = random.uniform(100, 1400)
-        
-        # Base ennemie comme objectif (position fixe pour cette simulation)
-        target_x = random.uniform(100, 1900)
-        target_y = random.uniform(100, 1400)
-        
-        # S'assurer que la distance initiale est significative
-        while math.hypot(target_x - start_x, target_y - start_y) < 500:
-            target_x = random.uniform(100, 1900)
-            target_y = random.uniform(100, 1400)
-        
-        # État de l'unité
-        unit_pos = PositionComponent(x=start_x, y=start_y, direction=random.uniform(0, 360))
         boost_cooldown = 0.0
-        speed = 50.0  # vitesse de base
-        
+        speed = 50.0
+        max_steps = 150
+        last_distance = math.hypot(target_pos.x - unit_pos.x, target_pos.y - unit_pos.y)
+        for step in range(max_steps):
+            features = self._get_features_for_state(unit_pos, target_pos, obstacles, threats, boost_cooldown)
+            can_boost = boost_cooldown <= 0
+            action = self.decide_kamikaze_action(unit_pos, target_pos, obstacles, threats, can_boost)
+            # Ajout systématique d'un exemple négatif pour boost si indisponible
+            if not can_boost:
+                states.append(features)
+                actions.append(3)  # action boost
+                rewards.append(-200)  # pénalité très forte
+            # Empêcher l'apprentissage du boost quand il n'est pas dispo (cas politique):
+            if action == 3 and not can_boost:
+                # On pénalise fortement cette action pour ce step
+                states.append(features)
+                actions.append(action)
+                rewards.append(-200)
+                # On continue sans appliquer l'action boost
+                continue
+            states.append(features)
+            actions.append(action)
+            # Appliquer l'action
+            turn_angle = 15
+            if action == 1:
+                unit_pos.direction = (unit_pos.direction - turn_angle) % 360
+            elif action == 2:
+                unit_pos.direction = (unit_pos.direction + turn_angle) % 360
+            elif action == 3 and can_boost:
+                boost_cooldown = SPECIAL_ABILITY_COOLDOWN
+            # Déplacer l'unité
+            rad_direction = math.radians(unit_pos.direction)
+            unit_pos.x += speed * math.cos(rad_direction) * 0.1
+            unit_pos.y += speed * math.sin(rad_direction) * 0.1
+            # Récompense RL
+            step_reward = 0
+            distance_to_target = math.hypot(target_pos.x - unit_pos.x, target_pos.y - unit_pos.y)
+            if distance_to_target < last_distance:
+                step_reward += 2
+            else:
+                step_reward -= 2
+            last_distance = distance_to_target
+            # Pénalité pour collision avec obstacles
+            for obs in obstacles:
+                if math.hypot(obs.x - unit_pos.x, obs.y - unit_pos.y) < 40:
+                    step_reward -= 30
+            # Pénalité pour collision avec menaces
+            for threat in threats:
+                if math.hypot(threat.x - unit_pos.x, threat.y - unit_pos.y) < 40:
+                    step_reward -= 30
+            # Récompense pour avoir atteint la cible
+            if distance_to_target < 30:
+                step_reward += 100
+                rewards.append(step_reward)
+                break
+            rewards.append(step_reward)
+            if boost_cooldown > 0:
+                boost_cooldown -= 0.1
+        if len(rewards) == max_steps:
+            rewards[-1] -= 50
+        return states, actions, rewards
+
+    def simulate_kamikaze_trajectory_rl(self):
+        """Simule une trajectoire complète de Kamikaze avec récompenses pour RL."""
+        states = []
+        actions = []
+        rewards = []
+
+        # === ÉTAT INITIAL ===
+        unit_pos = PositionComponent(x=random.uniform(100, 500), y=random.uniform(
+            100, 1400), direction=random.uniform(0, 360))
+
+        # Cible: soit la base, soit une unité lourde
+        if random.random() < 0.7:  # 70% du temps viser la base
+            target_pos = PositionComponent(x=1800, y=750)
+        else:
+            target_pos = PositionComponent(x=random.uniform(
+                1000, 1600), y=random.uniform(400, 1100))
+
+        boost_cooldown = 0.0
+        speed = 50.0
+
         # === GÉNÉRATION DE L'ENVIRONNEMENT ===
-        # Créer des obstacles (îles et mines)
         obstacles = []
         for _ in range(random.randint(3, 8)):
             obs_x = random.uniform(100, 1900)
             obs_y = random.uniform(100, 1400)
             obstacles.append(PositionComponent(x=obs_x, y=obs_y))
-        
-        # === SIMULATION DE TRAJECTOIRE ===
-        max_steps = 100  # Nombre maximum d'étapes par trajectoire
-        total_reward = 0
-        success = False
-        
+
+        max_steps = 150
+        last_distance = math.hypot(
+            target_pos.x - unit_pos.x, target_pos.y - unit_pos.y)
+
         for step in range(max_steps):
-            # Calculer récompense pour l'étape précédente (sauf première)
-            if step > 0:
-                rewards.append(step_reward)
-            
             # Obtenir les features pour l'état actuel
-            current_features = self._get_features_for_state(unit_pos, PositionComponent(x=target_x, y=target_y), obstacles, [], boost_cooldown)
-            
-            # Décider de l'action avec epsilon-greedy (exploration)
-            if random.random() < 0.1:  # 10% exploration
-                action = random.randint(0, 3)
-            else:
-                # Utiliser la logique à base de règles comme politique
-                can_boost = boost_cooldown <= 0
-                action = self.decide_kamikaze_action(unit_pos, PositionComponent(x=target_x, y=target_y), obstacles, [], can_boost)
-            
-            # Sauvegarder état-action
-            state_action = current_features + [action]
-            states_actions.append(state_action)
-            
+            current_features = self._get_features_for_state(
+                unit_pos, target_pos, obstacles, [], boost_cooldown)
+
+            # Décider de l'action avec la logique à base de règles
+            can_boost = boost_cooldown <= 0
+            action = self.decide_kamikaze_action(
+                unit_pos, target_pos, obstacles, [], can_boost)
+
+            # Sauvegarder l'état et l'action
+            states.append(current_features)
+            actions.append(action)
+
             # Appliquer l'action
+            turn_angle = 15
             if action == 1:  # Tourner à gauche
-                unit_pos.direction = (unit_pos.direction - 15) % 360
-            elif action == 2:  # Tourner à droite  
-                unit_pos.direction = (unit_pos.direction + 15) % 360
+                unit_pos.direction = (unit_pos.direction - turn_angle) % 360
+            elif action == 2:  # Tourner à droite
+                unit_pos.direction = (unit_pos.direction + turn_angle) % 360
             elif action == 3:  # Activer boost
                 boost_cooldown = SPECIAL_ABILITY_COOLDOWN
-                speed = 100.0  # vitesse boostée
-            else:  # Continuer (action 0)
-                speed = 50.0  # vitesse normale
-            
-            # Mettre à jour la position
+                speed = 100.0
+            # Action 0: continuer tout droit (pas de changement de direction)
+
+            # Déplacer l'unité
             rad_direction = math.radians(unit_pos.direction)
-            unit_pos.x += speed * math.cos(rad_direction) * 0.1  # Petit pas pour simulation
+            unit_pos.x += speed * math.cos(rad_direction) * 0.1
             unit_pos.y += speed * math.sin(rad_direction) * 0.1
-            
-            # Garder dans les limites
-            unit_pos.x = max(50, min(2050, unit_pos.x))
-            unit_pos.y = max(50, min(1450, unit_pos.y))
-            
-            # Calculer récompense pour cette action
-            distance_to_target = math.hypot(target_x - unit_pos.x, target_y - unit_pos.y)
-            step_reward = -0.1  # Pénalité légère par étape
-            
-            # Récompense pour approche de la cible
-            if distance_to_target < 100:
-                step_reward += 10  # Grande récompense proche de la cible
-                success = True
-                break
-            elif distance_to_target < 200:
-                step_reward += 1  # Récompense moyenne
-            
+
+            # Calculer la récompense pour cette action
+            step_reward = 0
+            distance_to_target = math.hypot(
+                target_pos.x - unit_pos.x, target_pos.y - unit_pos.y)
+
+            # Récompense pour se rapprocher
+            if distance_to_target < last_distance:
+                step_reward += 2
+            else:
+                step_reward -= 1
+            last_distance = distance_to_target
+
             # Pénalité pour collision avec obstacles
             for obs in obstacles:
                 if math.hypot(obs.x - unit_pos.x, obs.y - unit_pos.y) < 30:
-                    step_reward -= 5  # Grande pénalité pour collision
-                    break
-            
-            # Réduire le cooldown du boost
+                    step_reward -= 100
+                    rewards.append(step_reward)
+                    return states, actions, rewards
+
+            # Récompense pour avoir atteint la cible
+            if distance_to_target < 30:
+                step_reward += 200
+                rewards.append(step_reward)
+                return states, actions, rewards
+
+            rewards.append(step_reward)
+
             if boost_cooldown > 0:
                 boost_cooldown -= 0.1
-            
-            total_reward += step_reward
-        
-        # Récompense finale
-        if success:
-            rewards.append(50)  # Grande récompense pour succès
-        else:
-            rewards.append(-10)  # Pénalité pour échec
-        
-        return states_actions, rewards
+
+        # Pénalité si timeout
+        if len(rewards) == max_steps:
+            rewards[-1] -= 50
+
+        return states, actions, rewards
 
     def process(self, dt, **kwargs):
         # Itérer sur toutes les unités contrôlées par l'IA
         for ent, (ai_comp, pos, vel, team) in esper.get_components(UnitAiComponent, PositionComponent, VelocityComponent, TeamComponent):
+
             ai_comp.last_action_time += dt
             if ai_comp.last_action_time < ai_comp.action_cooldown:
                 continue
@@ -228,7 +381,7 @@ class UnitAiProcessor(esper.Processor):
 
     def kamikaze_logic(self, ent, pos, vel, team):
         """Logique de décision pour le Kamikaze."""
-        target_pos = self.find_enemy_base_position(team.team_id)
+        target_pos = self.find_best_kamikaze_target(pos, team.team_id)
         if not target_pos:
             vel.currentSpeed = 0
             return
@@ -236,40 +389,36 @@ class UnitAiProcessor(esper.Processor):
         obstacles = self.get_nearby_obstacles(pos, 5 * TILE_SIZE, team.team_id)
         threats = self.get_nearby_threats(pos, 5 * TILE_SIZE, team.team_id)
 
-        # 3. Décider de l'action
-        # Action: 0=continuer, 1=tourner_gauche, 2=tourner_droite, 3=activer_boost
-        if self.model:
-            features = self._get_features_for_state(pos, target_pos, obstacles, threats)
-            # Pour chaque action possible, prédire la valeur Q
-            q_values = []
-            for action in range(4):
-                state_action = features + [action]
-                q_value = self.model.predict([state_action])[0]
-                q_values.append(q_value)
-            # Choisir l'action avec la plus haute valeur Q
-            action = np.argmax(q_values)
-        else:
-            # Fallback sur la logique à base de règles si le modèle n'est pas chargé
-            can_boost = esper.has_component(ent, SpeKamikazeComponent) and esper.component_for_entity(ent, SpeKamikazeComponent).can_activate()
-            action = self.decide_kamikaze_action(pos, target_pos, obstacles, threats, can_boost)
+        # Vérifier si le boost est disponible
+        boost_cooldown = 0.0
+        if esper.has_component(ent, SpeKamikazeComponent):
+            spe_comp = esper.component_for_entity(ent, SpeKamikazeComponent)
+            boost_cooldown = spe_comp.cooldown if hasattr(
+                spe_comp, 'cooldown') else 0.0
+
+        # Décider de l'action avec la logique à base de règles (plus fiable)
+        can_boost = boost_cooldown <= 0
+        action = self.decide_kamikaze_action(
+            pos, target_pos, obstacles, threats, can_boost)
 
         # Afficher la décision en console
-        action_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
-        print(f"🤖 IA Kamikaze (entité {ent}): Action {action} - {action_names[action] if 0 <= action < len(action_names) else 'Inconnue'}")
+        action_names = ["Continuer", "Tourner gauche",
+                        "Tourner droite", "Activer boost"]
+        target_angle = self.get_angle_to_target(pos, target_pos)
+        angle_diff = (target_angle - pos.direction + 180) % 360 - 180
+        print(
+            f"🤖 Kamikaze #{ent}: Action={action_names[action]} | Dir={pos.direction:.0f}° | Cible={target_angle:.0f}° | Écart={angle_diff:.0f}° | Dist={math.hypot(target_pos.x - pos.x, target_pos.y - pos.y):.0f}")
 
-        # 4. Exécuter l'action
-        if action == 1: # Tourner à gauche
-            pos.direction = (pos.direction - 15) % 360 # Augmentation de l'angle pour des virages plus serrés
-        elif action == 2: # Tourner à droite
+        # Exécuter l'action
+        if action == 1:  # Tourner à gauche
+            pos.direction = (pos.direction - 15) % 360
+        elif action == 2:  # Tourner à droite
             pos.direction = (pos.direction + 15) % 360
-        elif action == 3: # Activer le boost
+        elif action == 3:  # Activer le boost
             if esper.has_component(ent, SpeKamikazeComponent):
-                esper.component_for_entity(ent, SpeKamikazeComponent).activate()
-        else: # Action 0: Continuer, donc s'aligner sur la cible
-            target_angle = self.get_angle_to_target(pos, target_pos)
-            angle_diff = (target_angle - pos.direction + 180) % 360 - 180
-            # Tourner progressivement vers la cible
-            pos.direction = (pos.direction + np.sign(angle_diff) * min(abs(angle_diff), 5)) % 360
+                esper.component_for_entity(
+                    ent, SpeKamikazeComponent).activate()
+        # Action 0: continuer tout droit (pas de changement)
 
         vel.currentSpeed = vel.maxUpSpeed
 
@@ -283,31 +432,34 @@ class UnitAiProcessor(esper.Processor):
 
         # PRIORITÉ 2: Éviter les obstacles (îles, mines)
         for obs_pos in obstacles:
-            distance_to_obs = math.hypot(obs_pos.x - my_pos.x, obs_pos.y - my_pos.y)
-            if distance_to_obs < 5 * TILE_SIZE:  # Obstacle plus proche (augmenté de 3 à 5)
-                if self.is_in_front(my_pos, obs_pos, distance_max=5 * TILE_SIZE):  # Distance max augmentée
+            distance_to_obs = math.hypot(
+                obs_pos.x - my_pos.x, obs_pos.y - my_pos.y)
+            if distance_to_obs < 3 * TILE_SIZE:
+                if self.is_in_front(my_pos, obs_pos, distance_max=5 * TILE_SIZE):
                     return self.turn_away_from(my_pos, obs_pos)
 
-        # PRIORITÉ 3: Vérifier l'alignement avec la cible
-        distance_to_target = math.hypot(target_pos.x - my_pos.x, target_pos.y - my_pos.y)
+        # PRIORITÉ 3: S'aligner sur la cible
+        distance_to_target = math.hypot(
+            target_pos.x - my_pos.x, target_pos.y - my_pos.y)
         angle_to_target = self.get_angle_to_target(my_pos, target_pos)
-        angle_diff = abs((angle_to_target - my_pos.direction + 180) % 360 - 180)
+        angle_diff = (angle_to_target - my_pos.direction + 180) % 360 - 180
 
-        # PRIORITÉ 3.5: Si bien aligné avec la base ennemie, foncer dessus !
-        if angle_diff <= 15 and can_boost and distance_to_target > 5 * TILE_SIZE:
-            # Vérifier qu'il n'y a pas d'obstacles majeurs sur le chemin
-            obstacles_ahead = [obs for obs in obstacles if self.is_in_front(my_pos, obs, distance_max=3 * TILE_SIZE)]
+        # Si mal aligné, tourner vers la cible
+        if abs(angle_diff) > 20:
+            if angle_diff > 0:
+                return 2  # Tourner à droite
+            else:
+                return 1  # Tourner à gauche
+
+        # PRIORITÉ 4: Activer le boost si bien aligné et loin
+        if can_boost and abs(angle_diff) <= 15 and distance_to_target > 10 * TILE_SIZE:
+            # Vérifier qu'il n'y a pas d'obstacles sur le chemin
+            obstacles_ahead = [obs for obs in obstacles if self.is_in_front(
+                my_pos, obs, distance_max=8 * TILE_SIZE)]
             if not obstacles_ahead:
-                return 3  # Activer le boost pour foncer sur la base !
+                return 3  # Activer le boost
 
-        # PRIORITÉ 4: Activer le boost si conditions réunies
-        if can_boost and distance_to_target > 15 * TILE_SIZE:
-            # Vérifier qu'il n'y a pas d'obstacles sur le chemin du boost
-            obstacles_ahead = [obs for obs in obstacles if self.is_in_front(my_pos, obs, distance_max=8 * TILE_SIZE)]
-            if not obstacles_ahead and random.random() < 0.3:  # 30% de chance si voie libre
-                return 3
-
-        # PRIORITÉ 5: Continuer tout droit (action par défaut)
+        # PRIORITÉ 5: Continuer tout droit
         return 0
 
     def find_enemy_base_position(self, my_team_id):
@@ -317,27 +469,60 @@ class UnitAiProcessor(esper.Processor):
                 return pos
         return None
 
+    def find_best_kamikaze_target(self, my_pos, my_team_id):
+        """Trouve la meilleure cible pour un Kamikaze: base ou unité lourde."""
+        enemy_team_id = 2 if my_team_id == 1 else 1
+
+        # Cibles potentielles: base ennemie et unités lourdes
+        targets = []
+
+        # 1. Base ennemie (priorité absolue)
+        base_pos = self.find_enemy_base_position(my_team_id)
+        if base_pos:
+            targets.append((base_pos, 0))  # Poids 0 = priorité maximale
+
+        # 2. Unités lourdes (ex: Leviathan)
+        for ent, (pos, team, health) in esper.get_components(PositionComponent, TeamComponent, HealthComponent):
+            if team.team_id == enemy_team_id and health.maxHealth > 200:
+                distance = math.hypot(pos.x - my_pos.x, pos.y - my_pos.y)
+                targets.append((pos, distance))
+
+        if not targets:
+            return None
+
+        # Retourner la cible avec le meilleur score (base en priorité)
+        targets.sort(key=lambda t: t[1])
+        return targets[0][0]
+
     def _get_features_for_state(self, my_pos, target_pos, obstacles, threats, boost_cooldown=0.0):
         """Convertit l'état du jeu en un vecteur de features pour le modèle."""
         # Feature 1 & 2: Distance et angle vers la cible principale
-        dist_to_target = math.hypot(target_pos.x - my_pos.x, target_pos.y - my_pos.y) / TILE_SIZE
-        angle_to_target = (self.get_angle_to_target(my_pos, target_pos) - my_pos.direction + 180) % 360 - 180
+        dist_to_target = math.hypot(
+            target_pos.x - my_pos.x, target_pos.y - my_pos.y) / TILE_SIZE
+        angle_to_target = (self.get_angle_to_target(
+            my_pos, target_pos) - my_pos.direction + 180) % 360 - 180
 
-        # Features 3-6: Obstacle le plus proche
+        # Features 3-4: Obstacle le plus proche
         dist_to_obstacle, angle_to_obstacle = 999, 0
         if obstacles:
-            closest_obs = min(obstacles, key=lambda o: math.hypot(o.x - my_pos.x, o.y - my_pos.y))
-            dist_to_obstacle = math.hypot(closest_obs.x - my_pos.x, closest_obs.y - my_pos.y) / TILE_SIZE
-            angle_to_obstacle = (self.get_angle_to_target(my_pos, closest_obs) - my_pos.direction + 180) % 360 - 180
+            closest_obs = min(obstacles, key=lambda o: math.hypot(
+                o.x - my_pos.x, o.y - my_pos.y))
+            dist_to_obstacle = math.hypot(
+                closest_obs.x - my_pos.x, closest_obs.y - my_pos.y) / TILE_SIZE
+            angle_to_obstacle = (self.get_angle_to_target(
+                my_pos, closest_obs) - my_pos.direction + 180) % 360 - 180
 
-        # Features 7-10: Menace la plus proche
+        # Features 5-6: Menace la plus proche
         dist_to_threat, angle_to_threat = 999, 0
         if threats:
-            closest_threat = min(threats, key=lambda t: math.hypot(t.x - my_pos.x, t.y - my_pos.y))
-            dist_to_threat = math.hypot(closest_threat.x - my_pos.x, closest_threat.y - my_pos.y) / TILE_SIZE
-            angle_to_threat = (self.get_angle_to_target(my_pos, closest_threat) - my_pos.direction + 180) % 360 - 180
+            closest_threat = min(threats, key=lambda t: math.hypot(
+                t.x - my_pos.x, t.y - my_pos.y))
+            dist_to_threat = math.hypot(
+                closest_threat.x - my_pos.x, closest_threat.y - my_pos.y) / TILE_SIZE
+            angle_to_threat = (self.get_angle_to_target(
+                my_pos, closest_threat) - my_pos.direction + 180) % 360 - 180
 
-        # Feature 11: Cooldown du boost
+        # Feature 7: Cooldown du boost
         boost_ready = 1 if boost_cooldown <= 0 else 0
 
         return [
@@ -350,27 +535,27 @@ class UnitAiProcessor(esper.Processor):
     def get_nearby_obstacles(self, my_pos: PositionComponent, radius: float, my_team_id: int) -> list[PositionComponent]:
         """Retourne les positions des îles (via la grille) et des mines (via les entités)."""
         obstacles = []
-        
+
         # 1. Scanner les îles sur la grille
         for r in range(1, int(radius / TILE_SIZE)):
             for angle_deg in range(0, 360, 45):
                 angle_rad = math.radians(angle_deg)
                 check_x = my_pos.x + r * TILE_SIZE * math.cos(angle_rad)
                 check_y = my_pos.y + r * TILE_SIZE * math.sin(angle_rad)
-                
-                grid_x, grid_y = int(check_x / TILE_SIZE), int(check_y / TILE_SIZE)
+
+                grid_x, grid_y = int(
+                    check_x / TILE_SIZE), int(check_y / TILE_SIZE)
                 if 0 <= grid_x < len(self.grid[0]) and 0 <= grid_y < len(self.grid):
-                    # TileType.GENERIC_ISLAND = 2
                     if self.grid[grid_y][grid_x] == 2:
                         obstacles.append(PositionComponent(check_x, check_y))
 
         # 2. Scanner les entités "mine" (team_id=0)
         for ent, (pos, team) in esper.get_components(PositionComponent, TeamComponent):
-            if team.team_id == 0 and esper.has_component(ent, TeamComponent): # Les mines sont neutres et ont une attaque
+            if team.team_id == 0:
                 if math.hypot(pos.x - my_pos.x, pos.y - my_pos.y) < radius:
                     obstacles.append(pos)
         return obstacles
-    
+
     def get_nearby_threats(self, my_pos, radius, my_team_id):
         """Retourne les positions des projectiles ennemis proches."""
         threats = []
@@ -390,22 +575,18 @@ class UnitAiProcessor(esper.Processor):
         angle_to_target = self.get_angle_to_target(my_pos, target_pos)
         angle_diff = (angle_to_target - my_pos.direction + 180) % 360 - 180
         if angle_diff > 0:
-            return 1 # Tourner à gauche pour s'éloigner
+            return 1  # Tourner à gauche pour s'éloigner
         else:
-            return 2 # Tourner à droite
+            return 2  # Tourner à droite
 
     def is_in_front(self, my_pos, target_pos, distance_max, angle_cone=90):
         """Vérifie si une cible est devant l'unité dans un cône angulaire."""
-        # Calculer la distance
         distance = math.hypot(target_pos.x - my_pos.x, target_pos.y - my_pos.y)
         if distance > distance_max:
             return False
-        
-        # Calculer l'angle vers la cible
+
         angle_to_target = self.get_angle_to_target(my_pos, target_pos)
-        
-        # Calculer la différence angulaire
-        angle_diff = abs((angle_to_target - my_pos.direction + 180) % 360 - 180)
-        
-        # Vérifier si dans le cône frontal
+        angle_diff = abs(
+            (angle_to_target - my_pos.direction + 180) % 360 - 180)
+
         return angle_diff <= angle_cone / 2

@@ -14,7 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import esper
 import numpy as np
-from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import joblib
@@ -29,33 +28,68 @@ class AdvancedKamikazeAiTrainer:
         self.processor = None
         self.data_path = "src/models/kamikaze_ai_training_data.npz"
 
+    def _generate_realistic_grid(self):
+        """Génère une grille réaliste comme dans le jeu (îles, nuages) et une liste de mines (positions)."""
+        grid = [[0 for _ in range(30)] for _ in range(30)]
+        # Placer des îles (valeur 2)
+        for _ in range(np.random.randint(6, 10)):
+            ix = np.random.randint(3, 27)
+            iy = np.random.randint(3, 27)
+            grid[ix][iy] = 2
+        # Placer des nuages (valeur 3)
+        for _ in range(np.random.randint(3, 7)):
+            ix = np.random.randint(3, 27)
+            iy = np.random.randint(3, 27)
+            if grid[ix][iy] == 0:
+                grid[ix][iy] = 3
+        # Générer des mines (positions aléatoires)
+        mines = []
+        for _ in range(np.random.randint(2, 5)):
+            x = np.random.uniform(200, 1800)
+            y = np.random.uniform(200, 1300)
+            mines.append({'x': x, 'y': y})
+        return grid, mines
+
     def generate_advanced_training_data(self, n_simulations=1000):
-        """Génère des données d'entraînement avancées avec plus de simulations."""
+        """Génère des données d'entraînement avancées avec plus de simulations et une grille réaliste (îles, nuages, mines)."""
         print(f"🎯 Génération de données avancées: {n_simulations} simulations...")
 
-        # Initialiser esper pour que la simulation fonctionne
         esper.clear_database()
 
-        # Créer une grille factice pour l'initialisation du processeur
-        dummy_grid = [[0 for _ in range(30)] for _ in range(30)]
-        dummy_grid[15][15] = 2  # Ajouter une île au milieu
+        realistic_grid, mines = self._generate_realistic_grid()
+        self.processor = UnitAiProcessor(grid=realistic_grid)
+        self.processor._mines_for_training = mines
 
-        # Créer le processeur pour accéder aux méthodes de génération de données
-        self.processor = UnitAiProcessor(grid=dummy_grid)
+        states, actions, rewards = [], [], []
+        try:
+            s, a, r = self.processor.generate_advanced_training_data(n_simulations)
+            states.extend(s)
+            actions.extend(a)
+            rewards.extend(r)
+        except KeyboardInterrupt:
+            print("\n⏹️ Interruption utilisateur (Ctrl+C) : sauvegarde des données d'entraînement...")
+            self._save_training_data([s + [a] for s, a in zip(states, actions)], rewards)
+            print("✅ Données sauvegardées après interruption.")
+            raise
+        except Exception as e:
+            print(f"\n💥 Exception inattendue : {e}\nSauvegarde des données d'entraînement...")
+            self._save_training_data([s + [a] for s, a in zip(states, actions)], rewards)
+            print("✅ Données sauvegardées après crash.")
+            raise
+        finally:
+            if states:
+                print("\n💾 Sauvegarde automatique des données d'entraînement (sortie/crash/interruption)...")
+                self._save_training_data([s + [a] for s, a in zip(states, actions)], rewards)
+                print("✅ Données sauvegardées (finally).")
 
-        # Utiliser la méthode existante pour générer les données
-        states_actions, rewards = self.processor.generate_advanced_training_data(n_simulations)
-
-        print(f"📈 Données générées: {len(states_actions)} exemples")
+        print(f"📈 Données générées: {len(states)} exemples")
         print("🎯 Répartition des récompenses:")
         positive = sum(1 for r in rewards if r > 0)
-        negative = sum(1 for r in rewards if r < 0)
-        zero = sum(1 for r in rewards if r == 0)
+        negative = len(rewards) - positive
         print(f"   Positives: {positive} ({positive/len(rewards)*100:.1f}%)")
         print(f"   Négatives: {negative} ({negative/len(rewards)*100:.1f}%)")
-        print(f"   Neutres: {zero} ({zero/len(rewards)*100:.1f}%)")
 
-        return states_actions, rewards
+        return [s + [a] for s, a in zip(states, actions)], rewards
 
     def _save_training_data(self, states_actions, rewards):
         """Sauvegarde les données d'entraînement dans un fichier."""
@@ -74,7 +108,7 @@ class AdvancedKamikazeAiTrainer:
         print(f"✅ Données chargées: {len(data['states_actions'])} exemples.")
         return data['states_actions'].tolist(), data['rewards'].tolist()
 
-    def train_advanced_model(self, n_simulations=1000, use_cached_data=False):
+    def train_advanced_model(self, n_simulations=3000, use_cached_data=False):
         """Entraîne un modèle avancé avec beaucoup de simulations."""
         start_time = time.time()
 
@@ -100,17 +134,20 @@ class AdvancedKamikazeAiTrainer:
         X = np.array(states_actions)
         y = np.array(rewards)
 
-        # Split avec stratification pour équilibrer les classes
+        # Split des données
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
         )
 
-        # Modèle avec paramètres optimisés pour le Kamikaze
-        model = DecisionTreeRegressor(
-            max_depth=8,  # Profondeur adaptée aux décisions de mouvement
-            min_samples_split=20,  # Évite le surapprentissage
+        # Nouveau modèle : RandomForestRegressor pour plus de robustesse
+        from sklearn.ensemble import RandomForestRegressor
+        model = RandomForestRegressor(
+            n_estimators=40,
+            max_depth=10,
+            min_samples_split=20,
             min_samples_leaf=10,
-            random_state=42
+            random_state=42,
+            n_jobs=-1
         )
 
         model.fit(X_train, y_train)
@@ -123,32 +160,22 @@ class AdvancedKamikazeAiTrainer:
 
         print("✅ Entraînement terminé!")
         print()
-        print("� RÉSULTATS DE L'ENTRAÎNEMENT:")
+        print("📊 RÉSULTATS DE LA FORÊT ALÉATOIRE:")
         print("-" * 40)
         print(f"⏰ Temps d'entraînement: {training_time:.2f} secondes")
         print(f"🎯 Erreur quadratique moyenne finale: {mse:.3f}")
-        print(f"   - Profondeur du modèle: {model.get_depth()}")
-        print(f"   - Nombre de feuilles: {model.get_n_leaves()}")
+        print(f"   - Nombre d'arbres: {model.n_estimators}")
+        print(f"   - Profondeur max: {model.max_depth}")
         print(f"   - Échantillons d'entraînement: {len(X_train)}")
         print(f"   - Échantillons de test: {len(X_test)}")
         print()
 
+        # Sauvegarde du modèle sous un nom distinct
+        rf_model_path = "src/models/kamikaze_ai_rf_model.pkl"
+        joblib.dump(model, rf_model_path)
+        print(f"💾 Modèle RandomForest sauvegardé : {rf_model_path}")
+
         return model, mse
-        model_path = "models/kamikaze_ai_model.pkl"
-        os.makedirs("models", exist_ok=True)
-        joblib.dump(model, model_path)
-        print(f"💾 Modèle sauvegardé: {model_path}")
-
-        print()
-        print("=" * 70)
-        print("🎉 ENTRAÎNEMENT AVANCÉ TERMINÉ AVEC SUCCÈS!")
-        print("=" * 70)
-
-        # Sauvegarder le modèle après l'entraînement
-        model_path = "src/models/kamikaze_ai_model.pkl"
-        joblib.dump(model, model_path)
-        print(f"💾 Modèle sauvegardé: {model_path}")
-        return model, accuracy
 
 
 def main():

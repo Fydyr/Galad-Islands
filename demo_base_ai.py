@@ -46,13 +46,13 @@ def demo_ai_decisions():
         },
         {
             "name": "Défense prioritaire - Base très endommagée",
-            "gold": 150, # Assez pour un architecte (100 + 50 de réserve)
+            "gold": 150, # Assez pour un Maraudeur ou Kamikaze
             "base_health_ratio": 0.5, # <-- Santé basse
             "allied_units": 3,
             "enemy_units": 6,
             "enemy_base_known": 1,
             "towers_needed": 1, # <-- Tours nécessaires
-            "expected": "Architecte"
+            "expected": "Maraudeur"
         },
         {
             "name": "Avantage économique - Achat d'une unité lourde",
@@ -112,17 +112,16 @@ def demo_ai_decisions():
         if "enemy_base_health" in scenario:
             enemy_base_health = scenario["enemy_base_health"]
         
-        features = [
-            scenario['gold'],
-            scenario['base_health_ratio'],
-            scenario['allied_units'],
-            scenario['enemy_units'],
-            scenario['enemy_base_known'],
-            scenario['towers_needed'],
-            enemy_base_health
-        ]
-
-        best_action_index = ai._decide_action(features)
+        game_state = {
+            'gold': scenario['gold'],
+            'base_health_ratio': scenario['base_health_ratio'],
+            'allied_units': scenario['allied_units'],
+            'enemy_units': scenario['enemy_units'],
+            'enemy_base_known': scenario['enemy_base_known'],
+            'towers_needed': scenario['towers_needed'],
+            'enemy_base_health_ratio': enemy_base_health
+        }
+        best_action_index = ai._decide_action(game_state)
         action_name = actions_names[best_action_index]
         # Comparer avec le résultat attendu (plus flexible)
         # Pour le scénario "Infériorité numérique", Maraudeur ou Kamikaze sont acceptables

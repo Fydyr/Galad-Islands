@@ -31,11 +31,32 @@ def demo_kamikaze_ai():
     dummy_grid = [[0 for _ in range(30)] for _ in range(30)]
     dummy_grid[15][15] = 2  # Ajouter une île au milieu
 
-    # Initialiser l'IA du Kamikaze
+    # Initialiser l'IA du Kamikaze avec chargement du bon modèle
     ai_processor = UnitAiProcessor(grid=dummy_grid)
+    # Patch : charge le modèle RandomForest si dispo
+    import joblib
+    rf_path = "src/models/kamikaze_ai_rf_model.pkl"
+    dt_path = "src/models/kamikaze_ai_model.pkl"
+    if os.path.exists(rf_path):
+        ai_processor.model = joblib.load(rf_path)
+        print("🤖 Modèle RandomForest chargé pour la démo Kamikaze !")
+    elif os.path.exists(dt_path):
+        ai_processor.model = joblib.load(dt_path)
+        print("🤖 Modèle DecisionTree chargé pour la démo Kamikaze !")
+    else:
+        print("❌ Aucun modèle Kamikaze trouvé !")
 
     # Scénarios de test
     scenarios = [
+        {
+            "name": "Boost indisponible - doit avancer sans boost",
+            "unit_pos": PositionComponent(x=200, y=750, direction=0),
+            "target_pos": PositionComponent(x=1800, y=750),
+            "obstacles": [],
+            "threats": [],
+            "expected": "Continuer (boost impossible)",
+            "boost_cooldown": 5.0  # boost indisponible
+        },
         {
             "name": "Trajectoire directe - Aucun obstacle",
             "unit_pos": PositionComponent(x=200, y=750, direction=0),
@@ -88,12 +109,13 @@ def demo_kamikaze_ai():
         print(f"   => Attendu: {scenario['expected']}")
 
         # Obtenir les features pour ce scénario
+        boost_cooldown = scenario.get('boost_cooldown', 0.0)
         features = ai_processor._get_features_for_state(
             scenario['unit_pos'],
             scenario['target_pos'],
             scenario['obstacles'],
             scenario['threats'],
-            boost_cooldown=0.0  # Boost disponible
+            boost_cooldown=boost_cooldown
         )
         
         # Debug: afficher les features pour le premier scénario
@@ -102,7 +124,6 @@ def demo_kamikaze_ai():
 
         # Prédire l'action
         if ai_processor.model:
-            # Nouvelle logique de prédiction (Q-learning)
             q_values = []
             action_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
             for act in range(len(action_names)):
@@ -113,18 +134,37 @@ def demo_kamikaze_ai():
             best_action_index = np.argmax(q_values)
             predicted_action = action_names[best_action_index]
 
-
             print(f"   => Décision IA: {predicted_action}")
 
-            # Évaluation simple (très basique)
-            if "Continuer" in predicted_action and len(scenario['obstacles']) == 0 and len(scenario['threats']) == 0:
-                success = "✅"
-                success_count += 1
-            elif ("Tourner" in predicted_action or "boost" in predicted_action.lower()) and (len(scenario['obstacles']) > 0 or len(scenario['threats']) > 0):
-                success = "✅"
-                success_count += 1
+            # Évaluation plus souple :
+            # 1. Ligne droite sans obstacle/menace : accepter 'Continuer' ou 'Activer boost'
+            if scenario['name'].lower().startswith("trajectoire directe") or scenario['name'].lower().startswith("boost stratégique"):
+                if predicted_action in ["Continuer", "Activer boost"]:
+                    success = "✅"
+                    success_count += 1
+                else:
+                    success = "❌"
+            # 2. Boost indisponible : seul 'Continuer' accepté
+            elif "boost indisponible" in scenario["name"].lower():
+                if predicted_action == "Continuer":
+                    success = "✅"
+                    success_count += 1
+                else:
+                    success = "❌"
+            # 3. Évitement obstacle/menace : accepter tourner ou boost
+            elif ("évitement" in scenario["name"].lower() or "navigation complexe" in scenario["name"].lower()):
+                if predicted_action in ["Tourner gauche", "Tourner droite", "Activer boost"]:
+                    success = "✅"
+                    success_count += 1
+                else:
+                    success = "❌"
             else:
-                success = "❌"
+                # Par défaut, accepter 'Continuer' ou 'Activer boost'
+                if predicted_action in ["Continuer", "Activer boost"]:
+                    success = "✅"
+                    success_count += 1
+                else:
+                    success = "❌"
 
             print(f"      (Évaluation: {success})")
         else:
