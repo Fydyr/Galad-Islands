@@ -34,6 +34,7 @@ class UnitType:
     LEVIATHAN: UnitKey = "LEVIATHAN"
     DRUID: UnitKey = "DRUID"
     ARCHITECT: UnitKey = "ARCHITECT"
+    Q_ARCHITECT: UnitKey = "Q_ARCHITECT" # New Q-learning architect type
     ATTACK_TOWER: UnitKey = "ATTACK_TOWER"
     HEAL_TOWER: UnitKey = "HEAL_TOWER"
 
@@ -43,6 +44,7 @@ class UnitType:
         LEVIATHAN,
         DRUID,
         ARCHITECT,
+        Q_ARCHITECT, # Add to purchasable if desired, or just for enemy AI
     )
 
     BUILDINGS: Tuple[UnitKey, ...] = (
@@ -165,6 +167,28 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             }),
         ),
     ),
+    UnitType.Q_ARCHITECT: UnitMetadata( # Metadata for the Q-learning architect
+        order=6, # A new order
+        ally=FactionUnitConfig(
+            shop_id="q_architect",
+            name_key="units.q_architect",
+            description_key="shop.q_architect_desc",
+            stats=MappingProxyType({
+                "armure_max": 100,
+                "degats": 0,
+            }),
+        ),
+        enemy=FactionUnitConfig(
+            shop_id="enemy_q_engineer",
+            name_key="enemy_shop.q_engineer",
+            description_key="enemy_shop.q_engineer_desc",
+            stats=MappingProxyType({
+                "armure_max": 95,
+                "degats": 5,
+            }),
+        ),
+    ),
+
     UnitType.ATTACK_TOWER: UnitMetadata(
         order=101,
         ally=FactionUnitConfig(

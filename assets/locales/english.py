@@ -97,6 +97,7 @@ TRANSLATIONS = {
     "units.draupnir": "Draupnir (Heavy Leviathan)",
     "units.druid": "Druid",
     "units.architect": "Architect",
+    "units.q_architect": "Q-Learning Architect", # New unit type
     
     # Game interface  
     "game.instructions": "Arrows: Move | Mouse Wheel: Zoom | F3: Debug | Esc: Quit",
@@ -212,9 +213,10 @@ TRANSLATIONS = {
     # Unit descriptions in shop
     "shop.zasper_desc": "Fast and versatile scout",
     "shop.barhamus_desc": "Robust warrior with shield",
-    "shop.draupnir_desc": "Heavy destructive leviathan", 
+    "shop.draupnir_desc": "Heavy destructive leviathan",
     "shop.druid_desc": "Healer and magic support",
     "shop.architect_desc": "Defense builder",
+    "shop.q_architect_desc": "Architect learning with Q-learning", # New unit description
     
     # Building descriptions
     "shop.defense_tower": "Defense Tower",
@@ -278,6 +280,7 @@ TRANSLATIONS = {
     "enemy_shop.shaman": "Enemy Shaman",
     "enemy_shop.shaman_desc": "Healer and evil support",
     "enemy_shop.engineer": "Enemy Engineer",
+    "enemy_shop.q_engineer": "Enemy Q-Engineer", # New unit type
     "enemy_shop.engineer_desc": "Trap constructor",
     "enemy_shop.attack_tower": "Defense Tower",
     "enemy_shop.attack_tower_desc": "Formidable offensive tower",

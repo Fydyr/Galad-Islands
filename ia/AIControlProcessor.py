@@ -1,6 +1,7 @@
 import esper
 import pygame
 import math
+import numpy as np
 from ia.architectAIComponent import ArchitectAIComponent as archAI
 from src.components.core.playerComponent import PlayerComponent
 from src.components.core.positionComponent import PositionComponent
@@ -13,6 +14,7 @@ from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.core.teamComponent import TeamComponent
+from ia.architectAIComponent2 import QLearningArchitectAIComponent # New Q-Learning AI component
 from src.functions.buildingCreator import createDefenseTower, createHealTower
 from src.settings import controls
 
@@ -22,6 +24,10 @@ class AIControlProcessor(esper.Processor):
         self.grid = grid
         self.fire_event = False  # Initialisation de l'état de l'événement de tir
         self.slowing_down = False  # Indique si le frein est activé
+        self.last_states = {} # To store previous states for reward calculation
+        self.last_distances_to_island = {} # For reward calculation
+        self.last_distances_to_enemy = {} # For reward calculation
+        self.last_money = {} # For reward calculation
         self.change_mode_cooldown = 0
 
     def isObstacleNearby(self, posX, posY):
@@ -67,12 +73,107 @@ class AIControlProcessor(esper.Processor):
                 gold = player.get_gold()
         return gold
 
-    def getDecision(self, dt, entity, ai):
+    def _discretize_state(self, state_raw):
+        """
+        Discretizes the continuous game state into a hashable tuple for Q-learning.
+        State: [current_speed, angle_to_island, distance_to_island, distance_to_enemy,
+                distance_to_ally, distance_to_mine, money, obstacle_ahead]
+        """
+        speed, angle_island, dist_island, dist_enemy, dist_ally, dist_mine, money, obstacle = state_raw
+
+        # Discretize speed (0-100 -> 0-3)
+        discrete_speed = int(speed // 25) # 0, 1, 2, 3
+
+        # Discretize angle_to_island (-180 to 180)
+        # Bins: -180 to -90 (0), -90 to 0 (1), 0 to 90 (2), 90 to 180 (3)
+        if angle_island < -90:
+            discrete_angle = 0
+        elif angle_island < 0:
+            discrete_angle = 1
+        elif angle_island < 90:
+            discrete_angle = 2
+        else:
+            discrete_angle = 3
+
+        # Discretize distances (0-1000+)
+        # Bins: [0, 50) (0), [50, 200) (1), [200, 500) (2), [500, inf) (3)
+        def discretize_dist(d):
+            if d < 50: return 0
+            if d < 200: return 1
+            if d < 500: return 2
+            return 3
+
+        discrete_dist_island = discretize_dist(dist_island)
+        discrete_dist_enemy = discretize_dist(dist_enemy)
+        discrete_dist_ally = discretize_dist(dist_ally)
+        discrete_dist_mine = discretize_dist(dist_mine)
+
+        # Discretize money (0-2000+)
+        # Bins: [0, 100) (0), [100, 500) (1), [500, 1500) (2), [1500, inf) (3)
+        if money < 100:
+            discrete_money = 0
+        elif money < 500:
+            discrete_money = 1
+        elif money < 1500:
+            discrete_money = 2
+        else:
+            discrete_money = 3
+
+        # Obstacle is already binary (0 or 1)
+        discrete_obstacle = int(obstacle)
+
+        return (discrete_speed, discrete_angle, discrete_dist_island, discrete_dist_enemy,
+                discrete_dist_ally, discrete_dist_mine, discrete_money, discrete_obstacle)
+
+    def _calculate_reward(self, entity, prev_state_raw, current_state_raw, action_taken):
+        """
+        Calculates the reward for the Q-learning agent based on state changes and actions.
+        """
+        reward = -1 # Small penalty for each step
+
+        # Unpack states
+        prev_speed, prev_angle_island, prev_dist_island, prev_dist_enemy, prev_dist_ally, prev_dist_mine, prev_money, prev_obstacle = prev_state_raw
+        curr_speed, curr_angle_island, curr_dist_island, curr_dist_enemy, curr_dist_ally, curr_dist_mine, curr_money, curr_obstacle = current_state_raw
+
+        # Reward for getting closer to island
+        if curr_dist_island < prev_dist_island:
+            reward += 5
+        elif curr_dist_island > prev_dist_island:
+            reward -= 2
+
+        # Reward for reaching island (close enough to build)
+        if curr_dist_island < 50 and curr_money >= 400:
+            reward += 20 # Encourage being in a buildable state
+
+        # Reward/Penalty for building actions
+        if action_taken in ['build_defense_tower', 'build_attack_tower']:
+            # Check if building was successful (e.g., money spent, on island)
+            # This requires more complex game state checks, for now, assume success if money was sufficient
+            if curr_money < prev_money: # Simple heuristic: money decreased means building happened
+                reward += 50
+            else: # Failed to build (not enough money, not on island, etc.)
+                reward -= 30
+
+        # Penalty for being too close to enemy or mine
+        if curr_dist_enemy < 100:
+            reward -= 10
+        if curr_dist_mine < 50:
+            reward -= 20
+
+        # Penalty for hitting obstacle
+        if curr_obstacle == 1 and curr_speed > 0: # If there's an obstacle and unit is moving
+            reward -= 15
+
+        return reward
+
+    def _get_raw_state(self, entity):
         pos = esper.component_for_entity(entity, PositionComponent)
         vel = esper.component_for_entity(entity, VelocityComponent)
         team = esper.component_for_entity(entity, TeamComponent)
-        state = []
-        if (pos is not None and vel is not None and team is not None):
+
+        if pos is None or vel is None or team is None:
+            return None # Should not happen if entity has these components
+
             posMine = self.findClosestInGrid(3, pos.x, pos.y)
             posIsland = self.findClosestInGrid(2, pos.x, pos.y)
 
@@ -83,30 +184,60 @@ class AIControlProcessor(esper.Processor):
             dxIsland = abs(pos.x - posIsland[0])
             dyIsland = abs(pos.y - posIsland[1])
             distanceIsland = math.sqrt(dxIsland**2 + dyIsland**2)
-            absoluteAngleIsland = math.atan2(dyIsland, dxIsland)
-            relativeAngleIsland = (absoluteAngleIsland - pos.direction + math.pi) % (2 * math.pi) - math.pi
+            
+            # Calculate angle to island relative to unit's direction
+            # Angle from unit to island
+            angle_to_target_rad = math.atan2(posIsland[1] - pos.y, posIsland[0] - pos.x)
+            # Unit's direction in radians (assuming pos.direction is degrees 0-359)
+            unit_direction_rad = math.radians(pos.direction)
+            
+            # Relative angle: difference between target angle and unit's direction
+            relativeAngleIsland_rad = angle_to_target_rad - unit_direction_rad
+            # Normalize to -pi to pi
+            relativeAngleIsland_rad = (relativeAngleIsland_rad + math.pi) % (2 * math.pi) - math.pi
+            relativeAngleIsland_deg = math.degrees(relativeAngleIsland_rad)
 
             distanceAlly = self.findClosestEntity(team, True, pos.x, pos.y)
             distanceEnemy = self.findClosestEntity(team, False, pos.x, pos.y)
             gold = self.getCurrentMoney(team)
             obstacle = self.isObstacleNearby(pos.x, pos.y)
             
-            state = [vel.currentSpeed, distanceIsland, relativeAngleIsland, distanceEnemy, distanceAlly, distanceMine, gold, obstacle]
-            # print(state)
+            return [vel.currentSpeed, relativeAngleIsland_deg, distanceIsland, distanceEnemy, distanceAlly, distanceMine, gold, obstacle]
+        return None
 
-        return ai.makeDecision(dt, state)
+    def getDecision(self, dt, entity, ai_component):
+        """
+        Gets the decision from the AI component and handles Q-learning updates.
+        """
+        current_state_raw = self._get_raw_state(entity)
+        if current_state_raw is None:
+            return None
+
+        current_state_discrete = self._discretize_state(current_state_raw)
+
+        # If this is a Q-learning agent, perform learning step
+        if isinstance(ai_component, QLearningArchitectAIComponent):
+            if entity in self.last_states:
+                prev_state_raw = self.last_states[entity]
+                action_taken = ai_component.currentDecision # The action that was just executed
+                reward = self._calculate_reward(entity, prev_state_raw, current_state_raw, action_taken)
+                ai_component.learn(reward, current_state_discrete)
+            self.last_states[entity] = current_state_raw # Store raw state for next reward calculation
+
+        return ai_component.makeDecision(dt, current_state_discrete)
 
     def process(self, dt: float, grid):
         self.grid = grid
-        for entity, ai in esper.get_component(archAI):
-            # if self.change_mode_cooldown > 0:
-            #     self.change_mode_cooldown -= 0.0016
-            # else:
-            #     self.change_mode_cooldown = 0
+        
+        # Process both types of AI components
+        all_ai_components = esper.get_components(archAI, QLearningArchitectAIComponent)
+
+        for entity, (ai_components) in all_ai_components:
+            ai = next((comp for comp in ai_components if comp is not None), None)
+            if ai is None:
+                continue
 
             decision = self.getDecision(dt, entity, ai)
-
-            # print(decision)
             if decision is None:
                 continue
 
@@ -139,15 +270,28 @@ class AIControlProcessor(esper.Processor):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     if velocity.currentSpeed > velocity.maxReverseSpeed:
                         velocity.currentSpeed -= 0.1
-
-            if decision == "rotate_right":
+            
+            # Assuming direction is 0-359 degrees
+            rotation_speed = 5 # degrees per step
+            if decision == "rotate_right": 
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
-                    position.direction = (position.direction + 1) % 360
-            if decision == "rotate_left":
+                    position.direction = (position.direction + rotation_speed) % 360
+            elif decision == "rotate_left":
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
-                    position.direction = (position.direction - 1) % 360
+                    position.direction = (position.direction - rotation_speed + 360) % 360
+            elif decision == "build_defense_tower":
+                pos = esper.component_for_entity(entity, PositionComponent)
+                team = esper.component_for_entity(entity, TeamComponent)
+                createDefenseTower(self.grid, pos, team) # This needs to check if it's on an island and has money
+            elif decision == "build_attack_tower":
+                if esper.has_component(entity, PositionComponent):
+                    position = esper.component_for_entity(entity, PositionComponent)
+                    team = esper.component_for_entity(entity, TeamComponent)
+                    # Assuming createAttackTower exists or maps to createDefenseTower for now
+                    # For a real game, you'd have a separate function for attack towers
+                    createDefenseTower(self.grid, pos, team) # Placeholder for attack tower
 
             # if radius.cooldown > 0:
             #     radius.cooldown -= 0.1  # Réduction du cooldown
@@ -239,6 +383,3 @@ class AIControlProcessor(esper.Processor):
 
 
                 
-
-
-
