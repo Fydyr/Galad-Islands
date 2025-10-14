@@ -29,7 +29,7 @@ sprite_manager.image_loading_enabled = False
 class AITrainer:
     """Automatic trainer for the Leviathan AI."""
 
-    def __init__(self, episodes: int = 100, steps_per_episode: int = 1000, save_interval: int = 10):
+    def __init__(self, episodes: int = 100, steps_per_episode: int = 1000, save_interval: int = 10, verbose: bool = False):
         """
         Initializes the trainer.
 
@@ -37,10 +37,12 @@ class AITrainer:
             episodes: Number of training episodes
             steps_per_episode: Number of steps per episode (simulated frames)
             save_interval: Save model every N episodes
+            verbose: If True, prints detailed AI actions during training
         """
         self.episodes = episodes
         self.steps_per_episode = steps_per_episode
         self.save_interval = save_interval
+        self.verbose = verbose
         self.dt = 0.030
 
         print("[INIT] Initializing AI processor in TRAINING mode...")
@@ -174,8 +176,8 @@ class AITrainer:
         """
         total_episode = self.start_episode + episode_num + 1
 
-        # Only print episode header every 10 episodes for performance
-        if episode_num % 10 == 0 or episode_num == self.episodes - 1:
+        # Only print episode header every 10 episodes for performance (or always in verbose mode)
+        if self.verbose or episode_num % 10 == 0 or episode_num == self.episodes - 1:
             print(f"[EPISODE] {episode_num + 1}/{self.episodes} (Total: {total_episode})")
 
         # Reset entities for the new episode
@@ -209,8 +211,17 @@ class AITrainer:
             if step % 5 == 0:
                 self._simulate_enemy_movements()
 
+            # Print detailed AI actions if verbose mode is enabled
+            if self.verbose and step % 50 == 0:
+                self._print_ai_states(step)
+
             # Process the AI processor
             self.ai_processor.process(self.dt)
+
+            # Print AI actions after processing if verbose
+            if self.verbose and step % 50 == 0:
+                self._print_ai_actions(step)
+                self._print_learning_info()
 
             # Display progress less frequently (every 500 steps)
             if (step + 1) % 500 == 0 and (episode_num % 10 == 0):
@@ -243,13 +254,30 @@ class AITrainer:
 
         avg_reward = final_total_reward / len(self.leviathans) if self.leviathans else 0
 
-        # Only get stats and print every 10 episodes
-        if episode_num % 10 == 0 or episode_num == self.episodes - 1:
+        # Only get stats and print every 10 episodes (or always in verbose mode)
+        if self.verbose or episode_num % 10 == 0 or episode_num == self.episodes - 1:
             stats = self.ai_processor.get_statistics()
             print(f"   [DONE] Episode finished - {step_count} steps")
             print(f"   [REWARD] Average reward: {avg_reward:.2f}")
             print(f"   [TRAIN] Trainings: {stats['training_count']}")
             print(f"   [ACTIONS] Total actions: {stats['total_actions']}")
+
+            # In verbose mode, print detailed rewards for each AI
+            if self.verbose:
+                print(f"\n   --- EPISODE SUMMARY ---")
+                for entity in self.leviathans:
+                    if es.has_component(entity, AILeviathanComponent):
+                        ai_comp = es.component_for_entity(entity, AILeviathanComponent)
+                        team = es.component_for_entity(entity, TeamComponent)
+                        health = es.component_for_entity(entity, HealthComponent)
+
+                        team_str = "ALLY" if team.team_id == 1 else "ENEMY"
+                        alive_str = "ALIVE" if health.currentHealth > 0 else "DEAD"
+
+                        print(f"   [{team_str} Leviathan #{entity}] - {alive_str}")
+                        print(f"      Final Health: {health.currentHealth:.0f}/{health.maxHealth}")
+                        print(f"      Total Episode Reward: {ai_comp.episode_reward:.2f}")
+
             print()
 
         return avg_reward
@@ -283,6 +311,109 @@ class AITrainer:
             if health.currentHealth <= 0:
                 return True
         return False
+
+    def _print_ai_states(self, step: int):
+        """Prints the current state of all AI-controlled Leviathans."""
+        print(f"\n   --- [STEP {step}] AI STATES BEFORE ACTION ---")
+        from src.ai.leviathan_brain import LeviathanBrain
+
+        for entity in self.leviathans:
+            if not es.has_component(entity, AILeviathanComponent):
+                continue
+
+            ai_comp = es.component_for_entity(entity, AILeviathanComponent)
+            pos = es.component_for_entity(entity, PositionComponent)
+            health = es.component_for_entity(entity, HealthComponent)
+            team = es.component_for_entity(entity, TeamComponent)
+
+            team_str = "ALLY" if team.team_id == 1 else "ENEMY"
+            print(f"   [{team_str} Leviathan #{entity}]")
+            print(f"      Position: ({pos.x:.0f}, {pos.y:.0f}), Direction: {pos.direction:.0f}°")
+            print(f"      Health: {health.currentHealth:.0f}/{health.maxHealth} HP")
+            print(f"      Episode Reward: {ai_comp.episode_reward:.2f}")
+            print(f"      Total Reward: {ai_comp.total_reward:.2f}")
+
+            # Print last reward from history if available
+            if ai_comp.reward_history:
+                print(f"      Last Reward: {ai_comp.reward_history[-1]:.2f}")
+
+            # Print state vector if available
+            if ai_comp.current_state is not None:
+                state = ai_comp.current_state
+                print(f"      State Vector ({len(state)} values):")
+                print(f"         Normalized HP: {state[0]:.3f}")
+                print(f"         Distance to enemy base: {state[1]:.3f}")
+                print(f"         Direction to enemy base: {state[2]:.3f}, {state[3]:.3f}")
+                if len(state) > 4:
+                    print(f"         Nearest enemy distance: {state[4]:.3f}")
+                    if len(state) > 6:
+                        print(f"         Nearest enemy direction: {state[5]:.3f}, {state[6]:.3f}")
+
+    def _print_ai_actions(self, step: int):
+        """Prints the actions taken by all AI-controlled Leviathans."""
+        print(f"\n   --- [STEP {step}] AI ACTIONS TAKEN ---")
+        from src.ai.leviathan_brain import LeviathanBrain
+
+        for entity in self.leviathans:
+            if not es.has_component(entity, AILeviathanComponent):
+                continue
+
+            ai_comp = es.component_for_entity(entity, AILeviathanComponent)
+            team = es.component_for_entity(entity, TeamComponent)
+            vel = es.component_for_entity(entity, VelocityComponent)
+
+            team_str = "ALLY" if team.team_id == 1 else "ENEMY"
+
+            # Get last action if available
+            last_action = getattr(ai_comp, 'last_action', None)
+            action_name = LeviathanBrain.ACTION_NAMES.get(last_action, "Unknown") if last_action is not None else "None"
+
+            print(f"   [{team_str} Leviathan #{entity}]")
+            print(f"      Action: {action_name} (ID: {last_action})")
+            print(f"      Current Speed: {vel.currentSpeed:.1f}/{vel.maxUpSpeed}")
+            print(f"      Exploration (epsilon): {ai_comp.epsilon:.3f}")
+
+            # Print action history stats
+            if ai_comp.action_history:
+                print(f"      Total actions taken: {len(ai_comp.action_history)}")
+                print(f"      Buffer size: {len(ai_comp.state_history)} experiences")
+
+    def _print_learning_info(self):
+        """Prints information about the learning process (memory and training)."""
+        print(f"\n   --- LEARNING INFO ---")
+
+        # Get memory size from all AI components
+        total_experiences = 0
+        max_buffer = 0
+        for entity in self.leviathans:
+            if es.has_component(entity, AILeviathanComponent):
+                ai_comp = es.component_for_entity(entity, AILeviathanComponent)
+                total_experiences += len(ai_comp.state_history)
+                max_buffer = max(max_buffer, ai_comp.max_buffer_size)
+
+        print(f"      Total experiences across all AIs: {total_experiences}")
+        print(f"      Average per AI: {total_experiences / len(self.leviathans):.0f}")
+        print(f"      Max buffer per AI: {max_buffer}")
+
+        # Get training statistics
+        stats = self.ai_processor.get_statistics()
+        print(f"      Total trainings: {stats['training_count']}")
+        print(f"      Total actions taken: {stats['total_actions']}")
+
+        # Brain training samples
+        brain = self.ai_processor.brain
+        print(f"      Brain training samples: {brain.training_samples}")
+        print(f"      Model trained: {'Yes' if brain.is_trained else 'No'}")
+
+        # Show most common actions
+        if stats['total_actions'] > 0:
+            from src.ai.leviathan_brain import LeviathanBrain
+            actions = stats['actions_by_type']
+            if actions:
+                top_action = max(actions.items(), key=lambda x: x[1])
+                action_name = LeviathanBrain.ACTION_NAMES.get(top_action[0], "Unknown")
+                percentage = (top_action[1] / stats['total_actions'] * 100)
+                print(f"      Most used action: {action_name} ({percentage:.1f}%)")
 
     def train(self):
         """Starts the full training process."""
@@ -373,21 +504,32 @@ def main():
     # Get parameters from command line or use defaults
     episodes = 500
     steps = 1000
+    verbose = False
+
     try:
         if len(sys.argv) > 1:
             episodes = int(sys.argv[1])
         if len(sys.argv) > 2:
             steps = int(sys.argv[2])
+        if len(sys.argv) > 3:
+            verbose = sys.argv[3].lower() in ['true', '1', 'yes', 'v', 'verbose']
+
         print(f"Number of episodes: {episodes}")
         print(f"Steps per episode: {steps}")
+        print(f"Verbose mode: {'ENABLED' if verbose else 'DISABLED'}")
     except (IndexError, ValueError):
-        print("Usage: python train_ai.py [episodes] [steps_per_episode]")
-        print(f"Using default values: {episodes} episodes, {steps} steps.")
+        print("Usage: python train_ai_leviathan.py [episodes] [steps_per_episode] [verbose]")
+        print(f"Using default values: {episodes} episodes, {steps} steps, verbose={verbose}")
+        print("Example: python train_ai_leviathan.py 100 1000 true")
 
     print()
 
+    if verbose:
+        print("[VERBOSE] Detailed AI actions will be printed every 50 steps")
+        print()
+
     # Create and run the trainer
-    trainer = AITrainer(episodes=episodes, steps_per_episode=steps)
+    trainer = AITrainer(episodes=episodes, steps_per_episode=steps, verbose=verbose)
     trainer.train()
 
 
