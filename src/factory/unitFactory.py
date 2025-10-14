@@ -177,9 +177,8 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpeKamikazeComponent()) # Gère la capacité spéciale et le marqueur d'explosion
             es.add_component(entity, VisionComponent(UNIT_VISION_KAMIKAZE))
-            # Si l'unité est ennemie, on lui ajoute le composant IA
-            if enemy:
-                es.add_component(entity, UnitAiComponent(unit_type=UnitType.KAMIKAZE))
+            # Ajout du composant IA pour le Kamikaze (toutes équipes)
+            es.add_component(entity, UnitAiComponent(unit_type=UnitType.KAMIKAZE))
 
             sprite_id = SpriteID.ALLY_KAMIKAZE if not enemy else SpriteID.ENEMY_KAMIKAZE
             size = sprite_manager.get_default_size(sprite_id)
