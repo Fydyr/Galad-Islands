@@ -7,6 +7,7 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.events.stormComponent import Storm
 from src.components.events.banditsComponent import Bandits
 from src.components.events.islandResourceComponent import IslandResourceComponent
+from src.components.events.flyChestComponent import FlyingChestComponent
 from src.components.ai.aiLeviathanComponent import AILeviathanComponent
 
 
@@ -25,20 +26,22 @@ class RewardSystem:
     # Reward weights (balanced for better learning - reduced penalties!)
     REWARD_MOVEMENT = 0.2  # Small reward for moving
     REWARD_STATIONARY_PENALTY = -0.1  # Very small penalty for staying still
-    REWARD_DAMAGE_TAKEN = -0.1  # MUCH smaller penalty (was -1.0, now -0.1)
+    REWARD_DAMAGE_TAKEN = -0.1  # MUCH smaller penalty
     REWARD_HEAL_RECEIVED = 0.5  # Reward for healing
     REWARD_KILL = 200.0  # Large reward for killing an enemy
     REWARD_SPECIAL_ABILITY_USE = 30.0  # Reward for using the special ability
     REWARD_RESOURCE_COLLECTED = 50.0  # Reward for collecting resources
     REWARD_SURVIVE_STORM = 15.0  # Reward for surviving a storm
     REWARD_AVOID_BANDITS = 20.0  # Reward for avoiding/defeating bandits
+    REWARD_APPROACH_CHEST = 25.0  # Reward for approaching a flying chest
     REWARD_HIT_MINE = -20.0  # Reduced penalty for hitting a mine (was -50)
     REWARD_AVOID_MINE = 3.0  # Small reward for avoiding a nearby mine
     REWARD_BASE_DESTROYED = 3000.0  # ENORMOUS reward for destroying the enemy base
     REWARD_SURVIVAL = 0.1  # Reward for each frame alive (encourages survival)
     REWARD_ATTACK_ACTION = 2.0  # Reward for attacking (encourages aggression)
-    REWARD_APPROACH_ENEMY_BASE = 1.0  # Better reward for getting closer to enemy base
-    REWARD_RETREAT_FROM_BASE = -0.1  # Smaller penalty for moving away from enemy base
+    REWARD_APPROACH_ENEMY_BASE = 5.0  # Strong reward for getting closer to enemy base (increased from 1.0)
+    REWARD_RETREAT_FROM_BASE = -2.0  # Penalty for moving away from enemy base (increased from -0.1)
+    REWARD_NEAR_ENEMY_BASE = 10.0  # Bonus reward for being very close to enemy base (< 500px)
 
     # Cooperation rewards (NEW)
     REWARD_HELP_ALLY = 15.0  # Reward for being near an ally in danger
@@ -104,7 +107,7 @@ class RewardSystem:
         base_approach_reward = RewardSystem._calculate_base_approach_reward(entity, ai_comp)
         total_reward += base_approach_reward
 
-        # Cooperation rewards (NEW)
+        # Cooperation rewards
         cooperation_reward = RewardSystem._calculate_cooperation_reward(entity, ai_comp)
         total_reward += cooperation_reward
 
@@ -193,8 +196,40 @@ class RewardSystem:
         """Calculates the reward related to events (storms, bandits)."""
         total_reward = 0.0
 
-        # TODO: Check if the entity survives a storm (requires tracking active storms).
-        # TODO: Check if the entity avoids/fights bandits (requires tracking interactions).
+        if not es.has_component(entity, PositionComponent):
+            return 0.0
+
+        pos = es.component_for_entity(entity, PositionComponent)
+        event_detection_radius = 300.0
+
+        # Check for nearby storms
+        for _, (_, storm_pos) in es.get_components(Storm, PositionComponent):
+            distance = ((storm_pos.x - pos.x) ** 2 + (storm_pos.y - pos.y) ** 2) ** 0.5
+
+            # If close to storm but survived (not taking damage this frame)
+            if distance < event_detection_radius:
+                # Reward for being aware and surviving storms
+                total_reward += RewardSystem.REWARD_SURVIVE_STORM
+
+        # Check for nearby bandits
+        for _, (_, bandit_pos) in es.get_components(Bandits, PositionComponent):
+            distance = ((bandit_pos.x - pos.x) ** 2 + (bandit_pos.y - pos.y) ** 2) ** 0.5
+
+            # If close to bandits - encourage engagement or avoidance
+            if distance < event_detection_radius:
+                # Reward for dealing with bandits (either avoiding or attacking)
+                total_reward += RewardSystem.REWARD_AVOID_BANDITS
+
+        # Check for nearby flying chests
+        for _, (chest_comp, chest_pos) in es.get_components(FlyingChestComponent, PositionComponent):
+            # Only reward if chest is not collected and not sinking
+            if not chest_comp.is_collected and not chest_comp.is_sinking:
+                distance = ((chest_pos.x - pos.x) ** 2 + (chest_pos.y - pos.y) ** 2) ** 0.5
+
+                # If close to a chest - encourage collection
+                if distance < event_detection_radius:
+                    # Reward for approaching a collectible chest
+                    total_reward += RewardSystem.REWARD_APPROACH_CHEST
 
         return total_reward
 
@@ -310,16 +345,22 @@ class RewardSystem:
         distance_change = ai_comp.last_distance_to_base - current_distance
         ai_comp.last_distance_to_base = current_distance
 
+        total_reward = 0.0
+
+        # Bonus reward for being very close to enemy base
+        if current_distance < 500.0:  # Within 500 pixels of enemy base
+            total_reward += RewardSystem.REWARD_NEAR_ENEMY_BASE
+
         # Positive change = getting closer (reward)
         # Negative change = moving away (penalty)
         if distance_change > 0:
             # Getting closer
-            return RewardSystem.REWARD_APPROACH_ENEMY_BASE
+            total_reward += RewardSystem.REWARD_APPROACH_ENEMY_BASE
         elif distance_change < 0:
             # Moving away
-            return RewardSystem.REWARD_RETREAT_FROM_BASE
+            total_reward += RewardSystem.REWARD_RETREAT_FROM_BASE
 
-        return 0.0
+        return total_reward
 
     @staticmethod
     def _calculate_cooperation_reward(entity: int, ai_comp: AILeviathanComponent) -> float:
