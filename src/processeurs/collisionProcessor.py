@@ -25,6 +25,7 @@ from src.components.events.islandResourceComponent import IslandResourceComponen
 from src.components.core.towerComponent import TowerComponent
 from src.functions.handleHealth import processHealth
 from src.components.events.banditsComponent import Bandits
+from src.components.core.velocityComponent import VelocityComponent as VelocityComp
 
 class CollisionProcessor(esper.Processor):
     def __init__(self, graph=None):
@@ -33,13 +34,13 @@ class CollisionProcessor(esper.Processor):
         self.mines_initialized = False
         # Définir les types de terrain et leurs effets selon votre système
         self.terrain_effects = {
-            'water': {'can_pass': True, 'speed_modifier': 1.0},      # 0 - Eau normale
-            'cloud': {'can_pass': True, 'speed_modifier': 0.5},      # 1 - Nuage ralentit
-            'island': {'can_pass': False, 'speed_modifier': 0.0},    # 2 - Île générique bloque
-            'mine': {'can_pass': True, 'speed_modifier': 1.0},       # 3 - Mine (entité créée)
-            'ally_base': {'can_pass': False, 'speed_modifier': 0.0}, # 4 - Base alliée bloque
-            'enemy_base': {'can_pass': False, 'speed_modifier': 0.0} # 5 - Base ennemie bloque
-        }
+                'water': {'can_pass': True, 'speed_modifier': 1.0},      # 0 - Eau normale
+                'cloud': {'can_pass': True, 'speed_modifier': 0.5},      # 1 - Nuage ralentit
+                'island': {'can_pass': False, 'speed_modifier': 0.0},    # 2 - Île générique bloque
+                        'mine': {'can_pass': True, 'speed_modifier': 1.0},       # 3 - Mine (entité créée)
+                        'ally_base': {'can_pass': False, 'speed_modifier': 0.0}, # 4 - Base alliée bloque
+                        'enemy_base': {'can_pass': False, 'speed_modifier': 0.0} # 5 - Base ennemie bloque
+                }
 
     def process(self, **kwargs):
         # Initialiser les entités mines une seule fois
@@ -108,7 +109,7 @@ class CollisionProcessor(esper.Processor):
         
 
     def _process_entity_collisions(self):
-        """Gère les collisions entre entités en utilisant un hachage spatial pour l'optimisation."""
+        """Process entity collisions using spatial hashing."""
         
         # 1. Définir la taille de la grille de hachage
         # Une bonne taille est généralement 2x la taille de l'entité moyenne.
@@ -590,7 +591,18 @@ class CollisionProcessor(esper.Processor):
                     velocity.terrain_modifier = 1.0
                     return
             else:
-                velocity.currentSpeed = 0
+                # Bloquer le mouvement et appliquer un knockback centralisé
+                # On met la vitesse à 0 et on applique un recul simple (back along direction)
+                magnitude = TILE_SIZE * 0.5
+                try:
+                    # Position component
+                    pos_comp = esper.component_for_entity(entity, Position)
+                    vel_comp = velocity
+                    # Appliquer knockback via méthode centralisée
+                    self._apply_knockback(entity, pos_comp, vel_comp, magnitude=magnitude)
+                except Exception:
+                    # Fallback: simple stop
+                    velocity.currentSpeed = 0
                 velocity.terrain_modifier = 0.0
         else:
             if is_projectile and terrain_type == 'cloud':
@@ -611,3 +623,59 @@ class CollisionProcessor(esper.Processor):
                     team.team_id == 0 and 
                     attack.hitPoints == 40)
         return False
+
+    def _apply_knockback(self, entity, pos: Position, velocity: Velocity, magnitude: float = 30.0, stun_duration: float = 0.6):
+        """Applique un knockback simple à une entité : on recule sa position le long de sa direction actuelle,
+        met la vitesse à 0 et pose un timer court (stun) stocké sur le composant `velocity` si possible.
+
+        Cette méthode est centralisée dans CollisionProcessor pour que toutes les entités soient affectées
+        de la même façon (unités, monstres, kamikaze, etc.).
+        """
+        try:
+            # Calculer recul en pixels le long de la direction opposée
+            dir_rad = math.radians(pos.direction)
+            # Reculer en conservant le signe (on recule dans la direction opposée)
+            dx = magnitude * math.cos(dir_rad)
+            dy = magnitude * math.sin(dir_rad)
+
+            # Si l'entité avait une vitesse, la mettre à 0
+            if hasattr(velocity, 'currentSpeed'):
+                velocity.currentSpeed = 0
+
+            # Appliquer le déplacement de recul dans la position (reculer = opposé à la direction)
+            pos.x -= dx
+            pos.y -= dy
+
+            # Clamp position inside map bounds if graph known
+            if self.graph:
+                max_y = len(self.graph)
+                max_x = len(self.graph[0])
+                pos.x = max(0, min(pos.x, max_x * TILE_SIZE - 1))
+                pos.y = max(0, min(pos.y, max_y * TILE_SIZE - 1))
+
+            # Marquer un court stun sur le composant velocity si possible
+            # On stocke stun_timer sur l'objet velocity pour éviter d'introduire un nouveau composant
+            try:
+                setattr(velocity, 'stun_timer', stun_duration)
+            except Exception:
+                # Ignore if cannot set
+                pass
+        except Exception:
+            # No-op on failure
+            return
+
+    # Documentation:
+    # Knockback behavior
+    # ------------------
+    # - magnitude: distance in pixels the entity is pushed back along the opposite of its facing
+    #   direction. Default=30.0.
+    # - stun_duration: seconds during which the entity is considered "stunned". The PhysicsSystem
+    #   will decrement `velocity.stun_timer` each tick and prevent movement while it's > 0.
+    #
+    # Tuning:
+    # - To change global behavior, adjust the magnitude and stun_duration defaults above or call
+    #   `_apply_knockback(entity, pos, velocity, magnitude=..., stun_duration=...)` from custom
+    #   handlers.
+    # - For performance, this method stores the stun timer on the `Velocity` component instance
+    #   (attribute `stun_timer`). If your systems read other names, adapt `PhysicsSystem.move_entity`
+    #   accordingly.
