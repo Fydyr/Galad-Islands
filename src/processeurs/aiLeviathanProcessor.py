@@ -435,7 +435,7 @@ class AILeviathanProcessor(esper.Processor):
         """
         mines_count = 0.0
         min_distance = float('inf')
-        detection_radius = 400.0
+        detection_radius = 500.0
         detection_radius_sq = detection_radius * detection_radius
 
         if not self.entity_cache:
@@ -563,12 +563,25 @@ class AILeviathanProcessor(esper.Processor):
                         ai_comp.attack_actions += 1
 
         elif action == LeviathanBrain.ACTION_SPECIAL_ABILITY:
-            if spe_lev.can_activate():
-                activated = spe_lev.activate()
-                if activated and esper.has_component(entity, AILeviathanComponent):
+            enemy_info = self._getNearestEnemies(entity, pos, esper.component_for_entity(entity, TeamComponent))
+            enemies_nearby = enemy_info[0]
+            enemy_distance = enemy_info[1]
+
+            is_strategic = (enemies_nearby >= 2 and enemy_distance < 0.5) or (enemies_nearby >= 1 and enemy_distance < 0.35)
+
+            if is_strategic:
+                if spe_lev.can_activate():
+                    activated = spe_lev.activate()
+                    if activated and esper.has_component(entity, AILeviathanComponent):
+                        ai_comp = esper.component_for_entity(entity, AILeviathanComponent)
+                        ai_comp.special_ability_uses += 1
+                        esper.dispatch_event("attack_event", entity, "leviathan")
+            else:
+                if esper.has_component(entity, AILeviathanComponent):
                     ai_comp = esper.component_for_entity(entity, AILeviathanComponent)
-                    ai_comp.special_ability_uses += 1
-                    esper.dispatch_event("attack_event", entity, "leviathan")
+                    if not hasattr(ai_comp, 'special_ability_wasted'):
+                        ai_comp.special_ability_wasted = 0
+                    ai_comp.special_ability_wasted += 1
 
         elif action == LeviathanBrain.ACTION_AVOID_STORM:
             pos.direction = (pos.direction + 45) % 360
@@ -651,6 +664,15 @@ class AILeviathanProcessor(esper.Processor):
                             if dist < radius:
                                 obstacle_radius = TILE_SIZE * 1.5
                                 obstacles.append((world_x, world_y, obstacle_radius))
+
+        if not self.entity_cache:
+            self._updateEntityCache()
+
+        for mine_x, mine_y in self.entity_cache['mines']:
+            dist = ((mine_x - pos.x) ** 2 + (mine_y - pos.y) ** 2) ** 0.5
+            if dist < radius:
+                mine_radius = TILE_SIZE * 2.5
+                obstacles.append((mine_x, mine_y, mine_radius))
 
         for storm_entity, (storm_comp, storm_pos) in esper.get_components(Storm, PositionComponent):
             dist = ((storm_pos.x - pos.x) ** 2 + (storm_pos.y - pos.y) ** 2) ** 0.5

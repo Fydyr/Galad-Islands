@@ -23,25 +23,26 @@ class RewardSystem:
     - Events: rewards interaction with game events
     """
 
-    # Reward weights (balanced for effective learning)
-    REWARD_MOVEMENT = 0.2
-    REWARD_STATIONARY_PENALTY = -0.1
-    REWARD_DAMAGE_TAKEN = -0.1
+    REWARD_MOVEMENT = 0.5
+    REWARD_STATIONARY_PENALTY = -0.3
+    REWARD_DAMAGE_TAKEN = -0.5
     REWARD_HEAL_RECEIVED = 0.5
     REWARD_KILL = 200.0
-    REWARD_SPECIAL_ABILITY_USE = 30.0
+    REWARD_SPECIAL_ABILITY_USE = 10.0
+    REWARD_SPECIAL_ABILITY_WITHOUT_ENEMIES = -3.0
     REWARD_RESOURCE_COLLECTED = 50.0
     REWARD_SURVIVE_STORM = 15.0
     REWARD_AVOID_BANDITS = 20.0
     REWARD_APPROACH_CHEST = 25.0
-    REWARD_HIT_MINE = -20.0
-    REWARD_AVOID_MINE = 3.0
+    REWARD_HIT_MINE = -5.0
+    REWARD_AVOID_MINE = 2.0
     REWARD_BASE_DESTROYED = 3000.0
     REWARD_SURVIVAL = 0.1
-    REWARD_ATTACK_ACTION = 2.0
+    REWARD_ATTACK_ACTION = 1.0
     REWARD_APPROACH_ENEMY_BASE = 5.0
     REWARD_RETREAT_FROM_BASE = -2.0
     REWARD_NEAR_ENEMY_BASE = 10.0
+    REWARD_VERY_CLOSE_TO_BASE = 20.0
 
     # Cooperation rewards
     REWARD_HELP_ALLY = 15.0
@@ -170,10 +171,16 @@ class RewardSystem:
 
     @staticmethod
     def _calculateSpecialAbilityReward(ai_comp: AILeviathanComponent) -> float:
-        """Calculates the reward for using the special ability."""
+        """Calculates the reward for using the special ability (strategically with enemies nearby)."""
         if ai_comp.special_ability_uses > 0:
             reward = ai_comp.special_ability_uses * RewardSystem.REWARD_SPECIAL_ABILITY_USE
             return reward
+
+        if hasattr(ai_comp, 'special_ability_wasted') and ai_comp.special_ability_wasted > 0:
+            penalty = ai_comp.special_ability_wasted * RewardSystem.REWARD_SPECIAL_ABILITY_WITHOUT_ENEMIES
+            ai_comp.special_ability_wasted = 0
+            return penalty
+
         return 0.0
 
     @staticmethod
@@ -225,7 +232,9 @@ class RewardSystem:
             return 0.0
 
         pos = es.component_for_entity(entity, PositionComponent)
-        mine_detection_radius = 200.0
+        mine_detection_radius = 300.0
+        danger_zone = 100.0
+        critical_zone = 50.0
         mines_nearby = 0
 
         for mine_entity, (mine_pos, mine_health, mine_team, mine_attack) in es.get_components(
@@ -237,13 +246,16 @@ class RewardSystem:
 
                 distance = ((mine_pos.x - pos.x) ** 2 + (mine_pos.y - pos.y) ** 2) ** 0.5
 
-                if distance < 100.0:
-                    reward += RewardSystem.REWARD_HIT_MINE
+                # Only penalize if VERY close to mines
+                if distance < critical_zone:
+                    reward += RewardSystem.REWARD_HIT_MINE * 2.0  # Severe penalty very close
+                elif distance < danger_zone:
+                    reward += RewardSystem.REWARD_HIT_MINE  # Moderate penalty close
                 elif distance < mine_detection_radius:
                     mines_nearby += 1
 
         if mines_nearby > 0:
-            reward += mines_nearby * RewardSystem.REWARD_AVOID_MINE
+            reward += min(mines_nearby, 3) * RewardSystem.REWARD_AVOID_MINE
 
         return reward
 
@@ -305,11 +317,13 @@ class RewardSystem:
 
         total_reward = 0.0
 
-        if current_distance < 500.0:
+        if current_distance < 300.0:
+            total_reward += RewardSystem.REWARD_VERY_CLOSE_TO_BASE
+        elif current_distance < 500.0:
             total_reward += RewardSystem.REWARD_NEAR_ENEMY_BASE
 
         if distance_change > 0:
-            total_reward += RewardSystem.REWARD_APPROACH_ENEMY_BASE
+            total_reward += RewardSystem.REWARD_APPROACH_ENEMY_BASE * min(distance_change / 50.0, 2.0)
         elif distance_change < 0:
             total_reward += RewardSystem.REWARD_RETREAT_FROM_BASE
 
