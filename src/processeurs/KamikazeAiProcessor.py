@@ -36,6 +36,7 @@ class KamikazeAiProcessor(esper.Processor):
     def __init__(self, grid, auto_train_model=True):
         self.grid = grid
         self.model = None
+        self._mines_for_training = None  # Ajout de l'attribut pour éviter l'erreur d'accès
         if auto_train_model:
             self.load_or_train_model()
 
@@ -588,13 +589,13 @@ class KamikazeAiProcessor(esper.Processor):
         BASE_SIZE = 4  # Taille de la base en tuiles (supposée 4x4)
         margin_tiles = 2  # Marge de sécurité pour ne jamais viser le bord
         if my_team_id == 1:
-            # Base ennemie en bas à droite
-            base_x_min = MAP_WIDTH - BASE_SIZE
-            base_y_min = MAP_HEIGHT - BASE_SIZE
-        else:
-            # Base ennemie en haut à gauche
+            # L'équipe 1 est probablement en bas à droite, donc la base ennemie (équipe 2) est en haut à gauche
             base_x_min = 0
             base_y_min = 0
+        else:
+            # L'équipe 2 est probablement en haut à gauche, donc la base ennemie (équipe 1) est en bas à droite
+            base_x_min = MAP_WIDTH - BASE_SIZE
+            base_y_min = MAP_HEIGHT - BASE_SIZE
         # Centre géométrique du carré de la base
         center_x = base_x_min + BASE_SIZE / 2
         center_y = base_y_min + BASE_SIZE / 2
