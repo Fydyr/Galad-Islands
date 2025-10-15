@@ -46,7 +46,7 @@ from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
-from src.components.core.UnitAiComponent import UnitAiComponent
+from components.core.KamikazeAiComponent import UnitAiComponent
 from src.components.core.visionComponent import VisionComponent
 from src.settings.localization import t
 

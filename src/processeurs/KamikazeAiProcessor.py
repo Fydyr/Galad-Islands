@@ -10,26 +10,21 @@ import random
 import numpy as np
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, accuracy_score, classification_report
 from src.factory.unitType import UnitType
-from src.settings.settings import TILE_SIZE
+from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
-
-# Importations des composants nécessaires pour la détection
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.baseComponent import BaseComponent
 from src.components.core.projectileComponent import ProjectileComponent
 from src.components.core.healthComponent import HealthComponent
-from src.components.core.UnitAiComponent import UnitAiComponent
+from src.components.core.KamikazeAiComponent import UnitAiComponent
 from src.constants.gameplay import SPECIAL_ABILITY_COOLDOWN
 
 
-class UnitAiProcessor(esper.Processor):
+class KamikazeAiProcessor(esper.Processor):
     """
     Gère les décisions tactiques pour les unités contrôlées par l'IA.
     Utilise un modèle scikit-learn pour le Kamikaze.
@@ -109,10 +104,18 @@ class UnitAiProcessor(esper.Processor):
 
 
         # SCÉNARIOS EXPLICITES : LIGNE DROITE (boost dispo ET boost indisponible)
+        from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+        # Utiliser le centre de la base alliée et ennemie comme points de départ/cible
+        ally_base_x = 1 + 2
+        ally_base_y = 1 + 2
+        enemy_base_x = MAP_WIDTH - 5 + 2
+        enemy_base_y = MAP_HEIGHT - 5 + 2
+        ally_base_pos = PositionComponent(x=ally_base_x * TILE_SIZE, y=ally_base_y * TILE_SIZE, direction=0)
+        enemy_base_pos = PositionComponent(x=enemy_base_x * TILE_SIZE, y=enemy_base_y * TILE_SIZE, direction=180)
         for _ in range(n_simulations // 10):
             # Ligne droite, boost dispo
-            unit_pos = PositionComponent(x=200, y=750, direction=0)
-            target_pos = PositionComponent(x=1800, y=750)
+            unit_pos = PositionComponent(x=ally_base_pos.x, y=ally_base_pos.y, direction=0)
+            target_pos = PositionComponent(x=enemy_base_pos.x, y=enemy_base_pos.y)
             obstacles = []
             threats = []
             # Boost dispo
@@ -133,9 +136,9 @@ class UnitAiProcessor(esper.Processor):
         # SCÉNARIOS D'ÉVITEMENT EXPLICITES (obstacle/menace devant)
         for _ in range(n_simulations // 10):
             # Obstacle droit devant
-            unit_pos = PositionComponent(x=200, y=750, direction=0)
-            target_pos = PositionComponent(x=1800, y=750)
-            obstacles = [PositionComponent(x=400, y=750)]
+            unit_pos = PositionComponent(x=ally_base_pos.x, y=ally_base_pos.y, direction=0)
+            target_pos = PositionComponent(x=enemy_base_pos.x, y=enemy_base_pos.y)
+            obstacles = [PositionComponent(x=ally_base_pos.x + 200, y=ally_base_pos.y)]
             threats = []
             features = self._get_features_for_state(unit_pos, target_pos, obstacles, threats, boost_cooldown=0.0)
             for act in range(4):
@@ -145,7 +148,7 @@ class UnitAiProcessor(esper.Processor):
                 all_rewards.append(reward)
             # Menace droit devant
             obstacles = []
-            threats = [PositionComponent(x=400, y=750)]
+            threats = [PositionComponent(x=ally_base_pos.x + 200, y=ally_base_pos.y)]
             features = self._get_features_for_state(unit_pos, target_pos, obstacles, threats, boost_cooldown=0.0)
             for act in range(4):
                 reward = -50 if act == 0 else 20
@@ -463,36 +466,55 @@ class UnitAiProcessor(esper.Processor):
         return 0
 
     def find_enemy_base_position(self, my_team_id):
-        enemy_team_id = 2 if my_team_id == 1 else 1
-        for ent, (base, team, pos) in esper.get_components(BaseComponent, TeamComponent, PositionComponent):
-            if team.team_id == enemy_team_id:
-                return pos
-        return None
+        # Utilise la logique de mapComponent.py pour déterminer la position centrale de la base ennemie
+        from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+        from src.components.core.positionComponent import PositionComponent
+        if my_team_id == 1:
+            # L'ennemi est en bas à droite
+            base_x = MAP_WIDTH - 5 + 2  # centre de la base ennemie (4x4)
+            base_y = MAP_HEIGHT - 5 + 2
+        else:
+            # L'ennemi est en haut à gauche
+            base_x = 1 + 2
+            base_y = 1 + 2
+        # Convertir en coordonnées monde (pixels)
+        world_x = base_x * TILE_SIZE
+        world_y = base_y * TILE_SIZE
+        return PositionComponent(x=world_x, y=world_y)
 
     def find_best_kamikaze_target(self, my_pos, my_team_id):
-        """Trouve la meilleure cible pour un Kamikaze: base ou unité lourde."""
+        """
+        Trouve la meilleure cible pour un Kamikaze :
+        - Si une unité lourde ennemie (Leviathan ou Maraudeur) est proche (< 7 tuiles), la viser en priorité.
+        - Sinon, viser la base ennemie.
+        """
         enemy_team_id = 2 if my_team_id == 1 else 1
+        TILE_RADIUS = 7 * TILE_SIZE
 
-        # Cibles potentielles: base ennemie et unités lourdes
-        targets = []
+        heavy_types = ["LEVIATHAN", "MARAUDER"]
+        closest_heavy = None
+        min_dist = float("inf")
 
-        # 1. Base ennemie (priorité absolue)
-        base_pos = self.find_enemy_base_position(my_team_id)
-        if base_pos:
-            targets.append((base_pos, 0))  # Poids 0 = priorité maximale
-
-        # 2. Unités lourdes (ex: Leviathan)
+        # Chercher une unité lourde ennemie à proximité (avec composant UnitType)
         for ent, (pos, team, health) in esper.get_components(PositionComponent, TeamComponent, HealthComponent):
             if team.team_id == enemy_team_id and health.maxHealth > 200:
-                distance = math.hypot(pos.x - my_pos.x, pos.y - my_pos.y)
-                targets.append((pos, distance))
+                try:
+                    unit_type_comp = esper.component_for_entity(ent, UnitType)
+                    unit_type_str = str(unit_type_comp).upper()
+                except Exception:
+                    unit_type_str = None
+                if unit_type_str and any(ht in unit_type_str for ht in heavy_types):
+                    dist = math.hypot(pos.x - my_pos.x, pos.y - my_pos.y)
+                    if dist < TILE_RADIUS and dist < min_dist:
+                        closest_heavy = pos
+                        min_dist = dist
 
-        if not targets:
-            return None
+        if closest_heavy is not None:
+            return closest_heavy
 
-        # Retourner la cible avec le meilleur score (base en priorité)
-        targets.sort(key=lambda t: t[1])
-        return targets[0][0]
+        # Sinon, viser la base ennemie
+        base_pos = self.find_enemy_base_position(my_team_id)
+        return base_pos
 
     def _get_features_for_state(self, my_pos, target_pos, obstacles, threats, boost_cooldown=0.0):
         """Convertit l'état du jeu en un vecteur de features pour le modèle."""

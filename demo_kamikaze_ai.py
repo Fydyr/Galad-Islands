@@ -4,20 +4,22 @@ Démonstration de l'IA avancée du Kamikaze.
 Montre comment l'unité Kamikaze prend des décisions stratégiques de navigation.
 """
 
-import sys
-import os
-from pathlib import Path
+
 
 # Ajouter le répertoire src au path
+from pathlib import Path
+import os
+import sys
+
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import numpy as np
 import esper
-from processeurs.UnitAiProcessor import UnitAiProcessor
 from src.components.core.positionComponent import PositionComponent
+from src.processeurs.KamikazeAiProcessor import KamikazeAiProcessor
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
-from src.components.core.UnitAiComponent import UnitAiComponent
+from components.core.KamikazeAiComponent import UnitAiComponent
 from src.factory.unitType import UnitType
 from src.constants.gameplay import SPECIAL_ABILITY_COOLDOWN
 
@@ -27,31 +29,31 @@ def demo_kamikaze_ai():
     print("🚀 DÉMONSTRATION DE L'IA AVANCÉE DU KAMIKAZE")
     print("=" * 60)
 
-    # Créer une grille factice pour l'initialisation
-    dummy_grid = [[0 for _ in range(30)] for _ in range(30)]
-    dummy_grid[15][15] = 2  # Ajouter une île au milieu
+    # Créer une vraie grille de jeu pour l'initialisation
+    from src.components.globals import mapComponent
+    dummy_grid = mapComponent.creer_grille()
+    mapComponent.placer_elements(dummy_grid)
 
-    # Initialiser l'IA du Kamikaze avec chargement du bon modèle
-    ai_processor = UnitAiProcessor(grid=dummy_grid)
-    # Patch : charge le modèle RandomForest si dispo
+    # Initialiser l'IA du Kamikaze avec chargement du modèle RandomForest entraîné
+    ai_processor = KamikazeAiProcessor(grid=dummy_grid)
     import joblib
     rf_path = "src/models/kamikaze_ai_rf_model.pkl"
-    dt_path = "src/models/kamikaze_ai_model.pkl"
     if os.path.exists(rf_path):
         ai_processor.model = joblib.load(rf_path)
         print("🤖 Modèle RandomForest chargé pour la démo Kamikaze !")
-    elif os.path.exists(dt_path):
-        ai_processor.model = joblib.load(dt_path)
-        print("🤖 Modèle DecisionTree chargé pour la démo Kamikaze !")
+        # Afficher les infos du modèle
+        params = ai_processor.model.get_params() if hasattr(ai_processor.model, 'get_params') else {}
+        print(f"   - Nombre d'arbres: {params.get('n_estimators', '?')}")
+        print(f"   - Profondeur max: {params.get('max_depth', '?')}")
     else:
-        print("❌ Aucun modèle Kamikaze trouvé !")
+        print("❌ Aucun modèle RandomForest Kamikaze trouvé !")
 
     # Scénarios de test
+    # La cible (target_pos) est maintenant calculée comme en jeu via find_enemy_base_position
     scenarios = [
         {
             "name": "Boost indisponible - doit avancer sans boost",
             "unit_pos": PositionComponent(x=200, y=750, direction=0),
-            "target_pos": PositionComponent(x=1800, y=750),
             "obstacles": [],
             "threats": [],
             "expected": "Continuer (boost impossible)",
@@ -60,7 +62,6 @@ def demo_kamikaze_ai():
         {
             "name": "Trajectoire directe - Aucun obstacle",
             "unit_pos": PositionComponent(x=200, y=750, direction=0),
-            "target_pos": PositionComponent(x=1800, y=750),
             "obstacles": [],
             "threats": [],
             "expected": "Continuer tout droit"
@@ -68,7 +69,6 @@ def demo_kamikaze_ai():
         {
             "name": "Évitement d'obstacle - Île sur le chemin",
             "unit_pos": PositionComponent(x=200, y=750, direction=0),
-            "target_pos": PositionComponent(x=1800, y=750),
             "obstacles": [PositionComponent(x=400, y=750)],  # Obstacle très proche (400 au lieu de 600)
             "threats": [],
             "expected": "Tourner pour éviter"
@@ -76,7 +76,6 @@ def demo_kamikaze_ai():
         {
             "name": "Évitement de projectiles - Menaces en approche",
             "unit_pos": PositionComponent(x=200, y=750, direction=0),
-            "target_pos": PositionComponent(x=1800, y=750),
             "obstacles": [],
             "threats": [PositionComponent(x=400, y=750)],  # Projectile devant
             "expected": "Tourner pour éviter"
@@ -84,7 +83,6 @@ def demo_kamikaze_ai():
         {
             "name": "Boost stratégique - Distance importante",
             "unit_pos": PositionComponent(x=200, y=750, direction=0),
-            "target_pos": PositionComponent(x=1800, y=750),
             "obstacles": [],
             "threats": [],
             "expected": "Continuer (boost possible)"
@@ -92,7 +90,6 @@ def demo_kamikaze_ai():
         {
             "name": "Navigation complexe - Obstacles et menaces",
             "unit_pos": PositionComponent(x=200, y=750, direction=45),
-            "target_pos": PositionComponent(x=1800, y=750),
             "obstacles": [PositionComponent(x=800, y=800), PositionComponent(x=1200, y=700)],
             "threats": [PositionComponent(x=500, y=780)],
             "expected": "Navigation stratégique"
@@ -102,9 +99,12 @@ def demo_kamikaze_ai():
     success_count = 0
 
     for i, scenario in enumerate(scenarios, 1):
+        # Calculer la cible comme en jeu (base ennemie)
+        my_team_id = 1  # On suppose que le Kamikaze est toujours team 1 pour la démo
+        target_pos = ai_processor.find_enemy_base_position(my_team_id)
         print(f"\n📊 Scénario {i}: {scenario['name']}")
         print(f"   - Position: ({scenario['unit_pos'].x:.0f}, {scenario['unit_pos'].y:.0f}) Direction: {scenario['unit_pos'].direction}°")
-        print(f"   - Cible: ({scenario['target_pos'].x:.0f}, {scenario['target_pos'].y:.0f})")
+        print(f"   - Cible: ({target_pos.x:.0f}, {target_pos.y:.0f})")
         print(f"   - Obstacles: {len(scenario['obstacles'])} | Menaces: {len(scenario['threats'])}")
         print(f"   => Attendu: {scenario['expected']}")
 
@@ -112,7 +112,7 @@ def demo_kamikaze_ai():
         boost_cooldown = scenario.get('boost_cooldown', 0.0)
         features = ai_processor._get_features_for_state(
             scenario['unit_pos'],
-            scenario['target_pos'],
+            target_pos,
             scenario['obstacles'],
             scenario['threats'],
             boost_cooldown=boost_cooldown

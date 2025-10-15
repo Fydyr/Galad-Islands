@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 @dataclass
 class UnitAiComponent:
-    """Marque une unité pour le UnitAiProcessor."""
+    """Marque une unité pour le KamikazeAiProcessor."""
     unit_type: str
     action_cooldown: float = 0.2  # Temps entre chaque décision en secondes
     last_action_time: float = 0.0

@@ -4,6 +4,7 @@ Script d'entraînement avancé pour l'IA du Kamikaze.
 Permet d'entraîner l'IA avec plus de données et de meilleurs paramètres.
 """
 
+
 import sys
 import os
 import time
@@ -18,7 +19,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import joblib
 
-from src.processeurs.UnitAiProcessor import UnitAiProcessor
+from src.components.globals import mapComponent
+from src.processeurs.KamikazeAiProcessor import KamikazeAiProcessor
+from src.constants.map_tiles import TileType
+from src.settings.settings import TILE_SIZE
+from sklearn.ensemble import RandomForestRegressor
+
 
 
 class AdvancedKamikazeAiTrainer:
@@ -29,25 +35,16 @@ class AdvancedKamikazeAiTrainer:
         self.data_path = "src/models/kamikaze_ai_training_data.npz"
 
     def _generate_realistic_grid(self):
-        """Génère une grille réaliste comme dans le jeu (îles, nuages) et une liste de mines (positions)."""
-        grid = [[0 for _ in range(30)] for _ in range(30)]
-        # Placer des îles (valeur 2)
-        for _ in range(np.random.randint(6, 10)):
-            ix = np.random.randint(3, 27)
-            iy = np.random.randint(3, 27)
-            grid[ix][iy] = 2
-        # Placer des nuages (valeur 3)
-        for _ in range(np.random.randint(3, 7)):
-            ix = np.random.randint(3, 27)
-            iy = np.random.randint(3, 27)
-            if grid[ix][iy] == 0:
-                grid[ix][iy] = 3
-        # Générer des mines (positions aléatoires)
+        """Génère une grille réaliste en utilisant la vraie logique du jeu (mapComponent.py) et une liste de mines (positions)."""
+        grid = mapComponent.creer_grille()
+        mapComponent.placer_elements(grid)
+        # Extraire les positions des mines à partir de la grille
         mines = []
-        for _ in range(np.random.randint(2, 5)):
-            x = np.random.uniform(200, 1800)
-            y = np.random.uniform(200, 1300)
-            mines.append({'x': x, 'y': y})
+        for y, row in enumerate(grid):
+            for x, val in enumerate(row):
+                if val == TileType.MINE:
+                    # Position centrale de la tuile
+                    mines.append({'x': (x + 0.5) * TILE_SIZE, 'y': (y + 0.5) * TILE_SIZE})
         return grid, mines
 
     def generate_advanced_training_data(self, n_simulations=1000):
@@ -57,8 +54,8 @@ class AdvancedKamikazeAiTrainer:
         esper.clear_database()
 
         realistic_grid, mines = self._generate_realistic_grid()
-        self.processor = UnitAiProcessor(grid=realistic_grid)
-        self.processor._mines_for_training = mines
+        self.processor = KamikazeAiProcessor(grid=realistic_grid)
+        # Si besoin, passer les mines via une méthode ou paramètre officiel, sinon ignorer
 
         states, actions, rewards = [], [], []
         try:
@@ -164,8 +161,12 @@ class AdvancedKamikazeAiTrainer:
         print("-" * 40)
         print(f"⏰ Temps d'entraînement: {training_time:.2f} secondes")
         print(f"🎯 Erreur quadratique moyenne finale: {mse:.3f}")
-        print(f"   - Nombre d'arbres: {model.n_estimators}")
-        print(f"   - Profondeur max: {model.max_depth}")
+        # Affichage robuste des paramètres du modèle
+        params = model.get_params() if hasattr(model, 'get_params') else {}
+        if 'n_estimators' in params:
+            print(f"   - Nombre d'arbres: {params['n_estimators']}")
+        if 'max_depth' in params:
+            print(f"   - Profondeur max: {params['max_depth']}")
         print(f"   - Échantillons d'entraînement: {len(X_train)}")
         print(f"   - Échantillons de test: {len(X_test)}")
         print()
@@ -208,7 +209,7 @@ def main():
 
     print()
     print("🎮 Le modèle avancé du Kamikaze est prêt à être utilisé dans le jeu!")
-    print("💡 Le modèle est automatiquement chargé par UnitAiProcessor lors de l'initialisation.")
+    print("💡 Le modèle est automatiquement chargé par KamikazeAiProcessor lors de l'initialisation.")
 
 
 if __name__ == "__main__":
