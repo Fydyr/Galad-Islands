@@ -15,9 +15,15 @@ from src.factory.unitType import UnitType
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.playerComponent import PlayerComponent
+from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.events.flyChestComponent import FlyingChestComponent as FlyChest
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.processeurs.movementProcessor import MovementProcessor
+from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
+from src.processeurs.lifetimeProcessor import LifetimeProcessor
+from src.processeurs.collisionProcessor import CollisionProcessor
+from src.processeurs.towerProcessor import TowerProcessor
 from ia.learning.architectAIComponent import QLearningArchitectAI
 
 # --- Training Configuration ---
@@ -35,6 +41,17 @@ class TrainingEnvironment:
         self.player_entity = None
         self.enemies = []
         self.allies = []
+        self._initialize_processors()
+
+    def _initialize_processors(self):
+        """Initializes and adds ECS processors to the world."""
+        # We don't need rendering, player control, or storm processors for training
+        self.movement_processor = MovementProcessor()
+        self.collision_processor = CollisionProcessor(self.grid)
+        self.capacities_processor = CapacitiesSpecialesProcessor()
+        self.lifetime_processor = LifetimeProcessor()
+        self.tower_processor = TowerProcessor()
+        # AIControlProcessor is handled manually in the training loop
 
     def _create_dummy_grid(self):
         """Creates a simple grid with islands and obstacles for training."""
@@ -73,15 +90,17 @@ class TrainingEnvironment:
         for _ in range(3):
             ally_pos = PositionComponent(random.uniform(100, 200), random.uniform(100, 200))
             ally = UnitFactory(UnitType.SCOUT, enemy=False, pos=ally_pos)
-            # Damage ally slightly to encourage healing
-            health = es.component_for_entity(ally, HealthComponent)
-            health.currentHealth *= random.uniform(0.4, 0.8)
-            self.allies.append(ally)
+            if ally is not None:
+                # Damage ally slightly to encourage healing
+                health = es.component_for_entity(ally, HealthComponent)
+                health.currentHealth *= random.uniform(0.4, 0.8)
+                self.allies.append(ally)
 
         for _ in range(4):
             enemy_pos = PositionComponent(random.uniform(300, 500), random.uniform(300, 500))
             enemy = UnitFactory(UnitType.SCOUT, enemy=True, pos=enemy_pos)
-            self.enemies.append(enemy)
+            if enemy is not None:
+                self.enemies.append(enemy)
         
         return self._get_state()
 
@@ -150,31 +169,50 @@ class TrainingEnvironment:
         # Similar to find_closest_entity, but for events
         return float('inf'), None
 
-    def step(self, action_name):
+    def step(self, action_name, dt=0.016):
         """Executes an action and returns the new state, reward, and done flag."""
         reward = -0.1 # Small penalty for taking a step
         done = False
 
-        # Simulate action effects
-        if action_name == 'build_attack_tower':
-            state = self._get_state()['discrete']
-            if state[0] and state[1]: # Near island and has money
+        # --- Apply AI action to components ---
+        # This is what the AIControlProcessor would do in the real game
+        arch_vel = es.component_for_entity(self.architect_entity, VelocityComponent)
+        arch_pos = es.component_for_entity(self.architect_entity, PositionComponent)
+        player = es.component_for_entity(self.player_entity, PlayerComponent)
+
+        if action_name == 'accelerate':
+            arch_vel.currentSpeed = min(arch_vel.currentSpeed + 0.5, arch_vel.maxUpSpeed)
+        elif action_name == 'decelerate':
+            arch_vel.currentSpeed = max(arch_vel.currentSpeed - 0.5, arch_vel.maxReverseSpeed)
+        elif action_name == 'rotate_left':
+            arch_pos.direction = (arch_pos.direction - 5 + 360) % 360
+        elif action_name == 'rotate_right':
+            arch_pos.direction = (arch_pos.direction + 5) % 360
+        elif action_name == 'build_attack_tower':
+            # Simplified reward logic, the actual building is handled by the AI component
+            # In a real scenario, the AI would trigger an event or call a factory
+            if self.ai_agent.last_state[0] and self.ai_agent.last_state[1]: # Near island & has money
                 reward += 50
-                if state[2]: reward += 30 # Bonus for building near enemies
-                player = es.component_for_entity(self.player_entity, PlayerComponent)
-                player.spend_gold(400)
+                if self.ai_agent.last_state[2]: reward += 30 # Bonus for building near enemies
+                player.spend_gold(400) # Simulate cost
             else:
                 reward -= 20 # Penalty for trying to build incorrectly
-        
         elif action_name == 'build_heal_tower':
-            state = self._get_state()['discrete']
-            if state[0] and state[1]: # Near island and has money
+            if self.ai_agent.last_state[0] and self.ai_agent.last_state[1]: # Near island & has money
                 reward += 50
-                if state[3]: reward += 30 # Bonus for building when allies need heal
-                player = es.component_for_entity(self.player_entity, PlayerComponent)
-                player.spend_gold(400)
+                if self.ai_agent.last_state[3]: reward += 30 # Bonus for building when allies need heal
+                player.spend_gold(400) # Simulate cost
             else:
                 reward -= 20
+
+        # --- Run ECS Processors ---
+        # Add processors to the new database
+        self.movement_processor.process()
+        self.collision_processor.process()
+        self.capacities_processor.process(dt)
+        self.lifetime_processor.process(dt)
+        self.tower_processor.process(dt)
+
 
         # Simulate movement (simplified for training)
         # In a real game, this would involve the MovementProcessor
@@ -197,11 +235,18 @@ def main():
         total_reward = 0
 
         for step in range(MAX_STEPS_PER_EPISODE):
-            # In a real game, this would be handled by the AIControlProcessor
-            action_id = env.ai_agent.choose_action(env.ai_agent._discretize_state(state['discrete']))
+            # AI makes a decision based on the current state
+            # This replaces the AIControlProcessor for the training agent
+            discretized_state = env.ai_agent._discretize_state(state['discrete'])
+            action_id = env.ai_agent.choose_action(discretized_state)
             action_name = env.ai_agent.ACTIONS[action_id]
+            
+            # IMPORTANT: Store the state used for the decision before stepping
+            env.ai_agent.last_state = discretized_state
 
-            next_state, reward, done = env.step(action_name)
+            # The environment executes the action and updates the world
+            # We pass a small delta time for the processors
+            next_state, reward, done = env.step(action_name, dt=1.0/60.0)
             total_reward += reward
 
             # Learning step

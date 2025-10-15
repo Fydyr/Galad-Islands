@@ -24,6 +24,13 @@ except (ImportError, ModuleNotFoundError):
     QLearningArchitectAI = None # Allow game to run without training files
 from src.functions.buildingCreator import createDefenseTower, createHealTower
 from src.settings import controls
+from src.processeurs.movementProcessor import MovementProcessor
+from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
+from src.processeurs.lifetimeProcessor import LifetimeProcessor
+from src.processeurs.collisionProcessor import CollisionProcessor
+from src.processeurs.towerProcessor import TowerProcessor
+
+
 
 class AIControlProcessor(esper.Processor):
 
@@ -122,12 +129,10 @@ class AIControlProcessor(esper.Processor):
         if QLearningArchitectAI and isinstance(ai_component, QLearningArchitectAI):
             # This is our new learning AI
             if not ai_component.grid: ai_component.grid = self.grid # Ensure grid is set
-            if not ai_component.astar: ai_component.astar = ai_component.AStar(self.grid)
 
             state = self._get_learning_ai_state(entity)
             if not state: return "do_nothing"
             
-            return ai_component.make_decision(dt, state, state['current_pos'], state['current_direction'])
         else:
             # Fallback for the old AI
             return ai_component.makeDecision(dt, [])
@@ -147,7 +152,7 @@ class AIControlProcessor(esper.Processor):
             if ai is None:
                 continue
 
-            decision = ai.processor.getDecision(dt, entity, ai) if hasattr(ai, 'processor') and ai.processor is not None else self.getDecision(dt, entity, ai)
+            decision = self.getDecision(dt, entity, ai)
             if decision is None:
                 continue
 
