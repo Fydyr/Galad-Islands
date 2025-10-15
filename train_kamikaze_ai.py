@@ -54,7 +54,7 @@ class AdvancedKamikazeAiTrainer:
         esper.clear_database()
 
         realistic_grid, mines = self._generate_realistic_grid()
-        self.processor = KamikazeAiProcessor(grid=realistic_grid)
+        self.processor = KamikazeAiProcessor(grid=realistic_grid, auto_train_model=False)
         # Si besoin, passer les mines via une méthode ou paramètre officiel, sinon ignorer
 
         states, actions, rewards = [], [], []
@@ -73,11 +73,12 @@ class AdvancedKamikazeAiTrainer:
             self._save_training_data([s + [a] for s, a in zip(states, actions)], rewards)
             print("✅ Données sauvegardées après crash.")
             raise
-        finally:
-            if states:
-                print("\n💾 Sauvegarde automatique des données d'entraînement (sortie/crash/interruption)...")
-                self._save_training_data([s + [a] for s, a in zip(states, actions)], rewards)
-                print("✅ Données sauvegardées (finally).")
+
+        # Sauvegarde automatique si tout s'est bien passé
+        if states:
+            print("\n💾 Sauvegarde automatique des données d'entraînement...")
+            self._save_training_data([s + [a] for s, a in zip(states, actions)], rewards)
+            print("✅ Données sauvegardées.")
 
         print(f"📈 Données générées: {len(states)} exemples")
         print("🎯 Répartition des récompenses:")
@@ -88,10 +89,17 @@ class AdvancedKamikazeAiTrainer:
 
         return [s + [a] for s, a in zip(states, actions)], rewards
 
-    def _save_training_data(self, states_actions, rewards):
-        """Sauvegarde les données d'entraînement dans un fichier."""
-        print(f"💾 Sauvegarde des données d'entraînement dans {self.data_path}...")
+    def _save_training_data(self, states_actions, rewards, append=True):
+        """Sauvegarde les données d'entraînement dans un fichier, en mode append si demandé."""
+        print(f"💾 Sauvegarde des données d'entraînement dans {self.data_path}... (append={append})")
         os.makedirs(os.path.dirname(self.data_path), exist_ok=True)
+        if append and os.path.exists(self.data_path):
+            # Charger l'existant et concaténer
+            data = np.load(self.data_path, allow_pickle=True)
+            old_states = data['states_actions'].tolist()
+            old_rewards = data['rewards'].tolist()
+            states_actions = old_states + states_actions
+            rewards = old_rewards + rewards
         np.savez_compressed(self.data_path, states_actions=np.array(states_actions, dtype=object), rewards=np.array(rewards, dtype=object))
         print("✅ Données sauvegardées.")
 
@@ -105,7 +113,7 @@ class AdvancedKamikazeAiTrainer:
         print(f"✅ Données chargées: {len(data['states_actions'])} exemples.")
         return data['states_actions'].tolist(), data['rewards'].tolist()
 
-    def train_advanced_model(self, n_simulations=3000, use_cached_data=False):
+    def train_advanced_model(self, n_simulations=3000, use_cached_data=False, only_train_on_existing_data=False, batch_append=True):
         """Entraîne un modèle avancé avec beaucoup de simulations."""
         start_time = time.time()
 
@@ -117,13 +125,19 @@ class AdvancedKamikazeAiTrainer:
         print()
 
         states_actions, rewards = None, None
-        if use_cached_data:
+        if use_cached_data or only_train_on_existing_data:
             states_actions, rewards = self._load_training_data()
 
-        if states_actions is None or rewards is None:
-            # Générer les données d'entraînement
-            states_actions, rewards = self.generate_advanced_training_data(n_simulations)
-            self._save_training_data(states_actions, rewards)
+        if only_train_on_existing_data:
+            if not states_actions or not rewards:
+                print("❌ Aucune donnée existante à utiliser pour l'entraînement.")
+                return None, None
+        else:
+            # Générer les données d'entraînement (et append)
+            new_states_actions, new_rewards = self.generate_advanced_training_data(n_simulations)
+            self._save_training_data(new_states_actions, new_rewards, append=batch_append)
+            # Charger toutes les données accumulées
+            states_actions, rewards = self._load_training_data()
 
         print()
         print("🔧 Phase d'entraînement...")
@@ -184,32 +198,32 @@ def main():
     print("🤖 Entraîneur d'IA avancé pour le Kamikaze - Galad Islands")
     print()
 
-    # Demander le nombre de simulations
-    try:
-        n_simulations = int(input("Nombre de simulations à effectuer (défaut: 1000): ") or "1000")
-    except ValueError:
-        n_simulations = 1000
-
-    # Demander si on utilise les données en cache
-    use_cached_data = False
-    data_path = "src/models/kamikaze_ai_training_data.npz"
-    if os.path.exists(data_path):
-        try:
-            answer = input(f"Des données d'entraînement existent déjà ({data_path}). Les réutiliser ? [O/n]: ").strip().lower()
-            if answer in ('', 'o', 'oui', 'y', 'yes'):
-                use_cached_data = True
-        except (IOError, EOFError):
-            pass
-
-    print(f"🔥 Lancement de l'entraînement avec {n_simulations} simulations...")
-    print()
+    import argparse
+    parser = argparse.ArgumentParser(description="Entraînement IA Kamikaze par batchs ou complet.")
+    parser.add_argument('--batch', type=int, default=0, help="Nombre de simulations à générer et ajouter (batch). Si 0, pas de génération.")
+    parser.add_argument('--train', action='store_true', help="Entraîner le modèle à partir de toutes les données accumulées.")
+    parser.add_argument('--nocache', action='store_true', help="Ne pas utiliser les données en cache (force la génération d'un nouveau batch).")
+    args = parser.parse_args()
 
     trainer = AdvancedKamikazeAiTrainer()
-    model, mse = trainer.train_advanced_model(n_simulations, use_cached_data=use_cached_data)
 
-    print()
-    print("🎮 Le modèle avancé du Kamikaze est prêt à être utilisé dans le jeu!")
-    print("💡 Le modèle est automatiquement chargé par KamikazeAiProcessor lors de l'initialisation.")
+    if args.batch > 0:
+        print(f"🔥 Génération d'un batch de {args.batch} simulations et ajout aux données...")
+        trainer.train_advanced_model(n_simulations=args.batch, use_cached_data=not args.nocache, only_train_on_existing_data=False, batch_append=True)
+        print("✅ Batch ajouté. Tu peux relancer pour ajouter d'autres batchs.")
+
+    if args.train:
+        print("\n� Entraînement du modèle à partir de toutes les données accumulées...")
+        model, mse = trainer.train_advanced_model(n_simulations=0, use_cached_data=True, only_train_on_existing_data=True)
+        if model is not None:
+            print()
+            print("🎮 Le modèle avancé du Kamikaze est prêt à être utilisé dans le jeu!")
+            print("💡 Le modèle est automatiquement chargé par KamikazeAiProcessor lors de l'initialisation.")
+        else:
+            print("❌ Entraînement impossible : pas de données.")
+
+    if not args.batch and not args.train:
+        print("Utilisation :\n  python train_kamikaze_ai.py --batch 5000   # Génère et ajoute 5000 simulations\n  python train_kamikaze_ai.py --train       # Entraîne le modèle sur toutes les données accumulées\n  (tu peux enchaîner plusieurs batchs avant d'entraîner)")
 
 
 if __name__ == "__main__":

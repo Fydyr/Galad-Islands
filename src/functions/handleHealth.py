@@ -29,6 +29,8 @@ def processHealth(entity, damage, attacker_entity=None):
     except Exception:
         pass
 
+    if not esper.has_component(entity, Health):
+        return  # Pas de composant Health, rien à faire
     health = esper.component_for_entity(entity, Health)
     
     # Vérifie si l'entité possède le bouclier de Barhamus
@@ -55,10 +57,14 @@ def processHealth(entity, damage, attacker_entity=None):
               esper.has_component(attacker_entity, Health) and 
               esper.has_component(attacker_entity, Team) and 
               esper.has_component(attacker_entity, Attack)):
-            attacker_health = esper.component_for_entity(attacker_entity, Health)
+            if esper.has_component(attacker_entity, Health):
+                attacker_health = esper.component_for_entity(attacker_entity, Health)
+            else:
+                attacker_health = None
             attacker_team = esper.component_for_entity(attacker_entity, Team)
             attacker_attack = esper.component_for_entity(attacker_entity, Attack)
-            if (attacker_health.maxHealth == 1 and 
+            if (attacker_health is not None and
+                attacker_health.maxHealth == 1 and 
                 attacker_team.team_id == 0 and 
                 attacker_attack.hitPoints == 40):
                 damage = 0  # Bandits immunisés aux mines

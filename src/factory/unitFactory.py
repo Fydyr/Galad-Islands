@@ -46,7 +46,7 @@ from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
-from components.core.KamikazeAiComponent import UnitAiComponent
+from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.core.visionComponent import VisionComponent
 from src.settings.localization import t
 
@@ -178,7 +178,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             es.add_component(entity, SpeKamikazeComponent()) # Gère la capacité spéciale et le marqueur d'explosion
             es.add_component(entity, VisionComponent(UNIT_VISION_KAMIKAZE))
             # Ajout du composant IA pour le Kamikaze (toutes équipes)
-            es.add_component(entity, UnitAiComponent(unit_type=UnitType.KAMIKAZE))
+            es.add_component(entity, KamikazeAiComponent(unit_type=UnitType.KAMIKAZE))
 
             sprite_id = SpriteID.ALLY_KAMIKAZE if not enemy else SpriteID.ENEMY_KAMIKAZE
             size = sprite_manager.get_default_size(sprite_id)

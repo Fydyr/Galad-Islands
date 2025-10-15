@@ -19,7 +19,7 @@ from src.components.core.positionComponent import PositionComponent
 from src.processeurs.KamikazeAiProcessor import KamikazeAiProcessor
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
-from components.core.KamikazeAiComponent import UnitAiComponent
+from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.factory.unitType import UnitType
 from src.constants.gameplay import SPECIAL_ABILITY_COOLDOWN
 
@@ -108,6 +108,15 @@ def demo_kamikaze_ai():
         print(f"   - Obstacles: {len(scenario['obstacles'])} | Menaces: {len(scenario['threats'])}")
         print(f"   => Attendu: {scenario['expected']}")
 
+        # Afficher le chemin optimal A* (pathfinding)
+        start = (int(scenario['unit_pos'].x // 60), int(scenario['unit_pos'].y // 60))
+        goal = (int(target_pos.x // 60), int(target_pos.y // 60))
+        path = ai_processor.astar(ai_processor.grid, start, goal)
+        if path:
+            print(f"   => Chemin optimal (A*): {path}")
+        else:
+            print("   => Chemin optimal (A*): Aucun chemin trouvé !")
+
         # Obtenir les features pour ce scénario
         boost_cooldown = scenario.get('boost_cooldown', 0.0)
         features = ai_processor._get_features_for_state(
@@ -117,7 +126,7 @@ def demo_kamikaze_ai():
             scenario['threats'],
             boost_cooldown=boost_cooldown
         )
-        
+
         # Debug: afficher les features pour le premier scénario
         if i == 1:
             print(f"   => Features: {features}")

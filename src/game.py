@@ -30,8 +30,8 @@ from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProc
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
+from src.processeurs.KamikazeAiProcessor import KamikazeAiProcessor
 from src.ia.BaseAi import BaseAi
-from src.processeurs.UnitAiProcessor import UnitAiProcessor
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -76,7 +76,6 @@ from src.components.globals.mapComponent import is_tile_island
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
-from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.notification_system import get_notification_system
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
@@ -928,14 +927,15 @@ class GameEngine:
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
         # IA des unités individuelles (Kamikaze, etc.)
-        self.unit_ai_processor = UnitAiProcessor(grid=self.grid)
+        self.kamikaze_ai_processor = KamikazeAiProcessor(grid=self.grid)
 
         es.add_processor(self.capacities_processor, priority=1)
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
         es.add_processor(self.tower_processor, priority=5)
-        es.add_processor(self.unit_ai_processor, priority=6) # L'IA des unités décide avant l'IA de la base
+        # L'IA des unités décide avant l'IA de la base
+        es.add_processor(self.kamikaze_ai_processor, priority=6)
         es.add_processor(self.ally_base_ai, priority=7)
         es.add_processor(self.enemy_base_ai, priority=8)
         es.add_processor(self.lifetime_processor, priority=10)

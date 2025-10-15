@@ -5,6 +5,7 @@ import esper
 import math
 import os
 import time
+
 import joblib
 import random
 import numpy as np
@@ -20,24 +21,27 @@ from src.components.core.teamComponent import TeamComponent
 from src.components.core.baseComponent import BaseComponent
 from src.components.core.projectileComponent import ProjectileComponent
 from src.components.core.healthComponent import HealthComponent
-from src.components.core.KamikazeAiComponent import UnitAiComponent
+from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.constants.gameplay import SPECIAL_ABILITY_COOLDOWN
 
 
 class KamikazeAiProcessor(esper.Processor):
+    import heapq # Apparament il trouve pas quand c'est en dehors
+    
     """
     Gère les décisions tactiques pour les unités contrôlées par l'IA.
     Utilise un modèle scikit-learn pour le Kamikaze.
     """
 
-    def __init__(self, grid):
+    def __init__(self, grid, auto_train_model=True):
         self.grid = grid
         self.model = None
-        self.load_or_train_model()
+        if auto_train_model:
+            self.load_or_train_model()
 
     def load_or_train_model(self):
         """Charge le modèle du Kamikaze ou l'entraîne s'il n'existe pas."""
-        model_path = "src/models/kamikaze_rf_ai_model.pkl"
+        model_path = "src/models/kamikaze_ai_rf_model.pkl"
         if os.path.exists(model_path):
             print("🤖 Chargement du modèle IA RF pour le Kamikaze...")
             self.model = joblib.load(model_path)
@@ -53,6 +57,38 @@ class KamikazeAiProcessor(esper.Processor):
             os.makedirs("src/models", exist_ok=True)
             joblib.dump(self.model, model_path)
             print(f"💾 Nouveau modèle Kamikaze sauvegardé : {model_path}")
+            
+    def astar(self, grid, start, goal):
+        """A* sur une grille 2D pour le pathfinding de l'unité. start/goal: (x, y) indices de case."""
+        open_set = []
+        self.heapq.heappush(open_set, (0, start))
+        came_from = {}
+        g_score = {start: 0}
+        f_score = {start: abs(goal[0]-start[0]) + abs(goal[1]-start[1])}
+        while open_set:
+            _, current = self.heapq.heappop(open_set)
+            if current == goal:
+                # Reconstituer le chemin
+                path = [current]
+                while current in came_from:
+                    current = came_from[current]
+                    path.append(current)
+                return path[::-1]
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                neighbor = (current[0]+dx, current[1]+dy)
+                if 0 <= neighbor[0] < len(grid[0]) and 0 <= neighbor[1] < len(grid):
+                    # 2=île, 3=nuage/mine
+                    if grid[neighbor[1]][neighbor[0]] in (2, 3):
+                        continue
+                    tentative_g = g_score[current] + 1
+                    if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                        came_from[neighbor] = current
+                        g_score[neighbor] = tentative_g
+                        f_score[neighbor] = tentative_g + \
+                            abs(goal[0]-neighbor[0]) + abs(goal[1]-neighbor[1])
+                        self.heapq.heappush(
+                            open_set, (f_score[neighbor], neighbor))
+        return []  # Pas de chemin trouvé
 
     def train_model(self):
         """Entraîne le modèle de décision pour le Kamikaze avec des simulations avancées."""
@@ -207,7 +243,7 @@ class KamikazeAiProcessor(esper.Processor):
 
         return all_states, all_actions, all_rewards
     def simulate_kamikaze_trajectory_rl_custom(self, unit_pos, target_pos, obstacles, threats):
-        """Simule une trajectoire RL personnalisée avec obstacles/menaces donnés."""
+        """Simule une trajectoire RL personnalisée avec obstacles/menaces donnés, pénalise les collisions et le blocage."""
         states = []
         actions = []
         rewards = []
@@ -215,6 +251,8 @@ class KamikazeAiProcessor(esper.Processor):
         speed = 50.0
         max_steps = 150
         last_distance = math.hypot(target_pos.x - unit_pos.x, target_pos.y - unit_pos.y)
+        stuck_counter = 0
+        stuck_threshold = 5  # nombre d'étapes consécutives à coller un obstacle/bord avant renforcement
         for step in range(max_steps):
             features = self._get_features_for_state(unit_pos, target_pos, obstacles, threats, boost_cooldown)
             can_boost = boost_cooldown <= 0
@@ -255,13 +293,30 @@ class KamikazeAiProcessor(esper.Processor):
                 step_reward -= 2
             last_distance = distance_to_target
             # Pénalité pour collision avec obstacles
+            collision = False
             for obs in obstacles:
                 if math.hypot(obs.x - unit_pos.x, obs.y - unit_pos.y) < 40:
                     step_reward -= 30
+                    collision = True
             # Pénalité pour collision avec menaces
             for threat in threats:
                 if math.hypot(threat.x - unit_pos.x, threat.y - unit_pos.y) < 40:
                     step_reward -= 30
+            # Pénalité pour collision avec le bord de la carte
+            map_margin = 10  # pixels de tolérance
+            if (
+                unit_pos.x < map_margin or unit_pos.x > (MAP_WIDTH * TILE_SIZE - map_margin) or
+                unit_pos.y < map_margin or unit_pos.y > (MAP_HEIGHT * TILE_SIZE - map_margin)
+            ):
+                step_reward -= 40
+                collision = True
+            # Renforcement de la pénalité si bloqué plusieurs étapes
+            if collision:
+                stuck_counter += 1
+                if stuck_counter >= stuck_threshold:
+                    step_reward -= 50  # pénalité supplémentaire pour blocage prolongé
+            else:
+                stuck_counter = 0
             # Récompense pour avoir atteint la cible
             if distance_to_target < 30:
                 step_reward += 100
@@ -373,22 +428,69 @@ class KamikazeAiProcessor(esper.Processor):
 
     def process(self, dt, **kwargs):
         # Itérer sur toutes les unités contrôlées par l'IA
-        for ent, (ai_comp, pos, vel, team) in esper.get_components(UnitAiComponent, PositionComponent, VelocityComponent, TeamComponent):
-
+        for ent, (ai_comp, pos, vel, team) in esper.get_components(KamikazeAiComponent, PositionComponent, VelocityComponent, TeamComponent):
             ai_comp.last_action_time += dt
             if ai_comp.last_action_time < ai_comp.action_cooldown:
                 continue
             ai_comp.last_action_time = 0
             if ai_comp.unit_type == UnitType.KAMIKAZE:
+                # Appel direct de la logique pathfinding
                 self.kamikaze_logic(ent, pos, vel, team)
+            # (Ici, on pourrait ajouter d'autres IA avec pathfinding si besoin)
 
     def kamikaze_logic(self, ent, pos, vel, team):
-        """Logique de décision pour le Kamikaze."""
-        target_pos = self.find_best_kamikaze_target(pos, team.team_id)
-        if not target_pos:
-            vel.currentSpeed = 0
-            return
+        """Logique de décision pour le Kamikaze avec pathfinding A* et cooldown de décision."""
+        # --- Cooldown de remise en cause de la cible/chemin ---
+        DECISION_COOLDOWN = 1.5  # secondes entre deux remises en cause de la cible/chemin
+        if not hasattr(self, '_kamikaze_decision_cooldown'):
+            self._kamikaze_decision_cooldown = {}
+        if not hasattr(self, '_kamikaze_paths'):
+            self._kamikaze_paths = {}
+        now = time.time()
+        path_key = ent
+        cooldown_info = self._kamikaze_decision_cooldown.get(path_key, {'next_eval': 0, 'goal': None})
 
+        # Faut-il réévaluer la cible/chemin ?
+        if now >= cooldown_info['next_eval']:
+            # 1. Déterminer la cible
+            target_pos = self.find_best_kamikaze_target(pos, team.team_id)
+            if not target_pos:
+                vel.currentSpeed = 0
+                return
+            goal = (int(target_pos.x // TILE_SIZE), int(target_pos.y // TILE_SIZE))
+            start = (int(pos.x // TILE_SIZE), int(pos.y // TILE_SIZE))
+            # 2. Pathfinding A*
+            path = self.astar(self.grid, start, goal)
+            self._kamikaze_paths[path_key] = {'goal': goal, 'path': path, 'target_pos': target_pos}
+            # Prochaine réévaluation dans X secondes
+            self._kamikaze_decision_cooldown[path_key] = {'next_eval': now + DECISION_COOLDOWN, 'goal': goal}
+        else:
+            # Utiliser le chemin/cible précédents
+            path_info = self._kamikaze_paths.get(path_key, None)
+            if not path_info or not path_info.get('path'):
+                # Si pas de chemin, forcer réévaluation
+                self._kamikaze_decision_cooldown[path_key]['next_eval'] = 0
+                return
+            path = path_info['path']
+            target_pos = path_info.get('target_pos', None)
+            if not target_pos:
+                # Si pas de cible, forcer réévaluation
+                self._kamikaze_decision_cooldown[path_key]['next_eval'] = 0
+                return
+
+        # 3. Suivre le chemin (waypoints)
+        next_waypoint = None
+        for wp in path[1:]:  # [0]=case actuelle, [1]=prochaine
+            wx, wy = wp[0]*TILE_SIZE+TILE_SIZE//2, wp[1]*TILE_SIZE+TILE_SIZE//2
+            dist = math.hypot(wx - pos.x, wy - pos.y)
+            if dist > TILE_SIZE*0.3:
+                next_waypoint = (wx, wy)
+                break
+        if not next_waypoint:
+            # Déjà à destination ou chemin vide
+            next_waypoint = (target_pos.x, target_pos.y)
+
+        # 4. Évitement local (menaces dynamiques)
         obstacles = self.get_nearby_obstacles(pos, 5 * TILE_SIZE, team.team_id)
         threats = self.get_nearby_threats(pos, 5 * TILE_SIZE, team.team_id)
 
@@ -396,21 +498,24 @@ class KamikazeAiProcessor(esper.Processor):
         boost_cooldown = 0.0
         if esper.has_component(ent, SpeKamikazeComponent):
             spe_comp = esper.component_for_entity(ent, SpeKamikazeComponent)
-            boost_cooldown = spe_comp.cooldown if hasattr(
-                spe_comp, 'cooldown') else 0.0
+            boost_cooldown = spe_comp.cooldown if hasattr(spe_comp, 'cooldown') else 0.0
 
-        # Décider de l'action avec la logique à base de règles (plus fiable)
         can_boost = boost_cooldown <= 0
+
+        # Décider de l'action locale (évitement ou suivre le chemin)
+        # On remplace target_pos par le prochain waypoint
         action = self.decide_kamikaze_action(
-            pos, target_pos, obstacles, threats, can_boost)
+            pos,
+            PositionComponent(x=next_waypoint[0], y=next_waypoint[1]),
+            obstacles,
+            threats,
+            can_boost)
 
         # Afficher la décision en console
-        action_names = ["Continuer", "Tourner gauche",
-                        "Tourner droite", "Activer boost"]
-        target_angle = self.get_angle_to_target(pos, target_pos)
+        action_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
+        target_angle = self.get_angle_to_target(pos, PositionComponent(x=next_waypoint[0], y=next_waypoint[1]))
         angle_diff = (target_angle - pos.direction + 180) % 360 - 180
-        print(
-            f"🤖 Kamikaze #{ent}: Action={action_names[action]} | Dir={pos.direction:.0f}° | Cible={target_angle:.0f}° | Écart={angle_diff:.0f}° | Dist={math.hypot(target_pos.x - pos.x, target_pos.y - pos.y):.0f}")
+        print(f"🤖 Kamikaze #{ent}: Action={action_names[action]} | Dir={pos.direction:.0f}° | Cible={target_angle:.0f}° | Écart={angle_diff:.0f}° | Dist={math.hypot(next_waypoint[0] - pos.x, next_waypoint[1] - pos.y):.0f}")
 
         # Exécuter l'action
         if action == 1:  # Tourner à gauche
@@ -419,11 +524,24 @@ class KamikazeAiProcessor(esper.Processor):
             pos.direction = (pos.direction + 15) % 360
         elif action == 3:  # Activer le boost
             if esper.has_component(ent, SpeKamikazeComponent):
-                esper.component_for_entity(
-                    ent, SpeKamikazeComponent).activate()
+                esper.component_for_entity(ent, SpeKamikazeComponent).activate()
         # Action 0: continuer tout droit (pas de changement)
 
-        vel.currentSpeed = vel.maxUpSpeed
+        # --- Réduction de vitesse si obstacle devant ---
+        slow_down = False
+        for obs in obstacles:
+            dist = math.hypot(obs.x - pos.x, obs.y - pos.y)
+            if dist < 2 * TILE_SIZE:
+                # Est-ce devant ?
+                angle_to_obs = self.get_angle_to_target(pos, obs)
+                angle_diff = abs((angle_to_obs - pos.direction + 180) % 360 - 180)
+                if angle_diff < 30:  # cône de 60°
+                    slow_down = True
+                    break
+        if slow_down:
+            vel.currentSpeed = vel.maxUpSpeed * 0.4  # Ralentir fortement
+        else:
+            vel.currentSpeed = vel.maxUpSpeed
 
     def decide_kamikaze_action(self, my_pos, target_pos, obstacles, threats, can_boost=True):
         """Logique de décision à base de règles (sert de 'professeur')."""
@@ -466,20 +584,25 @@ class KamikazeAiProcessor(esper.Processor):
         return 0
 
     def find_enemy_base_position(self, my_team_id):
-        # Utilise la logique de mapComponent.py pour déterminer la position centrale de la base ennemie
-        from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
-        from src.components.core.positionComponent import PositionComponent
+        # Vise le centre géométrique du carré de la base ennemie, avec marge anti-bord
+        BASE_SIZE = 4  # Taille de la base en tuiles (supposée 4x4)
+        margin_tiles = 2  # Marge de sécurité pour ne jamais viser le bord
         if my_team_id == 1:
-            # L'ennemi est en bas à droite
-            base_x = MAP_WIDTH - 5 + 2  # centre de la base ennemie (4x4)
-            base_y = MAP_HEIGHT - 5 + 2
+            # Base ennemie en bas à droite
+            base_x_min = MAP_WIDTH - BASE_SIZE
+            base_y_min = MAP_HEIGHT - BASE_SIZE
         else:
-            # L'ennemi est en haut à gauche
-            base_x = 1 + 2
-            base_y = 1 + 2
-        # Convertir en coordonnées monde (pixels)
-        world_x = base_x * TILE_SIZE
-        world_y = base_y * TILE_SIZE
+            # Base ennemie en haut à gauche
+            base_x_min = 0
+            base_y_min = 0
+        # Centre géométrique du carré de la base
+        center_x = base_x_min + BASE_SIZE / 2
+        center_y = base_y_min + BASE_SIZE / 2
+        # Appliquer une marge pour ne jamais viser trop près du bord
+        center_x = max(margin_tiles, min(center_x, MAP_WIDTH - margin_tiles))
+        center_y = max(margin_tiles, min(center_y, MAP_HEIGHT - margin_tiles))
+        world_x = center_x * TILE_SIZE
+        world_y = center_y * TILE_SIZE
         return PositionComponent(x=world_x, y=world_y)
 
     def find_best_kamikaze_target(self, my_pos, my_team_id):
