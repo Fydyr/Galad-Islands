@@ -144,7 +144,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             es.add_component(entity, TeamComponent(1 if not enemy else 2))
             es.add_component(entity, AttackComponent(UNIT_ATTACK_ARCHITECT))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_ARCHITECT, UNIT_HEALTH_ARCHITECT))
-            es.add_component(entity, ArchitectAIComponent(model="ia/architectAI.joblib"))
+            es.add_component(entity, ArchitectAIComponent(model="ia/learning/architect_q_table.joblib"))
             es.add_component(entity, CanCollideComponent())
             sprite_id = SpriteID.ALLY_ARCHITECT if not enemy else SpriteID.ENEMY_ARCHITECT
             size = sprite_manager.get_default_size(sprite_id)

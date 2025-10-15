@@ -1,5 +1,6 @@
 import esper
 import pygame
+import os
 import math
 import numpy as np
 from ia.architectAIComponent import ArchitectAIComponent as archAI
@@ -14,6 +15,13 @@ from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.core.teamComponent import TeamComponent
+from src.components.events.flyChestComponent import FlyingChestComponent as FlyChest
+from src.components.core.healthComponent import HealthComponent
+
+try:
+    from ia.learning.architectAIComponent import QLearningArchitectAI
+except (ImportError, ModuleNotFoundError):
+    QLearningArchitectAI = None # Allow game to run without training files
 from src.functions.buildingCreator import createDefenseTower, createHealTower
 from src.settings import controls
 
@@ -24,89 +32,115 @@ class AIControlProcessor(esper.Processor):
         self.fire_event = False  # Initialisation de l'état de l'événement de tir
         self.slowing_down = False  # Indique si le frein est activé
         self.change_mode_cooldown = 0
-
-    # def findClosestEntity(self, team, ally, currentX, currentY):
-    #     minDistance = float('inf')
-
-    #     for ent, (pos, opposition) in esper.get_components(PositionComponent, TeamComponent):
-    #         if (team.team_id == opposition.team_id) == ally :
-    #             distance = abs(pos.y - currentY) + abs(pos.x - currentX)
-    #             if distance < minDistance:
-    #                 minDistance = distance
-    #     return minDistance
     
-    # def findClosestInGrid(self, targetValue, currentX, currentY):
-    #     closestPos = None
-    #     minDistance = float('inf')
+    def _find_closest_in_grid(self, target_value, current_pos):
+        min_dist = float('inf')
+        closest_pos = None
+        for r, row in enumerate(self.grid):
+            for c, val in enumerate(row):
+                if val == target_value:
+                    dist = math.hypot((c * 32) - current_pos.x, (r * 32) - current_pos.y) # Assuming 32x32 tiles
+                    if dist < min_dist:
+                        min_dist = dist
+                        closest_pos = (c, r)
+        return min_dist, closest_pos
 
-    #     for row in range(len(self.grid)):
-    #         for col in range(len(self.grid[0])):
-    #             if self.grid[row][col] == targetValue:
-    #                 distance = abs(row - currentY) + abs(col - currentX)
-    #                 if distance < minDistance:
-    #                     minDistance = distance
-    #                     closestPos = (col, row)
-    #     return closestPos
-    
-    # def getCurrentMoney(self, team):
-    #     gold = 0
-    #     for ent, (opposition, player) in esper.get_components(TeamComponent, PlayerComponent):
-    #         if team.team_id == opposition.team_id:
-    #             gold = player.get_gold()
-    #     return gold
+    def _find_closest_entity(self, is_ally, current_pos, own_team):
+        min_dist = float('inf')
+        closest_pos = None
+        target_team = own_team if is_ally else (1 if own_team == 2 else 2)
+        
+        for ent, (pos, team) in esper.get_components(PositionComponent, TeamComponent):
+            if team.team == target_team:
+                dist = math.hypot(pos.x - current_pos.x, pos.y - current_pos.y)
+                if dist < min_dist:
+                    min_dist = dist
+                    closest_pos = (pos.x, pos.y) # Return world coords
+        return min_dist, closest_pos
 
-    # def _get_raw_state(self, entity):
-    #     pos = esper.component_for_entity(entity, PositionComponent)
-    #     vel = esper.component_for_entity(entity, VelocityComponent)
-    #     team = esper.component_for_entity(entity, TeamComponent)
+    def _find_closest_event(self, event_component_type, current_pos):
+        min_dist = float('inf')
+        closest_pos = None
+        for ent, (pos, _) in esper.get_components(PositionComponent, event_component_type):
+            dist = math.hypot(pos.x - current_pos.x, pos.y - current_pos.y)
+            if dist < min_dist:
+                min_dist = dist
+                closest_pos = (int(pos.x / 32), int(pos.y / 32))
+        return min_dist, closest_pos
 
-    #     if pos is None or vel is None or team is None:
-    #         return None # Should not happen if entity has these components
+    def _get_learning_ai_state(self, entity):
+        """Gathers the complete state for the QLearningArchitectAI."""
+        arch_pos = esper.component_for_entity(entity, PositionComponent)
+        arch_team = esper.component_for_entity(entity, TeamComponent)
 
-    #         posMine = self.findClosestInGrid(3, pos.x, pos.y)
-    #         posIsland = self.findClosestInGrid(2, pos.x, pos.y)
+        # Find player component for money
+        player = None
+        for _, (p, t) in esper.get_components(PlayerComponent, TeamComponent):
+            if t.team == arch_team.team:
+                player = p
+                break
+        if not player: return None
 
-    #         dxMine = abs(pos.x - posMine[0])
-    #         dyMine = abs(pos.y - posMine[1])
-    #         distanceMine = math.sqrt(dxMine**2 + dyMine**2)
+        # Find closest entities and points of interest
+        closest_island_dist, closest_island_pos = self._find_closest_in_grid(2, arch_pos)
+        closest_ally_dist, closest_ally_pos = self._find_closest_entity(True, arch_pos, arch_team.team)
+        closest_enemy_dist, _ = self._find_closest_entity(False, arch_pos, arch_team.team)
+        closest_chest_dist, _ = self._find_closest_event(FlyChest, arch_pos)
 
-    #         dxIsland = abs(pos.x - posIsland[0])
-    #         dyIsland = abs(pos.y - posIsland[1])
-    #         distanceIsland = math.sqrt(dxIsland**2 + dyIsland**2)
-            
-    #         # Calculate angle to island relative to unit's direction
-    #         # Angle from unit to island
-    #         angle_to_target_rad = math.atan2(posIsland[1] - pos.y, posIsland[0] - pos.x)
-    #         # Unit's direction in radians (assuming pos.direction is degrees 0-359)
-    #         unit_direction_rad = math.radians(pos.direction)
-            
-    #         # Relative angle: difference between target angle and unit's direction
-    #         relativeAngleIsland_rad = angle_to_target_rad - unit_direction_rad
-    #         # Normalize to -pi to pi
-    #         relativeAngleIsland_rad = (relativeAngleIsland_rad + math.pi) % (2 * math.pi) - math.pi
-    #         relativeAngleIsland_deg = math.degrees(relativeAngleIsland_rad)
+        # Check allies' health
+        total_health = 0
+        total_max_health = 0
+        for _, (health, team) in esper.get_components(HealthComponent, TeamComponent):
+            if team.team == arch_team.team:
+                total_health += health.currentHealth
+                total_max_health += health.maxHealth
+        
+        allies_need_heal = (total_max_health > 0) and (total_health / total_max_health < 0.5)
 
-    #         distanceAlly = self.findClosestEntity(team, True, pos.x, pos.y)
-    #         distanceEnemy = self.findClosestEntity(team, False, pos.x, pos.y)
-    #         gold = self.getCurrentMoney(team)
-    #         obstacle = self.isObstacleNearby(pos.x, pos.y)
-            
-    #         return [vel.currentSpeed, relativeAngleIsland_deg, distanceIsland, distanceEnemy, distanceAlly, distanceMine, gold, obstacle]
-    #     return None
+        # Assemble state dictionary
+        raw_state = {
+            'discrete': [
+                closest_island_dist < 50,
+                player.get_gold() >= 400, # Tower cost
+                closest_enemy_dist < 200,
+                allies_need_heal,
+                closest_chest_dist < 150
+            ],
+            'targets': {
+                'island': closest_island_pos,
+                'ally': closest_ally_pos
+            },
+            'current_pos': (arch_pos.x, arch_pos.y),
+            'current_direction': arch_pos.direction
+        }
+        return raw_state
 
     def getDecision(self, dt, entity, ai_component):
         """
         Gets the decision from the AI component and handles Q-learning updates.
         """
-        # This method is now a simple wrapper.
-        # You might want to refactor it further to pass the state directly.
-        return ai_component.makeDecision(dt, []) # Pass an empty state for now
+        if QLearningArchitectAI and isinstance(ai_component, QLearningArchitectAI):
+            # This is our new learning AI
+            if not ai_component.grid: ai_component.grid = self.grid # Ensure grid is set
+            if not ai_component.astar: ai_component.astar = ai_component.AStar(self.grid)
+
+            state = self._get_learning_ai_state(entity)
+            if not state: return "do_nothing"
+            
+            return ai_component.make_decision(dt, state, state['current_pos'], state['current_direction'])
+        else:
+            # Fallback for the old AI
+            return ai_component.makeDecision(dt, [])
 
     def process(self, dt: float, grid):
         self.grid = grid
         
         # Process both types of AI components
-        all_ai_components = esper.get_components(archAI)
+        components_to_process = [archAI]
+        if QLearningArchitectAI:
+            components_to_process.append(QLearningArchitectAI)
+        
+        all_ai_components = esper.get_components(*components_to_process)
 
         for entity, (ai_components) in all_ai_components:
             ai = next((comp for comp in ai_components if comp is not None), None)
@@ -160,14 +194,16 @@ class AIControlProcessor(esper.Processor):
             elif decision == "build_defense_tower":
                 pos = esper.component_for_entity(entity, PositionComponent)
                 team = esper.component_for_entity(entity, TeamComponent)
-                createDefenseTower(self.grid, pos, team) # This needs to check if it's on an island and has money
-            elif decision == "build_attack_tower":
-                if esper.has_component(entity, PositionComponent):
-                    position = esper.component_for_entity(entity, PositionComponent)
-                    team = esper.component_for_entity(entity, TeamComponent)
-                    # Assuming createAttackTower exists or maps to createDefenseTower for now
-                    # For a real game, you'd have a separate function for attack towers
-                    createDefenseTower(self.grid, pos, team) # Placeholder for attack tower
+                # The buildingCreator function handles grid checks and money
+                createDefenseTower(self.grid, pos, team.team)
+            elif decision == "build_heal_tower":
+                pos = esper.component_for_entity(entity, PositionComponent)
+                team = esper.component_for_entity(entity, TeamComponent)
+                createHealTower(self.grid, pos, team.team)
+            elif decision == "build_attack_tower": # Legacy/alternative name
+                pos = esper.component_for_entity(entity, PositionComponent)
+                team = esper.component_for_entity(entity, TeamComponent)
+                createDefenseTower(self.grid, pos, team.team)
 
             # if radius.cooldown > 0:
             #     radius.cooldown -= 0.1  # Réduction du cooldown
