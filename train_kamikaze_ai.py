@@ -209,7 +209,7 @@ def main():
 
     if args.batch > 0:
         print(f"🔥 Génération d'un batch de {args.batch} simulations et ajout aux données...")
-        trainer.train_advanced_model(n_simulations=args.batch, use_cached_data=not args.nocache, only_train_on_existing_data=False, batch_append=True)
+        trainer.generate_advanced_training_data(args.batch)
         print("✅ Batch ajouté. Tu peux relancer pour ajouter d'autres batchs.")
 
     if args.train:
