@@ -3,8 +3,6 @@ Processeur pour gérer l'IA des unités individuelles, comme le Kamikaze.
 """
 import esper
 import math
-import threading
-from collections import deque
 import os
 import time
 
@@ -38,99 +36,9 @@ class KamikazeAiProcessor(esper.Processor):
     def __init__(self, grid, auto_train_model=True):
         self.grid = grid
         self.model = None
-        # Configuration runtime (modifiable si besoin)
-        self.EXPERIENCE_BUFFER_MAXLEN = 5000
-        self.RETRAIN_THRESHOLD = 500
-        self.RETRAIN_COOLDOWN = 60.0
-        self.RETRAIN_SAMPLE_SIZE = 1000
-        self.MODEL_PERSIST_PATH = 'src/models/kamikaze_ai_model_online.pkl'
         self._mines_for_training = None  # Ajout de l'attribut pour éviter l'erreur d'accès
-        # Online learning buffer (bounded) to collect lightweight experiences while playing.
-        # We keep a bounded deque to avoid unbounded RAM growth and retrain on small samples.
-        self.experience_buffer = deque(maxlen=self.EXPERIENCE_BUFFER_MAXLEN)
-        self._retrain_lock = threading.Lock()
-        self._retrain_thread = None
-        self._last_retrain_time = 0.0
-        # Per-entity recent state for reward calculation during live play
-        self._kamikaze_recent_state = {}
         if auto_train_model:
             self.load_or_train_model()
-
-    # ---------------------- Online learning helpers ----------------------
-    def log_experience(self, features, action, reward):
-        """Append a (features, action, reward) tuple to the bounded buffer and trigger
-        an asynchronous retrain when thresholds are reached.
-
-        features: iterable of floats
-        action: int (0..3)
-        reward: float
-        """
-        try:
-            # store compact numpy vector and small ints/floats
-            self.experience_buffer.append((np.array(features, dtype=float), int(action), float(reward)))
-        except Exception:
-            return
-
-        # If buffer sufficiently populated and cooldown elapsed, launch retrain
-        if len(self.experience_buffer) >= self.RETRAIN_THRESHOLD and (time.time() - self._last_retrain_time) > self.RETRAIN_COOLDOWN:
-            # Start retrain in background thread (non-blocking)
-            if self._retrain_thread is None or not self._retrain_thread.is_alive():
-                self._retrain_thread = threading.Thread(target=self._background_retrain, daemon=True)
-                self._retrain_thread.start()
-
-    def _background_retrain(self, sample_size: int = None):
-        """Perform a lightweight retrain on a random sample from the buffer.
-
-        We train a fresh DecisionTreeRegressor on a sampled subset to limit RAM use,
-        then atomically replace the active model and persist it to disk.
-        """
-        with self._retrain_lock:
-            self._last_retrain_time = time.time()
-            try:
-                buf = list(self.experience_buffer)
-                if not buf:
-                    return
-                # default sample size
-                if sample_size is None:
-                    sample_size = self.RETRAIN_SAMPLE_SIZE
-                # Sample without replacement up to sample_size
-                import random as _rnd
-                k = min(len(buf), sample_size)
-                sample = _rnd.sample(buf, k)
-
-                # Build X: concatenate state features and one-hot action
-                X_rows = []
-                y = []
-                for feat, act, rew in sample:
-                    # one-hot encode action (assume actions in 0..3)
-                    act_vec = np.zeros(4, dtype=float)
-                    if 0 <= act < 4:
-                        act_vec[act] = 1.0
-                    X_rows.append(np.concatenate([feat, act_vec]))
-                    y.append(rew)
-                X = np.vstack(X_rows)
-                y = np.array(y)
-
-                # Create a new DecisionTreeRegressor with same hyperparams as training
-                new_model = DecisionTreeRegressor(
-                    max_depth=8,
-                    min_samples_split=20,
-                    min_samples_leaf=10,
-                    random_state=42
-                )
-                new_model.fit(X, y)
-
-                # Swap models atomically under lock
-                self.model = new_model
-                try:
-                    os.makedirs(os.path.dirname(self.MODEL_PERSIST_PATH), exist_ok=True)
-                    joblib.dump(self.model, self.MODEL_PERSIST_PATH)
-                    print(f"💾 [KAMIKAZE AI] Online retrain saved: {self.MODEL_PERSIST_PATH}")
-                except Exception as e:
-                    print(f"⚠️ [KAMIKAZE AI] Failed to persist online model: {e}")
-            finally:
-                # leave
-                return
 
     def load_or_train_model(self):
         """Charge le modèle du Kamikaze ou l'entraîne s'il n'existe pas."""
@@ -195,24 +103,16 @@ class KamikazeAiProcessor(esper.Processor):
             print("⚠️ Aucune donnée d'entraînement générée pour le Kamikaze.")
             return
 
-        # Build X by concatenating state features and one-hot action
-        X_rows = []
-        y_rows = []
-        for s, a, r in zip(states, actions, rewards):
-            act_vec = np.zeros(4, dtype=float)
-            if 0 <= a < 4:
-                act_vec[a] = 1.0
-            X_rows.append(np.concatenate([np.array(s, dtype=float), act_vec]))
-            y_rows.append(r)
-        X = np.vstack(X_rows)
-        y_rewards = np.array(y_rows)
+        X = np.array(states)
+        y_actions = np.array(actions)
+        y_rewards = np.array(rewards)
 
         # Split pour évaluation
         X_train, X_test, y_train, y_test = train_test_split(
             X, y_rewards, test_size=0.2, random_state=42
         )
 
-        # Modèle optimisé pour prédire la récompense attendue pour (état, action)
+        # Modèle optimisé pour les décisions de mouvement avec apprentissage par renforcement
         self.model = DecisionTreeRegressor(
             max_depth=8,
             min_samples_split=20,
@@ -258,24 +158,14 @@ class KamikazeAiProcessor(esper.Processor):
             # Boost dispo
             features = self._get_features_for_state(unit_pos, target_pos, obstacles, threats, boost_cooldown=0.0)
             for act in range(4):
-                if act == 0:  # Continuer
-                    reward = 60  # Récompense plus élevée pour avancer vers la base
-                elif act == 3:  # Boost
-                    reward = 50
-                else:  # Tourner ou reculer
-                    reward = -30
+                reward = 50 if act == 0 else -30  # Continuer = récompense, autres = pénalité
                 all_states.append(features)
                 all_actions.append(act)
                 all_rewards.append(reward)
             # Boost indisponible
             features = self._get_features_for_state(unit_pos, target_pos, obstacles, threats, boost_cooldown=5.0)
             for act in range(4):
-                if act == 0:  # Continuer
-                    reward = 60
-                elif act == 3:  # Boost indisponible
-                    reward = -100
-                else:  # Tourner ou reculer
-                    reward = -30
+                reward = 50 if act == 0 else -30
                 all_states.append(features)
                 all_actions.append(act)
                 all_rewards.append(reward)
@@ -359,9 +249,7 @@ class KamikazeAiProcessor(esper.Processor):
         actions = []
         rewards = []
         boost_cooldown = 0.0
-        base_speed = 50.0
-        speed = base_speed
-        stun_timer = 0
+        speed = 50.0
         max_steps = 150
         last_distance = math.hypot(target_pos.x - unit_pos.x, target_pos.y - unit_pos.y)
         stuck_counter = 0
@@ -393,21 +281,17 @@ class KamikazeAiProcessor(esper.Processor):
                 unit_pos.direction = (unit_pos.direction + turn_angle) % 360
             elif action == 3 and can_boost:
                 boost_cooldown = SPECIAL_ABILITY_COOLDOWN
-            # Déplacer l'unité (si pas stun)
-            if stun_timer <= 0:
-                rad_direction = math.radians(unit_pos.direction)
-                unit_pos.x += speed * math.cos(rad_direction) * 0.1
-                unit_pos.y += speed * math.sin(rad_direction) * 0.1
+            # Déplacer l'unité
+            rad_direction = math.radians(unit_pos.direction)
+            unit_pos.x += speed * math.cos(rad_direction) * 0.1
+            unit_pos.y += speed * math.sin(rad_direction) * 0.1
             # Récompense RL
             step_reward = 0
             distance_to_target = math.hypot(target_pos.x - unit_pos.x, target_pos.y - unit_pos.y)
             if distance_to_target < last_distance:
-                step_reward += 5  # Récompense plus élevée pour se rapprocher
+                step_reward += 2
             else:
-                step_reward -= 5  # Pénalité plus élevée pour s'éloigner
-            # Bonus supplémentaire si très proche de la base
-            if distance_to_target < 100:
-                step_reward += 10
+                step_reward -= 2
             last_distance = distance_to_target
             # Pénalité pour collision avec obstacles
             collision = False
@@ -415,13 +299,6 @@ class KamikazeAiProcessor(esper.Processor):
                 if math.hypot(obs.x - unit_pos.x, obs.y - unit_pos.y) < 40:
                     step_reward -= 30
                     collision = True
-                    # Simuler knockback/stun : reculer et poser un stun
-                    # Reculer d'une petite valeur le long de la direction opposée
-                    dir_rad = math.radians(unit_pos.direction)
-                    unit_pos.x -= 30 * math.cos(dir_rad)
-                    unit_pos.y -= 30 * math.sin(dir_rad)
-                    speed = 0
-                    stun_timer = 6  # nombre d'étapes où l'unité reste immobilisée
             # Pénalité pour collision avec menaces
             for threat in threats:
                 if math.hypot(threat.x - unit_pos.x, threat.y - unit_pos.y) < 40:
@@ -443,17 +320,12 @@ class KamikazeAiProcessor(esper.Processor):
                 stuck_counter = 0
             # Récompense pour avoir atteint la cible
             if distance_to_target < 30:
-                step_reward += 200
+                step_reward += 100
                 rewards.append(step_reward)
                 break
             rewards.append(step_reward)
             if boost_cooldown > 0:
                 boost_cooldown -= 0.1
-            # Gérer timer de stun (restaure la vitesse après quelques pas)
-            if stun_timer > 0:
-                stun_timer -= 1
-                if stun_timer == 0:
-                    speed = base_speed
         if len(rewards) == max_steps:
             rewards[-1] -= 50
         return states, actions, rewards
@@ -526,12 +398,9 @@ class KamikazeAiProcessor(esper.Processor):
 
             # Récompense pour se rapprocher
             if distance_to_target < last_distance:
-                step_reward += 5
+                step_reward += 2
             else:
-                step_reward -= 5
-            # Bonus si très proche
-            if distance_to_target < 100:
-                step_reward += 10
+                step_reward -= 1
             last_distance = distance_to_target
 
             # Pénalité pour collision avec obstacles
@@ -573,8 +442,7 @@ class KamikazeAiProcessor(esper.Processor):
     def kamikaze_logic(self, ent, pos, vel, team):
         """Logique de décision pour le Kamikaze avec pathfinding A* et cooldown de décision."""
         # --- Cooldown de remise en cause de la cible/chemin ---
-        # Réduit pour permettre des réactions plus rapides face aux projectiles
-        DECISION_COOLDOWN = 0.6  # secondes entre deux remises en cause de la cible/chemin
+        DECISION_COOLDOWN = 1.5  # secondes entre deux remises en cause de la cible/chemin
         if not hasattr(self, '_kamikaze_decision_cooldown'):
             self._kamikaze_decision_cooldown = {}
         if not hasattr(self, '_kamikaze_paths'):
@@ -587,13 +455,6 @@ class KamikazeAiProcessor(esper.Processor):
         if now >= cooldown_info['next_eval']:
             # 1. Déterminer la cible
             target_pos = self.find_best_kamikaze_target(pos, team.team_id)
-            # Si la target est la base, appliquer un léger bias pour éviter viser les coins/bords
-            # (évite de coller le chemin contre le bord et se faire tirer dessus)
-            if isinstance(target_pos, PositionComponent):
-                # pousser la target vers l'intérieur si trop proche d'un bord
-                margin_px = 3 * TILE_SIZE
-                target_pos.x = max(margin_px, min(target_pos.x, MAP_WIDTH * TILE_SIZE - margin_px))
-                target_pos.y = max(margin_px, min(target_pos.y, MAP_HEIGHT * TILE_SIZE - margin_px))
             if not target_pos:
                 vel.currentSpeed = 0
                 return
@@ -618,12 +479,6 @@ class KamikazeAiProcessor(esper.Processor):
                 self._kamikaze_decision_cooldown[path_key]['next_eval'] = 0
                 return
 
-        # Respecter le stun appliqué par le CollisionProcessor : ne pas décider ni modifier la vitesse si stun actif
-        if hasattr(vel, 'stun_timer') and getattr(vel, 'stun_timer', 0) > 0:
-            # S'assurer que la vitesse est nulle et sortir
-            vel.currentSpeed = 0
-            return
-
         # 3. Suivre le chemin (waypoints)
         next_waypoint = None
         for wp in path[1:]:  # [0]=case actuelle, [1]=prochaine
@@ -637,8 +492,8 @@ class KamikazeAiProcessor(esper.Processor):
             next_waypoint = (target_pos.x, target_pos.y)
 
         # 4. Évitement local (menaces dynamiques)
-        obstacles = self.get_nearby_obstacles(pos, 6 * TILE_SIZE, team.team_id)
-        threats = self.get_nearby_threats(pos, 7 * TILE_SIZE, team.team_id)
+        obstacles = self.get_nearby_obstacles(pos, 5 * TILE_SIZE, team.team_id)
+        threats = self.get_nearby_threats(pos, 5 * TILE_SIZE, team.team_id)
 
         # Vérifier si le boost est disponible
         boost_cooldown = 0.0
@@ -648,71 +503,14 @@ class KamikazeAiProcessor(esper.Processor):
 
         can_boost = boost_cooldown <= 0
 
-    # Décider de l'action locale (évitement ou suivre le chemin)
+        # Décider de l'action locale (évitement ou suivre le chemin)
         # On remplace target_pos par le prochain waypoint
-        # Si menace proche, forcer l'utilisation de choose_best_avoidance_direction
-        if threats:
-            closest_threat = min(threats, key=lambda t: math.hypot(t.x - pos.x, t.y - pos.y))
-            dist_threat = math.hypot(closest_threat.x - pos.x, closest_threat.y - pos.y)
-            if dist_threat < 5 * TILE_SIZE:
-                # simuler décision d'évitement local prioritaire
-                action = self.choose_best_avoidance_direction(pos, obstacles, threats, PositionComponent(x=next_waypoint[0], y=next_waypoint[1]))
-            else:
-                action = self.decide_kamikaze_action(
-                    pos,
-                    PositionComponent(x=next_waypoint[0], y=next_waypoint[1]),
-                    obstacles,
-                    threats,
-                    can_boost)
-        else:
-            # Try to use the learned model to pick the best action if available
-            model_action = None
-            try:
-                if self.model is not None:
-                    # Build feature vector
-                    base_feat = np.array(self._get_features_for_state(pos, PositionComponent(x=next_waypoint[0], y=next_waypoint[1]), obstacles, threats, boost_cooldown), dtype=float)
-                    # Evaluate all actions by predicting expected reward for each
-                    best_score = -1e9
-                    best_act = None
-                    for act in range(4):
-                        act_vec = np.zeros(4, dtype=float)
-                        act_vec[act] = 1.0
-                        x = np.concatenate([base_feat, act_vec]).reshape(1, -1)
-                        try:
-                            pred = float(self.model.predict(x)[0])
-                        except Exception:
-                            pred = -1e9
-                        # If action is boost but not available, heavily penalize
-                        if act == 3 and not can_boost:
-                            pred -= 1000.0
-                        if pred > best_score:
-                            best_score = pred
-                            best_act = act
-                    if best_act is not None:
-                        model_action = int(best_act)
-            except Exception:
-                model_action = None
-
-            if model_action is not None:
-                action = model_action
-            else:
-                action = self.decide_kamikaze_action(
-                    pos,
-                    PositionComponent(x=next_waypoint[0], y=next_waypoint[1]),
-                    obstacles,
-                    threats,
-                    can_boost)
-
-        # --- Online experience logging (lightweight) ---
-        try:
-            features_before = self._get_features_for_state(pos, PositionComponent(x=next_waypoint[0], y=next_waypoint[1]), obstacles, threats, boost_cooldown)
-            # compute a small reward heuristic after action application below and log
-            recent = self._kamikaze_recent_state.get(ent, None)
-            if recent is None:
-                # store pre-action features for next tick
-                self._kamikaze_recent_state[ent] = (features_before, time.time())
-        except Exception:
-            features_before = None
+        action = self.decide_kamikaze_action(
+            pos,
+            PositionComponent(x=next_waypoint[0], y=next_waypoint[1]),
+            obstacles,
+            threats,
+            can_boost)
 
         # Afficher la décision en console
         action_names = ["Continuer", "Tourner gauche", "Tourner droite", "Activer boost"]
@@ -745,29 +543,6 @@ class KamikazeAiProcessor(esper.Processor):
             vel.currentSpeed = vel.maxUpSpeed * 0.4  # Ralentir fortement
         else:
             vel.currentSpeed = vel.maxUpSpeed
-
-        # After applying action, compute reward and log experience (do not block)
-        try:
-            # small heuristic: positive if distance to waypoint decreased
-            if features_before is not None:
-                features_after = self._get_features_for_state(pos, PositionComponent(x=next_waypoint[0], y=next_waypoint[1]), obstacles, threats, boost_cooldown)
-                # distance feature is index 0
-                dist_before = features_before[0]
-                dist_after = features_after[0]
-                reward = 1.0 if dist_after < dist_before else -1.0
-                # penalize collisions roughly (if we slowed to near zero unexpectedly)
-                if vel.currentSpeed == 0:
-                    reward -= 2.0
-                # Log into bounded buffer (features, action, reward)
-                try:
-                    self.log_experience(features_before, action, reward)
-                except Exception:
-                    # best-effort logging; never crash the game loop
-                    pass
-                # update recent state timestamp
-                self._kamikaze_recent_state[ent] = (features_after, time.time())
-        except Exception:
-            pass
 
     def decide_kamikaze_action(self, my_pos, target_pos, obstacles, threats, can_boost=True):
         """Logique de décision à base de règles (sert de 'professeur')."""
@@ -961,47 +736,3 @@ class KamikazeAiProcessor(esper.Processor):
             (angle_to_target - my_pos.direction + 180) % 360 - 180)
 
         return angle_diff <= angle_cone / 2
-
-    def choose_best_avoidance_direction(self, my_pos: PositionComponent, obstacles, threats, target_pos: PositionComponent):
-        """Choisit entre tourner gauche (1), droite (2) ou reculer (0) pour éviter une menace proche.
-
-        - Simule un petit pivot gauche/droite et calcule une heuristique basée sur la distance au danger
-          et l'angle vers la cible. Retourne l'action (1,2 ou 0).
-        """
-        # Si pas de menace, continuer
-        if not threats:
-            return 0
-
-        closest_threat = min(threats, key=lambda t: math.hypot(t.x - my_pos.x, t.y - my_pos.y))
-        threat_dist = math.hypot(closest_threat.x - my_pos.x, closest_threat.y - my_pos.y)
-
-        # Heuristique: on préfère l'action qui maximise la distance au threat et minimise l'angle vers la cible
-        actions = {1: -1e9, 2: -1e9, 0: -1e9}
-        for act in (1, 2, 0):
-            # simulate direction
-            if act == 1:
-                sim_dir = (my_pos.direction - 20) % 360
-            elif act == 2:
-                sim_dir = (my_pos.direction + 20) % 360
-            else:
-                # reculer
-                sim_dir = (my_pos.direction + 180) % 360
-
-            # position after a hypothetical small step
-            rad = math.radians(sim_dir)
-            sim_x = my_pos.x + TILE_SIZE * 0.5 * math.cos(rad)
-            sim_y = my_pos.y + TILE_SIZE * 0.5 * math.sin(rad)
-
-            # distance to closest threat
-            d_threat = math.hypot(closest_threat.x - sim_x, closest_threat.y - sim_y)
-            # angle to target
-            angle_to_target = math.degrees(math.atan2(target_pos.y - sim_y, target_pos.x - sim_x))
-            angle_diff = abs((angle_to_target - sim_dir + 180) % 360 - 180)
-
-            # Score : prioriser éloignement de la menace puis alignement sur la cible
-            score = d_threat - 0.1 * angle_diff
-            actions[act] = score
-
-        # Choisir l'action avec le meilleur score
-        best_act = max(actions.items(), key=lambda x: x[1])[0]
-        return best_act
