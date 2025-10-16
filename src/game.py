@@ -21,6 +21,7 @@ from src.processeurs import movementProcessor, collisionProcessor, playerControl
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
+from src.processeurs.ai.druidAIProcessor import DruidAIProcessor 
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -41,6 +42,9 @@ from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.special.speDruidComponent import SpeDruid
 from src.components.special.speArchitectComponent import SpeArchitect
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
+
+# IA du Druid
+from src.sklearn.druidAiController import DruidAIComponent
 
 # import event
 from src.managers.flying_chest_manager import FlyingChestManager
@@ -628,10 +632,12 @@ class GameEngine:
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
+        self.druid_ai_processor = DruidAIProcessor()
         # Tower processor (gère tours de défense/soin)
         from src.processeurs.towerProcessor import TowerProcessor
         self.tower_processor = TowerProcessor()
 
+        #es.add_processor(self.druid_ai_processor, priority=1)
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
@@ -675,9 +681,15 @@ class GameEngine:
 
         # Créer un druide ennemi à une position équivalente à celle du druid allié
         enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(
-            is_enemy=True, jitter=TILE_SIZE * 0.1)  # Même jitter que l'allié
+            is_enemy=True, jitter=TILE_SIZE * 0.1)
+
+        # créer un DRUID
         enemy_druid = UnitFactory(
-            UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
+            UnitType.DRUID, True, PositionComponent(enemy_spawn_x, enemy_spawn_y)) # <--- MODIFIÉ
+
+        # Attache le composant IA à l'entité du druide ennemi
+        if enemy_druid is not None:
+            es.add_component(enemy_druid, DruidAIComponent())
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
@@ -1300,6 +1312,9 @@ class GameEngine:
         # Mettre à jour le système de notification
         if self.notification_system is not None:
             self.notification_system.update(dt)
+
+        if self.druid_ai_processor is not None:
+            self.druid_ai_processor.process(dt)
         
         # Traiter les capacités spéciales d'abord (avec dt)
         if self.capacities_processor is not None:

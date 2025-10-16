@@ -99,9 +99,9 @@ class StateAnalyzer:
             entity_id=druid_entity,
             position=(pos_comp.x, pos_comp.y),
             direction=pos_comp.direction,
-            health=health_comp.current_health,
-            max_health=health_comp.max_health,
-            health_ratio=health_comp.current_health / health_comp.max_health,
+            health=health_comp.currentHealth,
+            max_health=health_comp.maxHealth,
+            health_ratio=health_comp.currentHealth / health_comp.maxHealth,
             velocity=velocity_comp.currentSpeed,
             can_heal=radius_comp.cooldown <= 0,
             heal_cooldown=max(0, radius_comp.cooldown),
@@ -136,7 +136,7 @@ class StateAnalyzer:
         attack_power = None
         if esper.has_component(entity, AttackComponent):
             attack_comp = esper.component_for_entity(entity, AttackComponent)
-            attack_power = attack_comp.damage
+            attack_power = attack_comp.hitPoints
         
         # Détermine le type d'unité si possible
         unit_type = None
@@ -150,13 +150,13 @@ class StateAnalyzer:
             entity_id=entity,
             position=position,
             direction=pos_comp.direction,
-            health=health_comp.current_health,
-            max_health=health_comp.max_health,
-            health_ratio=health_comp.current_health / health_comp.max_health,
-            team=team_comp.team,
+            health=health_comp.currentHealth,
+            max_health=health_comp.maxHealth,
+            health_ratio=health_comp.currentHealth / health_comp.maxHealth,
+            team=team_comp.team_id,
             velocity=velocity,
-            is_ally=(team_comp.team == druid_team),
-            is_enemy=(team_comp.team != druid_team),
+            is_ally=(team_comp.team_id == druid_team),
+            is_enemy=(team_comp.team_id != druid_team),
             unit_type=unit_type,
             attack_power=attack_power,
             is_vined=is_vined,
@@ -170,7 +170,7 @@ class StateAnalyzer:
         if not druid_state:
             return None
         
-        druid_team = esper.component_for_entity(druid_entity, TeamComponent).team
+        druid_team = esper.component_for_entity(druid_entity, TeamComponent).team_id
         
         allies = []
         enemies = []
