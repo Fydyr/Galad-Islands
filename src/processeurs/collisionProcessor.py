@@ -666,19 +666,3 @@ class CollisionProcessor(esper.Processor):
         except Exception:
             # No-op on failure
             return
-
-    # Documentation:
-    # Knockback behavior
-    # ------------------
-    # - magnitude: distance in pixels the entity is pushed back along the opposite of its facing
-    #   direction. Default=30.0.
-    # - stun_duration: seconds during which the entity is considered "stunned". The PhysicsSystem
-    #   will decrement `velocity.stun_timer` each tick and prevent movement while it's > 0.
-    #
-    # Tuning:
-    # - To change global behavior, adjust the magnitude and stun_duration defaults above or call
-    #   `_apply_knockback(entity, pos, velocity, magnitude=..., stun_duration=...)` from custom
-    #   handlers.
-    # - For performance, this method stores the stun timer on the `Velocity` component instance
-    #   (attribute `stun_timer`). If your systems read other names, adapt `PhysicsSystem.move_entity`
-    #   accordingly.
