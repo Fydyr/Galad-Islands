@@ -24,26 +24,27 @@ class RewardSystem:
     """
 
     REWARD_MOVEMENT = 0.5
-    REWARD_STATIONARY_PENALTY = -0.3
-    REWARD_DAMAGE_TAKEN = -0.5
-    REWARD_HEAL_RECEIVED = 0.5
-    REWARD_KILL = 200.0
-    REWARD_SPECIAL_ABILITY_USE = 10.0
-    REWARD_SPECIAL_ABILITY_WITHOUT_ENEMIES = -3.0
-    REWARD_RESOURCE_COLLECTED = 15.0
-    REWARD_SURVIVE_STORM = 15.0
-    REWARD_AVOID_BANDITS = 20.0
-    REWARD_APPROACH_CHEST = 25.0
-    REWARD_HIT_MINE = -5.0
+    REWARD_STATIONARY_PENALTY = -1.0
+    REWARD_DAMAGE_TAKEN = -1.0
+    REWARD_HEAL_RECEIVED = 0.8
+    REWARD_KILL = 150.0
+    REWARD_SPECIAL_ABILITY_USE = 5.0
+    REWARD_SPECIAL_ABILITY_WITHOUT_ENEMIES = -8.0
+    REWARD_RESOURCE_COLLECTED = 12.0
+    REWARD_SURVIVE_STORM = 10.0
+    REWARD_AVOID_BANDITS = 15.0
+    REWARD_APPROACH_CHEST = 20.0
+    REWARD_HIT_MINE = -10.0
     REWARD_AVOID_MINE = 2.0
-    REWARD_BASE_DESTROYED = 3000.0
-    REWARD_SURVIVAL = 0.1
-    REWARD_ATTACK_ACTION = 1.0
-    REWARD_APPROACH_ENEMY_BASE = 20.0
+    REWARD_BASE_DESTROYED = 500.0
+    REWARD_SURVIVAL = 0.2
+    REWARD_ATTACK_ACTION = 0.5
+    REWARD_APPROACH_ENEMY_BASE = 15.0
     REWARD_RETREAT_FROM_BASE = -5.0
-    REWARD_NEAR_ENEMY_BASE = 40.0
-    REWARD_VERY_CLOSE_TO_BASE = 60.0
+    REWARD_NEAR_ENEMY_BASE = 30.0
+    REWARD_VERY_CLOSE_TO_BASE = 50.0
     REWARD_FAR_FROM_BASE = -3.0
+    REWARD_MOVING_TOWARDS_BASE = 2.0
 
     STATIONARY_THRESHOLD = 0.1
     STATIONARY_TIME_PENALTY = 3.0
@@ -316,18 +317,27 @@ class RewardSystem:
 
         total_reward = 0.0
 
+        # Proximity rewards (distance-based)
         if current_distance < 300.0:
             total_reward += RewardSystem.REWARD_VERY_CLOSE_TO_BASE
         elif current_distance < 500.0:
             total_reward += RewardSystem.REWARD_NEAR_ENEMY_BASE
         elif current_distance < 800.0:
+            total_reward += 10.0
+        elif current_distance < 1200.0:
             total_reward += 5.0
         elif current_distance > 2000.0:
             total_reward += RewardSystem.REWARD_FAR_FROM_BASE
 
+        # Movement rewards (based on distance change)
         if distance_change > 0:
-            total_reward += RewardSystem.REWARD_APPROACH_ENEMY_BASE * min(distance_change / 50.0, 2.0)
+            # Reward for getting closer to base
+            movement_reward = RewardSystem.REWARD_APPROACH_ENEMY_BASE * min(distance_change / 50.0, 3.0)
+            total_reward += movement_reward
+            # Extra constant reward for any movement towards base
+            total_reward += RewardSystem.REWARD_MOVING_TOWARDS_BASE
         elif distance_change < 0:
+            # Penalty for moving away from base
             total_reward += RewardSystem.REWARD_RETREAT_FROM_BASE * min(abs(distance_change) / 50.0, 2.0)
 
         return total_reward

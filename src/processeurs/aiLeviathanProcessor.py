@@ -47,7 +47,7 @@ class AILeviathanProcessor(esper.Processor):
         """
         super().__init__()
 
-        self.brain = LeviathanBrain(state_size=30, model_path=model_path)
+        self.brain = LeviathanBrain(state_size=29, model_path=model_path)
 
         self.training_mode = training_mode
 
@@ -181,25 +181,25 @@ class AILeviathanProcessor(esper.Processor):
         """
         Extracts the current game state for the given entity.
 
-        The state includes 30 features (improved from 22):
+        The state includes 29 features (increased from 27):
         - Normalized position (x, y)
         - Direction (angle)
         - Velocity (vx, vy)
         - Health (current, max, ratio)
         - Nearby enemies (count, min distance, angle to nearest, avg health)
-        - Nearby allies (count, min distance, avg health, needs help)
+        - Nearby allies (count, min distance, avg health) - no danger detection
         - Events (nearby storm, nearby bandits, nearby resources)
         - Special ability state (available, cooldown)
         - Timestamp
         - Accumulated reward
         - Nearby mines (count, distance to nearest)
         - Distance to enemy base (normalized, angle to base)
-        - Ally in danger nearby (boolean, distance to ally)
+        - Enemy base coordinates (normalized x, y) - NEW
 
         Returns:
-            State vector of size 30
+            State vector of size 29
         """
-        state = np.zeros(30)
+        state = np.zeros(29)
 
         state[0] = pos.x / (TILE_SIZE * 50)
         state[1] = pos.y / (TILE_SIZE * 50)
@@ -223,36 +223,34 @@ class AILeviathanProcessor(esper.Processor):
         state[12] = ally_info[0]
         state[13] = ally_info[1]
         state[14] = ally_info[2]
-        state[15] = ally_info[3]
 
         event_info = self._getNearbyEvents(pos)
-        state[16] = event_info[0]
-        state[17] = event_info[1]
-        state[18] = event_info[2]
+        state[15] = event_info[0]
+        state[16] = event_info[1]
+        state[17] = event_info[2]
 
         if esper.has_component(entity, SpeLeviathan):
             spe = esper.component_for_entity(entity, SpeLeviathan)
-            state[19] = 1.0 if spe.available else 0.0
-            state[20] = spe.cooldown_timer / spe.cooldown if spe.cooldown > 0 else 0.0
+            state[18] = 1.0 if spe.available else 0.0
+            state[19] = spe.cooldown_timer / spe.cooldown if spe.cooldown > 0 else 0.0
 
-        state[21] = self.elapsed_time / 100.0
+        state[20] = self.elapsed_time / 100.0
 
         if esper.has_component(entity, AILeviathanComponent):
             ai = esper.component_for_entity(entity, AILeviathanComponent)
-            state[22] = ai.episode_reward / 100.0
+            state[21] = ai.episode_reward / 100.0
 
         mine_info = self._getNearbyMines(pos)
-        state[23] = mine_info[0]
-        state[24] = mine_info[1]
+        state[22] = mine_info[0]
+        state[23] = mine_info[1]
 
         base_info = self._getEnemyBaseInfo(entity, pos, team)
-        state[25] = base_info[0]
-        state[26] = base_info[1]
+        state[24] = base_info[0]  # normalized distance to base
+        state[25] = base_info[1]  # angle to base
+        state[26] = base_info[2]  # normalized enemy base X coordinate
+        state[27] = base_info[3]  # normalized enemy base Y coordinate
 
-        danger_info = self._getAllyDangerInfo(entity, pos, team)
-        state[27] = danger_info[0]
-        state[28] = danger_info[1]
-        state[29] = danger_info[2]
+        state[28] = 0.0
 
         return state
 
@@ -345,17 +343,16 @@ class AILeviathanProcessor(esper.Processor):
 
     def _getNearestAllies(
         self, entity: int, pos: PositionComponent, team: TeamComponent
-    ) -> Tuple[float, float, float, float]:
+    ) -> Tuple[float, float, float]:
         """
         Finds nearby allies using cached data.
 
         Returns:
-            (ally_count, min_normalized_distance, avg_health_ratio, ally_in_danger)
+            (ally_count, min_normalized_distance, avg_health_ratio)
         """
         allies_nearby = 0
         min_distance = float('inf')
         total_health_ratio = 0.0
-        ally_in_danger = 0.0
         detection_radius = 500.0
 
         # Use cached data if available
@@ -385,14 +382,10 @@ class AILeviathanProcessor(esper.Processor):
                         health_ratio = health_comp.currentHealth / health_comp.maxHealth if health_comp.maxHealth > 0 else 0.0
                         total_health_ratio += health_ratio
 
-                        # Check if ally is in danger (low health)
-                        if health_ratio < 0.3:  # Less than 30% health
-                            ally_in_danger = 1.0
-
         min_distance_norm = min(min_distance / detection_radius, 1.0) if allies_nearby > 0 else 1.0
         avg_health_ratio = total_health_ratio / allies_nearby if allies_nearby > 0 else 0.0
 
-        return (float(allies_nearby), min_distance_norm, avg_health_ratio, ally_in_danger)
+        return (float(allies_nearby), min_distance_norm, avg_health_ratio)
 
     def _getNearbyEvents(self, pos: PositionComponent) -> Tuple[float, float, float]:
         """
@@ -460,12 +453,12 @@ class AILeviathanProcessor(esper.Processor):
 
     def _getEnemyBaseInfo(
         self, entity: int, pos: PositionComponent, team: TeamComponent
-    ) -> Tuple[float, float]:
+    ) -> Tuple[float, float, float, float]:
         """
         Get information about the enemy base.
 
         Returns:
-            (normalized_distance, angle_to_base)
+            (normalized_distance, angle_to_base, normalized_base_x, normalized_base_y)
         """
         from src.components.core.baseComponent import BaseComponent
 
@@ -478,7 +471,7 @@ class AILeviathanProcessor(esper.Processor):
                 break
 
         if enemy_base_pos is None:
-            return (1.0, 0.0)
+            return (1.0, 0.0, 0.5, 0.5)
 
         dx = enemy_base_pos[0] - pos.x
         dy = enemy_base_pos[1] - pos.y
@@ -487,40 +480,11 @@ class AILeviathanProcessor(esper.Processor):
 
         normalized_distance = min(distance / 7000.0, 1.0)
 
-        return (normalized_distance, angle)
+        # Normalize base coordinates (assuming map size ~50 * TILE_SIZE)
+        normalized_base_x = enemy_base_pos[0] / (TILE_SIZE * 50)
+        normalized_base_y = enemy_base_pos[1] / (TILE_SIZE * 50)
 
-    def _getAllyDangerInfo(
-        self, entity: int, pos: PositionComponent, team: TeamComponent
-    ) -> Tuple[float, float, float]:
-        """
-        Get information about allies in danger.
-
-        Returns:
-            (ally_in_danger, distance_to_ally, health_ratio_of_ally)
-        """
-        ally_in_danger = 0.0
-        distance_to_ally = 1.0
-        health_ratio = 0.0
-        detection_radius = 600.0
-
-        for other_entity, (other_pos, other_health, other_team) in esper.get_components(
-            PositionComponent, HealthComponent, TeamComponent
-        ):
-            if other_entity == entity or other_team.team_id != team.team_id:
-                continue
-
-            distance = ((other_pos.x - pos.x) ** 2 + (other_pos.y - pos.y) ** 2) ** 0.5
-
-            if distance < detection_radius:
-                health_ratio_check = other_health.currentHealth / other_health.maxHealth if other_health.maxHealth > 0 else 0.0
-
-                if health_ratio_check < 0.4:
-                    ally_in_danger = 1.0
-                    distance_to_ally = min(distance / detection_radius, 1.0)
-                    health_ratio = health_ratio_check
-                    break
-
-        return (ally_in_danger, distance_to_ally, health_ratio)
+        return (normalized_distance, angle, normalized_base_x, normalized_base_y)
 
     def _executeAction(
         self,
@@ -596,10 +560,6 @@ class AILeviathanProcessor(esper.Processor):
             vel.currentSpeed = vel.maxUpSpeed
 
         elif action == LeviathanBrain.ACTION_MOVE_TO_BASE:
-            self._navigateToEnemyBase(entity, pos, vel)
-
-        elif action == LeviathanBrain.ACTION_HELP_ALLY:
-            # Ancienne action de coopération, maintenant redirigée vers l'attaque de la base
             self._navigateToEnemyBase(entity, pos, vel)
 
         elif action == LeviathanBrain.ACTION_RETREAT:

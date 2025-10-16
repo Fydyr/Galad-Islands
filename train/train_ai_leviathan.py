@@ -166,7 +166,7 @@ class AITrainer:
         self.setupEntities()
 
         totalEpisodes = self.startEpisode + episodeNum
-        epsilonDecay = max(0.01, 1.0 * (0.995 ** totalEpisodes))
+        epsilonDecay = max(0.05, 1.0 * (0.997 ** totalEpisodes))
 
         for entity in self.leviathans:
             if es.has_component(entity, AILeviathanComponent):

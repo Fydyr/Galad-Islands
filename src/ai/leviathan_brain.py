@@ -36,10 +36,9 @@ class LeviathanBrain:
     ACTION_AVOID_STORM = 7
     ACTION_COLLECT_RESOURCE = 8
     ACTION_MOVE_TO_BASE = 9
-    ACTION_HELP_ALLY = 10
-    ACTION_RETREAT = 11
+    ACTION_RETREAT = 10
 
-    NUM_ACTIONS = 12
+    NUM_ACTIONS = 11
 
     ACTION_NAMES = {
         ACTION_IDLE: "Idle",
@@ -52,16 +51,15 @@ class LeviathanBrain:
         ACTION_AVOID_STORM: "Avoid Storm",
         ACTION_COLLECT_RESOURCE: "Collect Resource",
         ACTION_MOVE_TO_BASE: "Move to Enemy Base",
-        ACTION_HELP_ALLY: "Help Ally",
         ACTION_RETREAT: "Retreat",
     }
 
-    def __init__(self, state_size: int = 30, model_path: Optional[str] = None):
+    def __init__(self, state_size: int = 29, model_path: Optional[str] = None):
         """
         Initializes the Leviathan's brain.
 
         Args:
-            state_size: Size of the state vector (number of features)
+            state_size: Size of the state vector (number of features, default 29)
             model_path: Path to a saved model (optional)
         """
         self.state_size = state_size
@@ -73,7 +71,7 @@ class LeviathanBrain:
             hidden_layer_sizes=(256, 128, 64),
             activation='relu',
             solver='adam',
-            learning_rate_init=0.0005,
+            learning_rate_init=0.001,
             max_iter=1,
             warm_start=True,
             random_state=42,
@@ -139,7 +137,7 @@ class LeviathanBrain:
         actions: List[int],
         rewards: List[float],
         next_states: List[np.ndarray],
-        gamma: float = 0.95,
+        gamma: float = 0.85,
     ) -> float:
         """
         Trains the model on a batch of experiences.
