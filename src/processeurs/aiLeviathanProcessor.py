@@ -12,6 +12,7 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.attackComponent import AttackComponent
+from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.components.events.stormComponent import Storm
 from src.components.events.banditsComponent import Bandits
 from src.components.events.islandResourceComponent import IslandResourceComponent
@@ -129,6 +130,10 @@ class AILeviathanProcessor(esper.Processor):
             TeamComponent,
         ):
             if not ai_comp.enabled:
+                continue
+
+            # Désactiver l'IA si le Leviathan est contrôlé par le joueur
+            if esper.has_component(entity, PlayerSelectedComponent):
                 continue
 
             if not ai_comp.isReadyForAction(self.elapsed_time):
@@ -594,7 +599,8 @@ class AILeviathanProcessor(esper.Processor):
             self._navigateToEnemyBase(entity, pos, vel)
 
         elif action == LeviathanBrain.ACTION_HELP_ALLY:
-            self._navigateToAllyInDanger(entity, pos, vel)
+            # Ancienne action de coopération, maintenant redirigée vers l'attaque de la base
+            self._navigateToEnemyBase(entity, pos, vel)
 
         elif action == LeviathanBrain.ACTION_RETREAT:
             vel.currentSpeed = -vel.maxReverseSpeed
@@ -767,52 +773,6 @@ class AILeviathanProcessor(esper.Processor):
                 pos.direction = (pos.direction - 10) % 360
 
         vel.currentSpeed = vel.maxUpSpeed
-
-    def _navigateToAllyInDanger(
-        self,
-        entity: int,
-        pos: PositionComponent,
-        vel: VelocityComponent
-    ):
-        """
-        Navigate towards the nearest ally in danger.
-        """
-        team = esper.component_for_entity(entity, TeamComponent)
-        nearest_ally = None
-        min_distance = float('inf')
-
-        for other_entity, (other_pos, other_health, other_team) in esper.get_components(
-            PositionComponent, HealthComponent, TeamComponent
-        ):
-            if other_entity == entity or other_team.team_id != team.team_id:
-                continue
-
-            health_ratio = other_health.currentHealth / other_health.maxHealth if other_health.maxHealth > 0 else 0.0
-
-            if health_ratio < 0.4:
-                distance = ((other_pos.x - pos.x) ** 2 + (other_pos.y - pos.y) ** 2) ** 0.5
-
-                if distance < min_distance:
-                    min_distance = distance
-                    nearest_ally = (other_pos.x, other_pos.y)
-
-        if nearest_ally is None:
-            vel.currentSpeed = vel.maxUpSpeed
-            return
-
-        dx = nearest_ally[0] - pos.x
-        dy = nearest_ally[1] - pos.y
-        target_angle = np.arctan2(dy, dx) * 180 / np.pi
-
-        angle_diff = (target_angle - pos.direction + 180) % 360 - 180
-
-        if abs(angle_diff) > 10:
-            if angle_diff > 0:
-                pos.direction = (pos.direction + 10) % 360
-            else:
-                pos.direction = (pos.direction - 10) % 360
-        else:
-            vel.currentSpeed = vel.maxUpSpeed
 
     def _trainBrain(self, ai_comp: AILeviathanComponent):
         """

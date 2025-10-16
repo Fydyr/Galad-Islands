@@ -30,7 +30,7 @@ class RewardSystem:
     REWARD_KILL = 200.0
     REWARD_SPECIAL_ABILITY_USE = 10.0
     REWARD_SPECIAL_ABILITY_WITHOUT_ENEMIES = -3.0
-    REWARD_RESOURCE_COLLECTED = 50.0
+    REWARD_RESOURCE_COLLECTED = 15.0
     REWARD_SURVIVE_STORM = 15.0
     REWARD_AVOID_BANDITS = 20.0
     REWARD_APPROACH_CHEST = 25.0
@@ -39,16 +39,11 @@ class RewardSystem:
     REWARD_BASE_DESTROYED = 3000.0
     REWARD_SURVIVAL = 0.1
     REWARD_ATTACK_ACTION = 1.0
-    REWARD_APPROACH_ENEMY_BASE = 5.0
-    REWARD_RETREAT_FROM_BASE = -2.0
-    REWARD_NEAR_ENEMY_BASE = 10.0
-    REWARD_VERY_CLOSE_TO_BASE = 20.0
-
-    # Cooperation rewards
-    REWARD_HELP_ALLY = 15.0
-    REWARD_STAY_WITH_GROUP = 5.0
-    REWARD_COORDINATE_ATTACK = 10.0
-    REWARD_ABANDON_ALLY = -5.0
+    REWARD_APPROACH_ENEMY_BASE = 20.0
+    REWARD_RETREAT_FROM_BASE = -5.0
+    REWARD_NEAR_ENEMY_BASE = 40.0
+    REWARD_VERY_CLOSE_TO_BASE = 60.0
+    REWARD_FAR_FROM_BASE = -3.0
 
     STATIONARY_THRESHOLD = 0.1
     STATIONARY_TIME_PENALTY = 3.0
@@ -104,9 +99,6 @@ class RewardSystem:
 
         base_approach_reward = RewardSystem._calculateBaseApproachReward(entity, ai_comp)
         total_reward += base_approach_reward
-
-        cooperation_reward = RewardSystem._calculateCooperationReward(entity, ai_comp)
-        total_reward += cooperation_reward
 
         return total_reward
 
@@ -216,7 +208,14 @@ class RewardSystem:
     def _calculateResourceReward(ai_comp: AILeviathanComponent) -> float:
         """Calculates the reward for collecting resources."""
         if ai_comp.resources_collected > 0:
-            reward = ai_comp.resources_collected * RewardSystem.REWARD_RESOURCE_COLLECTED
+            total_resources = getattr(ai_comp, 'total_resources_collected', 0) + ai_comp.resources_collected
+            ai_comp.total_resources_collected = total_resources
+
+            if total_resources <= 3:
+                reward = ai_comp.resources_collected * RewardSystem.REWARD_RESOURCE_COLLECTED
+            else:
+                reward = ai_comp.resources_collected * (RewardSystem.REWARD_RESOURCE_COLLECTED * 0.3)
+
             return reward
         return 0.0
 
@@ -321,65 +320,15 @@ class RewardSystem:
             total_reward += RewardSystem.REWARD_VERY_CLOSE_TO_BASE
         elif current_distance < 500.0:
             total_reward += RewardSystem.REWARD_NEAR_ENEMY_BASE
+        elif current_distance < 800.0:
+            total_reward += 5.0
+        elif current_distance > 2000.0:
+            total_reward += RewardSystem.REWARD_FAR_FROM_BASE
 
         if distance_change > 0:
             total_reward += RewardSystem.REWARD_APPROACH_ENEMY_BASE * min(distance_change / 50.0, 2.0)
         elif distance_change < 0:
-            total_reward += RewardSystem.REWARD_RETREAT_FROM_BASE
+            total_reward += RewardSystem.REWARD_RETREAT_FROM_BASE * min(abs(distance_change) / 50.0, 2.0)
 
         return total_reward
 
-    @staticmethod
-    def _calculateCooperationReward(entity: int, ai_comp: AILeviathanComponent) -> float:
-        """Calculates rewards for cooperative behavior with allies."""
-        from src.components.core.teamComponent import TeamComponent
-
-        if not es.has_component(entity, PositionComponent):
-            return 0.0
-
-        if not es.has_component(entity, TeamComponent):
-            return 0.0
-
-        pos = es.component_for_entity(entity, PositionComponent)
-        team = es.component_for_entity(entity, TeamComponent)
-        total_reward = 0.0
-
-        allies_nearby = 0
-        ally_in_danger_nearby = False
-        ally_in_danger_count = 0
-        detection_radius = 500.0
-
-        for other_entity, (other_pos, other_health, other_team) in es.get_components(
-            PositionComponent, HealthComponent, TeamComponent
-        ):
-            if other_entity == entity or other_team.team_id != team.team_id:
-                continue
-
-            distance = ((other_pos.x - pos.x) ** 2 + (other_pos.y - pos.y) ** 2) ** 0.5
-
-            if distance < detection_radius:
-                allies_nearby += 1
-                health_ratio = other_health.currentHealth / other_health.maxHealth
-
-                if health_ratio < 0.4:
-                    ally_in_danger_nearby = True
-                    ally_in_danger_count += 1
-
-        if allies_nearby >= 2:
-            total_reward += RewardSystem.REWARD_STAY_WITH_GROUP
-
-        if ally_in_danger_nearby:
-            total_reward += RewardSystem.REWARD_HELP_ALLY * ally_in_danger_count
-
-        if hasattr(ai_comp, 'attack_actions') and ai_comp.attack_actions > 0 and allies_nearby >= 1:
-            total_reward += RewardSystem.REWARD_COORDINATE_ATTACK
-
-        if not hasattr(ai_comp, 'was_near_danger_ally'):
-            ai_comp.was_near_danger_ally = False
-
-        if ai_comp.was_near_danger_ally and not ally_in_danger_nearby:
-            total_reward += RewardSystem.REWARD_ABANDON_ALLY
-
-        ai_comp.was_near_danger_ally = ally_in_danger_nearby
-
-        return total_reward
