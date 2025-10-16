@@ -513,6 +513,7 @@ class CollisionProcessor(esper.Processor):
             direction_rad = math.radians(pos.direction)
             future_x = pos.x - velocity.currentSpeed * math.cos(direction_rad)
             future_y = pos.y - velocity.currentSpeed * math.sin(direction_rad)
+
             
             # Convertir les positions en coordonnées de grille
             future_grid_x = int(future_x // TILE_SIZE)
@@ -643,8 +644,8 @@ class CollisionProcessor(esper.Processor):
                 velocity.currentSpeed = 0
 
             # Appliquer le déplacement de recul dans la position (reculer = opposé à la direction)
-            pos.x -= dx
-            pos.y -= dy
+            pos.x += dx
+            pos.y += dy
 
             # Clamp position inside map bounds if graph known
             if self.graph:
@@ -652,6 +653,8 @@ class CollisionProcessor(esper.Processor):
                 max_x = len(self.graph[0])
                 pos.x = max(0, min(pos.x, max_x * TILE_SIZE - 1))
                 pos.y = max(0, min(pos.y, max_y * TILE_SIZE - 1))
+                
+            pos.direction = (pos.direction + 180) % 360
 
             # Marquer un court stun sur le composant velocity si possible
             # On stocke stun_timer sur l'objet velocity pour éviter d'introduire un nouveau composant
