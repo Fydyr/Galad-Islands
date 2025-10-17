@@ -62,7 +62,7 @@ class AILeviathanProcessor(esper.Processor):
         self.elapsed_time = 0.0
 
         self.training_count = 0
-        self.training_frequency = 16
+        self.training_frequency = 8  # Balanced training frequency (was 4, too aggressive)
 
         self.total_actions = 0
         self.actions_by_type = {i: 0 for i in range(LeviathanBrain.NUM_ACTIONS)}
@@ -748,7 +748,7 @@ class AILeviathanProcessor(esper.Processor):
 
     def _trainBrain(self, ai_comp: AILeviathanComponent):
         """
-        Trains the Leviathan's brain on collected experiences.
+        Trains the Leviathan's brain on collected experiences with prioritized replay.
 
         Args:
             ai_comp: AI component containing the history
@@ -756,10 +756,14 @@ class AILeviathanProcessor(esper.Processor):
         if ai_comp.getBufferSize() < ai_comp.batch_size:
             return
 
+        priorities = np.array(ai_comp.priority_history)
+        probabilities = priorities / priorities.sum()
+
         indices = np.random.choice(
             ai_comp.getBufferSize(),
             size=min(ai_comp.batch_size, ai_comp.getBufferSize()),
             replace=False,
+            p=probabilities,
         )
 
         states = [ai_comp.state_history[i] for i in indices]

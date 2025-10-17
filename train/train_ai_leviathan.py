@@ -27,7 +27,7 @@ sprite_manager.image_loading_enabled = False
 class AITrainer:
     """Automatic trainer for the Leviathan AI."""
 
-    def __init__(self, episodes: int = 100, stepsPerEpisode: int = 1000, saveInterval: int = 10, verbose: bool = False):
+    def __init__(self, episodes: int = 100, stepsPerEpisode: int = 1000, saveInterval: int = 5, verbose: bool = False):
         """
         Initializes the trainer.
 
@@ -166,7 +166,12 @@ class AITrainer:
         self.setupEntities()
 
         totalEpisodes = self.startEpisode + episodeNum
-        epsilonDecay = max(0.05, 1.0 * (0.997 ** totalEpisodes))
+        if totalEpisodes < 50:
+            epsilonDecay = max(0.05, 1.0 * (0.95 ** totalEpisodes))
+        elif totalEpisodes < 200:
+            epsilonDecay = max(0.05, 0.3 * (0.98 ** (totalEpisodes - 50)))
+        else:
+            epsilonDecay = max(0.05, 0.1 * (0.99 ** (totalEpisodes - 200)))
 
         for entity in self.leviathans:
             if es.has_component(entity, AILeviathanComponent):
@@ -375,25 +380,46 @@ class AITrainer:
         startTime = time.time()
         rewardsHistory = []
 
+        best_avg_reward = float('-inf')  # Track best performance
+
         try:
             for episode in range(self.episodes):
                 avg_reward = self.runEpisode(episode)
                 rewardsHistory.append(avg_reward)
 
+                if len(rewardsHistory) >= 10:
+                    recent_avg = sum(rewardsHistory[-10:]) / 10
+                else:
+                    recent_avg = sum(rewardsHistory) / len(rewardsHistory) if rewardsHistory else 0
+
                 # Save the model every N episodes with metadata
                 if (episode + 1) % self.saveInterval == 0:
-                    print(f"[SAVE] Saving model (episode {episode + 1})...")
+                    print(f"[SAVE] Saving model checkpoint (episode {episode + 1})...")
                     metadata = {
                         'episodes_completed': self.startEpisode + episode + 1,
                         'epsilon': self.currentEpsilon,
                         'total_rewards': rewardsHistory,
-                        'last_avg_reward': rewardsHistory[-1] if rewardsHistory else 0
+                        'last_avg_reward': rewardsHistory[-1] if rewardsHistory else 0,
+                        'recent_10_avg': recent_avg
                     }
                     self.modelManager.saveModel(metadata=metadata)
 
-                    if len(rewardsHistory) >= 10:
-                        recent_avg = sum(rewardsHistory[-10:]) / 10
-                        print(f"[STATS] Last 10 episodes average reward: {recent_avg:.2f}")
+                    print(f"[STATS] Last 10 episodes average reward: {recent_avg:.2f}")
+                    print(f"[STATS] Epsilon: {self.currentEpsilon:.3f}")
+                    print()
+
+                # Save best model separately when performance improves
+                if recent_avg > best_avg_reward and len(rewardsHistory) >= 10:
+                    best_avg_reward = recent_avg
+                    print(f"[BEST] New best performance! Average reward: {recent_avg:.2f}")
+                    print(f"[BEST] Saving best model as models/leviathan_ai.pkl...")
+                    best_metadata = {
+                        'episodes_completed': self.startEpisode + episode + 1,
+                        'epsilon': self.currentEpsilon,
+                        'best_avg_reward': best_avg_reward,
+                        'episode_achieved': self.startEpisode + episode + 1
+                    }
+                    self.ai_processor.saveModel("models/leviathan_ai.pkl", metadata=best_metadata)
                     print()
 
         except KeyboardInterrupt:
@@ -449,9 +475,9 @@ def main():
     print()
 
     # Get parameters from command line or use defaults
-    episodes = 500
-    steps = 1000
-    verbose = False
+    episodes = 300
+    steps = 800
+    verbose = True
 
     try:
         if len(sys.argv) > 1:

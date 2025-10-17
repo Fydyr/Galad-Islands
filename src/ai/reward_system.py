@@ -106,8 +106,9 @@ class RewardSystem:
         obstacle_penalty = RewardSystem._calculateObstaclePenalty(entity)
         total_reward += obstacle_penalty
 
-        # Clip total reward to prevent extreme values
-        total_reward = max(-50.0, min(200.0, total_reward))
+        # Clip total reward to prevent extreme values and catastrophic learning
+        # MUCH tighter clip to prevent reward explosion
+        total_reward = max(-20.0, min(50.0, total_reward))
 
         return total_reward
 
@@ -325,16 +326,12 @@ class RewardSystem:
 
         total_reward = 0.0
 
-        # Proximity rewards (distance-based)
+        # SIMPLIFIED: Proximity rewards (distance-based) - MUCH less generous
         if current_distance < 300.0:
-            total_reward += RewardSystem.REWARD_VERY_CLOSE_TO_BASE
+            total_reward += RewardSystem.REWARD_VERY_CLOSE_TO_BASE * 0.5  # Halved
         elif current_distance < 500.0:
-            total_reward += RewardSystem.REWARD_NEAR_ENEMY_BASE
-        elif current_distance < 800.0:
-            total_reward += 10.0
-        elif current_distance < 1200.0:
-            total_reward += 5.0
-        elif current_distance > 2000.0:
+            total_reward += RewardSystem.REWARD_NEAR_ENEMY_BASE * 0.5  # Halved
+        elif current_distance > 2500.0:  # Further away before penalty
             total_reward += RewardSystem.REWARD_FAR_FROM_BASE
 
         # Movement rewards (based on distance change)

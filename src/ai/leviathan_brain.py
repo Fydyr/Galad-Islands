@@ -67,15 +67,18 @@ class LeviathanBrain:
 
         self.scaler = StandardScaler()
 
+        # CONSERVATIVE: Balanced network + moderate learning rate for stability
         self.model = MLPRegressor(
-            hidden_layer_sizes=(256, 128, 64),
+            hidden_layer_sizes=(384, 192, 96),  # Medium network - good balance
             activation='relu',
             solver='adam',
-            learning_rate_init=0.001,
+            learning_rate_init=0.0005,  # VERY conservative to prevent catastrophic forgetting
             max_iter=1,
             warm_start=True,
             random_state=42,
-            alpha=0.0001,
+            alpha=0.0001,  # Higher regularization for stability
+            beta_1=0.9,  # Adam optimizer momentum
+            beta_2=0.999,  # Adam optimizer second moment
         )
 
         self.backup_model = RandomForestRegressor(
@@ -137,7 +140,7 @@ class LeviathanBrain:
         actions: List[int],
         rewards: List[float],
         next_states: List[np.ndarray],
-        gamma: float = 0.7,  # Réduit de 0.85 -> 0.7 pour plus de stabilité
+        gamma: float = 0.85,  # Balanced: not too short-sighted, not too far-sighted
     ) -> float:
         """
         Trains the model on a batch of experiences.
