@@ -11,9 +11,8 @@ import numpy as np
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
 import joblib
-
 # Ajouter le répertoire src au path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 from ia.BaseAi import BaseAi
@@ -55,14 +54,15 @@ class UnifiedBaseAiTrainer:
                 ebk = enemy_base_known if np.random.rand() > 0.1 else 1 - enemy_base_known
                 tn = towers_needed if np.random.rand() > 0.1 else 1 - towers_needed
                 ebh = np.clip(enemy_base_health + np.random.normal(0, 0.05), 0.05, 1.0)
-                state_action = [g, bh, au, eu, ebk, tn, ebh, expected_action]
+                allied_health = bh if au > 0 else 1.0
+                state_action = [g, bh, au, eu, ebk, tn, ebh, allied_health, expected_action]
                 for _ in range(repeat):
                     states.append(state_action)
                     actions.append(expected_action)
                     rewards.append(reward_val)
                 for wrong_action in range(7):
                     if wrong_action != expected_action:
-                        wrong_state_action = [g, bh, au, eu, ebk, tn, ebh, wrong_action]
+                        wrong_state_action = [g, bh, au, eu, ebk, tn, ebh, allied_health, wrong_action]
                         for _ in range(repeat):
                             states.append(wrong_state_action)
                             actions.append(wrong_action)
@@ -117,10 +117,15 @@ class UnifiedBaseAiTrainer:
         return ai1_experiences, ai2_experiences
 
     def _get_state_for_ai(self, game_state, is_ally=True):
+        """Retourne un vecteur d'état pour `decide_action_for_training`.
+
+        Ajoute en fin la valeur `allied_units_health` pour compatibilité avec la nouvelle signature.
+        """
+        allied_units_health_default = 1.0
         if is_ally:
-            return [game_state['ally_gold'], game_state['ally_base_health'], game_state['ally_units'], game_state['enemy_units'], game_state['enemy_base_known_ally'], game_state['ally_towers_needed'], game_state['enemy_base_health']]
+            return [game_state['ally_gold'], game_state['ally_base_health'], game_state['ally_units'], game_state['enemy_units'], game_state['enemy_base_known_ally'], game_state['ally_towers_needed'], game_state['enemy_base_health'], allied_units_health_default]
         else:
-            return [game_state['enemy_gold'], game_state['enemy_base_health'], game_state['enemy_units'], game_state['ally_units'], game_state['enemy_base_known_enemy'], game_state['enemy_towers_needed'], game_state['ally_base_health']]
+            return [game_state['enemy_gold'], game_state['enemy_base_health'], game_state['enemy_units'], game_state['ally_units'], game_state['enemy_base_known_enemy'], game_state['enemy_towers_needed'], game_state['ally_base_health'], allied_units_health_default]
 
     def _apply_action_simulation(self, action, game_state, is_ally=True):
         if is_ally:
@@ -194,26 +199,52 @@ class UnifiedBaseAiTrainer:
         print("=" * 60)
         all_states, all_rewards = [], []
         autosave_path = f"{MODEL_DIR}/base_ai_unified_final_autosave.npz"
+        # Reprise si autosave existant
+        if os.path.exists(autosave_path):
+            print(f"⚠️ Fichier autosave {autosave_path} détecté. Reprise possible.")
+            try:
+                data = np.load(autosave_path, allow_pickle=True)
+                all_states = list(data['states'])
+                all_rewards = list(data['rewards'])
+                print(f"➡️ Reprise avec {len(all_states)} exemples déjà collectés.")
+            except Exception as e:
+                print(f"Erreur lors du chargement du fichier autosave : {e}")
+
         try:
             # 1. Exemples scénarios stratégiques
             s_states, s_actions, s_rewards = self.generate_scenario_examples(n_per_scenario=n_scenarios)
             all_states.extend(s_states)
             all_rewards.extend(s_rewards)
+            print(f"  Progression: Scénarios stratégiques ({len(all_states)} exemples)")
+            # Sauvegarde auto après scénarios
+            np.savez_compressed(autosave_path, states=np.array(all_states, dtype=object), rewards=np.array(all_rewards, dtype=object))
             # 2. Self-play classique
             ai1 = BaseAi(team_id=1)
             ai2 = BaseAi(team_id=2)
+            total_selfplay = n_selfplay * n_iterations
+            last_percent = -1
             for it in range(n_iterations):
                 print(f"\n🔄 Self-play itération {it+1}/{n_iterations}")
-                for _ in range(n_selfplay):
+                for sp in range(n_selfplay):
                     exp1, exp2 = self.simulate_self_play_game(ai1, ai2)
                     all_states.extend([e[0] for e in exp1])
                     all_rewards.extend([e[1] for e in exp1])
                     all_states.extend([e[0] for e in exp2])
                     all_rewards.extend([e[1] for e in exp2])
+                    percent = int(100 * ((it * n_selfplay + sp + 1) / total_selfplay))
+                    if percent != last_percent:
+                        print(f"  Progression self-play: {percent}% ({it * n_selfplay + sp + 1}/{total_selfplay})")
+                        last_percent = percent
+                    # Sauvegarde auto à chaque palier de 5%
+                    if percent % 5 == 0 and (it * n_selfplay + sp + 1) % max(1, total_selfplay // 20) == 0:
+                        np.savez_compressed(autosave_path, states=np.array(all_states, dtype=object), rewards=np.array(all_rewards, dtype=object))
+                        print(f"💾 Sauvegarde auto ({percent}%) : {len(all_states)} exemples.")
             # 3. Scénario victoire obligatoire
             v_states, v_rewards = self.generate_victory_scenario(n_games=n_victory)
             all_states.extend(v_states)
             all_rewards.extend(v_rewards)
+            print(f"  Progression: Scénarios victoire ({len(all_states)} exemples)")
+            np.savez_compressed(autosave_path, states=np.array(all_states, dtype=object), rewards=np.array(all_rewards, dtype=object))
         except KeyboardInterrupt:
             print("\n⏹️ Interruption utilisateur (Ctrl+C) : sauvegarde des données d'entraînement...")
             np.savez_compressed(autosave_path, states=np.array(all_states, dtype=object), rewards=np.array(all_rewards, dtype=object))
@@ -234,8 +265,8 @@ class UnifiedBaseAiTrainer:
         # Entraînement du modèle
         X = np.array(all_states)
         y = np.array(all_rewards)
+
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        from sklearn.ensemble import RandomForestRegressor
         model = RandomForestRegressor(n_estimators=40, max_depth=10, min_samples_split=20, min_samples_leaf=10, random_state=42, n_jobs=-1)
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
@@ -250,9 +281,20 @@ class UnifiedBaseAiTrainer:
 
 def main():
     print("🤖 Entraîneur IA unifié pour Galad Islands\n")
+    import argparse
+    parser = argparse.ArgumentParser(description='Entraîneur unifié BaseAi pour Galad Islands')
+    parser.add_argument('--n_scenarios', type=int, default=2000, help='Nombre de scénarios stratégiques par type (défaut: 2000)')
+    parser.add_argument('--n_selfplay', type=int, default=1000, help='Nombre de parties de self-play (défaut: 1000)')
+    parser.add_argument('--n_victory', type=int, default=500, help='Nombre de parties victoire pour renforcer l objectif (défaut: 500)')
+    parser.add_argument('--n_iterations', type=int, default=5, help='Itérations de self-play (défaut: 5)')
+    parser.add_argument('--seed', type=int, default=42, help='Graine aléatoire pour reproductibilité (défaut: 42)')
+    args = parser.parse_args()
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+
     trainer = UnifiedBaseAiTrainer()
     model, mse = trainer.train_unified_model(
-        n_scenarios=200, n_selfplay=100, n_victory=100, n_iterations=3
+        n_scenarios=args.n_scenarios, n_selfplay=args.n_selfplay, n_victory=args.n_victory, n_iterations=args.n_iterations
     )
     print("\n🎮 Le modèle unifié est prêt à être utilisé dans le jeu!")
     print("💡 Pour l'utiliser, modifiez BaseAi.load_or_train_model() pour charger base_ai_unified_final.pkl.")

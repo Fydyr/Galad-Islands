@@ -31,7 +31,8 @@ class BaseAi(esper.Processor):
     @staticmethod
     def test_decision_on_scenario(model, gold, base_health, allied_units, enemy_units, enemy_base_known, towers_needed, enemy_base_health):
         """Teste la décision du modèle et des règles sur un scénario donné."""
-        features = [gold, base_health, allied_units, enemy_units, enemy_base_known, towers_needed, enemy_base_health]
+        # include allied_units_health placeholder (1.0) for compatibility with trained model
+        features = [gold, base_health, allied_units, enemy_units, enemy_base_known, towers_needed, enemy_base_health, 1.0]
         # Décision modèle
         q_values = []
         for action in range(7):
@@ -41,7 +42,7 @@ class BaseAi(esper.Processor):
         best_action = int(np.argmax(q_values))
         # Décision règles
         dummy = BaseAi()
-        rule_action = dummy.decide_action_for_training(gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known, enemy_base_health)
+        rule_action = dummy.decide_action_for_training(gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known, enemy_base_health, 1.0)
         print(f"[TEST SCENARIO] Features: {features}")
         print(f"  Modèle: {best_action} (Q={q_values[best_action]:.2f}) | Règles: {rule_action}")
         return best_action, rule_action
@@ -130,14 +131,16 @@ class BaseAi(esper.Processor):
                 ebk = enemy_base_known if np.random.rand() > 0.1 else 1 - enemy_base_known
                 tn = towers_needed if np.random.rand() > 0.1 else 1 - towers_needed
                 ebh = np.clip(enemy_base_health + np.random.normal(0, 0.05), 0.05, 1.0)
-                state_action = [g, bh, au, eu, ebk, tn, ebh, expected_action]
+                # allied_units_health: utiliser bh comme proxy si pertinent, sinon 1.0
+                allied_health = bh if au > 0 else 1.0
+                state_action = [g, bh, au, eu, ebk, tn, ebh, allied_health, expected_action]
                 states.append(state_action)
                 actions.append(expected_action)
                 rewards.append(120)  # Récompense très forte pour l'action attendue
                 # Ajouter du bruit pour les autres actions (pénalité)
                 for wrong_action in range(7):
                     if wrong_action != expected_action:
-                        wrong_state_action = [g, bh, au, eu, ebk, tn, ebh, wrong_action]
+                        wrong_state_action = [g, bh, au, eu, ebk, tn, ebh, allied_health, wrong_action]
                         states.append(wrong_state_action)
                         actions.append(wrong_action)
                         rewards.append(-30)
@@ -196,8 +199,14 @@ class BaseAi(esper.Processor):
         print("✨ IA DE BASE PRÊTE À JOUER !")
         print("=" * 60)
 
-    def decide_action_for_training(self, gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known, enemy_base_health=1.0):
-        """Logique de décision à base de règles (professeur) pour l'entraînement."""
+    def decide_action_for_training(self, gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known, enemy_base_health=1.0, allied_units_health=1.0):
+        """Logique de décision à base de règles (professeur) pour l'entraînement.
+
+        Nouveau paramètre:
+        - allied_units_health: float (0.0-1.0) moyenne de la santé des unités alliées.
+          Si cette valeur est basse (<0.5), l'IA privilégiera l'achat d'un Druide (action 5)
+          si les ressources le permettent.
+        """
 
         # 1. Défense d'urgence
         if base_health < 0.6 and towers_needed and gold >= UNIT_COSTS["architect"] + self.gold_reserve:
@@ -210,6 +219,11 @@ class BaseAi(esper.Processor):
         # 3. Coup de grâce
         if enemy_base_known and enemy_base_health < 0.3 and gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
             return 6
+
+        # 4b. Si la santé moyenne des unités alliées est basse, acheter un Druide
+        # (prioritaire si on a les fonds nécessaires)
+        if allied_units_health < 0.5 and gold >= UNIT_COSTS["druid"] + self.gold_reserve:
+            return 5
 
         # 4. Renforcement en cas d'infériorité
         if allied_units < enemy_units and gold >= UNIT_COSTS["maraudeur"] + self.gold_reserve:
@@ -285,11 +299,12 @@ class BaseAi(esper.Processor):
 
             action = self.decide_action_for_training(
                 ally_gold[0], ally_base_health[0], ally_units[0],
-                enemy_units[0], towers_needed, enemy_base_known, enemy_base_health[0]
+                enemy_units[0], towers_needed, enemy_base_known, enemy_base_health[0], 1.0
             )
 
             # Créer state+action pour le modèle
-            state_action = current_state + [action]
+            allied_units_health = 1.0
+            state_action = current_state + [allied_units_health, action]
             states.append(state_action)
             actions.append(action)
 
@@ -417,13 +432,13 @@ class BaseAi(esper.Processor):
             towers_needed = random.choice([0, 1])
             enemy_base_health = random.uniform(0.1, 1.0)
 
+            allied_units_health = random.uniform(0.1, 1.0)
             action = self.decide_action_for_training(
-                gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known, enemy_base_health)
+                gold, base_health, allied_units, enemy_units, towers_needed, enemy_base_known, enemy_base_health, allied_units_health)
             reward = self._calculate_reward(
                 action, gold, base_health, allied_units, enemy_units, enemy_base_health)
-
             state_action = [gold, base_health, allied_units, enemy_units,
-                            enemy_base_known, towers_needed, enemy_base_health, action]
+                            enemy_base_known, towers_needed, enemy_base_health, allied_units_health, action]
             states.append(state_action)
             actions.append(action)
             rewards.append(reward)
@@ -505,6 +520,8 @@ class BaseAi(esper.Processor):
 
             allied_units = 0
             enemy_units = 0
+            allied_health_total = 0.0
+            allied_health_count = 0
 
             for ent, (team_comp, health_comp) in esper.get_components(TeamComponent, HealthComponent):
                 if esper.has_component(ent, BaseComponent) or esper.has_component(ent, TowerComponent):
@@ -514,6 +531,13 @@ class BaseAi(esper.Processor):
 
                 if team_comp.team_id == ai_team_id:
                     allied_units += 1
+                    # collecter santé moyenne des unités alliées (exclure la base/tours)
+                    try:
+                        if hasattr(health_comp, 'currentHealth') and hasattr(health_comp, 'maxHealth') and health_comp.maxHealth > 0:
+                            allied_health_total += (health_comp.currentHealth / health_comp.maxHealth)
+                            allied_health_count += 1
+                    except Exception:
+                        pass
                 elif team_comp.team_id != 0:
                     enemy_units += 1
 
@@ -533,7 +557,9 @@ class BaseAi(esper.Processor):
                 'enemy_units': enemy_units,
                 'enemy_base_known': enemy_base_known,
                 'towers_needed': towers_needed,
-                'enemy_base_health_ratio': enemy_base_health_ratio
+                'enemy_base_health_ratio': enemy_base_health_ratio,
+                # santé moyenne (0.0 - 1.0) des unités alliées; 1.0 si aucune unité
+                'allied_units_health': (allied_health_total / allied_health_count) if allied_health_count > 0 else 1.0
             }
 
         except Exception as e:
@@ -557,8 +583,9 @@ class BaseAi(esper.Processor):
             print(f"  Or: {features[0]}, HP base: {features[1]:.2f}, Alliés: {features[2]}, Ennemis: {features[3]}, Base ennemie connue: {features[4]}, Tours nécessaires: {features[5]}, HP base ennemie: {features[6]:.2f}")
 
         if self.model is None:
+            allied_health = game_state.get('allied_units_health', 1.0)
             action = self.decide_action_for_training(
-                features[0], features[1], features[2], features[3], features[5], features[4], features[6]
+                features[0], features[1], features[2], features[3], features[5], features[4], features[6], allied_health
             )
             if debug_scenario:
                 print(f"[DEBUG SCENARIO] Action choisie (règles): {action}")
@@ -568,7 +595,9 @@ class BaseAi(esper.Processor):
             # Calculer Q pour chaque action
             q_values = []
             for action in range(7):
-                state_action = features + [action]
+                # include allied_units_health feature (model trained with 9 features before action)
+                allied_health = game_state.get('allied_units_health', 1.0)
+                state_action = features + [allied_health, action]
                 q_value = self.model.predict([state_action])[0]
                 q_values.append(q_value)
 
