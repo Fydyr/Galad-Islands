@@ -137,7 +137,7 @@ class LeviathanBrain:
         actions: List[int],
         rewards: List[float],
         next_states: List[np.ndarray],
-        gamma: float = 0.85,
+        gamma: float = 0.7,  # Réduit de 0.85 -> 0.7 pour plus de stabilité
     ) -> float:
         """
         Trains the model on a batch of experiences.
@@ -241,13 +241,19 @@ class LeviathanBrain:
 
     def _normalizeBatchStates(self, states: np.ndarray) -> np.ndarray:
         """Normalizes a batch of states."""
-        if not self.is_trained or len(states) == 0:
+        if len(states) == 0:
+            return states
+
+        # Only fit the scaler once at the beginning
+        if not hasattr(self.scaler, 'mean_') or self.scaler.mean_ is None:
             self.scaler.fit(states)
-            return self.scaler.transform(states)
+
         try:
             return self.scaler.transform(states)
         except:
-            return states
+            # If transform fails, fit and transform
+            self.scaler.fit(states)
+            return self.scaler.transform(states)
 
     def _randomQValues(self) -> np.ndarray:
         """Generates random Q-values for initialization."""

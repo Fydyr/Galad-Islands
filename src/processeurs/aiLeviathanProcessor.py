@@ -508,16 +508,27 @@ class AILeviathanProcessor(esper.Processor):
             vel.currentSpeed = 0
 
         elif action == LeviathanBrain.ACTION_MOVE_FORWARD:
-            vel.currentSpeed = vel.maxUpSpeed
+            angle_rad = pos.direction * np.pi / 180
+            look_ahead_distance = 150
+            ahead_x = pos.x + look_ahead_distance * np.cos(angle_rad)
+            ahead_y = pos.y + look_ahead_distance * np.sin(angle_rad)
+
+            if self._isIslandAtPosition(ahead_x, ahead_y):
+                pos.direction = (pos.direction + 30) % 360
+                vel.currentSpeed = vel.maxUpSpeed * 0.3
+            else:
+                vel.currentSpeed = vel.maxUpSpeed
 
         elif action == LeviathanBrain.ACTION_MOVE_BACKWARD:
             vel.currentSpeed = -vel.maxReverseSpeed
 
         elif action == LeviathanBrain.ACTION_MOVE_LEFT:
             pos.direction = (pos.direction + 15) % 360
+            vel.currentSpeed = vel.maxUpSpeed
 
         elif action == LeviathanBrain.ACTION_MOVE_RIGHT:
             pos.direction = (pos.direction - 15) % 360
+            vel.currentSpeed = vel.maxUpSpeed
 
         elif action == LeviathanBrain.ACTION_ATTACK:
             if esper.has_component(entity, RadiusComponent):
@@ -716,6 +727,7 @@ class AILeviathanProcessor(esper.Processor):
                     pos.direction = (pos.direction + 10) % 360
                 else:
                     pos.direction = (pos.direction - 10) % 360
+                vel.currentSpeed = vel.maxUpSpeed * 0.7  # Avancer en tournant
             else:
                 vel.currentSpeed = vel.maxUpSpeed
             return

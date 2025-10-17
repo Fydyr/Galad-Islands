@@ -39,12 +39,14 @@ class RewardSystem:
     REWARD_BASE_DESTROYED = 500.0
     REWARD_SURVIVAL = 0.2
     REWARD_ATTACK_ACTION = 0.5
-    REWARD_APPROACH_ENEMY_BASE = 15.0
-    REWARD_RETREAT_FROM_BASE = -5.0
-    REWARD_NEAR_ENEMY_BASE = 30.0
-    REWARD_VERY_CLOSE_TO_BASE = 50.0
-    REWARD_FAR_FROM_BASE = -3.0
-    REWARD_MOVING_TOWARDS_BASE = 2.0
+    REWARD_APPROACH_ENEMY_BASE = 3.0  # Réduit de 15.0 -> 3.0
+    REWARD_RETREAT_FROM_BASE = -2.0  # Réduit de -5.0 -> -2.0
+    REWARD_NEAR_ENEMY_BASE = 5.0  # Réduit de 30.0 -> 5.0
+    REWARD_VERY_CLOSE_TO_BASE = 10.0  # Réduit de 50.0 -> 10.0
+    REWARD_FAR_FROM_BASE = -0.5  # Réduit de -3.0 -> -0.5
+    REWARD_MOVING_TOWARDS_BASE = 0.5  # Réduit de 2.0 -> 0.5
+    REWARD_NEAR_OBSTACLE = -5.0  # Pénalité pour être proche d'un obstacle
+    REWARD_COLLISION_ISLAND = -15.0  # Forte pénalité pour collision avec île
 
     STATIONARY_THRESHOLD = 0.1
     STATIONARY_TIME_PENALTY = 3.0
@@ -100,6 +102,12 @@ class RewardSystem:
 
         base_approach_reward = RewardSystem._calculateBaseApproachReward(entity, ai_comp)
         total_reward += base_approach_reward
+
+        obstacle_penalty = RewardSystem._calculateObstaclePenalty(entity)
+        total_reward += obstacle_penalty
+
+        # Clip total reward to prevent extreme values
+        total_reward = max(-50.0, min(200.0, total_reward))
 
         return total_reward
 
@@ -341,4 +349,61 @@ class RewardSystem:
             total_reward += RewardSystem.REWARD_RETREAT_FROM_BASE * min(abs(distance_change) / 50.0, 2.0)
 
         return total_reward
+
+    @staticmethod
+    def _calculateObstaclePenalty(entity: int) -> float:
+        """
+        Calculates penalty for being near obstacles (islands).
+        This encourages the AI to avoid collisions.
+        """
+        if not es.has_component(entity, PositionComponent):
+            return 0.0
+
+        pos = es.component_for_entity(entity, PositionComponent)
+
+        # Check if currently on an island tile
+        from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
+        from src.constants.map_tiles import TileType
+
+        try:
+            # Get the processor to access map_grid
+            from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
+            processor = None
+            for proc in es._processors:
+                if isinstance(proc, AILeviathanProcessor):
+                    processor = proc
+                    break
+
+            if processor and processor.map_grid is not None:
+                grid_x = int(pos.x // TILE_SIZE)
+                grid_y = int(pos.y // TILE_SIZE)
+
+                if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
+                    tile_type = processor.map_grid[grid_y][grid_x]
+
+                    # Strong penalty for being on an island
+                    if TileType(tile_type).is_island():
+                        return RewardSystem.REWARD_COLLISION_ISLAND
+
+                    # Check tiles around for proximity penalty
+                    penalty = 0.0
+                    check_radius = 2  # Check 2 tiles around
+                    for dy in range(-check_radius, check_radius + 1):
+                        for dx in range(-check_radius, check_radius + 1):
+                            check_x = grid_x + dx
+                            check_y = grid_y + dy
+
+                            if 0 <= check_x < MAP_WIDTH and 0 <= check_y < MAP_HEIGHT:
+                                check_tile = processor.map_grid[check_y][check_x]
+                                if TileType(check_tile).is_island():
+                                    # Penalty decreases with distance
+                                    distance = (dx*dx + dy*dy) ** 0.5
+                                    if distance > 0:
+                                        penalty += RewardSystem.REWARD_NEAR_OBSTACLE / (distance * 2)
+
+                    return penalty
+        except Exception:
+            pass
+
+        return 0.0
 
