@@ -440,32 +440,111 @@ class AITrainer:
         stats = self.ai_processor.getStatistics()
 
         print()
-        print("=" * 60)
-        print("[FINAL STATISTICS]")
-        print("=" * 60)
+        print("=" * 80)
+        print("                        [FINAL STATISTICS]")
+        print("=" * 80)
+
         totalCompleted = self.startEpisode + len(rewardsHistory)
-        print(f"[TIME] Total time: {elapsedTime:.1f} seconds ({elapsedTime / 60:.1f} minutes)")
-        print(f"[EPISODES] Completed this session: {len(rewardsHistory)}/{self.episodes}")
-        print(f"[EPISODES] Total trained: {totalCompleted}")
-        print(f"[ACTIONS] Total actions: {stats['total_actions']}")
-        print(f"[TRAIN] Trainings: {stats['training_count']}")
-        print(f"[REWARD] Final average reward: {rewardsHistory[-1] if rewardsHistory else 0:.2f}")
-        print(f"[EPSILON] Final epsilon: {self.currentEpsilon:.3f}")
-        print(f"[PROGRESS] {rewardsHistory[0]:.2f} -> {rewardsHistory[-1]:.2f}" if len(rewardsHistory) > 1 else "")
+
+        # Timing statistics
+        print()
+        print("-" * 80)
+        print("TIME STATISTICS")
+        print("-" * 80)
+        print(f"Total training time: {elapsedTime:.1f} seconds ({elapsedTime / 60:.1f} minutes)")
+        print(f"Average time per episode: {elapsedTime / len(rewardsHistory):.2f} seconds" if rewardsHistory else "N/A")
+
+        # Episode statistics
+        print()
+        print("-" * 80)
+        print("EPISODE STATISTICS")
+        print("-" * 80)
+        print(f"Completed this session: {len(rewardsHistory)}/{self.episodes}")
+        print(f"Total trained: {totalCompleted}")
+        print(f"Starting episode: {self.startEpisode}")
+
+        # Reward statistics
+        print()
+        print("-" * 80)
+        print("REWARD STATISTICS")
+        print("-" * 80)
+        if rewardsHistory:
+            print(f"Initial reward (first episode): {rewardsHistory[0]:.2f}")
+            print(f"Final reward (last episode): {rewardsHistory[-1]:.2f}")
+            print(f"Best reward: {max(rewardsHistory):.2f}")
+            print(f"Worst reward: {min(rewardsHistory):.2f}")
+            print(f"Average reward (all episodes): {sum(rewardsHistory) / len(rewardsHistory):.2f}")
+
+            # Last 10, 50, 100 episodes averages
+            if len(rewardsHistory) >= 10:
+                last10_avg = sum(rewardsHistory[-10:]) / 10
+                print(f"Average reward (last 10 episodes): {last10_avg:.2f}")
+            if len(rewardsHistory) >= 50:
+                last50_avg = sum(rewardsHistory[-50:]) / 50
+                print(f"Average reward (last 50 episodes): {last50_avg:.2f}")
+            if len(rewardsHistory) >= 100:
+                last100_avg = sum(rewardsHistory[-100:]) / 100
+                print(f"Average reward (last 100 episodes): {last100_avg:.2f}")
+
+            # Progress indicator
+            if len(rewardsHistory) > 1:
+                progress = rewardsHistory[-1] - rewardsHistory[0]
+                progress_percent = (progress / abs(rewardsHistory[0]) * 100) if rewardsHistory[0] != 0 else 0
+                print(f"Progress: {rewardsHistory[0]:.2f} -> {rewardsHistory[-1]:.2f} ({progress:+.2f}, {progress_percent:+.1f}%)")
+        else:
+            print("No reward data available")
+
+        # Action statistics
+        print()
+        print("-" * 80)
+        print("ACTION STATISTICS")
+        print("-" * 80)
+        print(f"Total actions taken: {stats['total_actions']}")
+        print(f"Training iterations: {stats['training_count']}")
+
+        brain = self.ai_processor.brain
+        print(f"Brain training samples: {brain.training_samples}")
+        print(f"Model trained: {'Yes' if brain.is_trained else 'No'}")
 
         print()
-        print("[ACTIONS] Most used actions:")
+        print("Most used actions:")
         actions = stats['actions_by_type']
-        sorted_actions = sorted(actions.items(), key=lambda x: x[1], reverse=True)[:5]
+        sorted_actions = sorted(actions.items(), key=lambda x: x[1], reverse=True)
         from src.ai.leviathan_brain import LeviathanBrain
-        for action_id, count in sorted_actions:
-            action_name = LeviathanBrain.ACTION_NAMES.get(action_id, "Unknown")
+
+        for i, (action_id, count) in enumerate(sorted_actions, 1):
+            action_name = LeviathanBrain.ACTION_NAMES.get(action_id, f"Unknown ({action_id})")
             percentage = (count / stats['total_actions'] * 100) if stats['total_actions'] > 0 else 0
-            print(f"   {action_name}: {count} times ({percentage:.1f}%)")
+            bar_length = int(percentage / 2)  # Scale to 50 chars max
+            bar = '#' * bar_length + '-' * (50 - bar_length)
+            print(f"   {i:2d}. {action_name:20s}: {count:6d} times ({percentage:5.1f}%) [{bar}]")
+
+        # Exploration statistics
+        print()
+        print("-" * 80)
+        print("EXPLORATION STATISTICS")
+        print("-" * 80)
+        print(f"Starting epsilon: 1.000")
+        print(f"Final epsilon: {self.currentEpsilon:.3f}")
+        exploitation_rate = (1 - self.currentEpsilon) * 100
+        print(f"Exploitation rate: {exploitation_rate:.1f}%")
+        print(f"Exploration rate: {self.currentEpsilon * 100:.1f}%")
+
+        # Model information
+        print()
+        print("-" * 80)
+        print("MODEL INFORMATION")
+        print("-" * 80)
+        print(f"State size: {self.ai_processor.brain.state_size}")
+        print(f"Action space size: {self.ai_processor.brain.NUM_ACTIONS}")
+        print(f"Learning rate: {self.ai_processor.brain.model.learning_rate_init}")
+        print(f"Discount factor (gamma): 0.85")
+        print(f"Model file: models/leviathan_ai.pkl")
 
         print()
+        print("=" * 80)
         print("[OK] Training complete! The model is ready to be used.")
-        print("[FILE] Model saved in: models/leviathan_ai.pkl")
+        print("=" * 80)
         print()
 
 
