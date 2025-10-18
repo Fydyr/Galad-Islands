@@ -28,6 +28,7 @@ class DangerSettings:
     bandit_radius: float = 6.0  # tiles
     safe_threshold: float = 0.45
     flee_threshold: float = 0.7
+    flee_release_threshold: float = 0.35  # seuil inférieur pour quitter la fuite (hysteresis)
     max_value_cap: float = 12.0
 
 
@@ -40,6 +41,7 @@ class PathfindingSettings:
     danger_weight: float = 4.0
     diagonal_cost: float = 1.4
     island_perimeter_weight: float = 4.5
+    island_perimeter_radius: int = 1
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),
         int(TileType.ENEMY_BASE),

@@ -1,4 +1,0 @@
-- [x] Annuler protection des tiles à éviter autour des iles
-- [x] Ajouter plus d'écart avec les mines
-- [ ] Trouver pourquoi les ia ne tire pas
-- [ ] faire en sorte que les états ne change pas trop vite et pour aucune raison

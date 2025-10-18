@@ -55,6 +55,7 @@ class UnitContext:
     wants_attack: bool = False
     wants_flee: bool = False
     wants_join_druid: bool = False
+    in_flee_state: bool = False  # Track si l'unité est actuellement en fuite (pour hysteresis)
     share_channel: Dict[str, float] = field(default_factory=dict)
     assigned_chest_id: Optional[int] = None
     debug_last_state: str = ""

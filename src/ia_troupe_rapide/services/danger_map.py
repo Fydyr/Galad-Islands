@@ -52,8 +52,11 @@ class DangerMapService:
         mine_tile = int(TileType.MINE)
         mine_mask = self._grid == mine_tile
         if mine_mask.any():
-            padded = np.pad(mine_mask.astype(np.uint8), 2, mode="constant")
-            neighborhood = sliding_window_view(padded, (5, 5))
+            # Adapter dynamiquement le rayon de danger des mines depuis la configuration
+            mine_radius_tiles = max(1, int(np.ceil(self.settings.danger.mine_radius)))
+            window_size = 2 * mine_radius_tiles + 1
+            padded = np.pad(mine_mask.astype(np.uint8), mine_radius_tiles, mode="constant")
+            neighborhood = sliding_window_view(padded, (window_size, window_size))
             expanded_mask = neighborhood.max(axis=(2, 3)).astype(bool)
             ring_mask = np.logical_and(expanded_mask, np.logical_not(mine_mask))
             center_penalty = self.settings.pathfinding.danger_weight * 1.5

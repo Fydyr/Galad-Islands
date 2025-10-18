@@ -317,7 +317,20 @@ class RapidUnitController:
     def _should_flee(self, dt: float, context: UnitContext) -> bool:
         danger = self.danger_map.sample_world(context.position)
         health_ratio = context.health / max(context.max_health, 1.0)
-        return danger >= self.settings.danger.flee_threshold or health_ratio <= self.settings.flee_health_ratio
+        
+        # Hysteresis : seuil d'entrée > seuil de sortie pour éviter l'oscillation
+        if context.in_flee_state:
+            # En fuite : on continue tant que danger > seuil_liberation OU santé très basse
+            should_still_flee = danger >= self.settings.danger.flee_release_threshold or health_ratio <= 0.2
+            if not should_still_flee:
+                context.in_flee_state = False
+            return should_still_flee
+        else:
+            # Pas en fuite : on entre en fuite si danger critique OU santé critique
+            should_start_flee = danger >= self.settings.danger.flee_threshold or health_ratio <= self.settings.flee_health_ratio
+            if should_start_flee:
+                context.in_flee_state = True
+            return should_start_flee
 
     def _should_join_druid(self, dt: float, context: UnitContext) -> bool:
         if not self.goal_evaluator.has_druid(context.team_id):
@@ -381,6 +394,7 @@ class RapidUnitController:
         if ctx is None:
             return
         self.context = ctx
+        self._tick_attack_cooldown(ctx, dt)
         ctx.danger_level = self.danger_map.sample_world(ctx.position)
         self._refresh_objective(ctx)
         previous_state = self.state_machine.current_state.name
@@ -403,6 +417,17 @@ class RapidUnitController:
             self.context_manager.time,
         )
         ctx.share_channel["global_danger"] = self.coordination.broadcast_danger()
+
+    def _tick_attack_cooldown(self, context: UnitContext, dt: float) -> None:
+        """Réduit progressivement le temps de recharge des tirs ennemis."""
+
+        radius = context.radius_component
+        if radius is None:
+            return
+        if radius.cooldown <= 0.0:
+            radius.cooldown = 0.0
+            return
+        radius.cooldown = max(0.0, radius.cooldown - dt)
 
     def _refresh_objective(self, context: UnitContext) -> None:
         now = self.context_manager.time

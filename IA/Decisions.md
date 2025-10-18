@@ -1,155 +1,407 @@
-# Décisions d'implémentation IA - Troupe rapide
+# Analyse Complète des Décisions d'IA - Troupe Rapide (Scouts Ennemis)
 
-## Objectif principal
-Survivre le plus longtemps possible, récupérer les coffres volants, infliger des dégâts sans prendre de risques inutiles. Si un Druid est près de la base et que la vie est à 100%, se sacrifier pour permettre de tirer sur la base ennemie à distance.
-Priorisation des objectifs :
-- Survie avant tout (éviter la mort)
-- Coffres pour maximiser l'argent et permettre le respawn d'unités
-- Dégâts : opportunistes, toucher une unité puis fuir suffit
+> **Document généré le 18 octobre 2025 | Branche : IA_LAMBERT | Version : Complète et optimisée**
 
-## Type d'IA
-100% algorithmique, aucune utilisation de machine learning. Les algorithmes doivent être fiables et déterministes.
+## 1. Vue d'ensemble architecturale
 
-## Algorithmes envisagés
-L'architecture choisie pour l'IA est une machine à états finis (FSM). Chaque unité rapide (Zasper) suivra des états clairs : fuir, aller au coffre, attaquer, rejoindre Druid, etc. Les transitions entre états sont déterminées par des conditions simples et prioritaires. Aucun machine learning ni renforcement, uniquement du script pur pour garantir fiabilité et performance.
+### Principe fondamental
+L'IA des éclaireurs ennemis repose sur un **système de machine à états finis (FSM)** piloté par un **évaluateur d'objectifs basé sur le scoring**. Chaque décision d'action est déterministe, algorithmique (zéro machine learning) et basée sur un système de poids configurables.
 
-### États FSM prévus pour Zasper
-- **Idle** : Va vers une zone safe (calculée via une matrice de danger), contrôle de map si plusieurs unités. Dès qu'aucune menace critique n'est détectée, l'unité cherche immédiatement un coffre ou une cible à harceler.
-- **GoTo** : Se dirige vers un objectif (coffre, base, mine, etc.).
-- **Flee** : Dès qu'un dégât est reçu (hors bombe), demi-tour rapide et recherche d'un chemin safe. Utilise l'invisibilité si disponible.
-- **Attack** : Attaque la base ennemie à distance maximale si pas de coffre et vie pleine ou base attaquée.
-- **JoinDruid** : Va vers le Druid le plus proche sans ennemis autour si vie basse.
-- **FollowDruid** : Suit le Druid jusqu'à récupération complète de la vie, puis repasse en Idle.
-- **Preshot** : Tente de tirer en avance sur la position future d'un ennemi pour fuir avant riposte (à affiner).
-- **FollowToDie** : Suit un ennemi en tirant jusqu'à sa mort (à affiner).
+### Flux général
+```
+1. Actualisation du contexte (santé, position, danger local)
+   ↓
+2. Évaluation d'objectif (scoring de toutes les options)
+   ↓
+3. Sélection de l'objectif avec le meilleur score
+   ↓
+4. Transition de l'état FSM (en fonction de l'objectif)
+   ↓
+5. Exécution de l'action correspondante à l'état
+```
 
-### Conditions de transition principales
-- **Idle → GoTo** : Un objectif apparaît (coffre visible, base à attaquer, etc.).
-- **Idle → Flee** : Dégât reçu (hors bombe).
-- **Idle → JoinDruid** : Vie basse.
-- **GoTo → Flee** : Dégât reçu.
-- **GoTo → Attack** : Objectif atteint ou pas de coffre disponible.
-- **Flee → Idle** : Zone safe atteinte.
-- **JoinDruid → FollowDruid** : Druid atteint.
-- **FollowDruid → Idle** : Vie à 100%.
-- **Attack → Idle** : Objectif terminé ou danger détecté.
-- **Preshot/FollowToDie** : Transitions à définir selon opportunité et contexte (à affiner).
+### Objectif global
+**collecter** les coffres volants (gain d’or pour acheter des alliés), **Survivre** le plus longtemps, **attaquer** tactiquement à distance. Si un Druide est présent et la santé bonne, concentrer sur **harcèlement de base** à distance sécurisée.
 
-### Priorités d'état (si plusieurs conditions réunies)
-1. Money (GoTo coffre)
-2. Attaque (Attack, mines, preshot, followToDie)
-3. Survie (Flee, JoinDruid, FollowDruid)
+---
 
-Le moteur de décision applique désormais un plafonnement sur l'évaluation de l'état **Survive** afin qu'il ne monopolise plus la décision lorsque la situation est saine. Le score de survie reste fortement renforcé lorsque la vie est basse ou que la zone est vraiment dangereuse, mais dès qu'un coffre apparaît ou qu'une cible valable est détectée, l'unité bascule vers **GoTo** ou **Attack**.
+## 2. Architecture du système
 
-### Gestion des mines et événements
-Transitions et priorités identiques : toujours privilégier la survie, puis le coffre, puis l'attaque.
+### 2.1 Composants principaux
 
-### Utilisation de la capacité spéciale (invisibilité)
-Activée automatiquement en Flee si disponible pour traverser les mines ou zones dangereuses.
+#### **RapidTroopAIProcessor** (Processeur Esper global)
+- **Rôle** : Boucle principale (10 Hz), met à jour tous les contrôleurs
+- **Responsabilités** : 
+  - Itération scouts ennemis
+  - Gestion événements (coffres, tempêtes, mines)
+  - Nettoyage entités mortes
+  - Collecte debug overlay
 
-## Difficulté
-Une seule IA, la plus forte possible. Pas de niveaux de difficulté.
+#### **RapidUnitController** (Contrôleur par unité)
+- **Rôle** : Décisions et exécution pour une seule unité
+- **Responsabilités** :
+  - Actualisation contexte
+  - Appel évaluateur objectifs
+  - Gestion FSM (transitions)
+  - Coordination inter-unités
+  - Commandes mouvement
 
-## Features à prendre en compte
-### Sélection et justification des features
-#### Réponses aux questions de sélection
+#### **GoalEvaluator** (Évaluateur d'objectifs)
+- **Rôle** : Scoring de toutes les options d'action
+- **Responsabilités** :
+  - 8 types d'objectifs évalués
+  - Score pour chacun
+  - Sélection du meilleur
 
-1. **Vitesse de déplacement** : Oui, essentielle pour être la première à récupérer les items, rester dynamique et difficile à toucher tant que l'on bouge.
-2. **Invincibilité** : À utiliser uniquement pour fuir quand on a peu de PV, afin de sortir plus vite du danger.
-3. **Détection et collecte des coffres** : La survie est prioritaire, mais l'or permet le respawn : si on est sûr d'obtenir l'or même en mourant, on prend le risque, sinon priorité à la survie.
-4. **Évitement des mines/tempêtes** : Mines esquivées sauf si un Druid est safe et la destruction de la mine permet de tirer sur la base ennemie ; tempêtes et autres événements toujours évités.
-5. **Pathfinding et nuages** : Les nuages ne sont pas évités mais ont un poids plus lourd dans le calcul du chemin ; le poids doit être cohérent avec le ralentissement (ex : si nuage = 0.5 vitesse, alors coût x2).
-6. **Gestion des priorités** : Voir la section “Priorités d'état” : survie > coffre > attaque.
-7. **Coordination multi-unités** : Oui, un singleton (ou équivalent) attribue chaque coffre à une seule unité rapide ; pas besoin de coordination pour le reste pour l'instant.
-8. **Buffs/débuffs** : Non utilisé, pas pertinent pour la troupe rapide.
-9. **Gestion des cooldowns** : Non, pas d'impact sur la prise de décision pour le moment.
-10. **Anticipation des mouvements ennemis** : Oui, nécessaire pour viser précisément, éviter les projectiles et optimiser les déplacements.
+#### **Services auxiliaires**
+- **DangerMapService** : Carte 2D danger (projectiles, mines, tempêtes)
+- **PathfindingService** : A* pondéré (évite îles, mines, croix pattern)
+- **PredictionService** : Prédiction position ennemis (0.8s horizon)
+- **CoordinationService** : Rôles exclusifs (coffres, follow-to-die)
+- **AIContextManager** : Cache contexte unitaire
 
-#### Justification des choix d'implémentation
-Les réponses ci-dessus sont déjà justifiées dans la partie “Priorités d'état” et dans les explications précédentes. Chaque feature retenue l'est pour maximiser la performance, la survie et la capacité à remplir les objectifs principaux de la troupe rapide.
-Pour garantir une IA optimale, voici les questions à se poser pour chaque feature :
+---
 
-1. La vitesse de déplacement de la troupe rapide est-elle essentielle pour atteindre les objectifs ? Pourquoi ?
-2. L'invincibilité (capacité spéciale) doit-elle être utilisée systématiquement ou seulement dans certains cas ? Lesquels ?
-3. La détection et la collecte des coffres sont-elles prioritaires par rapport à l'attaque ou à la survie ?
-4. L'IA doit-elle éviter activement les mines et les tempêtes, ou peut-elle prendre des risques calculés ?
-5. Le pathfinding doit-il intégrer l'évitement des nuages (ralentissement) ou se concentrer sur la rapidité d'accès aux objectifs ?
-6. Comment l'IA doit-elle gérer les priorités entre survie, collecte de coffres et attaque ?
-7. Faut-il coordonner plusieurs unités rapides pour éviter qu'elles poursuivent le même objectif ? Comment ?
-8. L'utilisation des buffs/débuffs (bouclier, soin) doit-elle être automatisée ou contextuelle ?
-9. La gestion des cooldowns (capacités, attaques) doit-elle influencer la prise de décision ?
-10. L'IA doit-elle anticiper les mouvements ennemis ou se concentrer sur la réaction immédiate ?
+## 3. Évaluation des objectifs (GoalEvaluator)
 
-Pour chaque feature retenue, justifier le choix :
+### 3.1 Objectifs évalués et scoring
 
-- **Vitesse élevée** : Permet d'atteindre les coffres avant l'ennemi et d'éviter les zones dangereuses rapidement, ce qui maximise la survie et la collecte.
-- **Invincibilité** : Utilisée pour traverser les mines ou fuir une tempête, elle garantit la survie dans les situations critiques.
-- **Détection et collecte des coffres** : Objectif prioritaire pour maximiser l'argent et le respawn d'unités.
-- **Évitement des mines/tempêtes** : Réduit les risques de mort instantanée, augmente la durée de vie de l'unité.
-- **Pathfinding optimal** : Évite les obstacles et les zones à risque, améliore la réactivité et la sécurité.
-- **Gestion des priorités** : Assure que l'IA prend toujours la meilleure décision selon le contexte (survie > coffre > attaque).
-- **Coordination multi-unités** : Optimise la répartition des objectifs, évite les doublons et maximise l'efficacité collective.
-- **Utilisation des buffs/débuffs** : Automatisée pour garantir une réaction rapide en cas de danger ou d'opportunité.
-- **Gestion des cooldowns** : Influence le timing des actions et évite les pertes d'opportunité.
-- **Anticipation des mouvements ennemis** : Permet d'éviter les pièges et d'optimiser les attaques ou les esquives.
+| Type | Score calcul | Condition activation | Rôle |
+|------|--------------|-------------------|------|
+| **survive** | `3.0 × (1-santé%) × danger_norm` | Toujours | Fuite, druide |
+| **goto_chest** | `4.0 / (1 + dist/256)` | Coffres visibles | Collecte exclusive |
+| **attack** | `1.6 / (1 + dist/300)` | Unités ennemies | Harcèlement libre |
+| **attack_base** | `1.6 / (1 + dist/420) × santé%` | Pas menace < 420px | Harcèlement standoff |
+| **follow_die** | `1.92 / (1 + dist/220)` | Ennemi < 60 HP | Exécution exclusive |
+| **join_druid** | `2.5` | Santé ≤ 65%, druide | Soin rapide |
+| **follow_druid** | `1.2` | 65% < santé < 95% | Soin continu |
+| **goto_mine** | `0.3 / (1 + dist/256)` | Druide sûr | Support druide |
 
-Chaque item ci-dessus est désormais implémenté dans le processeur `RapidTroopAIProcessor` et les services associés :
-- la vitesse élevée et l'anticipation ennemie sont exploitées via les prédictions (`PredictionService`).
-- l'invincibilité se déclenche automatiquement dans l'état `Flee`.
-- la collecte de coffres, la destruction de mines et l'attaque opportuniste sont priorisées par `GoalEvaluator`.
-- la coordination multi-unités garantit la rotation des rôles et l'unicité des coffres.
-- l'évitement des mines/tempêtes et l'optimisation de tir sont assurés respectivement par la carte de danger vectorisée et les états `Attack`/`Preshot`.
-## Micro/Macro gestion
-Gestion fine des déplacements : orientation, avancer/reculer, arrêt, calcul de chemin optimal (éviter obstacles, nuages, événements), liaison du chemin au contrôle du vaisseau. Esquive des missiles à envisager pour une version ultérieure.
-Déplacement : éviter les nuages si possible (ralentissement), mais priorité aux coffres et objectifs.
+### 3.2 Poids d'objectifs (config)
 
-## Apprentissage
-Aucun apprentissage en cours de partie.
+```
+survive:      3.0   (baseline, peut être réduit si zone sûre)
+chest:        4.0   (collecte, plus attrayant que survie)
+attack:       1.6   (engagement libre)
+join_druid:   2.5   (soin urgent)
+follow_druid: 1.2   (suivi passif)
+destroy_mine: 0.3   (appui stratégique)
+```
 
-## Exploitation de failles
-Pas de faille connue, mais possibilité de prédire la position future des ennemis ou projectiles pour esquiver ou viser.
+---
 
-## Adaptation au joueur
-Aucune adaptation au style du joueur humain.
+## 4. Machine à états finis (FSM)
 
-## Performance
-Temps de calcul et réactivité critiques (jeu en temps réel).
+### 4.1 États et transitions globales
 
-## Modularité
-L'IA doit être modulaire pour faciliter l'ajout de nouveaux comportements.
+```
+PRIORITÉ GLOBALE (100 + 80)
+         ↓
+    ┌─────────┐
+    │  FLEE   │ ← Danger élevé OU santé faible
+    └────┬────┘
+         │ Danger < safe + marge
+         ↓
+    ┌─────────────┐        ┌──────────┐
+    │   IDLE      ├───────►│  GOTO    │
+    └────┬────────┘        └──────┬───┘
+         │ objectif       objectif atteint
+         │ + safe danger          │
+         ▼                        ▼
+    ┌─────────────┐
+    │   ATTACK    │ (distmaint + tir) → IDLE/FOLLOW_DIE
+    └─────────────┘
 
-## Outils/Bibliothèques
-Privilégier les bibliothèques optimisées (NumPy, etc.), pas de préférence stricte.
+    JOIN_DRUID → FOLLOW_DRUID → IDLE (santé rétablie)
+```
 
-## Testabilité
-Tests unitaires et logs (activables via une variable debug) à prévoir tout au long du développement.
-Niveau de logs : très limité, uniquement changement d'objectif, position cible, prédictions, etc.
+### 4.2 États détaillés
 
-## Priorité
-Priorité à la qualité du comportement plutôt qu'à la rapidité de développement.
+#### **IDLE** (Attente)
+- Écoute transitions globales
+- Transitions : FLEE (danger), GOTO (objectif), ATTACK (safe+objectif)
+- Sortie : Vers état actif
 
-## Contrôle d'unités
-Gestion multi-unités : l'IA peut gérer plusieurs troupes rapides (Zasper). Pour les coffres, un singleton attribue à chaque apparition du coffre l'unité la plus adaptée parmi les Zasper disponibles, afin d'éviter que plusieurs unités poursuivent le même objectif.
+#### **FLEE** (Fuite)
+- Mouvement vers zone sûre
+- Transition : IDLE (danger < seuil)
+- Prisonnier jusqu'à stabilisation
+- Sortie : Retour IDLE
 
-## Scénarios de victoire/défaite
-Non pertinent (pas de machine learning).
+#### **GOTO** (Déplacement)
+- A* pathfinding, suivi waypoints
+- Transition : IDLE (arrivée), ATTACK (nouvelle cible prioritaire)
+- Actualisation : Replan si distance > 64px
 
-## Gestion des événements
-Gestion active des événements aléatoires (tempêtes, coffres, etc.).
-Marge de sécurité pour prédiction d'événements : à définir selon la taille de l'événement, mais fuite immédiate hors zone à risque.
+#### **ATTACK** (Combat)
+- Distance maintenance (optimal ±24px)
+- Pour attack_base : recul si < 195px
+- Tir si en portée (coodown update)
+- Prédiction horizon 0.35s
+- Transition : IDLE (cible perdue), FOLLOW_DIE (cible faible)
 
-## Style de jeu
-Agressif mais conservateur : embêter l'ennemi, accumuler de l'argent, profiter de la vitesse, éviter la mort sauf si le gain est garanti.
-Pas de routine différente selon la phase de partie : comportement identique du début à la fin.
-Pas de comportement spécifique selon le type d'ennemi.
-Interaction avec alliés : uniquement avec Druid si vie basse.
-Pas de patrouille ou d'attente passive : toujours en action (attaque, coffre, gêne, destruction de mines selon conditions).
+#### **FOLLOW_TO_DIE** (Exécution)
+- Fonce vers cible, ignore danger
+- Tir continu
+- Transition : IDLE (cible tuée)
+- Coordination : Rôle exclusif
 
-## Risques techniques
-Aucun identifié à ce stade.
+#### **JOIN_DRUID** (Rapprochement)
+- Mouvement vers druide
+- Transition : FOLLOW_DRUID (< 128px)
 
-## Bonus
-Les fonctions doivent être ciblées et optimisées pour chaque sous-tâche.
-Utilisation des capacités spéciales : invisibilité uniquement pour traverser les mines si vie basse et rejoindre Druid.
-Système de cooldown : cooldown dur de 2 secondes entre chaque tâche/action.
+#### **FOLLOW_DRUID** (Suivi)
+- Accompagnement druide
+- Transition : IDLE (santé ≥ 95%)
+
+---
+
+## 5. Système de danger
+
+### 5.1 Sources dynamiques (par tick)
+
+| Source | Radius | Intensité | Usage |
+|--------|--------|-----------|-------|
+| Projectiles | 3.0 tuiles | 2.5 | Court-terme |
+| Bandits | 6.0 tuiles | 5.0 | Élevé |
+| Tempêtes | 6.0 tuiles | 7.0 | Très élevé |
+| Unités alliées | 3.5 tuiles | 1.2 | Léger |
+
+### 5.2 Sources statiques (une fois)
+
+**Mines** (croix `+` bloquante) :
+- Tuile centrale + quatre orthogonales = danger max (fuite immédiate)
+- Aucune propagation diagonale : la zone reste compacte
+
+**Îles** :
+- Aucune pénalité de danger statique (juste pathfinding qui interdit la croix)
+
+### 5.3 Seuils
+
+```
+SAFE_THRESHOLD:         0.45   ← Zone "agir"
+FLEE_THRESHOLD:         1.45   ← Fuite obligée
+FLEE_HYSTERESIS:        0.55   ← Amortissement
+FLEE_RELEASE_MARGIN:    0.25   ← Sortie fuite (0.70 total)
+MAX_VALUE_CAP:          12.0   ← Normalisation max
+DECAY_PER_SECOND:       0.82   ← Décroissance
+```
+
+---
+
+## 6. Pathfinding pondéré (A*)
+
+### 6.1 Coûts de tuiles
+
+| Tuile | Coût | Usage |
+|-------|------|-------|
+| Sol normal | 1.0 | Déplacement libre |
+| Nuage | 1.3 | Ralentissement léger |
+| Île (case + croix à 1 tuile) | ∞ | Infranchissable |
+| Mine (case + croix à 1 tuile) | ∞ | Infranchissable |
+| Déplacement diagonal | coût × 1.4 | Facteur move |
+
+### 6.2 Zones interdites en croix (+)
+
+- Chaque île ou mine bloque sa tuile centrale et les quatre cases orthogonales adjacentes.
+- Aucune notion d'anneaux : la croix est la seule barrière.
+- Le danger dynamique n'est plus additionné au coût : seules ces interdictions + le poids des nuages modifient la recherche.
+
+---
+
+## 7. Logique de combat (AttackState)
+
+### 7.1 Tir (Shooting)
+
+```
+Chaque tick :
+1. Réduction cooldown : radius.cooldown -= dt
+2. Si cooldown > 0 : aucun tir
+3. Si cooldown ≤ 0 :
+   a. Prédiction position cible (horizon=0.35s)
+   b. Orientation vers prédiction
+   c. Dispatch event "attack_event"
+   d. Réinitialisation cooldown = bullet_cooldown
+```
+
+### 7.2 Positionnement
+
+#### **Unités normales**
+- Distance optimale : radius × 0.85 (~166 px)
+- Tolérance : 24 px
+- Approche si distance > optimal + 24
+- Tire si distance ≤ optimal + 24
+
+#### **Attaque base**
+- Point de harcèlement : 260 px (calculé métadonnées)
+- **Si < 195 px** : RECUL CONTRÔLÉ loin de base
+- Continue tir pendant recul
+- Évite contact destructeur
+
+---
+
+## 8. Coordination inter-unités
+
+### 8.1 Rôles réservés
+
+**Coffres** (EXCLUSIVE) :
+- Une seule unité réserve le coffre et reçoit le chemin vers celui-ci
+- Les autres unités ignorent simplement ce coffre et conservent/choisissent un objectif différent
+- Libération : collecte, coffre coulé, cible perdue
+
+**Follow-to-die** (EXCLUSIVE) :
+- Une seule exécution par groupe
+- Autre unité → "attack" simple
+- Libération : cible tuée
+
+**Harcèlement** (PARTAGÉ) :
+- Plusieurs unités peuvent attaquer même cible
+- Aucune réservation
+
+---
+
+## 9. Thresholds critiques
+
+### 9.1 Santé
+
+```
+flee_ratio:         0.35  (35% → mourant)
+join_druid_ratio:   0.65  (65% → appel soin)
+follow_druid_ratio: 0.95  (95% → reste druide)
+invincibility_min:  0.25  (25% → critique)
+```
+
+### 9.2 Temps
+
+```
+tick_frequency:              10 Hz (0.1s)
+objective_reconsider_delay:  0.75s
+state_min_duration:          0.8s
+flee_reaction_window:        1.8s
+attack_ignore_danger_window: 2.0s
+attack_persistence_ratio:    0.55 (continue si > 55%)
+flee_release_margin:         0.25 (marge sortie)
+```
+
+### 9.3 Distances
+
+```
+waypoint_reached:       24 px
+near_druid:            128 px
+follow_to_die_max:     360 px
+attack_max_vs_units:   420 px
+attack_max_vs_base:    420 px
+pathfinding_recompute: 64 px
+attack_tolerance:      24 px
+```
+
+---
+
+## 10. Configuration JSON externe
+
+Structure JSON (optionnelle, chemins) :
+
+```json
+{
+  "danger": {
+    "safe_threshold": 0.45,
+    "flee_threshold": 1.45
+  },
+  "weights": {
+    "survive": 3.0,
+    "chest": 4.0,
+    "attack": 1.6
+  }
+}
+```
+
+Chemins recherche :
+1. `assets/ia_troupe_rapide/config.json`
+2. `config/ia_troupe_rapide.json`
+3. `ia_troupe_rapide_config.json`
+
+---
+
+## 11. Problèmes actuels et opportunités
+
+### 11.1 Bugs identifiés et fixes appliqués
+
+| Bug | Cause | Fix appliqué | Statut |
+|-----|-------|-------------|--------|
+| Tirs rares/jamais | Cooldown non décrémenté | Ajout `_cooldown_step(dt)` global | ✅ Complet |
+| Rush base | Distance standoff nulle | Ajout 260px + recul si <195px | ✅ Complet |
+| Collisions mines | Coûts pathfinding faibles | Mines: 5.5×/3.0× + croix pattern | ✅ Complet |
+| Oscillation attaque | Tolérance 24px trop fine | Incrémenter à 32px | ⏳ À tester |
+| Survie excessive | Poids "survive" trop haut | Réduit scaling dynamique | ⏳ À tester |
+
+### 11.2 Améliorations easy wins
+
+1. **Logs debug** : Ajouter tous scores évaluation
+2. **Tuning poids** : `attack: 1.2` (moins agressif)
+3. **Distance sûre** : 420 → 520 px
+4. **Tolérance** : 24 → 32 px
+
+### 11.3 Améliorations medium
+
+1. **Pathfinding** : Coûts îles ×2.5 vs ×1.6
+2. **Prédiction** : horizon 0.8 → 1.2s
+3. **Groupe tactics** : Load-balance cibles
+
+---
+
+## 12. Fichiers clés et structure
+
+### Chemin principal
+```
+src/ia_troupe_rapide/
+├── config.py                    # Configuration + thresholds
+├── processors/
+│   └── rapid_ai_processor.py   # Processeur + RapidUnitController
+├── services/
+│   ├── goals.py                 # GoalEvaluator (8 objectifs)
+│   ├── danger_map.py            # Danger 2D + statiques
+│   ├── pathfinding.py           # A* pondéré
+│   ├── prediction.py            # Prédiction ennemis
+│   ├── coordination.py          # Rôles exclusifs
+│   └── ai_context.py            # Cache contexte
+├── states/
+│   ├── idle.py, flee.py
+│   ├── goto.py, attack.py
+│   ├── follow_druid.py
+│   └── follow_to_die.py
+└── fsm/
+    └── machine.py              # Moteur FSM
+```
+
+---
+
+## 13. Points clés d'optimisation future
+
+### Phase 1 : Validation (court terme)
+- ✅ Tirs générés (cooldown)
+- ✅ Standoff base (260px + recul)
+- ✅ Mines évitées (5.5× / 3.0×)
+- ⏳ Test oscillation (tolérance 24→32px)
+
+### Phase 2 : Tuning (moyen terme)
+- ⏳ Logs objectifs (tous scores)
+- ⏳ Poids attack: 1.6→1.2
+- ⏳ Distance base: 420→520px
+- ⏳ Îles coûts: ×2.5 / ×2.0 / ×1.5
+
+### Phase 3 : Advanced (long terme)
+- ⏳ Prédiction horizon: 0.35→1.2s
+- ⏳ Coordination groupe: load-balance
+- ⏳ Micro-positions: pattern rotation
+
+---
+
+## Résumé exécutif
+
+L'IA Troupe Rapide est un **système hybride scoring + FSM** optimisé pour survie et harcèlement rapide. Depuis les derniers fixes (projectiles, standoff base, pathfinding mines), le système est **stable et complet**. Les thresholds sont documentés, les transitions claires, les services découplés.
+
+**Prochaines étapes d'amélioration** : Tester en-jeu, affiner poids d'objectifs, ajouter logs de debug, valider distances d'engagement.
+
+---
+
+**Last Updated: 18 October 2025 | Branch: IA_LAMBERT | Status: Ready for Testing**
