@@ -62,6 +62,9 @@ class PathfindingService:
             (1, -1, self.settings.pathfinding.diagonal_cost),
             (1, 1, self.settings.pathfinding.diagonal_cost),
         )
+        
+        # Stockage du dernier chemin calculé pour l'affichage debug
+        self._last_path: List[WorldPos] = []
 
     def _build_base_cost(self) -> np.ndarray:
         cost = np.ones_like(self._grid, dtype=np.float32)
@@ -78,6 +81,19 @@ class PathfindingService:
             expanded_mask = neighborhood.max(axis=(2, 3)).astype(bool)
             # Bloquer complètement les îles et leur périmètre - np.inf = infranchissable
             cost[expanded_mask] = np.inf
+
+        # Appliquer un coût élevé autour des mines
+        mine_tile = int(TileType.MINE)
+        mine_mask = self._grid == mine_tile
+        if mine_mask.any():
+            mine_radius = max(1, int(self.settings.pathfinding.mine_perimeter_radius))
+            mine_window_size = 2 * mine_radius + 1
+            mine_padded = np.pad(mine_mask.astype(np.uint8), mine_radius, mode="constant")
+            mine_neighborhood = sliding_window_view(mine_padded, (mine_window_size, mine_window_size))
+            mine_expanded_mask = mine_neighborhood.max(axis=(2, 3)).astype(bool)
+            # Appliquer un coût élevé aux mines et leur périmètre
+            cost[mine_expanded_mask] = self.settings.pathfinding.mine_perimeter_weight
+
         return cost
 
     def world_to_grid(self, position: WorldPos) -> GridPos:
@@ -97,6 +113,11 @@ class PathfindingService:
         base = self._base_cost[y, x]
         danger = self.danger_service.field[y, x]
         return base + danger * self.settings.pathfinding.danger_weight
+
+    def _is_passable(self, grid_pos: GridPos) -> bool:
+        if not self._in_bounds(grid_pos):
+            return False
+        return not np.isinf(self._tile_cost(grid_pos))
 
     def find_path(self, start_world: WorldPos, goal_world: WorldPos) -> List[WorldPos]:
         start = self.world_to_grid(start_world)
@@ -144,17 +165,71 @@ class PathfindingService:
         if goal not in came_from:
             return []
 
-        path: List[WorldPos] = []
+        grid_path: List[GridPos] = []
         node = goal
-        while node != start:
-            path.append(self.grid_to_world(node))
+        while True:
+            grid_path.append(node)
             parent = came_from.get(node)
             if parent is None:
                 break
             node = parent
 
-        path.reverse()
-        return path
+        grid_path.reverse()
+        axis_aligned_path = self._inject_axis_checkpoints(grid_path)
+        world_path: List[WorldPos] = [self.grid_to_world(g) for g in axis_aligned_path]
+        self._last_path = world_path  # Stocker le dernier chemin calculé
+        return world_path
+
+    def _inject_axis_checkpoints(self, grid_path: List[GridPos]) -> List[GridPos]:
+        if not grid_path:
+            return []
+
+        adjusted: List[GridPos] = [grid_path[0]]
+        for node in grid_path[1:]:
+            prev = adjusted[-1]
+            dx = node[0] - prev[0]
+            dy = node[1] - prev[1]
+            if dx != 0 and dy != 0:
+                option_a = (node[0], prev[1])
+                option_b = (prev[0], node[1])
+
+                candidates: List[GridPos] = []
+                if self._is_passable(option_a):
+                    candidates.append(option_a)
+                if self._is_passable(option_b) and option_b != option_a:
+                    candidates.append(option_b)
+
+                if candidates:
+                    # Choisir le candidat avec le coût le plus faible pour une transition fluide
+                    candidates.sort(key=lambda pos: self._tile_cost(pos))
+                    for candidate in candidates:
+                        if candidate != adjusted[-1]:
+                            adjusted.append(candidate)
+                        # Si plusieurs candidats, ne garder que celui qui mène directement au noeud
+                        if candidate[0] == node[0] or candidate[1] == node[1]:
+                            break
+                    if adjusted[-1] != node:
+                        adjusted.append(node)
+                    continue
+
+            if node != adjusted[-1]:
+                adjusted.append(node)
+
+        return adjusted
+
+    def get_last_path(self) -> List[WorldPos]:
+        """Retourne le dernier chemin calculé pour l'affichage debug."""
+        return list(self._last_path)
 
     def _heuristic(self, goal: GridPos, node: GridPos) -> float:
         return _heuristic_numba(goal[0], goal[1], node[0], node[1])
+
+    def get_unwalkable_areas(self) -> List[WorldPos]:
+        """Retourne la liste des positions centrales des tuiles infranchissables ou à éviter."""
+        unwalkable_positions = []
+        for y in range(self._height):
+            for x in range(self._width):
+                # Inclure les zones avec un coût élevé (> 1.0) : îles infranchissables, périmètre des mines, etc.
+                if self._base_cost[y, x] > 1.0:
+                    unwalkable_positions.append(self.grid_to_world((x, y)))
+        return unwalkable_positions

@@ -42,6 +42,8 @@ class PathfindingSettings:
     diagonal_cost: float = 1.4
     island_perimeter_weight: float = 50.0  # Beaucoup plus élevé pour vraiment éviter les îles
     island_perimeter_radius: int = 1
+    mine_perimeter_weight: float = 10.0  # Coût élevé pour éviter les mines et leur périmètre
+    mine_perimeter_radius: int = 1
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),
         int(TileType.ENEMY_BASE),

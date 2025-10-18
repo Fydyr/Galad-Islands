@@ -244,7 +244,7 @@ class GameRenderer:
         self._render_ui(window, action_bar)
         
         if show_debug:
-            self._render_debug_info(window, camera, dt)
+            self._render_debug_info(window, camera, dt, self.game_engine)
             
         if self.game_engine.exit_modal.is_active():
             self.game_engine.exit_modal.render(window)
@@ -408,7 +408,7 @@ class GameRenderer:
         if self.game_engine.notification_system is not None:
             self.game_engine.notification_system.render(window)
             
-    def _render_debug_info(self, window, camera, dt):
+    def _render_debug_info(self, window, camera, dt, game_engine):
         """Rend les informations de debug."""
         if camera is None:
             return
@@ -425,7 +425,33 @@ class GameRenderer:
         for i, info in enumerate(debug_info):
             text_surface = font.render(info, True, (255, 255, 255))
             window.blit(text_surface, (10, 10 + i * 30))
-    
+        
+        # Afficher les zones infranchissables pour l'IA en rouge
+        if hasattr(game_engine, 'rapid_ai_processor') and game_engine.rapid_ai_processor:
+            unwalkable_areas = game_engine.rapid_ai_processor.get_unwalkable_areas()
+            for x, y in unwalkable_areas:
+                # Convertir les coordonnées monde en coordonnées écran
+                screen_x, screen_y = camera.world_to_screen(x, y)
+                
+                # Dessiner un contour rouge autour de chaque tuile infranchissable
+                tile_screen_size = TILE_SIZE * camera.zoom
+                pygame.draw.rect(window, (255, 0, 0), 
+                               (screen_x - tile_screen_size/2, screen_y - tile_screen_size/2, 
+                                tile_screen_size, tile_screen_size), 2)
+            
+            # Afficher le dernier chemin calculé en jaune
+            last_path = game_engine.rapid_ai_processor.get_last_path()
+            if last_path and len(last_path) > 1:
+                # Convertir toutes les positions du chemin en coordonnées écran
+                screen_points = []
+                for x, y in last_path:
+                    screen_x, screen_y = camera.world_to_screen(x, y)
+                    screen_points.append((screen_x, screen_y))
+                
+                # Dessiner des lignes jaunes entre les points du chemin
+                if len(screen_points) > 1:
+                    pygame.draw.lines(window, (255, 255, 0), False, screen_points, 3)
+
     def _render_game_over_message(self, window):
         """Rend le message de fin de partie au centre de l'écran."""
         if not self.game_engine.game_over_message:
@@ -615,6 +641,10 @@ class GameEngine:
         # Nettoyer tous les processeurs existants
         es._processors.clear()
         StormManager().clearAllStorms()
+
+        # Forcer la recréation du processeur IA rapide lors d'une nouvelle partie
+        if hasattr(es, "_rapid_troop_ai_processor"):
+            delattr(es, "_rapid_troop_ai_processor")
 
         # Réinitialiser les gestionnaires globaux dépendant du monde
         BaseComponent.reset()

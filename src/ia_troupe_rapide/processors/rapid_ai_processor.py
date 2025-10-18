@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import time
-from typing import Dict, Iterable, Optional, Set, TYPE_CHECKING, cast
+from typing import Dict, Iterable, List, Optional, Set, Tuple, TYPE_CHECKING, cast
 
 import esper
 import numpy as np
@@ -83,6 +83,10 @@ class RapidTroopAIProcessor(esper.Processor):
         self._last_time = now
         step = 1.0 / max(self.settings.tick_frequency, 1e-3)
         self._accumulator += elapsed
+
+        # Limiter l'accumulateur pour éviter les gros rattrapages après une pause
+        max_accumulator = 0.5  # Maximum 0.5 secondes d'accumulation
+        self._accumulator = min(self._accumulator, max_accumulator)
 
         while self._accumulator >= step:
             self._tick(step)
@@ -201,6 +205,13 @@ class RapidTroopAIProcessor(esper.Processor):
 
         return list(self._debug_overlay)
 
+    def get_unwalkable_areas(self) -> List[Tuple[float, float]]:
+        """Retourne la liste des positions des zones infranchissables pour l'IA."""
+        return self.pathfinding.get_unwalkable_areas()
+
+    def get_last_path(self) -> List[Tuple[float, float]]:
+        """Retourne le dernier chemin calculé pour l'affichage debug."""
+        return self.pathfinding.get_last_path()
 
 class RapidUnitController:
     """Wraps the FSM and per-unit logic."""
@@ -284,12 +295,7 @@ class RapidUnitController:
         fsm.add_transition(
             attack,
             Transition(condition=self._has_follow_to_die, target=follow_die, priority=15)
-        )
-
-        # Join -> Follow -> Idle chain
-        fsm.add_transition(
-            join,
-            Transition(condition=self._near_druid, target=follow, priority=10)
+       
         )
         fsm.add_transition(
             follow,

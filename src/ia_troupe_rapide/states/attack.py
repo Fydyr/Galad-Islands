@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from math import atan2, degrees
 from typing import Optional, TYPE_CHECKING
+import math
+import numpy as np
 
 import esper
 
@@ -68,20 +70,53 @@ class AttackState(RapidAIState):
         if objective is None:
             LOGGER.debug("[AI] %s Attack: no objective", context.entity_id)
             return None
+        
+        target_position = None
         if objective.target_entity and esper.entity_exists(objective.target_entity):
             context.target_entity = objective.target_entity
             try:
                 position = esper.component_for_entity(objective.target_entity, PositionComponent)
                 LOGGER.debug("[AI] %s Attack: using objective target_entity %s at (%.1f,%.1f)", 
                            context.entity_id, objective.target_entity, position.x, position.y)
-                return (position.x, position.y)
+                target_position = (position.x, position.y)
             except KeyError:
                 LOGGER.debug("[AI] %s Attack: objective target_entity %s exists but no PositionComponent", 
                            context.entity_id, objective.target_entity)
-                return objective.target_position
-        LOGGER.debug("[AI] %s Attack: using objective target_position (%.1f,%.1f)", 
-                   context.entity_id, objective.target_position[0], objective.target_position[1])
-        return objective.target_position
+                target_position = objective.target_position
+        else:
+            LOGGER.debug("[AI] %s Attack: using objective target_position (%.1f,%.1f)", 
+                       context.entity_id, objective.target_position[0], objective.target_position[1])
+            target_position = objective.target_position
+        
+        # Pour les objectifs attack_base, ajuster la position si elle est infranchissable
+        if objective.type == "attack_base" and target_position is not None:
+            grid_pos = self.controller.pathfinding.world_to_grid(target_position)
+            if self.controller.pathfinding._in_bounds(grid_pos):
+                tile_cost = self.controller.pathfinding._tile_cost(grid_pos)
+                if np.isinf(tile_cost):  # Position infranchissable
+                    # Trouver une position alternative à portée de tir
+                    radius = context.radius_component.radius if context.radius_component else 196.0
+                    optimal_distance = max(96.0, radius * 0.85)
+                    
+                    # Essayer de trouver une position valide autour de la base
+                    for angle in range(0, 360, 45):  # Tester 8 directions
+                        rad_angle = math.radians(angle)
+                        candidate_x = target_position[0] + math.cos(rad_angle) * optimal_distance
+                        candidate_y = target_position[1] + math.sin(rad_angle) * optimal_distance
+                        
+                        candidate_grid = self.controller.pathfinding.world_to_grid((candidate_x, candidate_y))
+                        if self.controller.pathfinding._in_bounds(candidate_grid):
+                            candidate_cost = self.controller.pathfinding._tile_cost(candidate_grid)
+                            if not np.isinf(candidate_cost):  # Position franchissable trouvée
+                                LOGGER.debug("[AI] %s Attack: adjusted attack_base position from (%.1f,%.1f) to (%.1f,%.1f)", 
+                                           context.entity_id, target_position[0], target_position[1], candidate_x, candidate_y)
+                                return (candidate_x, candidate_y)
+                    
+                    # Si aucune position valide trouvée, rester à la position actuelle
+                    LOGGER.debug("[AI] %s Attack: no valid position found around attack_base target", context.entity_id)
+                    return None
+        
+        return target_position
 
     def _try_shoot(self, context: "UnitContext") -> None:
         radius = context.radius_component
