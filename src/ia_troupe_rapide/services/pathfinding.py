@@ -70,18 +70,14 @@ class PathfindingService:
         island_tile = int(TileType.GENERIC_ISLAND)
         island_mask = self._grid == island_tile
         if island_mask.any():
-            # Étendre la bordure des îles selon le rayon configuré pour éviter les trajectoires risquées
+            # Rendre les îles et leur périmètre COMPLETEMENT infranchissables
             radius_tiles = max(1, int(self.settings.pathfinding.island_perimeter_radius))
             window_size = 2 * radius_tiles + 1
             padded = np.pad(island_mask.astype(np.uint8), radius_tiles, mode="constant")
             neighborhood = sliding_window_view(padded, (window_size, window_size))
             expanded_mask = neighborhood.max(axis=(2, 3)).astype(bool)
-            perimeter_mask = np.logical_and(expanded_mask, np.logical_not(island_mask))
-            if np.any(perimeter_mask):
-                cost[perimeter_mask] = np.maximum(
-                    cost[perimeter_mask],
-                    self.settings.pathfinding.island_perimeter_weight,
-                )
+            # Bloquer complètement les îles et leur périmètre - np.inf = infranchissable
+            cost[expanded_mask] = np.inf
         return cost
 
     def world_to_grid(self, position: WorldPos) -> GridPos:

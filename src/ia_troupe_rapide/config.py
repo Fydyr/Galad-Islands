@@ -20,7 +20,7 @@ from src.constants.map_tiles import TileType
 class DangerSettings:
     """Parameters steering the dynamic danger map refresh."""
 
-    decay_per_second: float = 0.82
+    decay_per_second: float = 2.0  # Augmenté pour que le danger disparaisse plus vite et réduise l'oscillation
     damage_impulse_radius: float = 2.5  # tiles
     projectile_radius: float = 3.0  # tiles
     mine_radius: float = 2.0  # tiles
@@ -28,7 +28,7 @@ class DangerSettings:
     bandit_radius: float = 6.0  # tiles
     safe_threshold: float = 0.45
     flee_threshold: float = 0.7
-    flee_release_threshold: float = 0.35  # seuil inférieur pour quitter la fuite (hysteresis)
+    flee_release_threshold: float = 0.15  # Encore plus bas pour éviter l'oscillation
     max_value_cap: float = 12.0
 
 
@@ -40,7 +40,7 @@ class PathfindingSettings:
     storm_weight: float = 6.0
     danger_weight: float = 4.0
     diagonal_cost: float = 1.4
-    island_perimeter_weight: float = 4.5
+    island_perimeter_weight: float = 50.0  # Beaucoup plus élevé pour vraiment éviter les îles
     island_perimeter_radius: int = 1
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),

@@ -7,6 +7,7 @@ import time
 from typing import Dict, Iterable, Optional, Set, TYPE_CHECKING, cast
 
 import esper
+import numpy as np
 
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.classeComponent import ClasseComponent
@@ -317,6 +318,7 @@ class RapidUnitController:
     def _should_flee(self, dt: float, context: UnitContext) -> bool:
         danger = self.danger_map.sample_world(context.position)
         health_ratio = context.health / max(context.max_health, 1.0)
+        now = self.context_manager.time
         
         # Hysteresis : seuil d'entrée > seuil de sortie pour éviter l'oscillation
         if context.in_flee_state:
@@ -324,9 +326,14 @@ class RapidUnitController:
             should_still_flee = danger >= self.settings.danger.flee_release_threshold or health_ratio <= 0.2
             if not should_still_flee:
                 context.in_flee_state = False
+                context.flee_exit_time = now
             return should_still_flee
         else:
-            # Pas en fuite : on entre en fuite si danger critique OU santé critique
+            # Pas en fuite : délai minimum avant de pouvoir re-entrer en fuite (1.0s au lieu de 0.5s)
+            if now - context.flee_exit_time < 1.0:
+                return False
+            
+            # Vérifier les conditions d'entrée en fuite
             should_start_flee = danger >= self.settings.danger.flee_threshold or health_ratio <= self.settings.flee_health_ratio
             if should_start_flee:
                 context.in_flee_state = True
@@ -370,6 +377,15 @@ class RapidUnitController:
         return distance <= self.settings.pathfinding.waypoint_reached_radius
 
     def _attack_done(self, dt: float, context: UnitContext) -> bool:
+        objective = context.current_objective
+        if objective is None:
+            return True
+        
+        # Pour les objectifs de position fixe comme attack_base, l'attaque ne se termine jamais
+        if objective.type in {"attack_base"}:
+            return False
+        
+        # Pour les objectifs avec une entité cible, l'attaque se termine si l'entité n'existe plus
         return context.target_entity is None
 
     def _near_druid(self, dt: float, context: UnitContext) -> bool:
@@ -417,6 +433,52 @@ class RapidUnitController:
             self.context_manager.time,
         )
         ctx.share_channel["global_danger"] = self.coordination.broadcast_danger()
+        self._try_continuous_shoot(ctx)
+
+    def _try_continuous_shoot(self, context: UnitContext) -> None:
+        """Fait tirer l'unité en continu peu importe l'état."""
+        radius = context.radius_component
+        if radius is None:
+            return
+        if radius.cooldown > 0:
+            return
+        
+        # Déterminer la cible de tir
+        projectile_target = None
+        
+        # Priorité : cible actuelle si elle existe
+        if context.target_entity is not None and esper.entity_exists(context.target_entity):
+            try:
+                target_pos = esper.component_for_entity(context.target_entity, PositionComponent)
+                projectile_target = (target_pos.x, target_pos.y)
+            except KeyError:
+                pass
+        
+        # Sinon, utiliser l'objectif actuel
+        if projectile_target is None and context.current_objective:
+            objective = context.current_objective
+            if objective.target_entity and esper.entity_exists(objective.target_entity):
+                try:
+                    target_pos = esper.component_for_entity(objective.target_entity, PositionComponent)
+                    projectile_target = (target_pos.x, target_pos.y)
+                except KeyError:
+                    pass
+            elif objective.target_position:
+                projectile_target = objective.target_position
+        
+        # Orienter vers la cible (ou garder la direction actuelle)
+        if projectile_target is not None:
+            try:
+                pos = esper.component_for_entity(context.entity_id, PositionComponent)
+                dx = pos.x - projectile_target[0]
+                dy = pos.y - projectile_target[1]
+                pos.direction = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
+            except KeyError:
+                pass
+        
+        # TIRER en continu
+        esper.dispatch_event("attack_event", context.entity_id, "bullet")
+        radius.cooldown = radius.bullet_cooldown
 
     def _tick_attack_cooldown(self, context: UnitContext, dt: float) -> None:
         """Réduit progressivement le temps de recharge des tirs ennemis."""
@@ -506,10 +568,45 @@ class RapidUnitController:
                 self._last_objective_signature = new_signature
             self.context_manager.assign_objective(context, objective, score)
 
+        # Vérifier si l'IA est coincée dans le même état trop longtemps
+        now = self.context_manager.time
+        current_state = self.state_machine.current_state.name
+        if current_state != context.debug_last_state:
+            context.last_state_change = now
+            context.stuck_state_time = 0.0
+            context.debug_last_state = current_state
+        else:
+            # Calculer le temps écoulé depuis le dernier changement d'état
+            time_in_state = now - context.last_state_change
+            context.stuck_state_time = time_in_state
+        
+        # Si coincée dans Idle/Attack/Flee depuis plus de 5 secondes, abandonner l'objectif
+        if (context.stuck_state_time > 5.0 and 
+            current_state in ["Idle", "Attack", "Flee"] and 
+            context.current_objective is not None):
+            LOGGER.info(
+                "[AI] %s coincée dans %s depuis %.1fs, abandon objectif %s",
+                self.entity_id,
+                current_state,
+                context.stuck_state_time,
+                context.current_objective.type,
+            )
+            context.current_objective = None
+            context.stuck_state_time = 0.0
+            context.last_state_change = now
+
     # Movement helpers ------------------------------------------------------
     def move_towards(self, target_position) -> None:
         if self.context is None or target_position is None:
             return
+        
+        # Vérifier si la cible est sur une île (infranchissable)
+        grid_pos = self.pathfinding.world_to_grid(target_position)
+        if self.pathfinding._in_bounds(grid_pos):
+            tile_cost = self.pathfinding._tile_cost(grid_pos)
+            if np.isinf(tile_cost):  # Position infranchissable (île)
+                return  # Ne pas se déplacer vers une position bloquée
+        
         pos = esper.component_for_entity(self.entity_id, PositionComponent)
         vel = esper.component_for_entity(self.entity_id, VelocityComponent)
 

@@ -43,6 +43,12 @@ class GoToState(RapidAIState):
         if self._current_waypoint is None:
             self._current_waypoint = context.peek_waypoint()
             if self._current_waypoint is None:
+                # Vérifier si on a un chemin vide (pas de chemin trouvé)
+                if not context.path:
+                    # Aucun chemin possible, abandonner l'objectif
+                    context.current_objective = None
+                    self.controller.stop()
+                    return
                 self.controller.move_towards(objective.target_position)
                 return
 
@@ -62,4 +68,7 @@ class GoToState(RapidAIState):
             context.reset_path()
             return
         self.controller.request_path(context.current_objective.target_position)
+        # Si aucun chemin trouvé (chemin vide), abandonner cet objectif
+        if not context.path:
+            context.current_objective = None
 
