@@ -324,19 +324,27 @@ class RapidUnitController:
         if context.in_flee_state:
             # En fuite : on continue tant que danger > seuil_liberation OU santé très basse
             should_still_flee = danger >= self.settings.danger.flee_release_threshold or health_ratio <= 0.2
+            LOGGER.debug("[AI] %s _should_flee: in_flee_state=True, danger=%.3f, threshold=%.3f, health=%.2f, should_still_flee=%s", 
+                        context.entity_id, danger, self.settings.danger.flee_release_threshold, health_ratio, should_still_flee)
             if not should_still_flee:
                 context.in_flee_state = False
                 context.flee_exit_time = now
+                LOGGER.debug("[AI] %s _should_flee: EXITING flee state", context.entity_id)
             return should_still_flee
         else:
             # Pas en fuite : délai minimum avant de pouvoir re-entrer en fuite (1.0s au lieu de 0.5s)
             if now - context.flee_exit_time < 1.0:
+                LOGGER.debug("[AI] %s _should_flee: cooldown active (%.1fs remaining), staying out of flee", 
+                            context.entity_id, 1.0 - (now - context.flee_exit_time))
                 return False
             
             # Vérifier les conditions d'entrée en fuite
             should_start_flee = danger >= self.settings.danger.flee_threshold or health_ratio <= self.settings.flee_health_ratio
+            LOGGER.debug("[AI] %s _should_flee: danger=%.3f, threshold=%.3f, health=%.2f, should_start_flee=%s", 
+                        context.entity_id, danger, self.settings.danger.flee_threshold, health_ratio, should_start_flee)
             if should_start_flee:
                 context.in_flee_state = True
+                LOGGER.debug("[AI] %s _should_flee: ENTERING flee state", context.entity_id)
             return should_start_flee
 
     def _should_join_druid(self, dt: float, context: UnitContext) -> bool:
@@ -412,6 +420,8 @@ class RapidUnitController:
         self.context = ctx
         self._tick_attack_cooldown(ctx, dt)
         ctx.danger_level = self.danger_map.sample_world(ctx.position)
+        LOGGER.debug("[AI] %s danger_level=%.3f, in_flee_state=%s, flee_exit_time=%.1f, current_time=%.1f", 
+                    self.entity_id, ctx.danger_level, ctx.in_flee_state, ctx.flee_exit_time, self.context_manager.time)
         self._refresh_objective(ctx)
         previous_state = self.state_machine.current_state.name
         self.state_machine.update(dt, ctx)
