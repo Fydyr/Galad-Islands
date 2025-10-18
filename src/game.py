@@ -60,6 +60,7 @@ from src.components.core.baseComponent import BaseComponent
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.exit_modal import ExitConfirmationModal
 from src.ui.notification_system import get_notification_system
+from src.ia_troupe_rapide import ensure_ai_processors
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
 
@@ -631,6 +632,7 @@ class GameEngine:
         # Tower processor (gère tours de défense/soin)
         from src.processeurs.towerProcessor import TowerProcessor
         self.tower_processor = TowerProcessor()
+        self.rapid_ai_processor = ensure_ai_processors(es, self.grid)
 
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)

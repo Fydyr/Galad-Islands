@@ -36,25 +36,20 @@ Non présentes dans le code (aucune occurrence détectée)
 
 ## Types de projectiles et effets secondaires
 - Type : bullet, fireball, tentacle
-- Dégâts : variable selon l’origine (ex : tentacule kraken = 1)
+- Dégâts : variable selon l'origine (ex : tentacule kraken = 1)
 - Vie : 1
 - Durée de vie : 1.2s
 - Effet secondaire : certains projectiles peuvent immobiliser (ex : Druid)
 
-## Règles d’exploitation des coffres
+## Règles d'exploitation des coffres
 - Coffre volant : spawn toutes les 20s, max 2 actifs
 - Or : 60-150
 - Durée de vie : 25s
 - Animation de chute : 3s
-- Stratégie : collecter dès l’apparition, priorité pour les unités rapides ou invincibles
+- Stratégie : collecter dès l'apparition, priorité pour les unités rapides ou invincibles
 
 ## Situations critiques et réactions IA
-- Tempête proche : éviter la zone, prioriser la fuite ou l’utilisation de bouclier/invincibilité
-- Coffre en chute : agir vite pour la collecte
-# Commentaires sur les synergies, contres et combos
-- Architecte + Druid : zone de contrôle + immobilisation
-- Maraudeur + Scout : bouclier + invincibilité pour prise de coffre ou percée
-- Immobiliser les ennemis dans la zone d’effet Architecte pour maximiser les dégâts
+- Tempête proche : éviter la zone, prioriser la fuite ou l'utilisation de bouclier/invincibilité
 
 ## Unités principales
 ---
@@ -72,7 +67,6 @@ Non présentes dans le code (aucune occurrence détectée)
 ### Table des limites moteur
 | Élément              | Limite/Constante         |
 |:--------------------:|:-----------------------:|
-| Ressources d’île     | max 3 actifs            |
 | Coffres volants      | max 2 actifs            |
 | Mines                | selon carte             |
 | Marge collision      | 32 px                   |
@@ -114,9 +108,6 @@ Non présentes dans le code (aucune occurrence détectée)
 - Vitesse : 10.0 px/frame
 ## Bases
 - Vie : 1000
-## Ressources et événements
-**Limites moteur et contraintes physiques :**
-- Ressources d’île : **max 3 actifs** (`ISLAND_RESOURCE_MAX_COUNT = 3`)
 ## Terrain
 - Modificateur normal : 1.0
 ## Offsets de spawn ennemis
