@@ -140,6 +140,8 @@ class GoalEvaluator:
         return best_objective, best_score
 
     def _score_attack_base(self, context) -> Optional[Tuple[Objective, float]]:
+        if context.share_channel.get("skip_attack_base"):
+            return None
         target_base = (
             BaseComponent.get_ally_base()
             if context.is_enemy

@@ -20,6 +20,7 @@ class FleeState(RapidAIState):
 
     def enter(self, context: "UnitContext") -> None:
         super().enter(context)
+        self.controller.cancel_navigation(context)
         self._safe_point = self.controller.danger_map.find_safest_point(context.position, 8.0)
         context.reset_path()
         if self._safe_point:

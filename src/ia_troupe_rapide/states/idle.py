@@ -19,6 +19,7 @@ class IdleState(RapidAIState):
 
     def enter(self, context: "UnitContext") -> None:
         super().enter(context)
+        self.controller.cancel_navigation(context)
         context.reset_path()
         self.controller.stop()
 

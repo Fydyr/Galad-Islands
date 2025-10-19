@@ -25,19 +25,33 @@ class FollowToDieState(RapidAIState):
 
     def enter(self, context: "UnitContext") -> None:
         super().enter(context)
+        self.controller.cancel_navigation(context)
         objective = context.current_objective
         if objective is not None:
             context.target_entity = objective.target_entity
             self._target_cache = objective.target_position
+        else:
+            self._target_cache = None
 
     def update(self, dt: float, context: "UnitContext") -> None:
         target = self._target_position(context)
         if target is None:
+            self.controller.cancel_navigation(context)
             context.target_entity = None
             self.controller.stop()
             return
+        self._target_cache = target
 
-        self.controller.move_towards(target)
+        if not self.controller.is_navigation_active(context):
+            self.controller.start_navigation(context, target, self.name)
+        else:
+            if not self.controller.navigation_target_matches(
+                context,
+                target,
+                tolerance=self.controller.navigation_tolerance,
+            ):
+                self.controller.start_navigation(context, target, self.name)
+
         self._try_shoot(context)
 
     def _target_position(self, context: "UnitContext") -> Optional[tuple[float, float]]:

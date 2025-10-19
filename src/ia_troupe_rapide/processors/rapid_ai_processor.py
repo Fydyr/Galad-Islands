@@ -19,6 +19,7 @@ from src.components.core.radiusComponent import RadiusComponent
 from src.factory.unitType import UnitType
 from src.constants.team import Team
 from src.constants.map_tiles import TileType
+from src.settings.settings import TILE_SIZE
 
 from ..config import get_settings
 from ..log import get_logger
@@ -238,14 +239,16 @@ class RapidUnitController:
         self.coordination = coordination
         self.settings = settings
         self.context: Optional[UnitContext] = None
-        waypoint_radius = self.settings.pathfinding.waypoint_reached_radius
+        waypoint_radius = TILE_SIZE * self.settings.pathfinding.waypoint_reached_radius_factor
         if getattr(self.pathfinding, "sub_tile_factor", 1) > 1:
             waypoint_radius /= self.pathfinding.sub_tile_factor
         self._waypoint_radius = max(32.0, waypoint_radius)
+        self._navigation_tolerance = max(24.0, self._waypoint_radius * 0.75)
         self.state_machine = self._build_state_machine()
         self.last_objective_refresh = -999.0
         self._last_state_name = ""
         self._last_objective_signature: tuple[str, Optional[int]] = ("", None)
+        self._state_lookup: Dict[str, object] = {}
 
     def _build_state_machine(self) -> StateMachine:
         idle = IdleState("Idle", self)
@@ -258,6 +261,16 @@ class RapidUnitController:
         follow_die = FollowToDieState("FollowToDie", self)
 
         fsm = StateMachine(initial_state=idle)
+        self._state_lookup = {
+            "Idle": idle,
+            "GoTo": goto,
+            "Flee": flee,
+            "Attack": attack,
+            "JoinDruid": join,
+            "FollowDruid": follow,
+            "Preshot": preshot,
+            "FollowToDie": follow_die,
+        }
 
         # Global transitions highest priority first
         fsm.add_global_transition(
@@ -265,6 +278,9 @@ class RapidUnitController:
         )
         fsm.add_global_transition(
             Transition(condition=self._should_join_druid, target=join, priority=80, name="JoinDruid")
+        )
+        fsm.add_global_transition(
+            Transition(condition=self._has_navigation_request, target=goto, priority=70, name="Navigation")
         )
 
         # Idle transitions
@@ -328,6 +344,89 @@ class RapidUnitController:
     def waypoint_radius(self) -> float:
         return self._waypoint_radius
 
+    @property
+    def navigation_tolerance(self) -> float:
+        return self._navigation_tolerance
+
+    def _get_state(self, name: str):
+        return self._state_lookup.get(name)
+
+    def _is_base_protected(self, context: UnitContext, base_entity: int, radius: float) -> bool:
+        try:
+            base_position = esper.component_for_entity(base_entity, PositionComponent)
+        except KeyError:
+            return False
+
+        base_x = base_position.x
+        base_y = base_position.y
+
+        for entity, (team_comp, pos_comp) in esper.get_components(TeamComponent, PositionComponent):
+            if team_comp.team_id == context.team_id:
+                continue
+            distance = math.hypot(pos_comp.x - base_x, pos_comp.y - base_y)
+            if distance <= radius:
+                return True
+        return False
+
+    def start_navigation(self, context: UnitContext, target: Optional[tuple[float, float]], return_state: str) -> bool:
+        if target is None:
+            return False
+        current_target = context.share_channel.get("nav_target")
+        context.share_channel["nav_return"] = return_state
+        if self.is_navigation_active(context) and current_target is not None:
+            if self._navigation_distance(current_target, target) <= self.navigation_tolerance * 0.25:
+                return False
+        context.share_channel["nav_target"] = target
+        context.share_channel["nav_owner"] = self.state_machine.current_state.name
+        context.share_channel["nav_active"] = True
+        context.share_channel["nav_request_time"] = self.context_manager.time
+        if not self.navigation_target_matches(context, target, tolerance=self.navigation_tolerance * 0.25):
+            context.reset_path()
+        context.share_channel.pop("goto_last_replan", None)
+        return True
+
+    def cancel_navigation(self, context: UnitContext) -> None:
+        context.share_channel["nav_active"] = False
+        context.share_channel.pop("nav_target", None)
+        context.share_channel.pop("nav_return", None)
+        context.share_channel.pop("nav_owner", None)
+        context.share_channel.pop("nav_request_time", None)
+        context.reset_path()
+
+    def complete_navigation(self, context: UnitContext) -> None:
+        return_state = context.share_channel.get("nav_return")
+        self.cancel_navigation(context)
+        if not return_state:
+            return
+        target_state = self._get_state(return_state)
+        if target_state is None:
+            return
+        if self.state_machine.current_state is target_state:
+            return
+        self.state_machine.force_state(target_state, context)
+
+    def is_navigation_active(self, context: UnitContext) -> bool:
+        return bool(context.share_channel.get("nav_active"))
+
+    def navigation_target_matches(self, context: UnitContext, target: tuple[float, float], *, tolerance: float) -> bool:
+        current_target = context.share_channel.get("nav_target")
+        if current_target is None:
+            return False
+        return self._navigation_distance(current_target, target) <= tolerance
+
+    def _navigation_distance(self, a: tuple[float, float], b: tuple[float, float]) -> float:
+        return math.hypot(a[0] - b[0], a[1] - b[1])
+
+    def _has_navigation_request(self, dt: float, context: UnitContext) -> bool:
+        if not self.is_navigation_active(context):
+            return False
+        if self.state_machine.current_state is self._state_lookup.get("GoTo"):
+            return False
+        requested_owner = context.share_channel.get("nav_owner")
+        if requested_owner and requested_owner != self.state_machine.current_state.name:
+            return True
+        return True
+
     # Transition predicates ------------------------------------------------
     def _should_flee(self, dt: float, context: UnitContext) -> bool:
         danger = self.danger_map.sample_world(context.position)
@@ -352,6 +451,12 @@ class RapidUnitController:
                             context.entity_id, 1.0 - (now - context.flee_exit_time))
                 return False
             
+            # Si la santé est supérieure à 50%, interdire l'entrée en état flee
+            if health_ratio > 0.5:
+                LOGGER.debug("[AI] %s _should_flee: health=%.2f > 50%%, refusing flee state", 
+                            context.entity_id, health_ratio)
+                return False
+            
             # Vérifier les conditions d'entrée en fuite
             should_start_flee = danger >= self.settings.danger.flee_threshold or health_ratio <= self.settings.flee_health_ratio
             LOGGER.debug("[AI] %s _should_flee: danger=%.3f, threshold=%.3f, health=%.2f, should_start_flee=%s", 
@@ -374,10 +479,14 @@ class RapidUnitController:
         return bool(context.current_objective and context.current_objective.type.startswith("goto"))
 
     def _has_attack_objective(self, dt: float, context: UnitContext) -> bool:
-        return bool(
-            context.current_objective
-            and context.current_objective.type in {"attack", "attack_base"}
-        )
+        if not context.current_objective:
+            return False
+        if (
+            self.is_navigation_active(context)
+            and context.share_channel.get("nav_return") == "Attack"
+        ):
+            return False
+        return context.current_objective.type in {"attack", "attack_base"}
 
     def _has_preshot_objective(self, dt: float, context: UnitContext) -> bool:
         return bool(context.current_objective and context.current_objective.type == "preshot")
@@ -408,7 +517,6 @@ class RapidUnitController:
             return False
         
         # Pour les objectifs avec une entité cible, l'attaque se termine si l'entité n'existe plus
-        return context.target_entity is None
 
     def _near_druid(self, dt: float, context: UnitContext) -> bool:
         if context.current_objective is None or context.current_objective.target_entity is None:
@@ -525,10 +633,18 @@ class RapidUnitController:
             # Repli immédiat si le druide a disparu
             self.context_manager.assign_objective(context, Objective("survive", context.position), 0.0)
             return
-        if (
+        skip_attack_flag = False
+        block_until = context.share_channel.get("attack_base_block_until", 0.0)
+        if now < block_until:
+            context.share_channel["skip_attack_base"] = True
+            skip_attack_flag = True
+
+        should_reconsider = (
             context.current_objective is None
             or now - context.last_objective_change >= self.settings.objective_reconsider_delay
-        ):
+        )
+
+        if should_reconsider:
             previous_type = context.current_objective.type if context.current_objective else "aucun"
             previous_target = context.current_objective.target_entity if context.current_objective else None
             objective, score = self.goal_evaluator.evaluate(context, self.danger_map, self.prediction)
@@ -580,6 +696,33 @@ class RapidUnitController:
                     context.assigned_chest_id,
                 )
                 context.assigned_chest_id = None
+            
+            # Vérifier si l'objectif attack_base est valide (pas d'unités ennemies près de la base)
+            if objective.type == "attack_base" and objective.target_entity is not None:
+                base_block_until = context.share_channel.get("attack_base_block_until", 0.0)
+                base_protection_radius = 200.0
+                if self._is_base_protected(context, objective.target_entity, base_protection_radius):
+                    if now >= base_block_until:
+                        LOGGER.info(
+                            "[AI] %s base protégée par des unités ennemies, passage en survie",
+                            self.entity_id,
+                        )
+                    block_duration = max(2.0, self.settings.objective_reconsider_delay)
+                    context.share_channel["attack_base_block_until"] = now + block_duration
+                    context.share_channel["skip_attack_base"] = True
+                    fallback_objective, fallback_score = self.goal_evaluator.evaluate(
+                        context, self.danger_map, self.prediction
+                    )
+                    context.share_channel.pop("skip_attack_base", None)
+                    objective = fallback_objective
+                    score = fallback_score
+                    if objective.type == "attack_base":
+                        objective = Objective("survive", context.position)
+                        score = 0.0
+                else:
+                    if base_block_until > 0.0 and base_block_until > now:
+                        context.share_channel["attack_base_block_until"] = 0.0
+            
             new_signature = (objective.type, objective.target_entity)
             if new_signature != self._last_objective_signature:
                 LOGGER.info(
@@ -591,6 +734,8 @@ class RapidUnitController:
                 )
                 self._last_objective_signature = new_signature
             self.context_manager.assign_objective(context, objective, score)
+        if skip_attack_flag:
+            context.share_channel.pop("skip_attack_base", None)
 
         # Vérifier si l'IA est coincée dans le même état trop longtemps
         now = self.context_manager.time
@@ -618,6 +763,7 @@ class RapidUnitController:
             context.current_objective = None
             context.stuck_state_time = 0.0
             context.last_state_change = now
+            self.cancel_navigation(context)
 
     # Movement helpers ------------------------------------------------------
     def move_towards(self, target_position) -> None:

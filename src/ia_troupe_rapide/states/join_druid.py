@@ -22,7 +22,9 @@ class JoinDruidState(RapidAIState):
 
     def enter(self, context: "UnitContext") -> None:
         super().enter(context)
-        self._refresh_path(context)
+        self.controller.cancel_navigation(context)
+        if context.current_objective and context.current_objective.target_entity:
+            context.target_entity = context.current_objective.target_entity
 
     def update(self, dt: float, context: "UnitContext") -> None:
         objective = context.current_objective
@@ -30,36 +32,28 @@ class JoinDruidState(RapidAIState):
             self.controller.stop()
             return
 
-        if objective.target_entity is not None:
-            if objective.target_entity != context.target_entity:
-                context.target_entity = objective.target_entity
-                self._refresh_path(context)
-
         target_position = self._target_position(objective)
-        waypoint = context.peek_waypoint()
-        target = waypoint if waypoint is not None else target_position
-
-        if target is None:
+        if target_position is None:
+            self.controller.cancel_navigation(context)
             self.controller.stop()
             return
 
-        if waypoint is not None:
-            distance = self.distance(context.position, waypoint)
-            if distance < self.controller.waypoint_radius:
-                context.advance_path()
-                waypoint = context.peek_waypoint()
-                target = waypoint if waypoint is not None else target_position
+        distance = self.distance(context.position, target_position)
+        navigation_active = self.controller.is_navigation_active(context)
 
-        self.controller.move_towards(target)
-
-    def _refresh_path(self, context: "UnitContext") -> None:
-        context.reset_path()
-        objective = context.current_objective
-        if objective is None:
+        if distance > self.controller.navigation_tolerance:
+            if not navigation_active or not self.controller.navigation_target_matches(
+                context,
+                target_position,
+                tolerance=self.controller.navigation_tolerance * 0.5,
+            ):
+                self.controller.start_navigation(context, target_position, self.name)
             return
-        target = self._target_position(objective)
-        if target:
-            self.controller.request_path(target)
+
+        if navigation_active:
+            self.controller.cancel_navigation(context)
+
+        self.controller.stop()
 
     def _target_position(self, objective) -> tuple[float, float] | None:
         if objective.target_entity and esper.entity_exists(objective.target_entity):

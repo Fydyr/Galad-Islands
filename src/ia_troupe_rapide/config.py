@@ -53,7 +53,7 @@ class PathfindingSettings:
     )
     tile_soft_block: tuple[int, ...] = (int(TileType.MINE),)
     recompute_distance_min: float = 64.0
-    waypoint_reached_radius: float = 24.0
+    waypoint_reached_radius_factor: float = 0.5  # Facteur relatif à TILE_SIZE
 
 
 @dataclass
