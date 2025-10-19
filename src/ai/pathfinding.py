@@ -1,340 +1,198 @@
-"""Optimized A* pathfinding system for AI navigation."""
 
 import heapq
 import numpy as np
 from typing import Tuple, List, Optional, Set
-from dataclasses import dataclass
 
 
-@dataclass
-class Node:
-    """Node for A* pathfinding."""
-    x: float
-    y: float
-    g: float
-    h: float
-    parent: Optional['Node'] = None
-
-    @property
-    def f(self) -> float:
-        """Total cost (f = g + h)."""
-        return self.g + self.h
-
-    def __lt__(self, other):
-        """Comparison for priority queue."""
-        return self.f < other.f
-
-    def __eq__(self, other):
-        """Equality check based on position."""
-        if not isinstance(other, Node):
-            return False
-        return abs(self.x - other.x) < 1 and abs(self.y - other.y) < 1
-
-    def __hash__(self):
-        """Hash based on grid position."""
-        return hash((int(self.x / 10), int(self.y / 10)))
-
-
-class AStarPathfinder:
+class SimplePathfinder:
     """
-    Optimized A* pathfinding for AI navigation.
-
-    Features:
-    - Grid-based pathfinding with obstacle avoidance
-    - Mines, storms, and entity collision detection
-    - Optimized for real-time AI decision making
+    A* pathfinding that uses the map grid directly.
     """
 
-    def __init__(self, grid_size: int = 50):
+    def __init__(self, map_grid, tile_size: int):
         """
-        Initialize pathfinder.
+        Initialize pathfinder with map grid.
 
         Args:
-            grid_size: Size of grid cells (larger = faster but less precise)
+            map_grid: 2D array of tile types
+            tile_size: Size of each tile in pixels
         """
-        self.grid_size = grid_size
-        self.obstacle_cache = {}
-        self.cache_lifetime = 10  # Frames before cache refresh
-        self.cache_age = 0
+        self.map_grid = map_grid
+        self.tile_size = tile_size
+        self.map_height = len(map_grid) if map_grid else 0
+        self.map_width = len(map_grid[0]) if map_grid and len(map_grid) > 0 else 0
 
     def findPath(
         self,
         start: Tuple[float, float],
         goal: Tuple[float, float],
-        obstacles: List[Tuple[float, float, float]] = None,
-        max_iterations: int = 500
+        max_iterations: int = 2000
     ) -> Optional[List[Tuple[float, float]]]:
         """
-        Find optimal path from start to goal using A*.
+        Find path from start to goal avoiding islands.
 
         Args:
-            start: Starting position (x, y)
-            goal: Goal position (x, y)
-            obstacles: List of obstacles (x, y, radius)
-            max_iterations: Maximum search iterations (prevents infinite loops)
+            start: Starting position (world coordinates)
+            goal: Goal position (world coordinates)
+            max_iterations: Maximum iterations
 
         Returns:
-            List of waypoints from start to goal, or None if no path found
+            List of waypoints in world coordinates, or None if no path
         """
-        if obstacles is None:
-            obstacles = []
-
-        if self._isInObstacle(goal, obstacles):
+        if self.map_grid is None:
             return None
 
-        start_node = Node(start[0], start[1], 0, self._heuristic(start, goal))
-        goal_node = Node(goal[0], goal[1], 0, 0)
+        # Convert world coordinates to grid coordinates
+        start_grid = self._worldToGrid(start)
+        goal_grid = self._worldToGrid(goal)
+
+        # Validate positions
+        if not self._isValidGrid(start_grid) or not self._isValidGrid(goal_grid):
+            return None
+
+        # If goal is on an island, find nearest valid position
+        if self._isIsland(goal_grid):
+            goal_grid = self._findNearestValidPosition(goal_grid)
+            if goal_grid is None:
+                return None
+
+        # Run A*
+        path_grid = self._astar(start_grid, goal_grid, max_iterations)
+
+        if path_grid is None or len(path_grid) == 0:
+            return None
+
+        # Convert grid path to world coordinates
+        path_world = [self._gridToWorld(p) for p in path_grid]
+
+        # Simplify path (remove unnecessary intermediate points)
+        path_world = self._simplifyPath(path_world)
+
+        return path_world
+
+    def _astar(
+        self,
+        start: Tuple[int, int],
+        goal: Tuple[int, int],
+        max_iterations: int
+    ) -> Optional[List[Tuple[int, int]]]:
+        """A* algorithm on grid coordinates."""
 
         open_set = []
-        heapq.heappush(open_set, start_node)
-        closed_set: Set[Node] = set()
-        open_dict = {start_node: start_node}
+        heapq.heappush(open_set, (0, start))
 
+        came_from = {}
+        g_score = {start: 0}
+        f_score = {start: self._heuristic(start, goal)}
+
+        closed_set = set()
         iterations = 0
 
         while open_set and iterations < max_iterations:
             iterations += 1
 
-            current = heapq.heappop(open_set)
-            del open_dict[current]
+            _, current = heapq.heappop(open_set)
 
-            if self._distance(
-                (current.x, current.y),
-                (goal_node.x, goal_node.y)
-            ) < self.grid_size:
-                return self._reconstructPath(current)
+            if current in closed_set:
+                continue
+
+            # Check if we reached the goal
+            if current == goal:
+                return self._reconstructPath(came_from, current)
 
             closed_set.add(current)
 
-            for neighbor in self._getNeighbors(current, goal):
+            # Check neighbors (8 directions)
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                neighbor = (current[0] + dx, current[1] + dy)
+
                 if neighbor in closed_set:
                     continue
 
-                if self._isInObstacle((neighbor.x, neighbor.y), obstacles):
+                if not self._isValidGrid(neighbor):
                     continue
 
-                tentative_g = current.g + self._distance(
-                    (current.x, current.y),
-                    (neighbor.x, neighbor.y)
-                )
+                if self._isIsland(neighbor):
+                    continue
 
-                if neighbor in open_dict:
-                    if tentative_g < neighbor.g:
-                        neighbor.g = tentative_g
-                        neighbor.parent = current
-                else:
-                    neighbor.g = tentative_g
-                    neighbor.h = self._heuristic((neighbor.x, neighbor.y), goal)
-                    neighbor.parent = current
-                    heapq.heappush(open_set, neighbor)
-                    open_dict[neighbor] = neighbor
+                # Calculate cost (diagonal moves cost more)
+                move_cost = 1.414 if dx != 0 and dy != 0 else 1.0
+                tentative_g = g_score[current] + move_cost
+
+                if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g
+                    f = tentative_g + self._heuristic(neighbor, goal)
+                    f_score[neighbor] = f
+                    heapq.heappush(open_set, (f, neighbor))
 
         return None
 
-    def getNextWaypoint(
-        self,
-        start: Tuple[float, float],
-        goal: Tuple[float, float],
-        obstacles: List[Tuple[float, float, float]] = None
-    ) -> Optional[Tuple[float, float]]:
-        """
-        Get the next waypoint for immediate navigation.
-
-        Args:
-            start: Current position
-            goal: Goal position
-            obstacles: List of obstacles
-
-        Returns:
-            Next waypoint to navigate to, or None if no path
-        """
-        path = self.findPath(start, goal, obstacles, max_iterations=300)
-
-        if not path or len(path) < 2:
-            return None
-
-        return path[1]
-
-    def _heuristic(
-        self,
-        pos: Tuple[float, float],
-        goal: Tuple[float, float]
-    ) -> float:
-        """
-        Heuristic function (Euclidean distance).
-
-        Args:
-            pos: Current position
-            goal: Goal position
-
-        Returns:
-            Estimated distance to goal
-        """
-        return self._distance(pos, goal)
-
-    def _distance(
-        self,
-        pos1: Tuple[float, float],
-        pos2: Tuple[float, float]
-    ) -> float:
-        """Calculate Euclidean distance between two points."""
-        return ((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2) ** 0.5
-
-    def _getNeighbors(self, node: Node, goal: Tuple[float, float]) -> List[Node]:
-        """
-        Get valid neighbors for a node (8 directions).
-
-        Args:
-            node: Current node
-            goal: Goal position (for heuristic calculation)
-
-        Returns:
-            List of neighbor nodes
-        """
-        neighbors = []
-
-        directions = [
-            (0, self.grid_size),
-            (self.grid_size, self.grid_size),
-            (self.grid_size, 0),
-            (self.grid_size, -self.grid_size),
-            (0, -self.grid_size),
-            (-self.grid_size, -self.grid_size),
-            (-self.grid_size, 0),
-            (-self.grid_size, self.grid_size),
-        ]
-
-        for dx, dy in directions:
-            x = node.x + dx
-            y = node.y + dy
-
-            if x < 0 or y < 0:
-                continue
-
-            neighbor = Node(x, y, 0, self._heuristic((x, y), goal))
-            neighbors.append(neighbor)
-
-        return neighbors
-
-    def _isInObstacle(
-        self,
-        pos: Tuple[float, float],
-        obstacles: List[Tuple[float, float, float]]
-    ) -> bool:
-        """
-        Check if position is inside any obstacle.
-
-        Args:
-            pos: Position to check
-            obstacles: List of obstacles (x, y, radius)
-
-        Returns:
-            True if position is in obstacle
-        """
-        for ox, oy, radius in obstacles:
-            distance = self._distance(pos, (ox, oy))
-            if distance < radius:
-                return True
-        return False
-
-    def _reconstructPath(self, node: Node) -> List[Tuple[float, float]]:
-        """
-        Reconstruct path from goal to start.
-
-        Args:
-            node: Goal node
-
-        Returns:
-            List of waypoints from start to goal
-        """
-        path = []
-        current = node
-
-        while current:
-            path.append((current.x, current.y))
-            current = current.parent
-
+    def _reconstructPath(self, came_from: dict, current: Tuple[int, int]) -> List[Tuple[int, int]]:
+        """Reconstruct path from came_from dict."""
+        path = [current]
+        while current in came_from:
+            current = came_from[current]
+            path.append(current)
         path.reverse()
         return path
 
+    def _heuristic(self, a: Tuple[int, int], b: Tuple[int, int]) -> float:
+        """Euclidean distance heuristic."""
+        return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
 
-class PathfindingCache:
-    """Cache for pathfinding results to improve performance."""
+    def _worldToGrid(self, pos: Tuple[float, float]) -> Tuple[int, int]:
+        """Convert world coordinates to grid coordinates."""
+        grid_x = int(pos[0] // self.tile_size)
+        grid_y = int(pos[1] // self.tile_size)
+        return (grid_x, grid_y)
 
-    def __init__(self, max_size: int = 100, ttl: int = 30):
-        """
-        Initialize cache.
+    def _gridToWorld(self, pos: Tuple[int, int]) -> Tuple[float, float]:
+        """Convert grid coordinates to world coordinates (center of tile)."""
+        world_x = (pos[0] + 0.5) * self.tile_size
+        world_y = (pos[1] + 0.5) * self.tile_size
+        return (world_x, world_y)
 
-        Args:
-            max_size: Maximum number of cached paths
-            ttl: Time to live (frames) for cached paths
-        """
-        self.max_size = max_size
-        self.ttl = ttl
-        self.cache = {}
-        self.ages = {}
+    def _isValidGrid(self, pos: Tuple[int, int]) -> bool:
+        """Check if grid position is within bounds."""
+        return 0 <= pos[0] < self.map_width and 0 <= pos[1] < self.map_height
 
-    def get(
-        self,
-        start: Tuple[float, float],
-        goal: Tuple[float, float]
-    ) -> Optional[List[Tuple[float, float]]]:
-        """
-        Get cached path.
+    def _isIsland(self, pos: Tuple[int, int]) -> bool:
+        """Check if grid position is an island."""
+        from src.constants.map_tiles import TileType
+        try:
+            tile_type = self.map_grid[pos[1]][pos[0]]
+            return TileType(tile_type).is_island()
+        except:
+            return True  # Treat errors as obstacles
 
-        Args:
-            start: Start position
-            goal: Goal position
+    def _findNearestValidPosition(self, pos: Tuple[int, int]) -> Optional[Tuple[int, int]]:
+        """Find nearest non-island position."""
+        for radius in range(1, 20):
+            for dx in range(-radius, radius + 1):
+                for dy in range(-radius, radius + 1):
+                    if abs(dx) != radius and abs(dy) != radius:
+                        continue
 
-        Returns:
-            Cached path or None
-        """
-        key = self._makeKey(start, goal)
-
-        if key in self.cache:
-            if self.ages[key] < self.ttl:
-                self.ages[key] += 1
-                return self.cache[key]
-            else:
-                del self.cache[key]
-                del self.ages[key]
-
+                    neighbor = (pos[0] + dx, pos[1] + dy)
+                    if self._isValidGrid(neighbor) and not self._isIsland(neighbor):
+                        return neighbor
         return None
 
-    def put(
-        self,
-        start: Tuple[float, float],
-        goal: Tuple[float, float],
-        path: List[Tuple[float, float]]
-    ):
+    def _simplifyPath(self, path: List[Tuple[float, float]]) -> List[Tuple[float, float]]:
         """
-        Store path in cache.
-
-        Args:
-            start: Start position
-            goal: Goal position
-            path: Path to cache
+        Simplify path by removing unnecessary waypoints.
+        Keep only points where direction changes significantly.
         """
-        if len(self.cache) >= self.max_size:
-            oldest_key = min(self.ages, key=self.ages.get)
-            del self.cache[oldest_key]
-            del self.ages[oldest_key]
+        if len(path) <= 2:
+            return path
 
-        key = self._makeKey(start, goal)
-        self.cache[key] = path
-        self.ages[key] = 0
+        simplified = [path[0]]
 
-    def _makeKey(
-        self,
-        start: Tuple[float, float],
-        goal: Tuple[float, float]
-    ) -> str:
-        """Create cache key from positions."""
-        sx, sy = int(start[0] / 50), int(start[1] / 50)
-        gx, gy = int(goal[0] / 50), int(goal[1] / 50)
-        return f"{sx},{sy}-{gx},{gy}"
+        for i in range(1, len(path) - 1):
+            # Always keep every Nth point to avoid overly long straight segments
+            if i % 5 == 0:
+                simplified.append(path[i])
 
-    def clear(self):
-        """Clear all cached paths."""
-        self.cache.clear()
-        self.ages.clear()
+        simplified.append(path[-1])
+        return simplified

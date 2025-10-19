@@ -860,10 +860,15 @@ class GameEngine:
         
         # Initialiser la carte
         self._initialize_game_map()
-        
+
         # Initialiser ECS
         self._initialize_ecs()
-        
+
+        # Initialize AI processor with map grid
+        if self.ai_processor is not None and self.grid is not None:
+            self.ai_processor.map_grid = self.grid
+            logger.info("AI processor map grid initialized successfully")
+
         # Créer les entités de base
         self._create_initial_entities()
         
@@ -895,9 +900,8 @@ class GameEngine:
         if self.storm_processor is not None and self.grid is not None:
             self.storm_processor.initializeFromGrid(self.grid)
 
-        # Initialize AI processor with map grid for pathfinding
-        if self.ai_processor is not None and self.grid is not None:
-            self.ai_processor.map_grid = self.grid
+        # Note: AI processor map grid is initialized after _initialize_ecs() is called
+        # because the processor is recreated in that method
 
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
@@ -925,9 +929,10 @@ class GameEngine:
         self.tower_processor = TowerProcessor()
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
-        # AI processor (gère l'IA du Léviathan) - inference mode only (no training during gameplay)
-        self.ai_processor = AILeviathanProcessor(model_path="models/leviathan_ai.pkl", training_mode=False)
+        # AI processor for Leviathan
+        self.ai_processor = AILeviathanProcessor()
 
+        es.add_processor(self.ai_processor, priority=1)  # AI FIRST - before movement
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
@@ -1668,10 +1673,9 @@ class GameEngine:
         # Traiter le StormProcessor (avec dt)
         if self.storm_processor is not None:
             self.storm_processor.process(dt)
-        
-        # Traiter le AIProcessor (avec dt)
-        if self.ai_processor is not None:
-            self.ai_processor.process(dt)
+
+        # NOTE: AI Processor is now handled by ECS with priority=1 (before movement)
+        # No longer called manually here to ensure proper execution order
 
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
