@@ -45,64 +45,121 @@ class PathfindingService:
 
         self.settings = settings or get_settings()
         self.danger_service = danger_service
-        self._grid = np.asarray(list(grid), dtype=np.int16)
-        if self._grid.shape != (MAP_HEIGHT, MAP_WIDTH):
-            self._height, self._width = self._grid.shape
+        self.sub_tile_factor = max(1, int(self.settings.pathfinding.sub_tile_factor))
+
+        coarse_grid = np.asarray(list(grid), dtype=np.int16)
+        if coarse_grid.shape != (MAP_HEIGHT, MAP_WIDTH):
+            self._coarse_height, self._coarse_width = coarse_grid.shape
         else:
-            self._height, self._width = MAP_HEIGHT, MAP_WIDTH
+            self._coarse_height, self._coarse_width = MAP_HEIGHT, MAP_WIDTH
+        self._coarse_grid = coarse_grid
+
+        self._grid = self._expand_to_sub_tiles(coarse_grid)
+        self._height, self._width = self._grid.shape
         self._base_cost = self._build_base_cost()
 
-        self._neighbors: Tuple[Tuple[int, int, float], ...] = (
-            (-1, 0, 1.0),
-            (1, 0, 1.0),
-            (0, -1, 1.0),
-            (0, 1, 1.0),
-            (-1, -1, self.settings.pathfinding.diagonal_cost),
-            (-1, 1, self.settings.pathfinding.diagonal_cost),
-            (1, -1, self.settings.pathfinding.diagonal_cost),
-            (1, 1, self.settings.pathfinding.diagonal_cost),
-        )
+        self._neighbors = self._build_neighbors()
         
         # Stockage du dernier chemin calculé pour l'affichage debug
         self._last_path: List[WorldPos] = []
 
     def _build_base_cost(self) -> np.ndarray:
-        cost = np.ones_like(self._grid, dtype=np.float32)
-        cloud_mask = self._grid == int(TileType.CLOUD)
-        cost[cloud_mask] = self.settings.pathfinding.cloud_weight
+        factor = self.sub_tile_factor
+        cost = np.ones((self._coarse_height * factor, self._coarse_width * factor), dtype=np.float32)
+
+        cloud_mask = self._coarse_grid == int(TileType.CLOUD)
+        if cloud_mask.any():
+            cloud_expanded = np.repeat(np.repeat(cloud_mask, factor, axis=0), factor, axis=1)
+            cost[cloud_expanded] = self.settings.pathfinding.cloud_weight
+
         island_tile = int(TileType.GENERIC_ISLAND)
-        island_mask = self._grid == island_tile
+        island_mask = self._coarse_grid == island_tile
         if island_mask.any():
-            # Rendre les îles et leur périmètre COMPLETEMENT infranchissables
-            radius_tiles = max(1, int(self.settings.pathfinding.island_perimeter_radius))
-            window_size = 2 * radius_tiles + 1
-            padded = np.pad(island_mask.astype(np.uint8), radius_tiles, mode="constant")
-            neighborhood = sliding_window_view(padded, (window_size, window_size))
-            expanded_mask = neighborhood.max(axis=(2, 3)).astype(bool)
+            island_expanded = np.repeat(np.repeat(island_mask, factor, axis=0), factor, axis=1)
+            radius_cells = max(0, int(self.settings.pathfinding.island_perimeter_radius))
+            if radius_cells > 0:
+                # Rayon exprimé en sous-tuiles afin d'avoir un contrôle fin sur la zone bloquée
+                padded = np.pad(island_expanded.astype(np.uint8), radius_cells, mode="constant")
+                window_size = 2 * radius_cells + 1
+                neighborhood = sliding_window_view(padded, (window_size, window_size))
+                expanded_mask = neighborhood.max(axis=(2, 3)).astype(bool)
+            else:
+                expanded_mask = island_expanded
             # Bloquer complètement les îles et leur périmètre - np.inf = infranchissable
             cost[expanded_mask] = np.inf
 
-        # Appliquer un coût élevé autour des mines
         mine_tile = int(TileType.MINE)
-        mine_mask = self._grid == mine_tile
+        mine_mask = self._coarse_grid == mine_tile
         if mine_mask.any():
-            mine_radius = max(1, int(self.settings.pathfinding.mine_perimeter_radius))
-            mine_window_size = 2 * mine_radius + 1
-            mine_padded = np.pad(mine_mask.astype(np.uint8), mine_radius, mode="constant")
-            mine_neighborhood = sliding_window_view(mine_padded, (mine_window_size, mine_window_size))
-            mine_expanded_mask = mine_neighborhood.max(axis=(2, 3)).astype(bool)
-            # Appliquer un coût élevé aux mines et leur périmètre
-            cost[mine_expanded_mask] = self.settings.pathfinding.mine_perimeter_weight
+            mine_expanded = np.repeat(np.repeat(mine_mask, factor, axis=0), factor, axis=1)
+            radius_cells = max(0, int(self.settings.pathfinding.mine_perimeter_radius))
+            if radius_cells > 0:
+                # Rayon exprimé en sous-tuiles pour rester cohérent avec la résolution IA
+                mine_padded = np.pad(mine_expanded.astype(np.uint8), radius_cells, mode="constant")
+                window_size = 2 * radius_cells + 1
+                mine_neighborhood = sliding_window_view(mine_padded, (window_size, window_size))
+                mine_mask_with_perimeter = mine_neighborhood.max(axis=(2, 3)).astype(bool)
+            else:
+                mine_mask_with_perimeter = mine_expanded
+            cost[mine_mask_with_perimeter] = np.inf
+
+        blocked_mask = np.isinf(cost)
+        margin_radius = max(0, int(self.settings.pathfinding.blocked_margin_radius))
+        if margin_radius > 0 and blocked_mask.any():
+            padded_blocked = np.pad(blocked_mask.astype(np.uint8), margin_radius, mode="constant")
+            window_size = 2 * margin_radius + 1
+            margin_neighborhood = sliding_window_view(padded_blocked, (window_size, window_size))
+            margin_mask = margin_neighborhood.max(axis=(2, 3)).astype(bool)
+            margin_mask = np.logical_and(margin_mask, np.logical_not(blocked_mask))
+            if margin_mask.any():
+                weight = float(self.settings.pathfinding.blocked_margin_weight)
+                current = cost[margin_mask]
+                cost[margin_mask] = np.maximum(current, weight)
 
         return cost
 
+    def _build_neighbors(self) -> Tuple[Tuple[int, int, float], ...]:
+        axial_cost = 1.0 / self.sub_tile_factor
+        diagonal_cost = self.settings.pathfinding.diagonal_cost / self.sub_tile_factor
+        return (
+            (-1, 0, axial_cost),
+            (1, 0, axial_cost),
+            (0, -1, axial_cost),
+            (0, 1, axial_cost),
+            (-1, -1, diagonal_cost),
+            (-1, 1, diagonal_cost),
+            (1, -1, diagonal_cost),
+            (1, 1, diagonal_cost),
+        )
+
+    def _expand_to_sub_tiles(self, grid: np.ndarray) -> np.ndarray:
+        if self.sub_tile_factor == 1:
+            return grid.copy()
+        factor = self.sub_tile_factor
+        return np.repeat(np.repeat(grid, factor, axis=0), factor, axis=1)
+
+    def is_world_blocked(self, position: WorldPos) -> bool:
+        factor = self.sub_tile_factor
+        grid_x = int(position[0] / TILE_SIZE * factor)
+        grid_y = int(position[1] / TILE_SIZE * factor)
+        if grid_x < 0 or grid_y < 0 or grid_x >= self._width or grid_y >= self._height:
+            return True
+        return np.isinf(self._base_cost[grid_y, grid_x])
+
     def world_to_grid(self, position: WorldPos) -> GridPos:
-        x = int(position[0] / TILE_SIZE)
-        y = int(position[1] / TILE_SIZE)
-        return x, y
+        factor = self.sub_tile_factor
+        max_x = self._width - 1
+        max_y = self._height - 1
+        x = int(position[0] / TILE_SIZE * factor)
+        y = int(position[1] / TILE_SIZE * factor)
+        return (min(max(x, 0), max_x), min(max(y, 0), max_y))
 
     def grid_to_world(self, position: GridPos) -> WorldPos:
-        return ((position[0] + 0.5) * TILE_SIZE, (position[1] + 0.5) * TILE_SIZE)
+        factor = self.sub_tile_factor
+        return (
+            ((position[0] + 0.5) / factor) * TILE_SIZE,
+            ((position[1] + 0.5) / factor) * TILE_SIZE,
+        )
 
     def _in_bounds(self, grid_pos: GridPos) -> bool:
         x, y = grid_pos
@@ -111,7 +168,13 @@ class PathfindingService:
     def _tile_cost(self, grid_pos: GridPos) -> float:
         x, y = grid_pos
         base = self._base_cost[y, x]
-        danger = self.danger_service.field[y, x]
+        coarse_x = x // self.sub_tile_factor
+        coarse_y = y // self.sub_tile_factor
+        danger_field = self.danger_service.field
+        max_coarse_y, max_coarse_x = danger_field.shape
+        coarse_x = min(coarse_x, max_coarse_x - 1)
+        coarse_y = min(coarse_y, max_coarse_y - 1)
+        danger = danger_field[coarse_y, coarse_x]
         return base + danger * self.settings.pathfinding.danger_weight
 
     def _is_passable(self, grid_pos: GridPos) -> bool:
@@ -222,14 +285,14 @@ class PathfindingService:
         return list(self._last_path)
 
     def _heuristic(self, goal: GridPos, node: GridPos) -> float:
-        return _heuristic_numba(goal[0], goal[1], node[0], node[1])
+        return _heuristic_numba(goal[0], goal[1], node[0], node[1]) / self.sub_tile_factor
 
     def get_unwalkable_areas(self) -> List[WorldPos]:
         """Retourne la liste des positions centrales des tuiles infranchissables ou à éviter."""
         unwalkable_positions = []
+        base_cost = self._base_cost
         for y in range(self._height):
             for x in range(self._width):
-                # Inclure les zones avec un coût élevé (> 1.0) : îles infranchissables, périmètre des mines, etc.
-                if self._base_cost[y, x] > 1.0:
+                if np.isinf(base_cost[y, x]):
                     unwalkable_positions.append(self.grid_to_world((x, y)))
         return unwalkable_positions

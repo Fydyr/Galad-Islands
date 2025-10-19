@@ -39,7 +39,7 @@ class FleeState(RapidAIState):
             target = self.controller.danger_map.find_safest_point(context.position, 4.0)
 
         distance = self.distance(context.position, target)
-        if waypoint is not None and distance < self.controller.settings.pathfinding.waypoint_reached_radius:
+        if waypoint is not None and distance < self.controller.waypoint_radius:
             context.advance_path()
             waypoint = context.peek_waypoint()
             target = waypoint if waypoint is not None else target

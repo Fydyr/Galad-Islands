@@ -36,14 +36,16 @@ class DangerSettings:
 class PathfindingSettings:
     """Constants used by the weighted pathfinding service."""
 
+    sub_tile_factor: int = 2
     cloud_weight: float = 2.0
     storm_weight: float = 6.0
     danger_weight: float = 4.0
     diagonal_cost: float = 1.4
     island_perimeter_weight: float = 50.0  # Beaucoup plus élevé pour vraiment éviter les îles
-    island_perimeter_radius: int = 1
-    mine_perimeter_weight: float = 10.0  # Coût élevé pour éviter les mines et leur périmètre
-    mine_perimeter_radius: int = 1
+    island_perimeter_radius: int = 1  # Rayon exprimé en sous-tuiles IA
+    mine_perimeter_radius: int = 1  # Rayon exprimé en sous-tuiles IA
+    blocked_margin_radius: int = 1  # Rayon de sécurité autour des zones bloquées (sous-tuiles)
+    blocked_margin_weight: float = 12.0  # Poids appliqué dans la marge pour décoller les chemins
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),
         int(TileType.ENEMY_BASE),

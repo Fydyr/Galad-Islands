@@ -238,6 +238,10 @@ class RapidUnitController:
         self.coordination = coordination
         self.settings = settings
         self.context: Optional[UnitContext] = None
+        waypoint_radius = self.settings.pathfinding.waypoint_reached_radius
+        if getattr(self.pathfinding, "sub_tile_factor", 1) > 1:
+            waypoint_radius /= self.pathfinding.sub_tile_factor
+        self._waypoint_radius = max(4.0, waypoint_radius)
         self.state_machine = self._build_state_machine()
         self.last_objective_refresh = -999.0
         self._last_state_name = ""
@@ -320,6 +324,10 @@ class RapidUnitController:
 
         return fsm
 
+    @property
+    def waypoint_radius(self) -> float:
+        return self._waypoint_radius
+
     # Transition predicates ------------------------------------------------
     def _should_flee(self, dt: float, context: UnitContext) -> bool:
         danger = self.danger_map.sample_world(context.position)
@@ -388,7 +396,7 @@ class RapidUnitController:
         dx = objective.target_position[0] - context.position[0]
         dy = objective.target_position[1] - context.position[1]
         distance = math.hypot(dx, dy)
-        return distance <= self.settings.pathfinding.waypoint_reached_radius
+        return distance <= self.waypoint_radius
 
     def _attack_done(self, dt: float, context: UnitContext) -> bool:
         objective = context.current_objective
@@ -616,12 +624,9 @@ class RapidUnitController:
         if self.context is None or target_position is None:
             return
         
-        # Vérifier si la cible est sur une île (infranchissable)
-        grid_pos = self.pathfinding.world_to_grid(target_position)
-        if self.pathfinding._in_bounds(grid_pos):
-            tile_cost = self.pathfinding._tile_cost(grid_pos)
-            if np.isinf(tile_cost):  # Position infranchissable (île)
-                return  # Ne pas se déplacer vers une position bloquée
+        # Ne déplacer l'unité que si le centre de la cible reste sur une zone valide
+        if self.pathfinding.is_world_blocked(target_position):
+            return
         
         pos = esper.component_for_entity(self.entity_id, PositionComponent)
         vel = esper.component_for_entity(self.entity_id, VelocityComponent)
@@ -632,6 +637,9 @@ class RapidUnitController:
             target_position[0] + avoidance[0] * 48.0 - projectile_avoid[0] * 32.0,
             target_position[1] + avoidance[1] * 48.0 - projectile_avoid[1] * 32.0,
         )
+
+        if self.pathfinding.is_world_blocked(adjusted_target):
+            adjusted_target = target_position
 
         dx = pos.x - adjusted_target[0]
         dy = pos.y - adjusted_target[1]

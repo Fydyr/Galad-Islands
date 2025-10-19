@@ -53,7 +53,7 @@ class GoToState(RapidAIState):
                 return
 
         distance = self.distance(context.position, self._current_waypoint)
-        if distance < self.controller.settings.pathfinding.waypoint_reached_radius:
+        if distance < self.controller.waypoint_radius:
             context.advance_path()
             self._current_waypoint = context.peek_waypoint()
             if self._current_waypoint is None:

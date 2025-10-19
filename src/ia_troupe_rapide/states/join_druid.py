@@ -45,7 +45,7 @@ class JoinDruidState(RapidAIState):
 
         if waypoint is not None:
             distance = self.distance(context.position, waypoint)
-            if distance < self.controller.settings.pathfinding.waypoint_reached_radius:
+            if distance < self.controller.waypoint_radius:
                 context.advance_path()
                 waypoint = context.peek_waypoint()
                 target = waypoint if waypoint is not None else target_position
