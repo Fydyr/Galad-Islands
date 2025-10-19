@@ -239,7 +239,8 @@ class PathfindingService:
 
         grid_path.reverse()
         axis_aligned_path = self._inject_axis_checkpoints(grid_path)
-        world_path: List[WorldPos] = [self.grid_to_world(g) for g in axis_aligned_path]
+        compressed_path = self._compress_axis_segments(axis_aligned_path)
+        world_path: List[WorldPos] = [self.grid_to_world(g) for g in compressed_path]
         self._last_path = world_path  # Stocker le dernier chemin calculé
         return world_path
 
@@ -279,6 +280,32 @@ class PathfindingService:
                 adjusted.append(node)
 
         return adjusted
+
+    def _compress_axis_segments(self, grid_path: List[GridPos]) -> List[GridPos]:
+        if len(grid_path) <= 2:
+            return grid_path
+
+        compressed: List[GridPos] = [grid_path[0]]
+        last_dir: Optional[Tuple[int, int]] = None
+
+        for idx in range(1, len(grid_path)):
+            prev = grid_path[idx - 1]
+            curr = grid_path[idx]
+            dx = curr[0] - prev[0]
+            dy = curr[1] - prev[1]
+            if dx == 0 and dy == 0:
+                continue
+            direction = (int(np.sign(dx)), int(np.sign(dy)))
+            if last_dir is not None and direction != last_dir:
+                corner = grid_path[idx - 1]
+                if corner != compressed[-1]:
+                    compressed.append(corner)
+            last_dir = direction
+
+        if compressed[-1] != grid_path[-1]:
+            compressed.append(grid_path[-1])
+
+        return compressed
 
     def get_last_path(self) -> List[WorldPos]:
         """Retourne le dernier chemin calculé pour l'affichage debug."""

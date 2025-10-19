@@ -17,11 +17,13 @@ class GoToState(RapidAIState):
     def __init__(self, name: str, controller: "RapidUnitController") -> None:
         super().__init__(name, controller)
         self._current_waypoint: Optional[Tuple[float, float]] = None
+        self._last_advance_time: float = 0.0
 
     def enter(self, context: "UnitContext") -> None:
         super().enter(context)
         self._prepare_path(context)
         context.share_channel["goto_last_replan"] = self.controller.context_manager.time
+        self._last_advance_time = 0.0
 
     def update(self, dt: float, context: "UnitContext") -> None:
         objective = context.current_objective
@@ -53,9 +55,11 @@ class GoToState(RapidAIState):
                 return
 
         distance = self.distance(context.position, self._current_waypoint)
-        if distance < self.controller.waypoint_radius:
+        now = self.controller.context_manager.time
+        if distance < self.controller.waypoint_radius and (now - self._last_advance_time) > 0.2:
             context.advance_path()
             self._current_waypoint = context.peek_waypoint()
+            self._last_advance_time = now
             if self._current_waypoint is None:
                 self.controller.move_towards(objective.target_position)
                 return

@@ -241,7 +241,7 @@ class RapidUnitController:
         waypoint_radius = self.settings.pathfinding.waypoint_reached_radius
         if getattr(self.pathfinding, "sub_tile_factor", 1) > 1:
             waypoint_radius /= self.pathfinding.sub_tile_factor
-        self._waypoint_radius = max(4.0, waypoint_radius)
+        self._waypoint_radius = max(32.0, waypoint_radius)
         self.state_machine = self._build_state_machine()
         self.last_objective_refresh = -999.0
         self._last_state_name = ""

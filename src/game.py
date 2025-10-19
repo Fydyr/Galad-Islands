@@ -451,6 +451,10 @@ class GameRenderer:
                 # Dessiner des lignes jaunes entre les points du chemin
                 if len(screen_points) > 1:
                     pygame.draw.lines(window, (255, 255, 0), False, screen_points, 3)
+                
+                # Dessiner des points jaunes aux waypoints
+                for screen_x, screen_y in screen_points:
+                    pygame.draw.circle(window, (255, 255, 0), (int(screen_x), int(screen_y)), 4)
 
     def _render_game_over_message(self, window):
         """Rend le message de fin de partie au centre de l'écran."""
