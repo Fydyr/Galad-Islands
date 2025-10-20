@@ -11,7 +11,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from utils.sprite_utils import get_unit_sprite_id
-from utils.version_utils import get_project_version, is_dev_mode_enabled
+from settings.settings import get_project_version, is_dev_mode_enabled
 from factory.unitType import UnitType
 from src.managers.sprite_manager import SpriteID
 

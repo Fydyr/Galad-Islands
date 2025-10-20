@@ -6,8 +6,11 @@ Centralise la gestion des paramètres utilisateur et des constantes de jeu.
 import json
 import math
 import os
+import sys
 from copy import deepcopy
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from src import version
 
 
 # =============================================================================
@@ -371,6 +374,34 @@ def set_disable_shadows(disabled: bool) -> bool:
     """Active/désactive les ombres et sauvegarde."""
     config_manager.set_disable_shadows(disabled)
     return config_manager.save_config()
+
+
+# =============================================================================
+# GESTION DES VERSIONS
+# =============================================================================
+
+def get_project_version() -> str:
+    """
+    Read the project version from the version module.
+
+    Returns:
+        The version string, or "unknown" if not found.
+    """
+    try:
+        return version.version
+    except ImportError:
+        return "unknown"
+
+
+
+def is_dev_mode_enabled() -> bool:
+    """
+    Check if dev mode is enabled in the configuration.
+
+    Returns:
+        True if dev mode is enabled, False otherwise.
+    """
+    return config_manager.get('dev_mode', False)
 
 
 # =============================================================================
