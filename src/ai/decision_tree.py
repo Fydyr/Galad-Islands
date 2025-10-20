@@ -27,6 +27,10 @@ class GameState:
     distance_to_base: float
     angle_to_base: float
 
+    # Additional obstacles (with default values, must come after non-default fields)
+    nearest_storm_distance: float = float('inf')
+    nearest_bandit_distance: float = float('inf')
+
 
 class DecisionAction:
     """Available actions for the Leviathan."""
@@ -42,18 +46,21 @@ class LeviathanDecisionTree:
     Simple decision tree for Leviathan AI.
 
     Decision logic:
-    1. If enemy is close and on path to base -> Attack
-    2. If obstacle ahead -> Avoid
-    3. Otherwise -> Navigate to enemy base
+    1. If dangerous obstacle very close (storm, bandit) -> Avoid immediately
+    2. If enemy is close and on path to base -> Attack
+    3. If obstacle ahead (mine, island) -> Avoid
+    4. Otherwise -> Navigate to enemy base
     """
 
     # Detection thresholds
     ENEMY_ATTACK_DISTANCE = 300.0  # Attack if enemy within this distance
     ENEMY_PATH_ANGLE_THRESHOLD = 30.0  # Consider enemy "on path" if within this angle
     MINE_AVOID_DISTANCE = 200.0  # Avoid mines within this distance
-    BASE_ATTACK_DISTANCE = 350.0  # Attack base when within this distance
-    BASE_SAFE_DISTANCE = 250.0  # Stop moving forward when this close to base
-    ATTACK_ANGLE_TOLERANCE = 15.0  # Must be within this angle to attack
+    STORM_AVOID_DISTANCE = 200.0  # Avoid storms within this distance
+    BANDIT_AVOID_DISTANCE = 200.0  # Avoid bandits within this distance
+    BASE_ATTACK_DISTANCE = 450.0  # Attack base when within this distance (increased from 350)
+    BASE_SAFE_DISTANCE = 200.0  # Stop moving forward when this close to base (reduced from 250)
+    ATTACK_ANGLE_TOLERANCE = 30.0  # Must be within this angle to attack (relaxed from 15)
 
     def __init__(self):
         """Initialize the decision tree."""
@@ -70,34 +77,23 @@ class LeviathanDecisionTree:
             Action to take (MOVE_TO_BASE, ATTACK_ENEMY, ATTACK_BASE, AVOID_OBSTACLE, or IDLE)
         """
 
-        # Priority 1: Avoid obstacles if very close
-        if state.nearest_island_ahead or state.nearest_mine_distance < 100:
+        # Priority 1: Avoid dangerous obstacles if very close (storms and bandits are dangerous!)
+        if (state.nearest_storm_distance < self.STORM_AVOID_DISTANCE or
+            state.nearest_bandit_distance < self.BANDIT_AVOID_DISTANCE or
+            state.nearest_island_ahead or
+            state.nearest_mine_distance < self.MINE_AVOID_DISTANCE):
             self.last_action = DecisionAction.AVOID_OBSTACLE
             return DecisionAction.AVOID_OBSTACLE
 
-        # Priority 2: Attack base if close enough and properly aligned
+        # Priority 2: Attack base if close enough (alignment handled in attack action)
         if state.distance_to_base < self.BASE_ATTACK_DISTANCE:
-            # Check if we're pointing at the base (within attack angle tolerance)
-            angle_diff = abs(state.angle_to_base - state.direction)
-            # Normalize to [-180, 180]
-            if angle_diff > 180:
-                angle_diff = 360 - angle_diff
+            self.last_action = DecisionAction.ATTACK_BASE
+            return DecisionAction.ATTACK_BASE
 
-            if angle_diff < self.ATTACK_ANGLE_TOLERANCE:
-                self.last_action = DecisionAction.ATTACK_BASE
-                return DecisionAction.ATTACK_BASE
-
-        # Priority 3: Attack enemy if close and properly aligned
+        # Priority 3: Attack enemy if close (alignment handled in attack action)
         if state.enemies_count > 0 and state.nearest_enemy_distance < self.ENEMY_ATTACK_DISTANCE:
-            # Check if we're pointing at the enemy (within attack angle tolerance)
-            angle_diff = abs(state.nearest_enemy_angle - state.direction)
-            # Normalize to [-180, 180]
-            if angle_diff > 180:
-                angle_diff = 360 - angle_diff
-
-            if angle_diff < self.ATTACK_ANGLE_TOLERANCE:
-                self.last_action = DecisionAction.ATTACK_ENEMY
-                return DecisionAction.ATTACK_ENEMY
+            self.last_action = DecisionAction.ATTACK_ENEMY
+            return DecisionAction.ATTACK_ENEMY
 
         # Priority 4: Navigate to enemy base (default action)
         self.last_action = DecisionAction.MOVE_TO_BASE

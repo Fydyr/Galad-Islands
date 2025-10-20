@@ -17,7 +17,7 @@ class AILeviathanComponent:
     enabled: bool = True
 
     # Action timing
-    last_action_time: float = 0.0
+    last_action_time: float = -1.0  # Start negative to allow immediate first action
     action_cooldown: float = 0.15  # Time between decisions (seconds)
 
     # Statistics (optional, for debugging)

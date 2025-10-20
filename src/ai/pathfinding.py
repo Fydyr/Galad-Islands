@@ -4,9 +4,9 @@ import numpy as np
 from typing import Tuple, List, Optional, Set
 
 
-class SimplePathfinder:
+class Pathfinder:
     """
-    A* pathfinding that uses the map grid directly.
+    A* pathfinding that uses the map grid directly and avoids dynamic obstacles.
     """
 
     def __init__(self, map_grid, tile_size: int):
@@ -21,6 +21,9 @@ class SimplePathfinder:
         self.tile_size = tile_size
         self.map_height = len(map_grid) if map_grid else 0
         self.map_width = len(map_grid[0]) if map_grid and len(map_grid) > 0 else 0
+
+        # Dynamic obstacles (updated externally by AI processor)
+        self.dynamic_obstacles = []  # List of (x, y, radius) in world coordinates
 
     def findPath(
         self,
@@ -115,6 +118,10 @@ class SimplePathfinder:
                 if self._isIsland(neighbor):
                     continue
 
+                # Check for dynamic obstacles (storms, bandits, enemies)
+                if self._isDynamicObstacle(neighbor):
+                    continue
+
                 # Calculate cost (diagonal moves cost more)
                 move_cost = 1.414 if dx != 0 and dy != 0 else 1.0
                 tentative_g = g_score[current] + move_cost
@@ -165,6 +172,23 @@ class SimplePathfinder:
             return TileType(tile_type).is_island()
         except:
             return True  # Treat errors as obstacles
+
+    def _isDynamicObstacle(self, pos: Tuple[int, int]) -> bool:
+        """Check if grid position is blocked by a dynamic obstacle (storm, bandit, enemy unit)."""
+        # Convert grid position to world coordinates
+        world_pos = self._gridToWorld(pos)
+
+        # Check against all dynamic obstacles
+        for obstacle_x, obstacle_y, obstacle_radius in self.dynamic_obstacles:
+            dx = world_pos[0] - obstacle_x
+            dy = world_pos[1] - obstacle_y
+            distance = (dx * dx + dy * dy) ** 0.5
+
+            # If the cell center is within the obstacle radius, consider it blocked
+            if distance < obstacle_radius:
+                return True
+
+        return False
 
     def _findNearestValidPosition(self, pos: Tuple[int, int]) -> Optional[Tuple[int, int]]:
         """Find nearest non-island position."""

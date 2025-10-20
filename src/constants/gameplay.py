@@ -26,7 +26,7 @@ BASE_VISION_RANGE = 8.0
 # Portées de vision par type d'unité (en unités de grille)
 UNIT_VISION_SCOUT = 6.0
 UNIT_VISION_MARAUDEUR = 5.0
-UNIT_VISION_LEVIATHAN = 4.0
+UNIT_VISION_LEVIATHAN = 5.0  # Augmenté de 4.0 à 5.0 pour meilleure visibilité
 UNIT_VISION_DRUID = 5.0
 UNIT_VISION_ARCHITECT = 4.0
 
@@ -310,6 +310,6 @@ CLOUD_SPEED_REDUCTION = 100  # 100% pour debug print
 # Portées de vision par type d'unité (en unités de grille)
 UNIT_VISION_SCOUT = 6.0
 UNIT_VISION_MARAUDEUR = 5.0
-UNIT_VISION_LEVIATHAN = 4.0
+UNIT_VISION_LEVIATHAN = 5.0  # Augmenté de 4.0 à 5.0 pour meilleure visibilité
 UNIT_VISION_DRUID = 5.0
 UNIT_VISION_ARCHITECT = 4.0

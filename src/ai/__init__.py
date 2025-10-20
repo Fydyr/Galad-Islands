@@ -2,11 +2,11 @@
 
 # Imports pour l'arbre de décision et le pathfinding
 from src.ai.decision_tree import LeviathanDecisionTree, GameState, DecisionAction
-from ai.pathfinding import SimplePathfinder
+from src.ai.pathfinding import Pathfinder
 
 __all__ = [
     'LeviathanDecisionTree',
     'GameState',
     'DecisionAction',
-    'SimplePathfinder',
+    'Pathfinder',
 ]
