@@ -433,19 +433,22 @@ class GameRenderer:
         
         # Afficher les zones infranchissables pour l'IA en rouge
         if hasattr(game_engine, 'rapid_ai_processor') and game_engine.rapid_ai_processor:
-            unwalkable_areas = game_engine.rapid_ai_processor.get_unwalkable_areas()
+            processor = game_engine.rapid_ai_processor
+            pathfinding = getattr(processor, "pathfinding", None)
+            sub_tile_factor = getattr(pathfinding, "sub_tile_factor", 1) or 1
+            unwalkable_areas = processor.get_unwalkable_areas()
             for x, y in unwalkable_areas:
                 # Convertir les coordonnées monde en coordonnées écran
                 screen_x, screen_y = camera.world_to_screen(x, y)
                 
-                # Dessiner un contour rouge autour de chaque tuile infranchissable
-                tile_screen_size = TILE_SIZE * camera.zoom
+                # Dessiner un contour rouge ajusté à la taille des sous-tuiles IA
+                tile_screen_size = (TILE_SIZE / sub_tile_factor) * camera.zoom
                 pygame.draw.rect(window, (255, 0, 0), 
                                (screen_x - tile_screen_size/2, screen_y - tile_screen_size/2, 
                                 tile_screen_size, tile_screen_size), 2)
             
             # Afficher le dernier chemin calculé en jaune
-            last_path = game_engine.rapid_ai_processor.get_last_path()
+            last_path = processor.get_last_path()
             if last_path and len(last_path) > 1:
                 # Convertir toutes les positions du chemin en coordonnées écran
                 screen_points = []

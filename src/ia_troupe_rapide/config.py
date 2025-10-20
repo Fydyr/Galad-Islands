@@ -46,7 +46,7 @@ class PathfindingSettings:
     mine_perimeter_radius: int = 1  # Rayon exprimé en sous-tuiles IA
     blocked_margin_radius: int = 2  # Rayon de sécurité autour des zones bloquées (sous-tuiles)
     blocked_margin_weight: float = 15.0  # Poids appliqué dans la marge pour décoller les chemins
-    map_border_radius: int = 1  # Largeur en tuiles bloquée sur les bords de la carte
+    map_border_radius: int = 1  # Largeur en sous-tuiles bloquée sur les bords de la carte
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),
         int(TileType.ENEMY_BASE),

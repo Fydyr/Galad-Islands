@@ -118,7 +118,7 @@ class PathfindingService:
 
         border_radius_tiles = max(0, int(self.settings.pathfinding.map_border_radius))
         if border_radius_tiles > 0:
-            border_cells = border_radius_tiles * self.sub_tile_factor
+            border_cells = border_radius_tiles
             border_cells = min(border_cells, cost.shape[0] // 2, cost.shape[1] // 2)
             if border_cells > 0:
                 # Bloquer les bords de la carte pour éviter que l'IA ne s'y colle
