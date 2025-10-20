@@ -46,8 +46,15 @@ jobs:
             --add-data "assets${SEP}assets" \
           # Build config tool
           pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
-            --add-data "assets/locales${SEP}assets/locales" \
-            --add-data "src${SEP}src"
+                      --add-data "assets/locales${SEP}assets/locales" \
+                      --add-data "src${SEP}src" \
+                      --exclude-module esper \
+                      --exclude-module llvmlite \
+                      --exclude-module numba \
+                      --exclude-module numpy \
+                      --exclude-module Pillow \
+                      --exclude-module sklearn \
+                      --exclude-module joblib
 
       - name: Archive build
         if: runner.os == 'Windows'
