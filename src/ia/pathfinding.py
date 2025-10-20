@@ -1,6 +1,7 @@
 
 import heapq
 import numpy as np
+import logging
 from typing import Tuple, List, Optional, Set
 
 
@@ -8,6 +9,9 @@ class SimplePathfinder:
     """
     A* pathfinding that uses the map grid directly.
     """
+    # --- Tile Movement Costs ---
+    COST_ISLAND = 10.0  # High cost to cross islands, but not impossible.
+    COST_OBSTACLE = 100.0 # Very high cost for mines/clouds, making them highly undesirable.
 
     def __init__(self, map_grid, tile_size: int):
         """
@@ -21,6 +25,7 @@ class SimplePathfinder:
         self.tile_size = tile_size
         self.map_height = len(map_grid) if map_grid else 0
         self.map_width = len(map_grid[0]) if map_grid and len(map_grid) > 0 else 0
+        self.logger = logging.getLogger(__name__)
 
     def findPath(
         self,
@@ -51,8 +56,8 @@ class SimplePathfinder:
             return None
 
         # If goal is on an island, find nearest valid position
-        if self._isIsland(goal_grid):
-            goal_grid = self._findNearestValidPosition(goal_grid)
+        if self._isObstacle(goal_grid):
+            goal_grid = self._findNearestNavigablePosition(goal_grid)
             if goal_grid is None:
                 return None
 
@@ -112,12 +117,12 @@ class SimplePathfinder:
                 if not self._isValidGrid(neighbor):
                     continue
 
-                if self._isIsland(neighbor):
-                    continue
+                # Get additional cost from tile type (e.g., island, mine)
+                tile_cost = self._getTileCost(neighbor)
 
                 # Calculate cost (diagonal moves cost more)
                 move_cost = 1.414 if dx != 0 and dy != 0 else 1.0
-                tentative_g = g_score[current] + move_cost
+                tentative_g = g_score[current] + move_cost + tile_cost
 
                 if neighbor not in g_score or tentative_g < g_score[neighbor]:
                     came_from[neighbor] = current
@@ -157,25 +162,45 @@ class SimplePathfinder:
         """Check if grid position is within bounds."""
         return 0 <= pos[0] < self.map_width and 0 <= pos[1] < self.map_height
 
-    def _isIsland(self, pos: Tuple[int, int]) -> bool:
-        """Check if grid position is an island."""
+    def _getTileCost(self, pos: Tuple[int, int]) -> float:
+        """
+        Gets the additional movement cost for a given tile.
+        Mines and clouds are heavily penalized, islands are moderately penalized.
+        """
         from src.constants.map_tiles import TileType
         try:
             tile_type = self.map_grid[pos[1]][pos[0]]
-            return TileType(tile_type).is_island()
-        except:
-            return True  # Treat errors as obstacles
+            tile = TileType(tile_type)
 
-    def _findNearestValidPosition(self, pos: Tuple[int, int]) -> Optional[Tuple[int, int]]:
-        """Find nearest non-island position."""
+            # Assuming TileType has members like MINE and CLOUD.
+            # We use .value for comparison as we don't have the enum definition here.
+            if tile.value in [TileType.MINE.value, TileType.CLOUD.value]:
+                return self.COST_OBSTACLE
+            elif tile.is_island():
+                return self.COST_ISLAND
+            return 0.0  # Water has no extra cost
+        except (IndexError, ValueError) as e:
+            self.logger.warning(f"Could not determine tile cost for {pos}: {e}")
+            return self.COST_OBSTACLE  # Treat errors or out-of-bounds as high-cost obstacles
+
+    def _isObstacle(self, pos: Tuple[int, int]) -> bool:
+        """Check if a grid position is a high-cost obstacle (mine or cloud)."""
+        from src.constants.map_tiles import TileType
+        try:
+            tile_type = self.map_grid[pos[1]][pos[0]]
+            return tile_type in [TileType.MINE.value, TileType.CLOUD.value]
+        except (IndexError, ValueError):
+            return True
+
+    def _findNearestNavigablePosition(self, pos: Tuple[int, int]) -> Optional[Tuple[int, int]]:
+        """Find nearest position that is not a hard obstacle (mine/cloud)."""
         for radius in range(1, 20):
             for dx in range(-radius, radius + 1):
                 for dy in range(-radius, radius + 1):
-                    if abs(dx) != radius and abs(dy) != radius:
-                        continue
-
+                    # Check only the perimeter of the search box
+                    if abs(dx) != radius and abs(dy) != radius: continue
                     neighbor = (pos[0] + dx, pos[1] + dy)
-                    if self._isValidGrid(neighbor) and not self._isIsland(neighbor):
+                    if self._isValidGrid(neighbor) and not self._isObstacle(neighbor):
                         return neighbor
         return None
 
