@@ -442,7 +442,7 @@ class GameRenderer:
                 screen_x, screen_y = camera.world_to_screen(x, y)
                 
                 # Dessiner un contour rouge ajusté à la taille des sous-tuiles IA
-                tile_screen_size = (TILE_SIZE / sub_tile_factor) * camera.zoom
+                tile_screen_size = (TILE_SIZE / sub_tile_factor) * camera.zoom * 2
                 pygame.draw.rect(window, (255, 0, 0), 
                                (screen_x - tile_screen_size/2, screen_y - tile_screen_size/2, 
                                 tile_screen_size, tile_screen_size), 2)

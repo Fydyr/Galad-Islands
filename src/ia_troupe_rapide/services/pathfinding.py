@@ -333,4 +333,5 @@ class PathfindingService:
             for x in range(self._width):
                 if np.isinf(base_cost[y, x]):
                     unwalkable_positions.append(self.grid_to_world((x, y)))
+        print(f"Unwalkable areas count: {len(unwalkable_positions)}")
         return unwalkable_positions

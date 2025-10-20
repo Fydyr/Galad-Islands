@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, TYPE_CHECKING
 
 import esper
 
@@ -14,6 +14,10 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.baseComponent import BaseComponent
 
 from ..config import AISettings, get_settings
+
+if TYPE_CHECKING:
+    from .pathfinding import PathfindingService
+    from .prediction import PredictedEntity
 
 
 ObjectiveType = str
@@ -28,7 +32,22 @@ class Objective:
 
 
 class GoalEvaluator:
-    """Scores objectives according to the design decisions."""
+    """Évalue les objectifs en appliquant un arbre de décision déterministe."""
+
+    LOW_HEALTH_THRESHOLD = 0.5
+    STATIONARY_SPEED_THRESHOLD = 8.0
+    FOLLOW_DIE_MAX_DISTANCE = 360.0
+    DRUID_JOIN_DISTANCE = 256.0
+
+    PRIORITY_SCORES = {
+        "goto_chest": 100.0,
+        "join_druid": 90.0,
+        "follow_druid": 88.0,
+        "attack": 80.0,
+        "follow_die": 70.0,
+        "attack_base": 60.0,
+        "survive": 10.0,
+    }
 
     def __init__(self, settings: Optional[AISettings] = None) -> None:
         self.settings = settings or get_settings()
@@ -38,114 +57,115 @@ class GoalEvaluator:
 
         return self._find_druid(team_id) is not None
 
-    def evaluate(self, context, danger_map, prediction_service) -> Tuple[Objective, float]:
-        candidates: List[Tuple[Objective, float]] = []
-
+    def evaluate(
+        self,
+        context,
+    _danger_map,
+        prediction_service,
+        pathfinding: Optional["PathfindingService"] = None,
+    ) -> Tuple[Objective, float]:
         predicted_targets = prediction_service.predict_enemy_positions(context.team_id)
 
-        survive_score = self._score_survival(context, danger_map, predicted_targets)
-        candidates.append((Objective("survive", context.position), survive_score))
-
-        chest_objective = self._score_chest(context, danger_map)
+        chest_objective = self._select_chest(context, pathfinding)
         if chest_objective:
-            candidates.append(chest_objective)
+            return chest_objective, self._priority_score(chest_objective.type)
 
-        attack_objective = self._score_attack(context, predicted_targets)
+        druid_objective = self._select_druid_objective(context)
+        if druid_objective:
+            return druid_objective, self._priority_score(druid_objective.type)
+
+        attack_objective = self._select_stationary_attack(context, predicted_targets)
         if attack_objective:
-            candidates.append(attack_objective)
+            return attack_objective, self._priority_score(attack_objective.type)
 
-        base_attack_objective = self._score_attack_base(context)
-        if base_attack_objective:
-            candidates.append(base_attack_objective)
-
-        preshot_objective = self._score_preshot(context, predicted_targets)
-        if preshot_objective:
-            candidates.append(preshot_objective)
-
-        follow_die_objective = self._score_follow_to_die(context, predicted_targets)
+        follow_die_objective = self._select_follow_to_die(context, predicted_targets)
         if follow_die_objective:
-            candidates.append(follow_die_objective)
+            return follow_die_objective, self._priority_score(follow_die_objective.type)
 
-        join_druid_objective = self._score_join_druid(context)
-        if join_druid_objective:
-            candidates.append(join_druid_objective)
+        base_objective = self._select_attack_base(context)
+        if base_objective:
+            return base_objective, self._priority_score(base_objective.type)
 
-        follow_druid_objective = self._score_follow_druid(context)
-        if follow_druid_objective:
-            candidates.append(follow_druid_objective)
+        return Objective("survive", context.position), self._priority_score("survive")
 
-        destroy_mine_objective = self._score_destroy_mine(context, danger_map)
-        if destroy_mine_objective:
-            candidates.append(destroy_mine_objective)
-
-        best = max(candidates, key=lambda item: item[1]) if candidates else None
-        if best is None:
-            return Objective("idle", context.position), 0.0
-        return best
-
-    def _score_survival(self, context, danger_map, predicted_targets: Iterable) -> float:
-        danger_value = danger_map.sample_world(context.position)
-        normalized = min(1.0, danger_value / self.settings.danger.max_value_cap)
-        health_ratio = context.health / max(context.max_health, 1.0)
-        score = self.settings.weights.survive * (1.0 - health_ratio) * normalized
-        safe_zone = danger_value <= self.settings.danger.safe_threshold
-        high_health = health_ratio >= 0.85
-        has_targets = bool(predicted_targets)
-        if safe_zone and high_health:
-            penalty = self.settings.weights.attack * (1.2 if has_targets else 0.7)
-            score -= penalty
-        if context.took_damage:
-            score *= 1.5
-        return score
-
-    def _score_chest(self, context, danger_map) -> Optional[Tuple[Objective, float]]:
-        best_score = 0.0
-        best_objective = None
+    def _select_chest(
+        self,
+        context,
+        pathfinding: Optional["PathfindingService"],
+    ) -> Optional[Objective]:
+        best_candidate: Optional[Tuple[float, float, Objective]] = None
         for entity, (position, chest) in esper.get_components(PositionComponent, FlyingChestComponent):
             if chest.is_sinking or chest.is_collected:
                 continue
-            danger_value = danger_map.sample_world((position.x, position.y))
-            time_left = max(chest.max_lifetime - chest.elapsed_time, 0.0)
-            high_risk = danger_value > self.settings.danger.flee_threshold
-            if high_risk and time_left > 5.0:
+            chest_pos = (position.x, position.y)
+            if pathfinding is not None and pathfinding.is_world_blocked(chest_pos):
                 continue
-            distance = self._distance(context.position, (position.x, position.y))
-            score = self.settings.weights.chest / (1.0 + distance / 256.0)
-            if high_risk:
-                score *= 0.6
-            if time_left < 4.0:
-                score *= 1.25
-            if score > best_score:
-                best_score = score
-                best_objective = Objective("goto_chest", (position.x, position.y), entity)
-        if best_objective is None:
-            return None
-        return best_objective, best_score
+            distance = self._distance(context.position, chest_pos)
+            time_left = max(chest.max_lifetime - chest.elapsed_time, 0.0)
+            candidate = Objective("goto_chest", chest_pos, entity)
+            key = (distance, time_left)
+            if best_candidate is None or key < (best_candidate[0], best_candidate[1]):
+                best_candidate = (distance, time_left, candidate)
+        return best_candidate[2] if best_candidate else None
 
-    def _score_attack(
-        self, context, predicted_targets: Iterable
-    ) -> Optional[Tuple[Objective, float]]:
-        if not predicted_targets:
+    def _select_druid_objective(self, context) -> Optional[Objective]:
+        health_ratio = context.health / max(context.max_health, 1.0)
+        if health_ratio >= self.LOW_HEALTH_THRESHOLD:
             return None
-        best_score = 0.0
-        best_objective = None
+        druid_entity = self._find_druid(context.team_id)
+        if druid_entity is None:
+            return None
+        try:
+            position = esper.component_for_entity(druid_entity, PositionComponent)
+        except KeyError:
+            return None
+        druid_pos = (position.x, position.y)
+        distance = self._distance(context.position, druid_pos)
+        if distance > self.DRUID_JOIN_DISTANCE:
+            return Objective("join_druid", druid_pos, druid_entity)
+        return Objective("follow_druid", druid_pos, druid_entity)
+
+    def _select_stationary_attack(
+        self,
+        context,
+        predicted_targets: Iterable["PredictedEntity"],
+    ) -> Optional[Objective]:
+        stationary_targets: List["PredictedEntity"] = [
+            target for target in predicted_targets if abs(target.speed) <= self.STATIONARY_SPEED_THRESHOLD
+        ]
+        if not stationary_targets:
+            return None
+        target = min(stationary_targets, key=lambda t: self._distance(context.position, t.future_position))
+        return Objective("attack", target.future_position, target.entity_id)
+
+    def _select_follow_to_die(
+        self,
+        context,
+        predicted_targets: Iterable["PredictedEntity"],
+    ) -> Optional[Objective]:
+        best_candidate: Optional[Tuple[float, Objective]] = None
         for predicted in predicted_targets:
+            if abs(predicted.speed) <= self.STATIONARY_SPEED_THRESHOLD:
+                continue
+            if not esper.has_component(predicted.entity_id, HealthComponent):
+                continue
+            try:
+                health = esper.component_for_entity(predicted.entity_id, HealthComponent)
+            except KeyError:
+                continue
+            if health.currentHealth > 60.0:
+                continue
             distance = self._distance(context.position, predicted.future_position)
-            score = self.settings.weights.attack / (1.0 + distance / 300.0)
-            if score > best_score:
-                best_score = score
-                best_objective = Objective("attack", predicted.future_position, predicted.entity_id)
-        if best_objective is None:
-            return None
-        return best_objective, best_score
+            if distance > self.FOLLOW_DIE_MAX_DISTANCE:
+                continue
+            candidate = Objective("follow_die", predicted.future_position, predicted.entity_id)
+            if best_candidate is None or distance < best_candidate[0]:
+                best_candidate = (distance, candidate)
+        return best_candidate[1] if best_candidate else None
 
-    def _score_attack_base(self, context) -> Optional[Tuple[Objective, float]]:
-        if context.share_channel.get("skip_attack_base"):
-            return None
+    def _select_attack_base(self, context) -> Optional[Objective]:
         target_base = (
-            BaseComponent.get_ally_base()
-            if context.is_enemy
-            else BaseComponent.get_enemy_base()
+            BaseComponent.get_ally_base() if context.is_enemy else BaseComponent.get_enemy_base()
         )
         if target_base is None:
             return None
@@ -158,117 +178,10 @@ class GoalEvaluator:
         health_ratio = context.health / max(context.max_health, 1.0)
         if health_ratio <= self.settings.flee_health_ratio:
             return None
-        distance = self._distance(context.position, (base_position.x, base_position.y))
-        distance_penalty = 1.0 + distance / 420.0
-        score = self.settings.weights.attack / distance_penalty
-        score *= max(0.4, health_ratio)
-        return Objective("attack_base", (base_position.x, base_position.y), target_base), score
+        return Objective("attack_base", (base_position.x, base_position.y), target_base)
 
-    def _score_preshot(
-        self, context, predicted_targets: Iterable
-    ) -> Optional[Tuple[Objective, float]]:
-        best_score = 0.0
-        best_objective: Optional[Objective] = None
-        for predicted in predicted_targets:
-            distance = self._distance(context.position, predicted.future_position)
-            if distance < 180.0 or distance > 420.0:
-                continue
-            score = (self.settings.weights.attack * 0.9) / (1.0 + distance / 200.0)
-            if score > best_score:
-                best_score = score
-                best_objective = Objective("preshot", predicted.future_position, predicted.entity_id)
-        if best_objective is None:
-            return None
-        return best_objective, best_score
-
-    def _score_follow_to_die(
-        self, context, predicted_targets: Iterable
-    ) -> Optional[Tuple[Objective, float]]:
-        best_score = 0.0
-        best_objective: Optional[Objective] = None
-        for predicted in predicted_targets:
-            if not esper.has_component(predicted.entity_id, HealthComponent):
-                continue
-            health = esper.component_for_entity(predicted.entity_id, HealthComponent)
-            if health.currentHealth > 60:
-                continue
-            distance = self._distance(context.position, predicted.future_position)
-            if distance > 360.0:
-                continue
-            score = self.settings.weights.attack * 1.2 / (1.0 + distance / 220.0)
-            if score > best_score:
-                best_score = score
-                best_objective = Objective("follow_die", predicted.future_position, predicted.entity_id)
-        if best_objective is None:
-            return None
-        return best_objective, best_score
-
-    def _score_join_druid(self, context) -> Optional[Tuple[Objective, float]]:
-        if context.health / max(context.max_health, 1.0) > self.settings.join_druid_health_ratio:
-            return None
-        druid_entity = self._find_druid(context.team_id)
-        if druid_entity is None:
-            return None
-        try:
-            position = esper.component_for_entity(druid_entity, PositionComponent)
-        except KeyError:
-            return None
-        score = self.settings.weights.join_druid
-        return Objective("join_druid", (position.x, position.y), druid_entity), score
-
-    def _score_follow_druid(self, context) -> Optional[Tuple[Objective, float]]:
-        if context.current_objective and context.current_objective.type == "follow_druid":
-            return context.current_objective, context.objective_score
-        if context.health / max(context.max_health, 1.0) >= self.settings.follow_druid_health_ratio:
-            return None
-        druid_entity = self._find_druid(context.team_id)
-        if druid_entity is None:
-            return None
-        try:
-            position = esper.component_for_entity(druid_entity, PositionComponent)
-        except KeyError:
-            return None
-        return Objective("follow_druid", (position.x, position.y), druid_entity), self.settings.weights.follow_druid
-
-    def _score_destroy_mine(self, context, danger_map) -> Optional[Tuple[Objective, float]]:
-        druid_entity = self._find_druid(context.team_id)
-        if druid_entity is None:
-            return None
-        try:
-            druid_position = esper.component_for_entity(druid_entity, PositionComponent)
-        except KeyError:
-            return None
-        druid_danger = danger_map.sample_world((druid_position.x, druid_position.y))
-        if druid_danger >= self.settings.danger.safe_threshold:
-            return None
-
-        mine_positions = list(danger_map.iter_mine_world_positions())
-        if not mine_positions:
-            return None
-
-        enemy_base = BaseComponent.get_ally_base()
-        if enemy_base is None or not esper.has_component(enemy_base, PositionComponent):
-            return None
-        base_position = esper.component_for_entity(enemy_base, PositionComponent)
-
-        best_score = 0.0
-        best_objective: Optional[Objective] = None
-        for mine_world in mine_positions:
-            distance_unit = self._distance(context.position, mine_world)
-            distance_base = self._distance(mine_world, (base_position.x, base_position.y))
-            if distance_unit > 480.0:
-                continue
-            if distance_base > 640.0:
-                continue
-            danger_value = danger_map.sample_world(mine_world)
-            score = self.settings.weights.destroy_mine / (1.0 + distance_unit / 256.0)
-            score *= max(0.5, 1.0 - danger_value / self.settings.danger.max_value_cap)
-            if score > best_score:
-                best_score = score
-                best_objective = Objective("goto_mine", mine_world)
-        if best_objective is None:
-            return None
-        return best_objective, best_score
+    def _priority_score(self, objective_type: str) -> float:
+        return self.PRIORITY_SCORES.get(objective_type, 0.0)
 
     def _distance(self, a: Tuple[float, float], b: Tuple[float, float]) -> float:
         dx = a[0] - b[0]

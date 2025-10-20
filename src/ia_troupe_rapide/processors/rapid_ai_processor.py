@@ -647,7 +647,12 @@ class RapidUnitController:
         if should_reconsider:
             previous_type = context.current_objective.type if context.current_objective else "aucun"
             previous_target = context.current_objective.target_entity if context.current_objective else None
-            objective, score = self.goal_evaluator.evaluate(context, self.danger_map, self.prediction)
+            objective, score = self.goal_evaluator.evaluate(
+                context,
+                self.danger_map,
+                self.prediction,
+                self.pathfinding,
+            )
             if objective.type == "goto_chest" and objective.target_entity is not None:
                 owner = self.coordination.chest_owner(objective.target_entity)
                 if owner not in (None, self.entity_id):
@@ -698,30 +703,7 @@ class RapidUnitController:
                 context.assigned_chest_id = None
             
             # Vérifier si l'objectif attack_base est valide (pas d'unités ennemies près de la base)
-            if objective.type == "attack_base" and objective.target_entity is not None:
-                base_block_until = context.share_channel.get("attack_base_block_until", 0.0)
-                base_protection_radius = 200.0
-                if self._is_base_protected(context, objective.target_entity, base_protection_radius):
-                    if now >= base_block_until:
-                        LOGGER.info(
-                            "[AI] %s base protégée par des unités ennemies, passage en survie",
-                            self.entity_id,
-                        )
-                    block_duration = max(2.0, self.settings.objective_reconsider_delay)
-                    context.share_channel["attack_base_block_until"] = now + block_duration
-                    context.share_channel["skip_attack_base"] = True
-                    fallback_objective, fallback_score = self.goal_evaluator.evaluate(
-                        context, self.danger_map, self.prediction
-                    )
-                    context.share_channel.pop("skip_attack_base", None)
-                    objective = fallback_objective
-                    score = fallback_score
-                    if objective.type == "attack_base":
-                        objective = Objective("survive", context.position)
-                        score = 0.0
-                else:
-                    if base_block_until > 0.0 and base_block_until > now:
-                        context.share_channel["attack_base_block_until"] = 0.0
+            # Removed protection check to allow attacking protected bases
             
             new_signature = (objective.type, objective.target_entity)
             if new_signature != self._last_objective_signature:

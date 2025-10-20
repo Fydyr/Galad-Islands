@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Set, Tuple
 
 import sys
 from pathlib import Path
@@ -51,6 +51,17 @@ class DummyPredictionService:
 		return list(self._predictions)
 
 
+class DummyPathfinding:
+	"""Pathfinding minimaliste contrôlant l'accessibilité des positions."""
+
+	def __init__(self, blocked: Iterable[Tuple[float, float]] = ()) -> None:
+		self._blocked: Set[Tuple[float, float]] = {tuple(pos) for pos in blocked}
+
+	def is_world_blocked(self, position: Tuple[float, float]) -> bool:
+		key = (round(position[0], 1), round(position[1], 1))
+		return key in self._blocked
+
+
 def _patch_esper_defaults(monkeypatch: MonkeyPatch) -> None:
 	"""Neutralise les accès globaux d'Esper non nécessaires aux cas de test."""
 
@@ -58,15 +69,15 @@ def _patch_esper_defaults(monkeypatch: MonkeyPatch) -> None:
 	monkeypatch.setattr(esper, "component_for_entity", lambda *_: (_ for _ in ()).throw(KeyError()))
 
 
-def test_chest_est_prioritaire_en_zone_risque(monkeypatch: MonkeyPatch) -> None:
-	"""Vérifie que la récupération de coffre reste prioritaire malgré un danger modéré."""
+def test_chest_prioritaire_si_accessible(monkeypatch: MonkeyPatch) -> None:
+	"""Vérifie qu'un coffre accessible prime sur toutes les autres actions."""
 
 	evaluator = GoalEvaluator()
 	context = UnitContext(entity_id=1, team_id=2, unit_type=None, max_health=120.0, health=120.0)
 	context.position = (0.0, 0.0)
 
 	chest = FlyingChestComponent(gold_amount=100, max_lifetime=10.0, sink_duration=3.0)
-	chest.elapsed_time = 7.0
+	chest.elapsed_time = 5.0
 	chest_position = PositionComponent(x=200.0, y=0.0, direction=0.0)
 
 	def fake_get_components(*components):
@@ -80,50 +91,112 @@ def test_chest_est_prioritaire_en_zone_risque(monkeypatch: MonkeyPatch) -> None:
 	monkeypatch.setattr(esper, "get_components", fake_get_components)
 	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: None))
 
-	danger_map = DummyDangerMap({(200.0, 0.0): 0.75})
+	danger_map = DummyDangerMap({})
 	prediction_service = DummyPredictionService([])
+	pathfinding = DummyPathfinding()
 
-	objective, score = evaluator.evaluate(context, danger_map, prediction_service)
+	objective, score = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
 
 	assert objective.type == "goto_chest"
 	assert objective.target_entity == 42
-	assert score > 0.0
+	assert score == GoalEvaluator.PRIORITY_SCORES["goto_chest"]
 
 
-def test_follow_to_die_devient_objectif_principal(monkeypatch: MonkeyPatch) -> None:
-	"""Valide que le suivi sacrificiel dépasse l'attaque simple contre une cible vulnérable."""
+def test_coffre_ignore_si_bloque(monkeypatch: MonkeyPatch) -> None:
+	"""Confirme qu'un coffre dans une zone interdite est écarté et que l'IA se replie sur le druide."""
+
+	evaluator = GoalEvaluator()
+	context = UnitContext(entity_id=2, team_id=2, unit_type=None, max_health=120.0, health=40.0)
+	context.position = (0.0, 0.0)
+
+	chest = FlyingChestComponent(gold_amount=80, max_lifetime=9.0, sink_duration=3.0)
+	chest.elapsed_time = 4.0
+	chest_position = PositionComponent(x=128.0, y=0.0, direction=0.0)
+
+	druid_component = SpeDruid()
+
+	def fake_get_components(*components):
+		if components == (PositionComponent, FlyingChestComponent):
+			return [(99, (chest_position, chest))]
+		if components == (TeamComponent, SpeDruid):
+			return [(77, (TeamComponent(team_id=2), druid_component))]
+		return []
+
+	def fake_component_for_entity(entity_id, component):
+		if entity_id == 77 and component is PositionComponent:
+			return PositionComponent(x=256.0, y=0.0, direction=0.0)
+		raise KeyError
+
+	monkeypatch.setattr(esper, "get_components", fake_get_components)
+	monkeypatch.setattr(esper, "component_for_entity", fake_component_for_entity)
+	monkeypatch.setattr(esper, "has_component", lambda *_: True)
+	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: None))
+
+	danger_map = DummyDangerMap({})
+	prediction_service = DummyPredictionService([])
+	pathfinding = DummyPathfinding(blocked=[(128.0, 0.0)])
+
+	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
+
+	assert objective.type in {"join_druid", "follow_druid"}
+
+
+def test_cible_stationnaire_prioritaire(monkeypatch: MonkeyPatch) -> None:
+	"""Assure que l'attaque classique est choisie contre une cible immobile."""
 
 	evaluator = GoalEvaluator()
 	context = UnitContext(entity_id=5, team_id=2, unit_type=None, max_health=120.0, health=110.0)
 	context.position = (0.0, 0.0)
 
-	target_position = PositionComponent(x=150.0, y=50.0, direction=0.0)
-	target_health = HealthComponent(currentHealth=40.0, maxHealth=100.0)
 	predicted = PredictedEntity(
-		entity_id=99,
+		entity_id=50,
 		future_position=(150.0, 50.0),
-		current_position=(160.0, 55.0),
-		speed=8.0,
+		current_position=(150.0, 50.0),
+		speed=0.0,
 		direction=0.0,
 	)
 
 	def fake_get_components(*components):
-		if components == (PositionComponent, FlyingChestComponent):
-			return []
-		if components == (TeamComponent, SpeDruid):
-			return []
+		return []
+
+	monkeypatch.setattr(esper, "get_components", fake_get_components)
+	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: None))
+
+	danger_map = DummyDangerMap({})
+	prediction_service = DummyPredictionService([predicted])
+	pathfinding = DummyPathfinding()
+
+	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
+
+	assert objective.type == "attack"
+	assert objective.target_entity == 50
+
+
+def test_cible_mobile_vulnerable_active_follow_to_die(monkeypatch: MonkeyPatch) -> None:
+	"""Valide que le suivi sacrificiel prend le relais contre une cible mobile affaiblie."""
+
+	evaluator = GoalEvaluator()
+	context = UnitContext(entity_id=6, team_id=2, unit_type=None, max_health=120.0, health=120.0)
+	context.position = (0.0, 0.0)
+
+	predicted = PredictedEntity(
+		entity_id=99,
+		future_position=(200.0, 0.0),
+		current_position=(210.0, 0.0),
+		speed=40.0,
+		direction=0.0,
+	)
+	target_health = HealthComponent(currentHealth=40.0, maxHealth=100.0)
+
+	def fake_get_components(*components):
 		return []
 
 	def fake_has_component(entity_id, component):
 		return entity_id == 99 and component is HealthComponent
 
 	def fake_component_for_entity(entity_id, component):
-		if entity_id != 99:
-			raise KeyError
-		if component is HealthComponent:
+		if entity_id == 99 and component is HealthComponent:
 			return target_health
-		if component is PositionComponent:
-			return target_position
 		raise KeyError
 
 	monkeypatch.setattr(esper, "get_components", fake_get_components)
@@ -133,101 +206,16 @@ def test_follow_to_die_devient_objectif_principal(monkeypatch: MonkeyPatch) -> N
 
 	danger_map = DummyDangerMap({})
 	prediction_service = DummyPredictionService([predicted])
+	pathfinding = DummyPathfinding()
 
-	objective, score = evaluator.evaluate(context, danger_map, prediction_service)
+	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
 
 	assert objective.type == "follow_die"
 	assert objective.target_entity == 99
-	assert score > 0.0
 
 
-def test_join_druid_priorise_le_soin(monkeypatch: MonkeyPatch) -> None:
-	"""Vérifie que l'objectif de rejoindre le Druid devient l'action principale hors danger."""
-
-	evaluator = GoalEvaluator()
-	context = UnitContext(entity_id=8, team_id=2, unit_type=None, max_health=120.0, health=50.0)
-	context.position = (0.0, 0.0)
-
-	def fake_get_components(*components):
-		if components == (PositionComponent, FlyingChestComponent):
-			return []
-		if components == (TeamComponent, SpeDruid):
-			return [(77, (TeamComponent(team_id=2), SpeDruid()))]
-		return []
-
-	def fake_component_for_entity(entity_id, component):
-		if entity_id == 77 and component is PositionComponent:
-			return PositionComponent(x=128.0, y=64.0, direction=0.0)
-		raise KeyError
-
-	def fake_has_component(entity_id, component):
-		return entity_id == 77 and component is PositionComponent
-
-	monkeypatch.setattr(esper, "get_components", fake_get_components)
-	monkeypatch.setattr(esper, "component_for_entity", fake_component_for_entity)
-	monkeypatch.setattr(esper, "has_component", fake_has_component)
-	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: None))
-
-	danger_map = DummyDangerMap({})
-	prediction_service = DummyPredictionService([])
-
-	objective, score = evaluator.evaluate(context, danger_map, prediction_service)
-
-	assert objective.type == "join_druid"
-	assert objective.target_entity == 77
-	assert score > 0.0
-
-
-def test_objectif_mine_respecte_les_conditions(monkeypatch: MonkeyPatch) -> None:
-	"""S'assure que la destruction de mine est proposée uniquement quand la base est accessible."""
-
-	evaluator = GoalEvaluator()
-	context = UnitContext(entity_id=9, team_id=2, unit_type=None, max_health=120.0, health=110.0)
-	context.position = (256.0, 256.0)
-
-	mine_pos = (300.0, 260.0)
-	danger_map = DummyDangerMap({mine_pos: 0.2}, mines=[mine_pos])
-
-	ally_base_id = 301
-	druid_id = 302
-
-	def fake_get_components(*components):
-		if components == (PositionComponent, FlyingChestComponent):
-			return []
-		if components == (TeamComponent, SpeDruid):
-			return [(druid_id, (TeamComponent(team_id=2), SpeDruid()))]
-		return []
-
-	def fake_has_component(entity_id, component):
-		if entity_id == ally_base_id and component is PositionComponent:
-			return True
-		if entity_id == druid_id and component is PositionComponent:
-			return True
-		return False
-
-	def fake_component_for_entity(entity_id, component):
-		if entity_id == ally_base_id and component is PositionComponent:
-			return PositionComponent(x=512.0, y=512.0, direction=0.0)
-		if entity_id == druid_id and component is PositionComponent:
-			return PositionComponent(x=260.0, y=252.0, direction=0.0)
-		raise KeyError
-
-	monkeypatch.setattr(esper, "get_components", fake_get_components)
-	monkeypatch.setattr(esper, "has_component", fake_has_component)
-	monkeypatch.setattr(esper, "component_for_entity", fake_component_for_entity)
-	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: ally_base_id))
-
-	prediction_service = DummyPredictionService([])
-
-	objective, score = evaluator.evaluate(context, danger_map, prediction_service)
-
-	assert objective.type == "goto_mine"
-	assert objective.target_entity is None
-	assert score > 0.0
-
-
-def test_attack_base_prend_le_relais_quand_aucune_cible(monkeypatch: MonkeyPatch) -> None:
-	"""Garantit que l'attaque de la base remplace la survie en absence de cibles ennemies."""
+def test_attack_base_quand_aucune_autre_option(monkeypatch: MonkeyPatch) -> None:
+	"""Garantit que l'attaque de base est choisie lorsqu'aucun autre objectif prioritaire n'est présent."""
 
 	evaluator = GoalEvaluator()
 	context = UnitContext(entity_id=11, team_id=2, unit_type=None, max_health=120.0, health=120.0)
@@ -260,16 +248,17 @@ def test_attack_base_prend_le_relais_quand_aucune_cible(monkeypatch: MonkeyPatch
 
 	danger_map = DummyDangerMap({})
 	prediction_service = DummyPredictionService([])
+	pathfinding = DummyPathfinding()
 
-	objective, score = evaluator.evaluate(context, danger_map, prediction_service)
+	objective, score = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
 
 	assert objective.type == "attack_base"
 	assert objective.target_entity == enemy_base_entity
-	assert score > 0.0
+	assert score == GoalEvaluator.PRIORITY_SCORES["attack_base"]
 
 
-def test_attack_base_cible_la_base_adverse_pour_les_ennemis(monkeypatch: MonkeyPatch) -> None:
-	"""Valide que les unités ennemies visent bien notre base et non la leur."""
+def test_enemy_units_visent_base_adverse(monkeypatch: MonkeyPatch) -> None:
+	"""S'assure que les unités ennemies attaquent la bonne base avec le nouvel arbre."""
 
 	evaluator = GoalEvaluator()
 	context = UnitContext(entity_id=12, team_id=1, unit_type=None, max_health=120.0, health=120.0)
@@ -303,9 +292,9 @@ def test_attack_base_cible_la_base_adverse_pour_les_ennemis(monkeypatch: MonkeyP
 
 	danger_map = DummyDangerMap({})
 	prediction_service = DummyPredictionService([])
+	pathfinding = DummyPathfinding()
 
-	objective, score = evaluator.evaluate(context, danger_map, prediction_service)
+	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
 
 	assert objective.type == "attack_base"
 	assert objective.target_entity == ally_base_entity
-	assert score > 0.0
