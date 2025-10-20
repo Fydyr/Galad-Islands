@@ -120,27 +120,27 @@ class VisionSystem:
         # Ajouter les zones actuellement visibles aux zones découvertes
         # Avant d'update explored, vérifier si des tuiles de base ennemie deviennent visibles
         newly_visible = set(self.visible_tiles[self.current_team]) - set(self.explored_tiles.get(self.current_team, set()))
-        # Bounding boxes des bases en coordonnées grille (convention mapComponent)
-        ally_base_tiles = set((x, y) for x in range(1, 1 + 4) for y in range(1, 1 + 4))
-        enemy_base_tiles = set((x, y) for x in range(MAP_WIDTH - 4, MAP_WIDTH) for y in range(MAP_HEIGHT - 4, MAP_HEIGHT))
-        for (tx, ty) in newly_visible:
-            # Si l'une des tuiles visibles appartient à la base ennemie, déclarer la découverte
-            if (tx, ty) in enemy_base_tiles:
-                # team qui découvre
-                discoverer = self.current_team
-                enemy_team = 2 if discoverer == 1 else 1
-                # position monde centrale de la base ennemie (alignée avec BaseComponent)
-                if enemy_team == 2:
-                    bx = (MAP_WIDTH - 3.0) * TILE_SIZE
-                    by = (MAP_HEIGHT - 2.8) * TILE_SIZE
-                else:
-                    bx = 3.0 * TILE_SIZE
-                    by = 3.0 * TILE_SIZE
-                try:
-                    enemy_base_registry.declare_enemy_base(discoverer, enemy_team, bx, by)
-                except Exception:
-                    # Ne pas faire échouer la mise à jour de la vision pour une erreur non critique
-                    pass
+        
+        # Déterminer la base ennemie en fonction de l'équipe actuelle
+        if self.current_team == 1:
+            enemy_base_tiles = set((x, y) for x in range(MAP_WIDTH - 4, MAP_WIDTH) for y in range(MAP_HEIGHT - 4, MAP_HEIGHT))
+            enemy_team_id = 2
+            enemy_base_pos = ((MAP_WIDTH - 3.0) * TILE_SIZE, (MAP_HEIGHT - 2.8) * TILE_SIZE)
+        else: # self.current_team == 2
+            enemy_base_tiles = set((x, y) for x in range(1, 1 + 4) for y in range(1, 1 + 4))
+            enemy_team_id = 1
+            enemy_base_pos = (3.0 * TILE_SIZE, 3.0 * TILE_SIZE)
+
+        # Ne vérifier la découverte que si la base n'est pas déjà connue
+        if not enemy_base_registry.is_enemy_base_known(self.current_team):
+            for (tx, ty) in newly_visible:
+                if (tx, ty) in enemy_base_tiles:
+                    try:
+                        enemy_base_registry.declare_enemy_base(self.current_team, enemy_team_id, enemy_base_pos[0], enemy_base_pos[1])
+                        # Une fois la base trouvée, inutile de continuer la boucle pour cette frame
+                        break
+                    except Exception:
+                        pass
 
         self.explored_tiles[self.current_team].update(self.visible_tiles[self.current_team])
         
