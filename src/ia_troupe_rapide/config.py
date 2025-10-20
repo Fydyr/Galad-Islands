@@ -64,7 +64,6 @@ class ObjectiveWeights:
     survive: float = 4.0
     chest: float = 3.0
     attack: float = 1.6
-    join_druid: float = 2.5
     follow_druid: float = 1.2
     destroy_mine: float = 1.8
 
@@ -87,9 +86,7 @@ class AISettings:
     debug: DebugSettings = field(default_factory=DebugSettings)
     tick_frequency: float = 10.0  # updates per second
     flee_health_ratio: float = 0.35
-    join_druid_health_ratio: float = 0.65
     follow_druid_health_ratio: float = 0.95
-    preshot_window: float = 1.2
     follow_to_die_window: float = 3.0
     invincibility_min_health: float = 0.25
     objective_reconsider_delay: float = 0.75

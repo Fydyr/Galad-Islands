@@ -54,7 +54,6 @@ class UnitContext:
     target_entity: Optional[int] = None
     wants_attack: bool = False
     wants_flee: bool = False
-    wants_join_druid: bool = False
     in_flee_state: bool = False  # Track si l'unité est actuellement en fuite (pour hysteresis)
     flee_exit_time: float = 0.0  # Quand l'unité a quitté l'état Flee (pour éviter re-entrée rapide)
     stuck_state_time: float = 0.0  # Temps passé dans le même état sans progresser

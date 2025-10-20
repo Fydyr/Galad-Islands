@@ -37,12 +37,9 @@ class GoalEvaluator:
     LOW_HEALTH_THRESHOLD = 0.5
     STATIONARY_SPEED_THRESHOLD = 8.0
     FOLLOW_DIE_MAX_DISTANCE = 360.0
-    DRUID_JOIN_DISTANCE = 256.0
-
     PRIORITY_SCORES = {
         "goto_chest": 100.0,
-        "join_druid": 90.0,
-        "follow_druid": 88.0,
+        "follow_druid": 90.0,
         "attack": 80.0,
         "follow_die": 70.0,
         "attack_base": 60.0,
@@ -84,6 +81,27 @@ class GoalEvaluator:
 
         base_objective = self._select_attack_base(context)
         if base_objective:
+            # Ajuster la position si elle est infranchissable
+            import math
+            import numpy as np
+            grid_pos = pathfinding.world_to_grid(base_objective.target_position)
+            if pathfinding._in_bounds(grid_pos):
+                tile_cost = pathfinding._tile_cost(grid_pos)
+                if np.isinf(tile_cost):  # Position infranchissable
+                    # Trouver une position alternative à portée de tir
+                    radius = 196.0
+                    optimal_distance = max(96.0, radius * 0.85)
+                    # Essayer de trouver une position valide autour de la base
+                    for angle in range(0, 360, 45):  # Tester 8 directions
+                        rad_angle = math.radians(angle)
+                        candidate_x = base_objective.target_position[0] + math.cos(rad_angle) * optimal_distance
+                        candidate_y = base_objective.target_position[1] + math.sin(rad_angle) * optimal_distance
+                        candidate_grid = pathfinding.world_to_grid((candidate_x, candidate_y))
+                        if pathfinding._in_bounds(candidate_grid):
+                            candidate_cost = pathfinding._tile_cost(candidate_grid)
+                            if not np.isinf(candidate_cost):  # Position franchissable trouvée
+                                base_objective.target_position = (candidate_x, candidate_y)
+                                break
             return base_objective, self._priority_score(base_objective.type)
 
         return Objective("survive", context.position), self._priority_score("survive")
@@ -120,9 +138,6 @@ class GoalEvaluator:
         except KeyError:
             return None
         druid_pos = (position.x, position.y)
-        distance = self._distance(context.position, druid_pos)
-        if distance > self.DRUID_JOIN_DISTANCE:
-            return Objective("join_druid", druid_pos, druid_entity)
         return Objective("follow_druid", druid_pos, druid_entity)
 
     def _select_stationary_attack(
@@ -178,7 +193,17 @@ class GoalEvaluator:
         health_ratio = context.health / max(context.max_health, 1.0)
         if health_ratio <= self.settings.flee_health_ratio:
             return None
-        return Objective("attack_base", (base_position.x, base_position.y), target_base)
+        # Choose a random position around the base to attack from
+        import random
+        import math
+        angle = random.uniform(0, 2 * math.pi)
+        distance = 100.0
+        dx = math.cos(angle) * distance
+        dy = math.sin(angle) * distance
+        target_x = base_position.x + dx
+        target_y = base_position.y + dy
+        target_position = (target_x, target_y)
+        return Objective("attack_base", target_position, target_base)
 
     def _priority_score(self, objective_type: str) -> float:
         return self.PRIORITY_SCORES.get(objective_type, 0.0)

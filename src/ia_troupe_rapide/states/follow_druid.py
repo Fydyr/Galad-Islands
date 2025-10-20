@@ -44,29 +44,21 @@ class FollowDruidState(RapidAIState):
         distance = self.distance(context.position, druid_pos)
         desired = 160.0
         orbit_target = self._orbit_point(druid_pos, desired)
-        navigation_active = self.controller.is_navigation_active(context)
+        tolerance = max(48.0, self.controller.navigation_tolerance * 0.5)
+        distance_to_orbit = self.distance(context.position, orbit_target)
 
-        if distance > self.controller.navigation_tolerance:
-            if (
-                not navigation_active
-                or not self.controller.navigation_target_matches(
-                    context,
-                    orbit_target,
-                    tolerance=self.controller.navigation_tolerance * 0.5,
-                )
-            ):
-                self.controller.start_navigation(context, orbit_target, self.name)
+        if distance_to_orbit > tolerance:
+            self.controller.ensure_navigation(
+                context,
+                orbit_target,
+                return_state=self.name,
+                tolerance=tolerance,
+            )
             return
 
-        if navigation_active:
-            return
-
-        if abs(distance - desired) > 24.0:
-            self.controller.move_towards(druid_pos)
-        else:
-            # Apply a slow circling to avoid stacking with other units.
-            target = orbit_target
-            self.controller.move_towards(target)
+        if self.controller.is_navigation_active(context):
+            self.controller.cancel_navigation(context)
+        self.controller.stop()
 
     def _orbit_point(self, druid_pos: tuple[float, float], radius: float) -> tuple[float, float]:
         angle = math.radians((self.controller.context_manager.time * 90.0) % 360.0)

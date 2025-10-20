@@ -32,7 +32,10 @@ class AttackState(RapidAIState):
 
     def enter(self, context: "UnitContext") -> None:
         super().enter(context)
-        self.controller.cancel_navigation(context)
+        LOGGER.info("[AI] %s Attack.enter() called", context.entity_id)
+        # Nota: on ne cancelle pas la navigation ici, car on peut revenir à Attack
+        # depuis une navigation (GoTo) qui était lancée par Attack
+        # cancel_navigation() sera appelé lors de la sortie de l'état
         objective = context.current_objective
         context.target_entity = objective.target_entity if objective else None
         self._anchor = None
@@ -42,7 +45,6 @@ class AttackState(RapidAIState):
     def update(self, dt: float, context: "UnitContext") -> None:
         target_position = self._resolve_target_position(context)
         if target_position is None:
-            LOGGER.debug("[AI] %s Attack: target perdu", context.entity_id)
             context.target_entity = None
             self.controller.cancel_navigation(context)
             self.controller.stop()
@@ -62,6 +64,14 @@ class AttackState(RapidAIState):
             return
 
         distance_anchor = self.distance(context.position, anchor)
+        # Si l'anchor est à la position courante, pas besoin de naviguer
+        if distance_anchor <= 1.0:
+            self.controller.cancel_navigation(context)
+            self.controller.stop()
+            self._aim(context, target_position)
+            self._try_shoot(context, fallback_target=target_position)
+            return
+        
         if distance_anchor > self.controller.navigation_tolerance:
             if not self.controller.navigation_target_matches(
                 context,
@@ -134,9 +144,9 @@ class AttackState(RapidAIState):
                                            context.entity_id, target_position[0], target_position[1], candidate_x, candidate_y)
                                 return (candidate_x, candidate_y)
                     
-                    # Si aucune position valide trouvée, rester à la position actuelle
-                    LOGGER.debug("[AI] %s Attack: no valid position found around attack_base target", context.entity_id)
-                    return None
+                    # Si aucune position valide trouvée, attaquer la base directement
+                    LOGGER.debug("[AI] %s Attack: no valid position found around attack_base target, attacking base directly", context.entity_id)
+                    return target_position
         
         return target_position
 
@@ -150,11 +160,19 @@ class AttackState(RapidAIState):
     def _compute_anchor(self, context: "UnitContext", target_position: Tuple[float, float]) -> Optional[Tuple[float, float]]:
         radius = context.radius_component.radius if context.radius_component else 196.0
         desired_distance = max(120.0, radius * 0.9)
+        
+        # Pour attack_base, chercher des positions à une distance de tir valide, pas SUR la base
+        if context.current_objective and context.current_objective.type == "attack_base":
+            # Utiliser une distance de tir optimale (80-100% du rayon de tir)
+            desired_distance = max(100.0, radius * 0.85)
+        
         current_distance = self.distance(context.position, target_position)
+        # Si déjà assez proche, rester sur place pour tirer
         if current_distance <= desired_distance * 1.1:
             return context.position
 
         candidates: list[tuple[float, Tuple[float, float]]] = []
+        # Tester plusieurs angles pour trouver des positions valides autour de la cible
         for angle in range(0, 360, 30):
             rad_angle = math.radians(angle)
             candidate = (
@@ -170,7 +188,26 @@ class AttackState(RapidAIState):
             candidates.append((distance_to_unit, candidate))
 
         if not candidates:
-            return target_position
+            # Si aucun candidat trouvé aux angles principaux, tenter une recherche plus étendue
+            for angle in range(0, 360, 15):  # Plus d'angles
+                for dist_ratio in [0.8, 1.0, 1.2]:  # Différentes distances
+                    test_distance = desired_distance * dist_ratio
+                    rad_angle = math.radians(angle)
+                    candidate = (
+                        target_position[0] + math.cos(rad_angle) * test_distance,
+                        target_position[1] + math.sin(rad_angle) * test_distance,
+                    )
+                    grid = self.controller.pathfinding.world_to_grid(candidate)
+                    if not self.controller.pathfinding._in_bounds(grid):
+                        continue
+                    if np.isinf(self.controller.pathfinding._tile_cost(grid)):
+                        continue
+                    distance_to_unit = self.distance(context.position, candidate)
+                    candidates.append((distance_to_unit, candidate))
+        
+        if not candidates:
+            # Si toujours rien trouvé, retourner la position actuelle
+            return context.position
 
         candidates.sort(key=lambda item: item[0])
         return candidates[0][1]

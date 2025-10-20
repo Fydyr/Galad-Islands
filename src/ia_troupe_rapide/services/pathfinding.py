@@ -8,11 +8,13 @@ from typing import Dict, Iterable, List, Optional, Tuple, TYPE_CHECKING
 import numpy as np
 from numba import njit
 from numpy.lib.stride_tricks import sliding_window_view
+from collections import deque
 
 from src.constants.map_tiles import TileType
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
 
 from ..config import AISettings, get_settings
+from ..log import get_logger
 
 if TYPE_CHECKING:
     from .danger_map import DangerMapService
@@ -20,6 +22,9 @@ if TYPE_CHECKING:
 
 GridPos = Tuple[int, int]
 WorldPos = Tuple[float, float]
+
+
+LOGGER = get_logger()
 
 
 @njit(cache=True)
@@ -59,6 +64,13 @@ class PathfindingService:
         self._base_cost = self._build_base_cost()
 
         self._neighbors = self._build_neighbors()
+
+        LOGGER.info(
+            "[PF] Initialisation PathfindingService: sub_tile_factor=%s, grid_size=%sx%s",
+            self.sub_tile_factor,
+            self._width,
+            self._height,
+        )
         
         # Stockage du dernier chemin calculé pour l'affichage debug
         self._last_path: List[WorldPos] = []
@@ -198,10 +210,26 @@ class PathfindingService:
         goal = self.world_to_grid(goal_world)
 
         if not self._in_bounds(start) or not self._in_bounds(goal):
+            LOGGER.warning(
+                "[PF] find_path annulé: positions hors limites start_in=%s goal_in=%s",
+                self._in_bounds(start),
+                self._in_bounds(goal),
+            )
             return []
 
-        if self._grid[goal[1], goal[0]] in self.settings.pathfinding.tile_blacklist:
-            return []
+        goal_initial = goal
+        if self._is_goal_blocked(goal):
+            fallback = self._find_accessible_goal(goal)
+            if fallback is None:
+                LOGGER.info(
+                    "[PF] find_path annulé: objectif impraticable (grid=%s) sans alternative",
+                    goal,
+                )
+                return []
+            LOGGER.info(
+                "[PF] find_path objectif ajusté: %s -> %s", goal_initial, fallback
+            )
+            goal = fallback
 
         frontier: List[Tuple[float, GridPos]] = []
         heapq.heappush(frontier, (0.0, start))
@@ -237,6 +265,11 @@ class PathfindingService:
                     came_from[next_node] = current
 
         if goal not in came_from:
+            LOGGER.info(
+                "[PF] find_path échec: aucun chemin trouvé start=%s goal=%s (frontier vide)",
+                start,
+                goal,
+            )
             return []
 
         grid_path: List[GridPos] = []
@@ -253,7 +286,43 @@ class PathfindingService:
         compressed_path = self._compress_axis_segments(axis_aligned_path)
         world_path: List[WorldPos] = [self.grid_to_world(g) for g in compressed_path]
         self._last_path = world_path  # Stocker le dernier chemin calculé
+        LOGGER.info(
+            "[PF] find_path succès: %s noeuds (compressé=%s)", len(grid_path), len(world_path)
+        )
         return world_path
+
+    def _is_goal_blocked(self, grid_pos: GridPos) -> bool:
+        tile_value = self._grid[grid_pos[1], grid_pos[0]]
+        if tile_value in self.settings.pathfinding.tile_blacklist:
+            return True
+        return np.isinf(self._tile_cost(grid_pos))
+
+    def _find_accessible_goal(self, goal: GridPos, max_radius: Optional[int] = None) -> Optional[GridPos]:
+        if not self._is_goal_blocked(goal):
+            return goal
+
+        radius_limit = max_radius if max_radius is not None else max(4, self.sub_tile_factor * 4)
+        visited: set[GridPos] = {goal}
+        queue: deque[Tuple[int, GridPos]] = deque([(0, goal)])
+
+        while queue:
+            distance, node = queue.popleft()
+            if distance > radius_limit:
+                continue
+
+            if distance != 0 and not self._is_goal_blocked(node):
+                return node
+
+            for dx, dy, _ in self._neighbors:
+                candidate = (node[0] + dx, node[1] + dy)
+                if candidate in visited:
+                    continue
+                if not self._in_bounds(candidate):
+                    continue
+                visited.add(candidate)
+                queue.append((distance + 1, candidate))
+
+        return None
 
     def _inject_axis_checkpoints(self, grid_path: List[GridPos]) -> List[GridPos]:
         if not grid_path:
@@ -333,5 +402,4 @@ class PathfindingService:
             for x in range(self._width):
                 if np.isinf(base_cost[y, x]):
                     unwalkable_positions.append(self.grid_to_world((x, y)))
-        print(f"Unwalkable areas count: {len(unwalkable_positions)}")
         return unwalkable_positions

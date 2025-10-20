@@ -1,27 +1,27 @@
 # Analyse Complète des Décisions d'IA - Troupe Rapide (Scouts Ennemis)
 
-> **Document généré le 18 octobre 2025 | Branche : IA_LAMBERT | Version : Complète et optimisée**
+> **Document généré le 20 octobre 2025 | Branche : IA_LAMBERT | Version : Mise à jour complète avec système de priorités et tir continu**
 
 ## 1. Vue d'ensemble architecturale
 
 ### Principe fondamental
-L'IA des éclaireurs ennemis repose sur un **système de machine à états finis (FSM)** piloté par un **évaluateur d'objectifs basé sur le scoring**. Chaque décision d'action est déterministe, algorithmique (zéro machine learning) et basée sur un système de poids configurables.
+L'IA des éclaireurs ennemis repose sur un **système de machine à états finis (FSM) piloté par un évaluateur d'objectifs basé sur les priorités**. Chaque décision d'action est déterministe, algorithmique (zéro machine learning) et basée sur un système de poids configurables avec évaluation séquentielle.
 
 ### Flux général
 ```
 1. Actualisation du contexte (santé, position, danger local)
    ↓
-2. Évaluation d'objectif (scoring de toutes les options)
+2. Évaluation d'objectif (priorités séquentielles : coffres → druide → attaque → base)
    ↓
-3. Sélection de l'objectif avec le meilleur score
+3. Sélection de l'objectif avec la plus haute priorité disponible
    ↓
-4. Transition de l'état FSM (en fonction de l'objectif)
+4. Transition de l'état FSM (en fonction de l'objectif et conditions)
    ↓
-5. Exécution de l'action correspondante à l'état
+5. Exécution de l'action correspondante à l'état + tir continu
 ```
 
 ### Objectif global
-**collecter** les coffres volants (gain d’or pour acheter des alliés), **Survivre** le plus longtemps, **attaquer** tactiquement à distance. Si un Druide est présent et la santé bonne, concentrer sur **harcèlement de base** à distance sécurisée.
+**collecter** les coffres volants (gain d'or pour acheter des alliés), **Survivre** le plus longtemps, **attaquer** tactiquement à distance sécurisée avec tir continu. Si un Druide est présent et la santé bonne, concentrer sur **harcèlement de base** à distance sécurisée.
 
 ---
 
@@ -29,379 +29,331 @@ L'IA des éclaireurs ennemis repose sur un **système de machine à états finis
 
 ### 2.1 Composants principaux
 
-#### **RapidTroopAIProcessor** (Processeur Esper global)
+#### RapidTroopAIProcessor (Processeur Esper global)
 - **Rôle** : Boucle principale (10 Hz), met à jour tous les contrôleurs
-- **Responsabilités** : 
+- **Responsabilités** :
   - Itération scouts ennemis
   - Gestion événements (coffres, tempêtes, mines)
   - Nettoyage entités mortes
   - Collecte debug overlay
+  - Accumulateur de temps pour ticks réguliers
 
-#### **RapidUnitController** (Contrôleur par unité)
+#### RapidUnitController (Contrôleur par unité)
 - **Rôle** : Décisions et exécution pour une seule unité
 - **Responsabilités** :
   - Actualisation contexte
   - Appel évaluateur objectifs
-  - Gestion FSM (transitions)
+  - Gestion FSM (transitions avec priorités)
   - Coordination inter-unités
-  - Commandes mouvement
+  - Commandes mouvement avec navigation persistante
+  - Tir continu (_try_continuous_shoot)
 
-#### **GoalEvaluator** (Évaluateur d'objectifs)
-- **Rôle** : Scoring de toutes les options d'action
+#### GoalEvaluator (Évaluateur d'objectifs)
+- **Rôle** : Évaluation séquentielle par priorités
 - **Responsabilités** :
-  - 8 types d'objectifs évalués
-  - Score pour chacun
-  - Sélection du meilleur
+  - 8 types d'objectifs évalués en ordre décroissant de priorité
+  - Sélection du premier objectif valide trouvé
+  - Gestion coordination (coffres exclusifs, harcèlement rotatif)
 
-#### **Services auxiliaires**
-- **DangerMapService** : Carte 2D danger (projectiles, mines, tempêtes)
-- **PathfindingService** : A* pondéré (évite îles, mines, croix pattern)
-- **PredictionService** : Prédiction position ennemis (0.8s horizon)
-- **CoordinationService** : Rôles exclusifs (coffres, follow-to-die)
-- **AIContextManager** : Cache contexte unitaire
+#### Services auxiliaires
+- DangerMapService : Carte 2D danger (projectiles, mines, tempêtes)
+- PathfindingService : A* pondéré (évite îles, mines, croix pattern)
+- PredictionService : Prédiction position ennemis (0.8s horizon)
+- CoordinationService : Rôles exclusifs (coffres, follow-to-die, harcèlement rotatif)
+- AIContextManager : Cache contexte unitaire avec navigation persistante
+- IAEventBus : Bus d'événements pour coffres/tempêtes
 
 ---
 
 ## 3. Évaluation des objectifs (GoalEvaluator)
 
-### 3.1 Objectifs évalués et scoring
+### 3.1 Objectifs évalués par priorité
+| Priorité | Type | Condition activation | Rôle |
+|----------|------|-------------------|------|
+| **100** | `goto_chest` | Coffres visibles + non assignés | Collecte exclusive |
+| **90** | `follow_druid` | Santé < 95% + druide présent | Soin prioritaire |
+| **80** | `attack` | Unités ennemies stationnaires | Harcèlement libre |
+| **70** | `follow_die` | Ennemi < 60 HP + rôle assigné | Exécution exclusive |
+| **60** | `attack_base` | Base ennemie + santé > 35% | Harcèlement standoff |
+| **10** | `survive` | Toujours (fallback) | Fuite/drift |
 
-| Type | Score calcul | Condition activation | Rôle |
-|------|--------------|-------------------|------|
-| **survive** | `3.0 × (1-santé%) × danger_norm` | Toujours | Fuite, druide |
-| **goto_chest** | `4.0 / (1 + dist/256)` | Coffres visibles | Collecte exclusive |
-| **attack** | `1.6 / (1 + dist/300)` | Unités ennemies | Harcèlement libre |
-| **attack_base** | `1.6 / (1 + dist/420) × santé%` | Pas menace < 420px | Harcèlement standoff |
-| **follow_die** | `1.92 / (1 + dist/220)` | Ennemi < 60 HP | Exécution exclusive |
-| **join_druid** | `2.5` | Santé ≤ 65%, druide | Soin rapide |
-| **follow_druid** | `1.2` | 65% < santé < 95% | Soin continu |
-| **goto_mine** | `0.3 / (1 + dist/256)` | Druide sûr | Support druide |
-
-### 3.2 Poids d'objectifs (config)
-
-```
-survive:      3.0   (baseline, peut être réduit si zone sûre)
-chest:        4.0   (collecte, plus attrayant que survie)
-attack:       1.6   (engagement libre)
-join_druid:   2.5   (soin urgent)
-follow_druid: 1.2   (suivi passif)
-destroy_mine: 0.3   (appui stratégique)
+### 3.2 Logique d'évaluation séquentielle
+```python
+def evaluate():
+    # 1. Priorité maximale : coffres
+    chest = _select_chest()  # goto_chest si disponible
+  # 2. Gestion druide
+  druid = _select_druid_objective()  # suivi prioritaire du druide
+    # 3. Harcèlement
+    attack = _select_stationary_attack()  # attack si cible immobile
+    # 4. Exécution
+    follow_die = _select_follow_to_die()  # follow_die si cible faible
+    # 5. Attaque base
+    base = _select_attack_base()  # attack_base avec position aléatoire
+    # 6. Fallback
+    return survive  # survie
 ```
 
 ---
 
 ## 4. Machine à états finis (FSM)
 
-### 4.1 États et transitions globales
+### 4.1 États disponibles
+États : Idle, GoTo, Flee, Attack, FollowDruid, FollowToDie
 
-```
-PRIORITÉ GLOBALE (100 + 80)
-         ↓
-    ┌─────────┐
-    │  FLEE   │ ← Danger élevé OU santé faible
-    └────┬────┘
-         │ Danger < safe + marge
-         ↓
-    ┌─────────────┐        ┌──────────┐
-    │   IDLE      ├───────►│  GOTO    │
-    └────┬────────┘        └──────┬───┘
-         │ objectif       objectif atteint
-         │ + safe danger          │
-         ▼                        ▼
-    ┌─────────────┐
-    │   ATTACK    │ (distmaint + tir) → IDLE/FOLLOW_DIE
-    └─────────────┘
+### 4.2 Transitions globales (priorité décroissante)
+| Priorité | Condition | Target | Description |
+|----------|-----------|--------|-------------|
+| **100** | Danger ≥ seuil + hysteresis | Flee | Fuite avec cooldown sortie |
+| **80** | Santé < 95% + druide | FollowDruid | Rapprochement + escorte |
+| **70** | Navigation active + propriétaire différent | GoTo | Respect navigation |
+| **0** | Dummy | GoTo | Enregistrement état |
 
-    JOIN_DRUID → FOLLOW_DRUID → IDLE (santé rétablie)
-```
+### 4.3 Transitions locales par état
+#### Idle
+- `goto` (50) → GoTo (objectifs goto_*)
+- `attack` (40) → Attack (objectifs attack*)
 
-### 4.2 États détaillés
+#### GoTo
+- `arrived` (10) → Idle (objectif atteint)
+- `attack` (20) → Attack (nouvelle cible prioritaire)
 
-#### **IDLE** (Attente)
-- Écoute transitions globales
-- Transitions : FLEE (danger), GOTO (objectif), ATTACK (safe+objectif)
-- Sortie : Vers état actif
+#### Attack
+- `done` (10) → Idle (cible perdue)
+- `follow_die` (15) → FollowToDie (cible faible)
 
-#### **FLEE** (Fuite)
-- Mouvement vers zone sûre
-- Transition : IDLE (danger < seuil)
-- Prisonnier jusqu'à stabilisation
-- Sortie : Retour IDLE
+#### FollowToDie
+- `done` (5) → Idle (cible tuée)
 
-#### **GOTO** (Déplacement)
-- A* pathfinding, suivi waypoints
-- Transition : IDLE (arrivée), ATTACK (nouvelle cible prioritaire)
-- Actualisation : Replan si distance > 64px
+#### FollowDruid
+- `healed` (10) → Idle (santé ≥ 95%)
 
-#### **ATTACK** (Combat)
-- Distance maintenance (optimal ±24px)
-- Pour attack_base : recul si < 195px
-- Tir si en portée (coodown update)
-- Prédiction horizon 0.35s
-- Transition : IDLE (cible perdue), FOLLOW_DIE (cible faible)
+---
 
-#### **FOLLOW_TO_DIE** (Exécution)
-- Fonce vers cible, ignore danger
+## 5. États détaillés
+
+### 5.1 IdleState
+- Drift lent vers zone sûre si danger > safe_threshold
+- Attend transitions globales/locales
+- Annule navigation si inactive
+
+### 5.2 FleeState
+- Mouvement vers safest_point (4.0 tuiles rayon)
+- Hysteresis : entrée si danger ≥ 0.7, sortie si < 0.15
+- Cooldown 1.0s avant ré-entrée
+- Interdit si santé > 50%
+
+### 5.3 GoToState
+- Navigation A* vers target avec waypoints
+- Replan si distance > 64px
+- Tolérance waypoint_radius (32px+)
+
+### 5.4 AttackState
+- Anchor system : maintient distance optimale (~90% radius)
+- Recherche positions valides autour cible (30° angles)
+- Ajustement attack_base si position infranchissable
+- Tir continu via _try_continuous_shoot
+
+### 5.5 FollowToDieState
+- Poursuite aggressive, ignore danger
 - Tir continu
-- Transition : IDLE (cible tuée)
-- Coordination : Rôle exclusif
+- Rôle exclusif via coordination
 
-#### **JOIN_DRUID** (Rapprochement)
-- Mouvement vers druide
-- Transition : FOLLOW_DRUID (< 128px)
-
-#### **FOLLOW_DRUID** (Suivi)
-- Accompagnement druide
-- Transition : IDLE (santé ≥ 95%)
+### 5.6 FollowDruid
+- Approche le druide même à longue distance
+- Maintient une orbite sécurisée (< 160px) jusqu'à soin complet
+- Transition Idle si santé rétablie
 
 ---
 
-## 5. Système de danger
+## 6. Système de danger
 
-### 5.1 Sources dynamiques (par tick)
+### 6.1 Sources dynamiques (mise à jour/seconde)
+| Source | Radius | Intensité | Décroissance |
+|--------|--------|-----------|--------------|
+| Projectiles | 3.0 tuiles | 2.5 | 2.0/s |
+| Tempêtes | 6.0 tuiles | 7.0 | 2.0/s |
+| Bandits | 6.0 tuiles | 5.0 | 2.0/s |
+| Unités alliées | 3.5 tuiles | 1.2 | 2.0/s |
 
-| Source | Radius | Intensité | Usage |
-|--------|--------|-----------|-------|
-| Projectiles | 3.0 tuiles | 2.5 | Court-terme |
-| Bandits | 6.0 tuiles | 5.0 | Élevé |
-| Tempêtes | 6.0 tuiles | 7.0 | Très élevé |
-| Unités alliées | 3.5 tuiles | 1.2 | Léger |
-
-### 5.2 Sources statiques (une fois)
-
-**Mines** (croix `+` bloquante) :
-- Tuile centrale + quatre orthogonales = danger max (fuite immédiate)
-- Aucune propagation diagonale : la zone reste compacte
-
-**Îles** :
-- Aucune pénalité de danger statique (juste pathfinding qui interdit la croix)
-
-### 5.3 Seuils
-
-```
-SAFE_THRESHOLD:         0.45   ← Zone "agir"
-FLEE_THRESHOLD:         1.45   ← Fuite obligée
-FLEE_HYSTERESIS:        0.55   ← Amortissement
-FLEE_RELEASE_MARGIN:    0.25   ← Sortie fuite (0.70 total)
-MAX_VALUE_CAP:          12.0   ← Normalisation max
-DECAY_PER_SECOND:       0.82   ← Décroissance
-```
+### 6.2 Sources statiques
+- Mines : Croix + (centrale + 4 orthogonales) = ∞
+- Îles : Croix + (centrale + 4 orthogonales) = 50.0
+- Bords carte : Rayon 1 sous-tuile = ∞
 
 ---
 
-## 6. Pathfinding pondéré (A*)
+## 7. Pathfinding pondéré (A*)
 
-### 6.1 Coûts de tuiles
+### 7.1 Coûts de tuiles
+| Source | Radius | Intensité | Décroissance |
+|--------|--------|-----------|--------------|
+| Projectiles | 3.0 tuiles | 2.5 | 2.0/s |
+| Tempêtes | 6.0 tuiles | 7.0 | 2.0/s |
+| Bandits | 6.0 tuiles | 5.0 | 2.0/s |
+| Unités alliées | 3.5 tuiles | 1.2 | 2.0/s |
 
-| Tuile | Coût | Usage |
-|-------|------|-------|
-| Sol normal | 1.0 | Déplacement libre |
-| Nuage | 1.3 | Ralentissement léger |
-| Île (case + croix à 1 tuile) | ∞ | Infranchissable |
-| Mine (case + croix à 1 tuile) | ∞ | Infranchissable |
-| Déplacement diagonal | coût × 1.4 | Facteur move |
-
-### 6.2 Zones interdites en croix (+)
-
-- Chaque île ou mine bloque sa tuile centrale et les quatre cases orthogonales adjacentes.
-- Aucune notion d'anneaux : la croix est la seule barrière.
-- Le danger dynamique n'est plus additionné au coût : seules ces interdictions + le poids des nuages modifient la recherche.
+### 7.2 Optimisations
+- Sub-tile factor : 2 (résolution ×2)
+- Blocked margin : 2 sous-tuiles sécurité
+- Recompute distance : 64px
+- Waypoint radius : 32px+
 
 ---
 
-## 7. Logique de combat (AttackState)
+## 8. Logique de combat
 
-### 7.1 Tir (Shooting)
+### 8.1 Tir continu (_try_continuous_shoot)
+Appelé chaque tick, indépendamment de l'état :
+- Vise target_entity ou objective.target_entity
+- Orientation automatique
+- Tir si cooldown = 0
+- Reset cooldown = bullet_cooldown
 
-```
-Chaque tick :
-1. Réduction cooldown : radius.cooldown -= dt
-2. Si cooldown > 0 : aucun tir
-3. Si cooldown ≤ 0 :
-   a. Prédiction position cible (horizon=0.35s)
-   b. Orientation vers prédiction
-   c. Dispatch event "attack_event"
-   d. Réinitialisation cooldown = bullet_cooldown
-```
-
-### 7.2 Positionnement
-
-#### **Unités normales**
-- Distance optimale : radius × 0.85 (~166 px)
-- Tolérance : 24 px
-- Approche si distance > optimal + 24
-- Tire si distance ≤ optimal + 24
-
-#### **Attaque base**
-- Point de harcèlement : 260 px (calculé métadonnées)
-- **Si < 195 px** : RECUL CONTRÔLÉ loin de base
-- Continue tir pendant recul
-- Évite contact destructeur
+### 8.2 AttackState specifics
+- Anchor computation : 8 directions (45°), coût ∞ filtré
+- Distance optimale : 90% radius (120-200px)
+- Attack_base : Position aléatoire 0-360°, distance 100px
+- Ajustement : Si infranchissable → recherche valide
 
 ---
 
-## 8. Coordination inter-unités
+## 9. Coordination inter-unités
 
-### 8.1 Rôles réservés
+### 9.1 Rôles exclusifs
+- Coffres : Assignation propriétaire via chest_owner(), libération collecte/coulement/disparition
+- Harcèlement : Rotation via assign_rotating_role("harass"), durée 3.0s puis redistribution
+- Follow-to-die : Rôle exclusif, autres → survie
 
-**Coffres** (EXCLUSIVE) :
-- Une seule unité réserve le coffre et reçoit le chemin vers celui-ci
-- Les autres unités ignorent simplement ce coffre et conservent/choisissent un objectif différent
-- Libération : collecte, coffre coulé, cible perdue
-
-**Follow-to-die** (EXCLUSIVE) :
-- Une seule exécution par groupe
-- Autre unité → "attack" simple
-- Libération : cible tuée
-
-**Harcèlement** (PARTAGÉ) :
-- Plusieurs unités peuvent attaquer même cible
-- Aucune réservation
-
----
-
-## 9. Thresholds critiques
-
-### 9.1 Santé
-
-```
-flee_ratio:         0.35  (35% → mourant)
-join_druid_ratio:   0.65  (65% → appel soin)
-follow_druid_ratio: 0.95  (95% → reste druide)
-invincibility_min:  0.25  (25% → critique)
-```
-
-### 9.2 Temps
-
-```
-tick_frequency:              10 Hz (0.1s)
-objective_reconsider_delay:  0.75s
-state_min_duration:          0.8s
-flee_reaction_window:        1.8s
-attack_ignore_danger_window: 2.0s
-attack_persistence_ratio:    0.55 (continue si > 55%)
-flee_release_margin:         0.25 (marge sortie)
-```
-
-### 9.3 Distances
-
-```
-waypoint_reached:       24 px
-near_druid:            128 px
-follow_to_die_max:     360 px
-attack_max_vs_units:   420 px
-attack_max_vs_base:    420 px
-pathfinding_recompute: 64 px
-attack_tolerance:      24 px
-```
+### 9.2 Services
+- CoordinationService : Gestion rôles + avoidance vectors
+- IAEventBus : Événements coffres/tempêtes
+- PredictionService : Menaces projectiles
 
 ---
 
 ## 10. Configuration JSON externe
 
-Structure JSON (optionnelle, chemins) :
-
+Structure identique à l'ancienne version :
 ```json
 {
   "danger": {
     "safe_threshold": 0.45,
-    "flee_threshold": 1.45
+    "flee_threshold": 0.7
   },
   "weights": {
-    "survive": 3.0,
-    "chest": 4.0,
+    "survive": 4.0,
+    "chest": 3.0,
     "attack": 1.6
   }
 }
 ```
-
-Chemins recherche :
-1. `assets/ia_troupe_rapide/config.json`
-2. `config/ia_troupe_rapide.json`
-3. `ia_troupe_rapide_config.json`
+Chemins recherche inchangés.
 
 ---
 
-## 11. Problèmes actuels et opportunités
+## 11. Thresholds critiques
 
-### 11.1 Bugs identifiés et fixes appliqués
+### 11.1 Santé
+```
+flee_health_ratio:         0.35  (35% → fuite possible)
+follow_druid_health_ratio: 0.95  (95% → soin terminé)
+invincibility_min:         0.25  (25% → critique)
+```
 
-| Bug | Cause | Fix appliqué | Statut |
-|-----|-------|-------------|--------|
-| Tirs rares/jamais | Cooldown non décrémenté | Ajout `_cooldown_step(dt)` global | ✅ Complet |
-| Rush base | Distance standoff nulle | Ajout 260px + recul si <195px | ✅ Complet |
-| Collisions mines | Coûts pathfinding faibles | Mines: 5.5×/3.0× + croix pattern | ✅ Complet |
-| Oscillation attaque | Tolérance 24px trop fine | Incrémenter à 32px | ⏳ À tester |
-| Survie excessive | Poids "survive" trop haut | Réduit scaling dynamique | ⏳ À tester |
+### 11.2 Temps
+```
+tick_frequency:              10 Hz (0.1s)
+follow_to_die_window:        3.0s
+objective_reconsider_delay:  0.75s
+flee_cooldown:               1.0s (anti-oscillation)
+state_stuck_timeout:         5.0s (reset objectif)
+```
 
-### 11.2 Améliorations easy wins
-
-1. **Logs debug** : Ajouter tous scores évaluation
-2. **Tuning poids** : `attack: 1.2` (moins agressif)
-3. **Distance sûre** : 420 → 520 px
-4. **Tolérance** : 24 → 32 px
-
-### 11.3 Améliorations medium
-
-1. **Pathfinding** : Coûts îles ×2.5 vs ×1.6
-2. **Prédiction** : horizon 0.8 → 1.2s
-3. **Groupe tactics** : Load-balance cibles
+### 11.3 Distances
+```
+waypoint_reached:       32px+
+navigation_tolerance:   24px
+near_druid:            128px
+follow_to_die_max:     360px
+attack_anchor_radius:  120-200px
+```
 
 ---
 
-## 12. Fichiers clés et structure
+## 12. Changements majeurs vs ancienne version
 
-### Chemin principal
+### 12.1 Architecture
+- Évaluation : Scoring pondéré → Priorités séquentielles
+- Tir : Conditionnel état → Continu tous états
+- Navigation : Temporaire → Persistante (survit refresh)
+
+### 12.2 Configurations
+- Danger : decay 0.82 → 2.0 (plus rapide)
+- Seuils : flee_threshold 1.45 → 0.7 (plus sensible)
+- Poids : survive 3.0 → 4.0, chest 4.0 → 3.0
+
+### 12.3 Logique
+- Attack_base : Standoff 260px → Position aléatoire
+- FSM : Transitions simplifiées avec priorités
+- Coordination : + harcèlement rotatif
+
+---
+
+## 13. Fichiers clés et structure
 ```
 src/ia_troupe_rapide/
-├── config.py                    # Configuration + thresholds
+├── config.py                    # Configuration + dataclasses
 ├── processors/
 │   └── rapid_ai_processor.py   # Processeur + RapidUnitController
 ├── services/
-│   ├── goals.py                 # GoalEvaluator (8 objectifs)
+│   ├── goals.py                 # GoalEvaluator (priorités séquentielles)
 │   ├── danger_map.py            # Danger 2D + statiques
-│   ├── pathfinding.py           # A* pondéré
+│   ├── pathfinding.py           # A* pondéré sub-tile
 │   ├── prediction.py            # Prédiction ennemis
-│   ├── coordination.py          # Rôles exclusifs
-│   └── ai_context.py            # Cache contexte
+│   ├── coordination.py          # Rôles exclusifs + avoidance
+│   ├── context.py               # UnitContext + navigation persistante
+│   ├── event_bus.py             # Bus événements
+│   └── log.py                   # Logging IA
 ├── states/
-│   ├── idle.py, flee.py
-│   ├── goto.py, attack.py
+│   ├── idle.py, flee.py, goto.py
+│   ├── attack.py
 │   ├── follow_druid.py
-│   └── follow_to_die.py
-└── fsm/
-    └── machine.py              # Moteur FSM
+│   ├── follow_to_die.py
+│   └── base.py                  # Classe mère états
+├── fsm/
+│   └── machine.py              # Moteur FSM + transitions
+└── integration.py              # Intégration globale
 ```
 
 ---
 
-## 13. Points clés d'optimisation future
+## 14. Points d'optimisation actuels
 
-### Phase 1 : Validation (court terme)
-- ✅ Tirs générés (cooldown)
-- ✅ Standoff base (260px + recul)
-- ✅ Mines évitées (5.5× / 3.0×)
-- ⏳ Test oscillation (tolérance 24→32px)
+### Phase 1 : Stabilisation (courant)
+- ✅ Tir continu implémenté
+- ✅ Navigation persistante
+- ✅ Coordination rôles rotatifs
+- ⏳ Test hysteresis fuite (oscillation)
 
-### Phase 2 : Tuning (moyen terme)
-- ⏳ Logs objectifs (tous scores)
-- ⏳ Poids attack: 1.6→1.2
-- ⏳ Distance base: 420→520px
-- ⏳ Îles coûts: ×2.5 / ×2.0 / ×1.5
+### Phase 2 : Tuning (prochain)
+- ⏳ Ajustement seuils danger (0.7 → ?)
+- ⏳ Distance anchor attack (120px → ?)
+- ⏳ Poids objectifs (survive 4.0 trop haut ?)
 
-### Phase 3 : Advanced (long terme)
-- ⏳ Prédiction horizon: 0.35→1.2s
-- ⏳ Coordination groupe: load-balance
-- ⏳ Micro-positions: pattern rotation
+### Phase 3 : Advanced (futur)
+- ⏳ Prédiction horizon (0.8s → 1.2s)
+- ⏳ Micro-positions pattern rotation
+- ⏳ Load-balance cibles multiples
 
 ---
 
 ## Résumé exécutif
 
-L'IA Troupe Rapide est un **système hybride scoring + FSM** optimisé pour survie et harcèlement rapide. Depuis les derniers fixes (projectiles, standoff base, pathfinding mines), le système est **stable et complet**. Les thresholds sont documentés, les transitions claires, les services découplés.
+L'IA Troupe Rapide a évolué vers un **système hybride priorités + FSM + tir continu** optimisé pour harcèlement efficace et survie. Les changements majeurs incluent l'évaluation séquentielle, la persistance navigation, et le tir indépendant des états.
 
-**Prochaines étapes d'amélioration** : Tester en-jeu, affiner poids d'objectifs, ajouter logs de debug, valider distances d'engagement.
+**Prochaines étapes** : Stabiliser hysteresis fuite, tuner seuils danger, valider distances combat en jeu.
 
 ---
 
-**Last Updated: 18 October 2025 | Branch: IA_LAMBERT | Status: Ready for Testing**
+**Last Updated: 20 October 2025 | Branch: IA_LAMBERT | Status: Updated with current implementation**

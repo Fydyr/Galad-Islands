@@ -22,30 +22,30 @@ class FleeState(RapidAIState):
         super().enter(context)
         self.controller.cancel_navigation(context)
         self._safe_point = self.controller.danger_map.find_safest_point(context.position, 8.0)
-        context.reset_path()
-        if self._safe_point:
-            self.controller.request_path(self._safe_point)
+        if self._safe_point is not None:
+            self.controller.ensure_navigation(context, self._safe_point, return_state=self.name)
         self._maybe_activate_invincibility(context)
 
     def update(self, dt: float, context: "UnitContext") -> None:
-        if self._safe_point is None:
+        tolerance = self.controller.navigation_tolerance
+        if self._safe_point is None or self.distance(context.position, self._safe_point) <= tolerance:
             self._safe_point = self.controller.danger_map.find_safest_point(context.position, 6.0)
 
         if context.special_component and context.special_component.is_invincible():
-            pass  # Keep running, invincibility handled by component
+            pass  # Invincibility handled downstream
 
-        waypoint = context.peek_waypoint()
-        target = waypoint if waypoint is not None else self._safe_point
-        if target is None:
-            target = self.controller.danger_map.find_safest_point(context.position, 4.0)
+        if self._safe_point is None:
+            if self.controller.is_navigation_active(context):
+                self.controller.cancel_navigation(context)
+            self.controller.stop()
+            return
 
-        distance = self.distance(context.position, target)
-        if waypoint is not None and distance < self.controller.waypoint_radius:
-            context.advance_path()
-            waypoint = context.peek_waypoint()
-            target = waypoint if waypoint is not None else target
-
-        self.controller.move_towards(target)
+        self.controller.ensure_navigation(
+            context,
+            self._safe_point,
+            return_state=self.name,
+            tolerance=tolerance,
+        )
 
     def _maybe_activate_invincibility(self, context: "UnitContext") -> None:
         if not context.special_component:

@@ -9,10 +9,13 @@ import esper
 from src.components.core.positionComponent import PositionComponent
 
 from .base import RapidAIState
+from ..log import get_logger
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..processors.rapid_ai_processor import RapidUnitController
     from ..services.context import UnitContext
+
+LOGGER = get_logger()
 
 
 class GoToState(RapidAIState):

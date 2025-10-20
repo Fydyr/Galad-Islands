@@ -24,10 +24,21 @@ class IdleState(RapidAIState):
         self.controller.stop()
 
     def update(self, dt: float, context: "UnitContext") -> None:
+        from ..log import get_logger
+        LOGGER = get_logger()
         # Keep a slow drift to avoid staying static in danger.
         danger = self.controller.danger_map.sample_world(context.position)
         if danger > self.controller.settings.danger.safe_threshold:
             safe_spot = self.controller.danger_map.find_safest_point(context.position, 4.0)
-            self.controller.move_towards(safe_spot)
-        else:
-            self.controller.stop()
+            if safe_spot is not None:
+                self.controller.ensure_navigation(
+                    context,
+                    safe_spot,
+                    return_state=self.name,
+                    tolerance=self.controller.navigation_tolerance * 0.5,
+                )
+            return
+
+        if self.controller.is_navigation_active(context):
+            self.controller.cancel_navigation(context)
+        self.controller.stop()

@@ -138,7 +138,7 @@ def test_coffre_ignore_si_bloque(monkeypatch: MonkeyPatch) -> None:
 
 	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
 
-	assert objective.type in {"join_druid", "follow_druid"}
+	assert objective.type == "follow_druid"
 
 
 def test_cible_stationnaire_prioritaire(monkeypatch: MonkeyPatch) -> None:

@@ -34,17 +34,15 @@ from ..services import (
     Objective,
 )
 from ..services.context import UnitContext
+from ..fsm.machine import StateMachine, Transition
 from ..states import (
     AttackState,
+    IdleState,
+    GoToState,
     FleeState,
     FollowDruidState,
     FollowToDieState,
-    GoToState,
-    IdleState,
-    JoinDruidState,
-    PreshotState,
 )
-from ..fsm import StateMachine, Transition
 
 
 if TYPE_CHECKING:
@@ -164,7 +162,11 @@ class RapidTroopAIProcessor(esper.Processor):
         self.danger_map.update(dt)
 
     def _cleanup_dead_entities(self) -> None:
-        existing_entities = set(self.world._entities.keys()) if self.world is not None else set()
+        """Supprime les contrôleurs pour les entités qui n'existent plus dans le monde."""
+        if self.world is None:
+            # Le monde n'est pas encore initialisé - ne pas nettoyer
+            return
+        existing_entities = set(self.world._entities.keys())
         removed = [entity for entity in self.controllers if entity not in existing_entities]
         for entity in removed:
             del self.controllers[entity]
@@ -248,16 +250,19 @@ class RapidUnitController:
         self.last_objective_refresh = -999.0
         self._last_state_name = ""
         self._last_objective_signature: tuple[str, Optional[int]] = ("", None)
-        self._state_lookup: Dict[str, object] = {}
+        self.target_position = None
+        # Store navigation state persistently (survives context refresh)
+        self._persistent_nav_active = False
+        self._persistent_nav_target: Optional[tuple[float, float]] = None
+        self._persistent_nav_owner: Optional[str] = None
+        self._persistent_nav_return: Optional[str] = None
 
     def _build_state_machine(self) -> StateMachine:
         idle = IdleState("Idle", self)
         goto = GoToState("GoTo", self)
         flee = FleeState("Flee", self)
         attack = AttackState("Attack", self)
-        join = JoinDruidState("JoinDruid", self)
         follow = FollowDruidState("FollowDruid", self)
-        preshot = PreshotState("Preshot", self)
         follow_die = FollowToDieState("FollowToDie", self)
 
         fsm = StateMachine(initial_state=idle)
@@ -266,9 +271,7 @@ class RapidUnitController:
             "GoTo": goto,
             "Flee": flee,
             "Attack": attack,
-            "JoinDruid": join,
             "FollowDruid": follow,
-            "Preshot": preshot,
             "FollowToDie": follow_die,
         }
 
@@ -277,10 +280,14 @@ class RapidUnitController:
             Transition(condition=self._should_flee, target=flee, priority=100, name="Danger")
         )
         fsm.add_global_transition(
-            Transition(condition=self._should_join_druid, target=join, priority=80, name="JoinDruid")
+            Transition(condition=self._should_follow_druid, target=follow, priority=80, name="FollowDruid")
         )
         fsm.add_global_transition(
             Transition(condition=self._has_navigation_request, target=goto, priority=70, name="Navigation")
+        )
+        # Dummy global transition to register GoTo state
+        fsm.add_global_transition(
+            Transition(condition=lambda dt, ctx: False, target=goto, priority=0, name="DummyGoTo")
         )
 
         # Idle transitions
@@ -291,10 +298,6 @@ class RapidUnitController:
         fsm.add_transition(
             idle,
             Transition(condition=self._has_attack_objective, target=attack, priority=40, name="Attack")
-        )
-        fsm.add_transition(
-            idle,
-            Transition(condition=self._has_preshot_objective, target=preshot, priority=30, name="Preshot")
         )
 
         # GoTo transitions
@@ -322,20 +325,16 @@ class RapidUnitController:
             Transition(condition=self._healed, target=idle, priority=10)
         )
 
-        # Preshot logic fallback to attack or idle
-        fsm.add_transition(
-            preshot,
-            Transition(condition=self._preshot_window_done, target=attack, priority=10)
-        )
-        fsm.add_transition(
-            preshot,
-            Transition(condition=self._attack_done, target=idle, priority=5)
-        )
-
         # Follow to die fallback to idle
         fsm.add_transition(
             follow_die,
             Transition(condition=self._attack_done, target=idle, priority=5)
+        )
+
+        # Dummy transition to register GoTo state in FSM
+        fsm.add_transition(
+            goto,
+            Transition(condition=lambda dt, ctx: False, target=idle, priority=0)
         )
 
         return fsm
@@ -370,26 +369,40 @@ class RapidUnitController:
 
     def start_navigation(self, context: UnitContext, target: Optional[tuple[float, float]], return_state: str) -> bool:
         if target is None:
+            LOGGER.info("[AI] %s start_navigation: target is None", self.entity_id)
             return False
-        current_target = context.share_channel.get("nav_target")
+        current_target = context.share_channel.get("nav_target") or self._persistent_nav_target
         context.share_channel["nav_return"] = return_state
-        if self.is_navigation_active(context) and current_target is not None:
+        self._persistent_nav_return = return_state
+        if (self._persistent_nav_active or self.is_navigation_active(context)) and current_target is not None:
             if self._navigation_distance(current_target, target) <= self.navigation_tolerance * 0.25:
+                LOGGER.info("[AI] %s start_navigation: already navigating to same target", self.entity_id)
                 return False
         context.share_channel["nav_target"] = target
+        self._persistent_nav_target = target
         context.share_channel["nav_owner"] = self.state_machine.current_state.name
+        self._persistent_nav_owner = self.state_machine.current_state.name
         context.share_channel["nav_active"] = True
+        self._persistent_nav_active = True
         context.share_channel["nav_request_time"] = self.context_manager.time
         if not self.navigation_target_matches(context, target, tolerance=self.navigation_tolerance * 0.25):
             context.reset_path()
         context.share_channel.pop("goto_last_replan", None)
+        LOGGER.info("[AI] %s start_navigation: navigation started to (%.1f,%.1f), nav_active=%s, nav_owner=%s", 
+                   self.entity_id, target[0], target[1], 
+                   context.share_channel.get("nav_active"), context.share_channel.get("nav_owner"))
         return True
 
     def cancel_navigation(self, context: UnitContext) -> None:
+        """Annule la navigation en cours et réinitialise l'état de navigation."""
         context.share_channel["nav_active"] = False
+        self._persistent_nav_active = False
         context.share_channel.pop("nav_target", None)
+        self._persistent_nav_target = None
         context.share_channel.pop("nav_return", None)
+        self._persistent_nav_return = None
         context.share_channel.pop("nav_owner", None)
+        self._persistent_nav_owner = None
         context.share_channel.pop("nav_request_time", None)
         context.reset_path()
 
@@ -406,7 +419,8 @@ class RapidUnitController:
         self.state_machine.force_state(target_state, context)
 
     def is_navigation_active(self, context: UnitContext) -> bool:
-        return bool(context.share_channel.get("nav_active"))
+        # Check persistent storage first (survives context refresh)
+        return self._persistent_nav_active or bool(context.share_channel.get("nav_active"))
 
     def navigation_target_matches(self, context: UnitContext, target: tuple[float, float], *, tolerance: float) -> bool:
         current_target = context.share_channel.get("nav_target")
@@ -418,11 +432,12 @@ class RapidUnitController:
         return math.hypot(a[0] - b[0], a[1] - b[1])
 
     def _has_navigation_request(self, dt: float, context: UnitContext) -> bool:
-        if not self.is_navigation_active(context):
+        is_nav_active = self.is_navigation_active(context)
+        if not is_nav_active:
             return False
         if self.state_machine.current_state is self._state_lookup.get("GoTo"):
             return False
-        requested_owner = context.share_channel.get("nav_owner")
+        requested_owner = context.share_channel.get("nav_owner") or self._persistent_nav_owner
         if requested_owner and requested_owner != self.state_machine.current_state.name:
             return True
         return True
@@ -466,35 +481,42 @@ class RapidUnitController:
                 LOGGER.debug("[AI] %s _should_flee: ENTERING flee state", context.entity_id)
             return should_start_flee
 
-    def _should_join_druid(self, dt: float, context: UnitContext) -> bool:
+    def _should_follow_druid(self, dt: float, context: UnitContext) -> bool:
         if not self.goal_evaluator.has_druid(context.team_id):
             return False
         objective = context.current_objective
-        if objective and objective.type in {"join_druid", "follow_druid"}:
+        if objective and objective.type == "follow_druid":
             return True
         health_ratio = context.health / max(context.max_health, 1.0)
-        return health_ratio <= self.settings.join_druid_health_ratio
+        return health_ratio < self.settings.follow_druid_health_ratio
 
     def _has_goto_objective(self, dt: float, context: UnitContext) -> bool:
         return bool(context.current_objective and context.current_objective.type.startswith("goto"))
 
     def _has_attack_objective(self, dt: float, context: UnitContext) -> bool:
         if not context.current_objective:
+            LOGGER.debug("[AI] %s _has_attack_objective: no objective", self.entity_id)
             return False
-        if (
-            self.is_navigation_active(context)
-            and context.share_channel.get("nav_return") == "Attack"
-        ):
+        # Si on est en navigation lancée par Attack, reste en Attack/GoTo
+        # Check both persistent and context storage
+        return_state = context.share_channel.get("nav_return") or self._persistent_nav_return
+        if (self._persistent_nav_active or self.is_navigation_active(context)) and return_state == "Attack":
             return False
-        return context.current_objective.type in {"attack", "attack_base"}
-
-    def _has_preshot_objective(self, dt: float, context: UnitContext) -> bool:
-        return bool(context.current_objective and context.current_objective.type == "preshot")
+        result = context.current_objective.type in {"attack", "attack_base"}
+        LOGGER.info("[AI] %s _has_attack_objective: returning %s (objective_type=%s, nav_active=%s, nav_return=%s)", 
+                    self.entity_id, result, context.current_objective.type, 
+                    self.is_navigation_active(context), return_state)
+        return result
 
     def _has_follow_to_die(self, dt: float, context: UnitContext) -> bool:
         return bool(context.current_objective and context.current_objective.type == "follow_die")
 
     def _objective_reached(self, dt: float, context: UnitContext) -> bool:
+        # Si une navigation est active, on ne doit jamais quitter GoTo
+        # La navigation doit se terminer avec complete_navigation()
+        if self.is_navigation_active(context):
+            return False
+        
         objective = context.current_objective
         if objective is None:
             return True
@@ -510,13 +532,17 @@ class RapidUnitController:
     def _attack_done(self, dt: float, context: UnitContext) -> bool:
         objective = context.current_objective
         if objective is None:
+            LOGGER.info("[AI] %s _attack_done: no objective, returning True", self.entity_id)
             return True
         
         # Pour les objectifs de position fixe comme attack_base, l'attaque ne se termine jamais
         if objective.type in {"attack_base"}:
-            return False
+            result = False
+            LOGGER.info("[AI] %s _attack_done: attack_base objective, returning %s", self.entity_id, result)
+            return result
         
         # Pour les objectifs avec une entité cible, l'attaque se termine si l'entité n'existe plus
+        LOGGER.info("[AI] %s _attack_done: checking other objective types (type=%s)", self.entity_id, objective.type)
 
     def _near_druid(self, dt: float, context: UnitContext) -> bool:
         if context.current_objective is None or context.current_objective.target_entity is None:
@@ -530,9 +556,6 @@ class RapidUnitController:
 
     def _healed(self, dt: float, context: UnitContext) -> bool:
         return context.health / max(context.max_health, 1.0) >= self.settings.follow_druid_health_ratio
-
-    def _preshot_window_done(self, dt: float, context: UnitContext) -> bool:
-        return (self.context_manager.time - context.last_state_change) >= self.settings.preshot_window
 
     # Update ----------------------------------------------------------------
     def update(self, dt: float) -> None:
@@ -556,6 +579,9 @@ class RapidUnitController:
                 current_state,
             )
             self._last_state_name = current_state
+        # NOTE: Do NOT manually force to GoTo here - let the FSM handle transitions
+        # The global transition _has_navigation_request (priority 70) will trigger
+        # before local transitions and move to GoTo if navigation is active
         objective_type = ctx.current_objective.type if ctx.current_objective else "idle"
         self.coordination.update_unit_state(
             self.entity_id,
@@ -627,7 +653,7 @@ class RapidUnitController:
         now = self.context_manager.time
         if (
             context.current_objective
-            and context.current_objective.type in {"join_druid", "follow_druid"}
+            and context.current_objective.type == "follow_druid"
             and not self.goal_evaluator.has_druid(context.team_id)
         ):
             # Repli immédiat si le druide a disparu
@@ -677,7 +703,7 @@ class RapidUnitController:
                         self.entity_id,
                         objective.target_entity,
                     )
-            elif objective.type in {"attack", "preshot", "follow_die"}:
+            elif objective.type in {"attack", "follow_die"}:
                 candidate_ids = {state.entity_id for state in self.coordination.shared_states()}
                 candidate_ids.add(self.entity_id)
                 chosen = self.coordination.assign_rotating_role(
@@ -703,7 +729,19 @@ class RapidUnitController:
                 context.assigned_chest_id = None
             
             # Vérifier si l'objectif attack_base est valide (pas d'unités ennemies près de la base)
-            # Removed protection check to allow attacking protected bases
+            if objective.type == "attack_base" and objective.target_entity is not None:
+                base_block_until = context.share_channel.get("attack_base_block_until", 0.0)
+                base_protection_radius = 200.0
+                if self._is_base_protected(context, objective.target_entity, base_protection_radius):
+                    if now >= base_block_until:
+                        LOGGER.info(
+                            "[AI] %s base protégée par des unités ennemies, autorisation d'attaque",
+                            self.entity_id,
+                        )
+                    # Autoriser l'attaque même si protégée
+                else:
+                    if base_block_until > 0.0 and base_block_until > now:
+                        context.share_channel["attack_base_block_until"] = 0.0
             
             new_signature = (objective.type, objective.target_entity)
             if new_signature != self._last_objective_signature:
@@ -716,6 +754,7 @@ class RapidUnitController:
                 )
                 self._last_objective_signature = new_signature
             self.context_manager.assign_objective(context, objective, score)
+            self.target_position = objective.target_position
         if skip_attack_flag:
             context.share_channel.pop("skip_attack_base", None)
 
@@ -788,6 +827,33 @@ class RapidUnitController:
             vel.terrain_modifier = 0.5
         else:
             vel.terrain_modifier = 1.0
+
+    def ensure_navigation(
+        self,
+        context: UnitContext,
+        target_position: Optional[tuple[float, float]],
+        *,
+        return_state: Optional[str] = None,
+        tolerance: Optional[float] = None,
+    ) -> bool:
+        """Garantit qu'un déplacement passe par le mode GoTo uniquement."""
+
+        if target_position is None:
+            return False
+        if return_state is None:
+            return_state = self.state_machine.current_state.name
+        if tolerance is None:
+            tolerance = self.navigation_tolerance
+
+        if self.is_navigation_active(context) and self.navigation_target_matches(
+            context,
+            target_position,
+            tolerance=tolerance,
+        ):
+            return True
+
+        self.start_navigation(context, target_position, return_state)
+        return True
 
     def stop(self) -> None:
         vel = esper.component_for_entity(self.entity_id, VelocityComponent)
