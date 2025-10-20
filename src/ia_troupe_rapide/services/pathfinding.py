@@ -116,6 +116,17 @@ class PathfindingService:
                 current = cost[margin_mask]
                 cost[margin_mask] = np.maximum(current, weight)
 
+        border_radius_tiles = max(0, int(self.settings.pathfinding.map_border_radius))
+        if border_radius_tiles > 0:
+            border_cells = border_radius_tiles * self.sub_tile_factor
+            border_cells = min(border_cells, cost.shape[0] // 2, cost.shape[1] // 2)
+            if border_cells > 0:
+                # Bloquer les bords de la carte pour éviter que l'IA ne s'y colle
+                cost[:border_cells, :] = np.inf
+                cost[-border_cells:, :] = np.inf
+                cost[:, :border_cells] = np.inf
+                cost[:, -border_cells:] = np.inf
+
         return cost
 
     def _build_neighbors(self) -> Tuple[Tuple[int, int, float], ...]:

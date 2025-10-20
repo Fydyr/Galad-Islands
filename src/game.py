@@ -1,4 +1,5 @@
 # Importations standard
+from collections import Counter
 from typing import Dict, List, Optional, Tuple
 
 import pygame
@@ -421,6 +422,10 @@ class GameRenderer:
             t("debug.resolution", width=window.get_width(), height=window.get_height()),
             t("debug.fps", fps=1/dt if dt > 0 else 0)
         ]
+
+        ai_debug_line = self._build_ai_state_line()
+        if ai_debug_line:
+            debug_info.append(ai_debug_line)
         
         for i, info in enumerate(debug_info):
             text_surface = font.render(info, True, (255, 255, 255))
@@ -455,6 +460,31 @@ class GameRenderer:
                 # Dessiner des points jaunes aux waypoints
                 for screen_x, screen_y in screen_points:
                     pygame.draw.circle(window, (255, 255, 0), (int(screen_x), int(screen_y)), 4)
+
+    def _build_ai_state_line(self) -> Optional[str]:
+        """Construit la ligne affichant l'état synthétique de l'IA rapide."""
+
+        processor = getattr(self.game_engine, "rapid_ai_processor", None)
+        if processor is None:
+            return None
+
+        controllers = getattr(processor, "controllers", None)
+        if not controllers:
+            return t("debug.ai_state.empty")
+
+        state_counts = Counter(
+            controller.state_machine.current_state.name
+            for controller in controllers.values()
+            if getattr(controller, "state_machine", None) is not None
+        )
+
+        if not state_counts:
+            return t("debug.ai_state.empty")
+
+        total_units = sum(state_counts.values())
+        # Limiter l'affichage aux états principaux pour garder le HUD lisible
+        summary = ", ".join(f"{state}:{count}" for state, count in state_counts.most_common(3))
+        return t("debug.ai_state", count=total_units, states=summary)
 
     def _render_game_over_message(self, window):
         """Rend le message de fin de partie au centre de l'écran."""
