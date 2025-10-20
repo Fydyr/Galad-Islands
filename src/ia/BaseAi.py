@@ -25,6 +25,7 @@ from src.factory.unitFactory import UnitFactory
 from src.factory.unitType import UnitType
 from src.components.core.positionComponent import PositionComponent
 from src.constants.team import Team
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 
 
 class BaseAi(esper.Processor):
@@ -541,7 +542,12 @@ class BaseAi(esper.Processor):
                 elif team_comp.team_id != 0:
                     enemy_units += 1
 
-            enemy_base_known = 1
+            # Déterminer si la base ennemie est connue via le registry central
+            try:
+                enemy_base_known = 1 if enemy_base_registry.is_enemy_base_known(ai_team_id) else 0
+            except Exception:
+                # fallback: considérer connue (ancienne logique) pour compatibilité
+                enemy_base_known = 1
             towers_needed = 1 if base_health_ratio < 0.6 else 0
 
             gold = 0

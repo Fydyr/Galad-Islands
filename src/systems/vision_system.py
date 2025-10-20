@@ -15,6 +15,7 @@ from src.components.core.positionComponent import PositionComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.visionComponent import VisionComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 from src.functions.resource_path import get_resource_path
 from src.managers.sprite_manager import sprite_manager, SpriteID
 
@@ -117,6 +118,30 @@ class VisionSystem:
                     self._add_visible_tiles_from_unit(pos.x, pos.y, vision.range)
 
         # Ajouter les zones actuellement visibles aux zones découvertes
+        # Avant d'update explored, vérifier si des tuiles de base ennemie deviennent visibles
+        newly_visible = set(self.visible_tiles[self.current_team]) - set(self.explored_tiles.get(self.current_team, set()))
+        # Bounding boxes des bases en coordonnées grille (convention mapComponent)
+        ally_base_tiles = set((x, y) for x in range(1, 1 + 4) for y in range(1, 1 + 4))
+        enemy_base_tiles = set((x, y) for x in range(MAP_WIDTH - 4, MAP_WIDTH) for y in range(MAP_HEIGHT - 4, MAP_HEIGHT))
+        for (tx, ty) in newly_visible:
+            # Si l'une des tuiles visibles appartient à la base ennemie, déclarer la découverte
+            if (tx, ty) in enemy_base_tiles:
+                # team qui découvre
+                discoverer = self.current_team
+                enemy_team = 2 if discoverer == 1 else 1
+                # position monde centrale de la base ennemie (alignée avec BaseComponent)
+                if enemy_team == 2:
+                    bx = (MAP_WIDTH - 3.0) * TILE_SIZE
+                    by = (MAP_HEIGHT - 2.8) * TILE_SIZE
+                else:
+                    bx = 3.0 * TILE_SIZE
+                    by = 3.0 * TILE_SIZE
+                try:
+                    enemy_base_registry.declare_enemy_base(discoverer, enemy_team, bx, by)
+                except Exception:
+                    # Ne pas faire échouer la mise à jour de la vision pour une erreur non critique
+                    pass
+
         self.explored_tiles[self.current_team].update(self.visible_tiles[self.current_team])
         
         # Marquer cette équipe comme "sale" (dirty) car la visibilité a changé

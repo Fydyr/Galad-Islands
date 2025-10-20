@@ -1,5 +1,6 @@
 # Importations standard
 
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 from typing import Dict, List, Optional, Tuple
 import os
 import platform
@@ -928,13 +929,18 @@ class GameEngine:
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
         # IA des unités individuelles (Kamikaze, etc.)
-        self.kamikaze_ai_processor = KamikazeAiProcessor(grid=self.grid)
+        self.kamikaze_ai_processor = KamikazeAiProcessor(world_map=self.grid)
+        # Known base registry (processor central pour propagation découverte bases)
+        # Activer le debug du registry uniquement si le mode dev est activé dans les settings
+        enemy_base_registry.set_debug(settings.is_dev_mode_enabled())
+        self.enemy_base_registry = enemy_base_registry
 
         es.add_processor(self.capacities_processor, priority=1)
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
         es.add_processor(self.tower_processor, priority=5)
+        es.add_processor(self.enemy_base_registry, priority=5)
         # L'IA des unités décide avant l'IA de la base
         es.add_processor(self.kamikaze_ai_processor, priority=6)
         es.add_processor(self.ally_base_ai, priority=7)
