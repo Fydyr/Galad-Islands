@@ -27,6 +27,11 @@ class GameState:
     closest_island_dist: Optional[float]
     closest_island_bearing: Optional[float]
     is_on_island: bool
+    is_stuck: bool
+
+    # Architect-specific ability information
+    architect_ability_available: bool
+    architect_ability_cooldown: float
 
 
 # --- AI Action Definitions ---
@@ -36,6 +41,8 @@ class DecisionAction:
     CHOOSE_ANOTHER_ISLAND = "choose_another_island"
     EVADE_ENEMY = "evade_enemy"
     NAVIGATE_TO_ALLY = "navigate_to_ally"
+    ACTIVATE_ARCHITECT_ABILITY = "activate_architect_ability"
+    GET_UNSTUCK = "get_unstuck"
     MOVE_RANDOMLY = "move_randomly"
     DO_NOTHING = "do_nothing"
 
@@ -45,12 +52,14 @@ class ArchitectDecisionTree:
     A decision model for an AI that prioritizes survival and strategic positioning.
 
     Decision Logic:
-    1.  **Survival**: If health is low and an enemy is near, evade.
-    2.  **Positioning**: If not on an island, navigate to the nearest one.
-    3.  **Regrouping**: If alone and allies are nearby, navigate towards them.
-    4.  **Repositioning**: If already on an island but an enemy is too close, find a new island.
-    5.  **Idle**: If safe on an island, do nothing.
-    6.  **Default**: If no other options, move randomly to explore.
+    1.  **Emergency**: If stuck, try to get unstuck.
+    2.  **Survival**: If health is low and an enemy is near, evade.
+    3.  **Support**: If ability is ready and allies are nearby, activate it.
+    4.  **Repositioning**: If on an island but an enemy is too close, find a safer island.
+    5.  **Positioning**: If not on an island, navigate to a safe one.
+    6.  **Regrouping**: If safe, move towards nearby allies.
+    7.  **Idle**: If safe on an island and with allies, do nothing.
+    8.  **Default**: If no other options, move randomly to explore.
     """
 
     # --- Behavior Thresholds ---
@@ -75,32 +84,42 @@ class ArchitectDecisionTree:
         """
         health_ratio = state.current_hp / state.maximum_hp if state.maximum_hp > 0 else 0
 
-        # 1. Survival: Evade if low on health and an enemy is close.
+        # 1. Emergency: If stuck, prioritize getting unstuck.
+        if state.is_stuck:
+            self.previous_decision = DecisionAction.GET_UNSTUCK
+            return self.previous_decision
+
+        # 2. Survival: Evade if low on health and an enemy is close.
         if health_ratio < self.LOW_HP_PERCENTAGE and state.closest_foe_dist < self.ENEMY_EVASION_DISTANCE:
             self.previous_decision = DecisionAction.EVADE_ENEMY
             return self.previous_decision
 
-        # 2. Positioning: If not on an island, try to navigate to one.
-        if not state.is_on_island and state.closest_island_dist is not None:
-            self.previous_decision = DecisionAction.NAVIGATE_TO_ISLAND
+        # 3. Support: Activate ability if available and allies are nearby.
+        if state.architect_ability_available and state.nearby_allies_count > 0:
+            self.previous_decision = DecisionAction.ACTIVATE_ARCHITECT_ABILITY
             return self.previous_decision
 
-        # 3. Regrouping: If alone and allies are nearby, move towards them.
-        if state.nearby_allies_count > 0 and state.closest_ally_dist is not None and state.closest_ally_dist < self.ALLY_REGROUP_DISTANCE:
-            self.previous_decision = DecisionAction.NAVIGATE_TO_ALLY
-            return self.previous_decision
-
-        # 4. Repositioning: If on an island but an enemy is too close, find a new one.
+        # 4. Repositioning: If on an island but an enemy is too close, find a new, safer island.
         if state.is_on_island and state.closest_foe_dist < self.ENEMY_EVASION_DISTANCE:
             self.previous_decision = DecisionAction.CHOOSE_ANOTHER_ISLAND
             return self.previous_decision
 
-        # 5. Idle: If safe on an island, do nothing.
+        # 5. Positioning: If not on an island, navigate to a safe one.
+        if not state.is_on_island and state.closest_island_dist is not None:
+            self.previous_decision = DecisionAction.NAVIGATE_TO_ISLAND
+            return self.previous_decision
+
+        # 6. Regrouping: If safe and allies are nearby, move towards them.
+        if state.nearby_allies_count > 0 and state.closest_ally_dist is not None and state.closest_ally_dist < self.ALLY_REGROUP_DISTANCE:
+            self.previous_decision = DecisionAction.NAVIGATE_TO_ALLY
+            return self.previous_decision
+
+        # 7. Idle: If safe on an island, do nothing.
         if state.is_on_island:
             self.previous_decision = DecisionAction.DO_NOTHING
             return self.previous_decision
 
-        # 6. Default: If no other clear objective, move randomly.
+        # 8. Default: If no other clear objective, move randomly.
         self.previous_decision = DecisionAction.MOVE_RANDOMLY
         return self.previous_decision
 

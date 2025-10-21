@@ -38,10 +38,11 @@ class ArchitectAIProcessor(esper.Processor):
     4. Executes actions like moving to islands, evading, or regrouping.
     """
 
+    ISLAND_PROXIMITY_THRESHOLD = 50.0 # Close enough to be considered "on" an island.
+
     def __init__(self):
         """Initialize the AI processor with a decision tree and pathfinding."""
         super().__init__()
-        self.decision_tree = ArchitectDecisionTree() # Fallback
         self.map_grid = None
         self.pathfinder = None
         self.dt = 0.0
@@ -50,6 +51,7 @@ class ArchitectAIProcessor(esper.Processor):
         self._entity_paths = {}
         self._entity_path_targets = {}
         self._entity_random_targets = {}
+        self._entity_position_history = {} # For stuck detection
 
         # Information caches
         self._entity_info_cache = {}
@@ -112,15 +114,12 @@ class ArchitectAIProcessor(esper.Processor):
                 continue
 
             # 2. Make a decision (using ML model if available)
-            if self.use_ml_model and self.ml_model and self.label_encoder:
-                # Convert state to feature vector for the model
-                feature_vector = self._gamestate_to_features(state)
-                # Predict the action index and decode it
-                action_index = self.ml_model.predict(feature_vector.reshape(1, -1))[0]
-                action = self.label_encoder.inverse_transform([action_index])[0]
-            else:
-                # Fallback to the original rule-based decision tree
-                action = self.decision_tree.decide(state)
+            if not (self.use_ml_model and self.ml_model and self.label_encoder):
+                continue # Cannot make a decision without the model
+
+            feature_vector = self._gamestate_to_features(state)
+            action_index = self.ml_model.predict(feature_vector.reshape(1, -1))[0]
+            action = self.label_encoder.inverse_transform([action_index])[0]
 
             ai_comp.setVetoMax()
 
@@ -144,9 +143,25 @@ class ArchitectAIProcessor(esper.Processor):
             pos, team.team_id, all_entities, True
         )
 
+        # Stuck detection logic
+        current_time = self._last_process_time
+        if entity not in self._entity_position_history:
+            self._entity_position_history[entity] = []
+        self._entity_position_history[entity].append(((pos.x, pos.y), current_time))
+        # Keep history for the last 3 seconds
+        self._entity_position_history[entity] = [p for p in self._entity_position_history[entity] if current_time - p[1] < 3.0]
+        
+        is_stuck = False
+        if len(self._entity_position_history[entity]) > 10: # If we have enough samples
+            is_stuck = self._check_if_stuck(self._entity_position_history[entity])
+
         # Find closest island
         closest_island_dist, closest_island_bearing, is_on_island = self._find_closest_island(pos)
 
+        # Architect-specific ability info
+        architect_comp = esper.component_for_entity(entity, SpeArchitect)
+        ability_available = architect_comp.available
+        ability_cooldown = architect_comp.timer # timer acts as cooldown
         return GameState(
             current_position=(pos.x, pos.y),
             current_heading=pos.direction,
@@ -161,6 +176,9 @@ class ArchitectAIProcessor(esper.Processor):
             closest_island_dist=closest_island_dist,
             closest_island_bearing=closest_island_bearing,
             is_on_island=is_on_island,
+            is_stuck=is_stuck,
+            architect_ability_available=ability_available,
+            architect_ability_cooldown=ability_cooldown,
         )
 
     def _execute_action(
@@ -183,13 +201,38 @@ class ArchitectAIProcessor(esper.Processor):
             return
 
         elif action == DecisionAction.CHOOSE_ANOTHER_ISLAND:
-            target_pos = self._find_random_island(current_island_pos=self._get_target_from_bearing(pos, state.closest_island_dist, state.closest_island_bearing))
+            # Find a safer island (further from the closest enemy)
+            target_pos = self._find_safer_island(
+                current_island_pos=self._get_target_from_bearing(pos, state.closest_island_dist, state.closest_island_bearing),
+                enemy_pos=self._get_target_from_bearing(pos, state.closest_foe_dist, state.closest_foe_bearing)
+            )
 
         elif action == DecisionAction.MOVE_RANDOMLY:
+            # If already following a path, let it finish instead of starting a new random one.
+            if self._entity_paths.get(entity):
+                # Continue following the existing path by doing nothing here.
+                # The navigation logic at the end of the function will handle it.
+                pass
+
             # If no random target or we reached it, find a new one
             if entity not in self._entity_random_targets or self._is_close_to_target(pos, self._entity_random_targets[entity]):
                 self._entity_random_targets[entity] = (random.uniform(0, MAP_WIDTH * TILE_SIZE), random.uniform(0, MAP_HEIGHT * TILE_SIZE))
             target_pos = self._entity_random_targets[entity]
+
+        elif action == DecisionAction.GET_UNSTUCK:
+            # Move in a random direction away from the current spot to break free
+            random_bearing = (pos.direction + random.uniform(-90, 90)) % 360
+            self._turn_and_move(pos, vel, random_bearing, vel.maxUpSpeed)
+            self._clear_path(entity) # Clear any path that might be causing the issue
+            return
+
+        elif action == DecisionAction.ACTIVATE_ARCHITECT_ABILITY:
+            architect_comp = esper.component_for_entity(entity, SpeArchitect)
+            if architect_comp.available:
+                # The actual activation logic (finding units, etc.) is handled by CapacitiesSpecialesProcessor
+                # Here, we just trigger the component's activation state.
+                architect_comp.activate([], 0) # Pass empty list, actual affected units found by processor
+            return # No movement for this action
 
         elif action == DecisionAction.DO_NOTHING:
             vel.currentSpeed = 0
@@ -198,6 +241,11 @@ class ArchitectAIProcessor(esper.Processor):
 
         # If we have a target, navigate there
         if target_pos:
+            self._navigate_to_target(entity, pos, vel, target_pos)
+        # If no new target was set, but a path exists, continue following it.
+        elif self._entity_paths.get(entity):
+            # The target_pos is implicitly the end of the current path.
+            self._navigate_to_target(entity, pos, vel, self._entity_path_targets.get(entity))
             self._navigate_to_target(entity, pos, vel, target_pos)
         else:
             vel.currentSpeed = 0
@@ -282,15 +330,38 @@ class ArchitectAIProcessor(esper.Processor):
         dist = np.sqrt(closest_dist_sq)
         dx, dy = closest_pos[0] - pos.x, closest_pos[1] - pos.y
         bearing = (np.arctan2(dy, dx) * 180 / np.pi + 360) % 360
-        is_on = dist < self.decision_tree.ISLAND_PROXIMITY_THRESHOLD
+        is_on = dist < self.ISLAND_PROXIMITY_THRESHOLD
         
         return dist, bearing, is_on
 
-    def _find_random_island(self, current_island_pos: Optional[Tuple[float, float]] = None):
+    def _find_safer_island(self, current_island_pos: Optional[Tuple[float, float]], enemy_pos: Tuple[float, float]):
+        """Finds an island that is further away from the given enemy position."""
+        if not self._island_cache:
+            return None
+
+        # Filter out the current island
+        possible_islands = self._island_cache
+        if current_island_pos:
+            possible_islands = [p for p in self._island_cache if np.hypot(p[0]-current_island_pos[0], p[1]-current_island_pos[1]) > TILE_SIZE]
+
+        if not possible_islands:
+            return random.choice(self._island_cache) if self._island_cache else None
+
+        # Find the island that maximizes distance from the enemy
+        best_island = None
+        max_dist_sq = -1
+        for island in possible_islands:
+            dist_sq = (island[0] - enemy_pos[0])**2 + (island[1] - enemy_pos[1])**2
+            if dist_sq > max_dist_sq:
+                max_dist_sq = dist_sq
+                best_island = island
+
+        return best_island
+
+    def _find_random_island(self, current_island_pos: Optional[Tuple[float, float]] = None) -> Optional[Tuple[float, float]]:
         """Finds a random island, avoiding the current one if provided."""
         if not self._island_cache:
             return None
-        
         possible_islands = self._island_cache
         if current_island_pos:
             possible_islands = [p for p in self._island_cache if np.hypot(p[0]-current_island_pos[0], p[1]-current_island_pos[1]) > TILE_SIZE]
@@ -332,6 +403,17 @@ class ArchitectAIProcessor(esper.Processor):
             self._entity_paths[entity] = []
         if entity in self._entity_path_targets:
             self._entity_path_targets[entity] = None
+
+    def _check_if_stuck(self, position_history: list) -> bool:
+        """Check if the entity has moved significantly over a period."""
+        if len(position_history) < 2:
+            return False
+        
+        start_pos, _ = position_history[0]
+        end_pos, _ = position_history[-1]
+        
+        distance_moved = np.hypot(end_pos[0] - start_pos[0], end_pos[1] - start_pos[1])
+        return distance_moved < TILE_SIZE * 0.5 # If moved less than half a tile in 3s
 
     def _gamestate_to_features(self, state: GameState) -> np.ndarray:
         """Converts a GameState object into a flat numpy array of numerical features."""

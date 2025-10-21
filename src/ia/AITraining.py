@@ -21,7 +21,7 @@ from decision_tree import ArchitectDecisionTree, GameState, DecisionAction
 
 
 # --- Configuration ---
-NUM_SAMPLES = 100000  # Number of game scenarios to generate for training
+NUM_SAMPLES = 1000000  # Number of game scenarios to generate for training
 # Construct path relative to this script's location to avoid CWD issues.
 SCRIPT_DIR = os.path.dirname(__file__)
 MODEL_OUTPUT_PATH = os.path.join(SCRIPT_DIR, "model/architect_model.joblib")
@@ -29,24 +29,27 @@ MODEL_OUTPUT_PATH = os.path.join(SCRIPT_DIR, "model/architect_model.joblib")
 
 def generate_random_gamestate() -> GameState:
     """Creates a GameState object with randomized values to simulate different scenarios."""
-    max_hp = 1000.0
+    max_hp = 130.0
     current_hp = random.uniform(0, max_hp)
 
     # Simulate being on an island or not
     is_on_island = random.choice([True, False])
-    closest_island_dist = 0 if is_on_island else random.uniform(10.0, 1000.0)
+    closest_island_dist = random.uniform(10.0, 50.0) if is_on_island else random.uniform(50.1, 7000.0)
 
     return GameState(
-        current_position=(random.uniform(0, 5000), random.uniform(0, 5000)),
+        is_stuck=random.random() < 0.05, # Simulate getting stuck 5% of the time
+        architect_ability_available=random.choice([True, False]),
+        architect_ability_cooldown=random.uniform(0, 30), # Assuming max cooldown of 30s
+        current_position=(random.uniform(0, 7000), random.uniform(0, 7000)),
         current_heading=random.uniform(0, 360),
         current_hp=current_hp,
         maximum_hp=max_hp,
-        closest_foe_dist=random.uniform(50.0, 2000.0),
+        closest_foe_dist=random.uniform(50.0, 7000.0),
         closest_foe_bearing=random.uniform(0, 360),
-        nearby_foes_count=random.randint(0, 5),
-        closest_ally_dist=random.uniform(50.0, 2000.0),
+        nearby_foes_count=random.randint(0, 7),
+        closest_ally_dist=random.uniform(50.0, 7000.0),
         closest_ally_bearing=random.uniform(0, 360),
-        nearby_allies_count=random.randint(0, 3),
+        nearby_allies_count=random.randint(0, 6),
         closest_island_dist=closest_island_dist,
         closest_island_bearing=random.uniform(0, 360),
         is_on_island=is_on_island,
@@ -118,7 +121,7 @@ def main():
 
     # --- 3. Train the Decision Tree Classifier ---
     print("Training Decision Tree model...")
-    model = DecisionTreeClassifier(random_state=42, max_depth=10, min_samples_leaf=5)
+    model = DecisionTreeClassifier(random_state=42, max_depth=20, min_samples_leaf=12)
     model.fit(X_train, y_train)
 
     # --- 4. Evaluate the Model ---
