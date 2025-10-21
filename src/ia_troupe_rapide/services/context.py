@@ -16,6 +16,7 @@ from src.components.core.classeComponent import ClasseComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.constants.team import Team
 from src.factory.unitType import UnitType
+from src.settings.settings import TILE_SIZE
 
 from ..config import AISettings, get_settings
 
@@ -39,6 +40,7 @@ class UnitContext:
     max_reverse_speed: float = 0.0
     bullet_cooldown: float = 0.0
     radius_component: Optional[RadiusComponent] = None
+    shooting_range: float = 0.0
     has_scout_special: bool = False
     special_ready: bool = False
     special_component: Optional[SpeScout] = None
@@ -152,6 +154,7 @@ class AIContextManager:
         context.max_reverse_speed = velocity_comp.maxReverseSpeed
         context.bullet_cooldown = radius_comp.cooldown
         context.radius_component = radius_comp
+        context.shooting_range = self._compute_shooting_range(radius_comp)
         context.has_scout_special = scout_component is not None
         context.special_component = scout_component
         context.special_ready = scout_component.can_activate() if scout_component else False
@@ -184,6 +187,7 @@ class AIContextManager:
         ctx.max_reverse_speed = vel.maxReverseSpeed
         ctx.bullet_cooldown = radius.cooldown
         ctx.radius_component = radius
+        ctx.shooting_range = self._compute_shooting_range(radius)
 
         prev_health = ctx.health
         ctx.health = health.currentHealth
@@ -210,6 +214,17 @@ class AIContextManager:
         ctx.objective_score = 0.0
         ctx.target_entity = None
         ctx.assigned_chest_id = None
+
+    def _compute_shooting_range(self, radius: Optional[RadiusComponent]) -> float:
+        """Calcule et applique une portée de tir dynamique exprimée en pixels."""
+
+        dynamic_range = float(self._settings.shooting_range_tiles) * float(TILE_SIZE)
+        if radius is None:
+            return dynamic_range
+        if radius.radius <= 0.0:
+            radius.radius = dynamic_range
+            return dynamic_range
+        return radius.radius
 
 
 # Circular import safe import of Objective type for typing and runtime

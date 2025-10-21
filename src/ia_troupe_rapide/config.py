@@ -91,6 +91,7 @@ class AISettings:
     invincibility_min_health: float = 0.25
     objective_reconsider_delay: float = 0.75
     event_bus_history: int = 32
+    shooting_range_tiles: float = 11.0
 
     def update_from_mapping(self, data: Dict[str, Any]) -> None:
         """Apply overrides from a mapping (typically loaded JSON)."""

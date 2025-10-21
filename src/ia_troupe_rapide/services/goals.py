@@ -12,6 +12,7 @@ from src.components.core.teamComponent import TeamComponent
 from src.components.events.flyChestComponent import FlyingChestComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.baseComponent import BaseComponent
+from src.settings.settings import TILE_SIZE
 
 from ..config import AISettings, get_settings
 
@@ -41,7 +42,8 @@ class GoalEvaluator:
         "goto_chest": 100.0,
         "follow_druid": 90.0,
         "attack": 80.0,
-        "follow_die": 70.0,
+        "follow_die": 75.0,
+        "attack_mobile": 70.0,
         "attack_base": 60.0,
         "survive": 10.0,
     }
@@ -61,7 +63,7 @@ class GoalEvaluator:
         prediction_service,
         pathfinding: Optional["PathfindingService"] = None,
     ) -> Tuple[Objective, float]:
-        predicted_targets = prediction_service.predict_enemy_positions(context.team_id)
+        predicted_targets = list(prediction_service.predict_enemy_positions(context.team_id))
 
         chest_objective = self._select_chest(context, pathfinding)
         if chest_objective:
@@ -79,6 +81,10 @@ class GoalEvaluator:
         if follow_die_objective:
             return follow_die_objective, self._priority_score(follow_die_objective.type)
 
+        mobile_attack_objective = self._select_mobile_attack(context, predicted_targets)
+        if mobile_attack_objective:
+            return mobile_attack_objective, self._priority_score(mobile_attack_objective.type)
+
         base_objective = self._select_attack_base(context)
         if base_objective:
             # Ajuster la position si elle est infranchissable
@@ -89,8 +95,8 @@ class GoalEvaluator:
                 tile_cost = pathfinding._tile_cost(grid_pos)
                 if np.isinf(tile_cost):  # Position infranchissable
                     # Trouver une position alternative à portée de tir
-                    radius = 196.0
-                    optimal_distance = max(96.0, radius * 0.85)
+                    shooting_range = self.settings.shooting_range_tiles * TILE_SIZE
+                    optimal_distance = max(96.0, shooting_range * 0.85)
                     # Essayer de trouver une position valide autour de la base
                     for angle in range(0, 360, 45):  # Tester 8 directions
                         rad_angle = math.radians(angle)
@@ -174,6 +180,21 @@ class GoalEvaluator:
             if distance > self.FOLLOW_DIE_MAX_DISTANCE:
                 continue
             candidate = Objective("follow_die", predicted.future_position, predicted.entity_id)
+            if best_candidate is None or distance < best_candidate[0]:
+                best_candidate = (distance, candidate)
+        return best_candidate[1] if best_candidate else None
+
+    def _select_mobile_attack(
+        self,
+        context,
+        predicted_targets: Iterable["PredictedEntity"],
+    ) -> Optional[Objective]:
+        best_candidate: Optional[Tuple[float, Objective]] = None
+        for predicted in predicted_targets:
+            if abs(predicted.speed) <= self.STATIONARY_SPEED_THRESHOLD:
+                continue
+            distance = self._distance(context.position, predicted.future_position)
+            candidate = Objective("attack_mobile", predicted.future_position, predicted.entity_id)
             if best_candidate is None or distance < best_candidate[0]:
                 best_candidate = (distance, candidate)
         return best_candidate[1] if best_candidate else None

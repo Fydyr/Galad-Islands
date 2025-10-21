@@ -347,6 +347,15 @@ class RapidUnitController:
     def navigation_tolerance(self) -> float:
         return self._navigation_tolerance
 
+    def get_shooting_range(self, context: UnitContext) -> float:
+        """Retourne la portée de tir effective de l'unité en pixels."""
+
+        if context.shooting_range > 0.0:
+            return context.shooting_range
+        if context.radius_component is not None and context.radius_component.radius > 0.0:
+            return context.radius_component.radius
+        return float(self.settings.shooting_range_tiles) * float(TILE_SIZE)
+
     def _get_state(self, name: str):
         return self._state_lookup.get(name)
 
@@ -502,7 +511,7 @@ class RapidUnitController:
         return_state = context.share_channel.get("nav_return") or self._persistent_nav_return
         if (self._persistent_nav_active or self.is_navigation_active(context)) and return_state == "Attack":
             return False
-        result = context.current_objective.type in {"attack", "attack_base"}
+        result = context.current_objective.type in {"attack", "attack_mobile", "attack_base"}
         LOGGER.info("[AI] %s _has_attack_objective: returning %s (objective_type=%s, nav_active=%s, nav_return=%s)", 
                     self.entity_id, result, context.current_objective.type, 
                     self.is_navigation_active(context), return_state)
@@ -703,7 +712,7 @@ class RapidUnitController:
                         self.entity_id,
                         objective.target_entity,
                     )
-            elif objective.type in {"attack", "follow_die"}:
+            elif objective.type in {"attack", "attack_mobile", "follow_die"}:
                 candidate_ids = {state.entity_id for state in self.coordination.shared_states()}
                 candidate_ids.add(self.entity_id)
                 chosen = self.coordination.assign_rotating_role(

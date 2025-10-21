@@ -1113,7 +1113,9 @@ class ActionBar:
         bar_height = 8
         
         # Barre de vie
-        health_ratio = self.selected_unit.health / self.selected_unit.max_health
+        max_health = max(1, int(self.selected_unit.max_health)) if isinstance(self.selected_unit.max_health, (int, float)) else 1
+        current_health = float(self.selected_unit.health) if isinstance(self.selected_unit.health, (int, float)) else 0.0
+        health_ratio = 0.0 if max_health <= 0 else max(0.0, min(1.0, current_health / max_health))
         health_bg_rect = pygame.Rect(info_x + 5, info_y + 30, bar_width, bar_height)
         health_rect = pygame.Rect(info_x + 5, info_y + 30, int(bar_width * health_ratio), bar_height)
         
@@ -1123,7 +1125,7 @@ class ActionBar:
         
         # Texte de vie
         health_text = self.font_small.render(
-            f"{self.selected_unit.health}/{self.selected_unit.max_health}", 
+            f"{int(current_health)}/{max_health}", 
             True, UIColors.TEXT_NORMAL
         )
         surface.blit(health_text, (info_x + 5, info_y + 45))

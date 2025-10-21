@@ -13,6 +13,7 @@ from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.projectileComponent import ProjectileComponent
 from src.constants.team import Team
+from src.components.events.banditsComponent import Bandits
 
 
 @dataclass
@@ -35,9 +36,9 @@ class PredictionService:
 
         for entity, (pos, vel, team) in esper.get_components(PositionComponent, VelocityComponent, TeamComponent):
             if team.team_id == team_id:
-                continue
-            if team.team_id == Team.ALLY:
-                continue  # ignore friendly units, we care about threats
+                continue  # Skip allies
+            if esper.has_component(entity, Bandits):
+                continue  # Ignorer les navires bandits pour éviter les tirs
 
             direction = radians(pos.direction)
             future_x = pos.x - vel.currentSpeed * cos(direction) * self.horizon

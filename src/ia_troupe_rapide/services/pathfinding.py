@@ -115,6 +115,14 @@ class PathfindingService:
                 mine_mask_with_perimeter = mine_expanded
             cost[mine_mask_with_perimeter] = np.inf
 
+        # Bloquer strictement les bases alliées et ennemies
+        blacklist_values = tuple(int(tile) for tile in self.settings.pathfinding.tile_blacklist)
+        if blacklist_values:
+            base_mask = np.isin(self._coarse_grid, blacklist_values)
+            if base_mask.any():
+                base_expanded = np.repeat(np.repeat(base_mask, factor, axis=0), factor, axis=1)
+                cost[base_expanded] = np.inf
+
         blocked_mask = np.isinf(cost)
         margin_radius = max(0, int(self.settings.pathfinding.blocked_margin_radius))
         if margin_radius > 0 and blocked_mask.any():
@@ -323,6 +331,18 @@ class PathfindingService:
                 queue.append((distance + 1, candidate))
 
         return None
+
+    def find_accessible_world(self, target_world: WorldPos, max_radius_tiles: Optional[float] = None) -> Optional[WorldPos]:
+        """Retourne une position franchissable la plus proche de la cible souhaitée."""
+
+        goal = self.world_to_grid(target_world)
+        radius_limit = None
+        if max_radius_tiles is not None:
+            radius_limit = max(1, int(max_radius_tiles * max(1, self.sub_tile_factor)))
+        accessible_goal = self._find_accessible_goal(goal, radius_limit)
+        if accessible_goal is None:
+            return None
+        return self.grid_to_world(accessible_goal)
 
     def _inject_axis_checkpoints(self, grid_path: List[GridPos]) -> List[GridPos]:
         if not grid_path:

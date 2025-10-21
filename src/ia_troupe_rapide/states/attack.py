@@ -127,8 +127,8 @@ class AttackState(RapidAIState):
                 tile_cost = self.controller.pathfinding._tile_cost(grid_pos)
                 if np.isinf(tile_cost):  # Position infranchissable
                     # Trouver une position alternative à portée de tir
-                    radius = context.radius_component.radius if context.radius_component else 196.0
-                    optimal_distance = max(96.0, radius * 0.85)
+                    shooting_range = self.controller.get_shooting_range(context)
+                    optimal_distance = max(96.0, shooting_range * 0.85)
                     
                     # Essayer de trouver une position valide autour de la base
                     for angle in range(0, 360, 45):  # Tester 8 directions
@@ -158,13 +158,13 @@ class AttackState(RapidAIState):
         return self._anchor
 
     def _compute_anchor(self, context: "UnitContext", target_position: Tuple[float, float]) -> Optional[Tuple[float, float]]:
-        radius = context.radius_component.radius if context.radius_component else 196.0
-        desired_distance = max(120.0, radius * 0.9)
+        shooting_range = self.controller.get_shooting_range(context)
+        desired_distance = max(120.0, shooting_range * 0.9)
         
         # Pour attack_base, chercher des positions à une distance de tir valide, pas SUR la base
         if context.current_objective and context.current_objective.type == "attack_base":
             # Utiliser une distance de tir optimale (80-100% du rayon de tir)
-            desired_distance = max(100.0, radius * 0.85)
+            desired_distance = max(100.0, shooting_range * 0.85)
         
         current_distance = self.distance(context.position, target_position)
         # Si déjà assez proche, rester sur place pour tirer
