@@ -3,8 +3,11 @@
 import esper
 import numpy as np
 import logging
+import os
 import random
+import joblib
 from typing import Optional, Tuple
+from dataclasses import fields
 
 # Assuming new components for the Architect unit exist
 from src.ia.architectAIComponent import ArchitectAIComponent
@@ -21,7 +24,6 @@ from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.ia.decision_tree import ArchitectDecisionTree, GameState, DecisionAction
 from src.ia.pathfinding import SimplePathfinder
 from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
-
 logger = logging.getLogger(__name__)
 
 
@@ -39,10 +41,10 @@ class ArchitectAIProcessor(esper.Processor):
     def __init__(self):
         """Initialize the AI processor with a decision tree and pathfinding."""
         super().__init__()
-        self.decision_tree = ArchitectDecisionTree()
+        self.decision_tree = ArchitectDecisionTree() # Fallback
         self.map_grid = None
         self.pathfinder = None
-        self.elapsed_time = 0.0
+        self.dt = 0.0
 
         # Path management for each entity
         self._entity_paths = {}
@@ -53,10 +55,30 @@ class ArchitectAIProcessor(esper.Processor):
         self._entity_info_cache = {}
         self._island_cache = None
 
+        # --- ML Model Loading ---
+        self.ml_model = None
+        self.label_encoder = None
+        self.use_ml_model = False
+
+        if joblib:
+            model_path = os.path.join(os.path.dirname(__file__), "model/architect_model.joblib")
+            try:
+                if os.path.exists(model_path):
+                    data = joblib.load(model_path)
+                    self.ml_model = data["model"]
+                    self.label_encoder = data["label_encoder"]
+                    self.use_ml_model = True
+                    logger.info("ArchitectAIProcessor: Successfully loaded trained ML model.")
+                else:
+                    logger.warning("ArchitectAIProcessor: ML model file not found. Falling back to rule-based decision tree.")
+            except Exception as e:
+                logger.error(f"ArchitectAIProcessor: Error loading ML model: {e}. Falling back to rule-based decision tree.")
+
         logger.info("ArchitectAIProcessor initialized.")
 
-    def process(self, *args, **kwargs):
+    def process(self, grid):
         """Process all Architect units with enabled AI."""
+        self.map_grid = grid
         if self.map_grid is not None and self.pathfinder is None:
             self.pathfinder = SimplePathfinder(self.map_grid, TILE_SIZE)
             logger.info("ArchitectAIProcessor: SimplePathfinder initialized.")
@@ -66,7 +88,7 @@ class ArchitectAIProcessor(esper.Processor):
         current_time = time.time()
         dt = current_time - getattr(self, '_last_process_time', current_time)
         self._last_process_time = current_time
-        self.elapsed_time += dt
+        self.dt = dt
 
         # Iterate over all Architect entities
         for entity, (ai_comp, spe_arch, pos, vel, health, team) in esper.get_components(
@@ -77,10 +99,11 @@ class ArchitectAIProcessor(esper.Processor):
             HealthComponent,
             TeamComponent,
         ):
-            if not ai_comp.enabled or esper.has_component(entity, PlayerSelectedComponent):
+            if esper.has_component(entity, PlayerSelectedComponent):
                 continue
 
-            if not ai_comp.isReadyForAction(self.elapsed_time):
+            if ai_comp.vetoTimeRemaining > 0:
+                ai_comp.vetoTimeRemaining = (ai_comp.vetoTimeRemaining - self.dt) if (ai_comp.vetoTimeRemaining - self.dt) > 0 else 0
                 continue
 
             # 1. Extract current game state
@@ -88,13 +111,21 @@ class ArchitectAIProcessor(esper.Processor):
             if state is None:
                 continue
 
-            # 2. Make a decision
-            action = self.decision_tree.decide(state)
+            # 2. Make a decision (using ML model if available)
+            if self.use_ml_model and self.ml_model and self.label_encoder:
+                # Convert state to feature vector for the model
+                feature_vector = self._gamestate_to_features(state)
+                # Predict the action index and decode it
+                action_index = self.ml_model.predict(feature_vector.reshape(1, -1))[0]
+                action = self.label_encoder.inverse_transform([action_index])[0]
+            else:
+                # Fallback to the original rule-based decision tree
+                action = self.decision_tree.decide(state)
+
+            ai_comp.setVetoMax()
 
             # 3. Execute the chosen action
             self._execute_action(entity, action, pos, vel, spe_arch, state)
-
-            ai_comp.last_action_time = self.elapsed_time
 
     def _extract_game_state(
         self, entity: int, pos: PositionComponent, health: HealthComponent, team: TeamComponent
@@ -105,12 +136,12 @@ class ArchitectAIProcessor(esper.Processor):
         
         # Find closest foe
         closest_foe_dist, closest_foe_bearing, nearby_foes_count = self._find_closest_unit(
-            pos, team.team_id, all_entities, find_allies=False
+            pos, team.team_id, all_entities, False
         )
 
         # Find closest ally
         closest_ally_dist, closest_ally_bearing, nearby_allies_count = self._find_closest_unit(
-            pos, team.team_id, all_entities, find_allies=True
+            pos, team.team_id, all_entities, True
         )
 
         # Find closest island
@@ -211,7 +242,7 @@ class ArchitectAIProcessor(esper.Processor):
         closest_bearing = 0
         unit_count = 0
 
-        for _, other_pos, other_team, _ in all_entities:
+        for _, (other_pos, other_team, _) in all_entities:
             is_ally = other_team.team_id == my_team_id
             if (find_allies and not is_ally) or (not find_allies and is_ally):
                 continue
@@ -301,3 +332,20 @@ class ArchitectAIProcessor(esper.Processor):
             self._entity_paths[entity] = []
         if entity in self._entity_path_targets:
             self._entity_path_targets[entity] = None
+
+    def _gamestate_to_features(self, state: GameState) -> np.ndarray:
+        """Converts a GameState object into a flat numpy array of numerical features."""
+        feature_list = []
+        # Use a fixed order of fields to ensure consistency
+        for field in fields(GameState):
+            value = getattr(state, field.name)
+            if isinstance(value, (tuple, list)):
+                feature_list.extend(value)
+            elif isinstance(value, bool):
+                feature_list.append(1 if value else 0)
+            elif value is None:
+                # Replace None with a value that the model can handle, e.g., -1.0
+                feature_list.append(-1.0)
+            else:
+                feature_list.append(value)
+        return np.array(feature_list, dtype=np.float32)

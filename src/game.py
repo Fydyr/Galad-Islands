@@ -28,7 +28,7 @@ from src.processeurs.collisionProcessor import CollisionProcessor
 from src.processeurs.playerControlProcessor import PlayerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
-from ia.AIControlProcessor import AIControlProcessor
+from src.ia.architectAIProcessor import ArchitectAIProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
 
@@ -749,7 +749,7 @@ class GameEngine:
         self.player_controls = None
         self.capacities_processor = None
         self.lifetime_processor = None
-        self.ai_processor = None
+        self.architect_ai_processor = None
 
         # Gestion de la sélection des unités
         self.selected_unit_id = None
@@ -904,7 +904,7 @@ class GameEngine:
         self.player_controls = PlayerControlProcessor(self.grid)
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
-        self.ai_processor = AIControlProcessor()
+        self.architect_ai_processor = ArchitectAIProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
         self.tower_processor = TowerProcessor()
@@ -1641,8 +1641,8 @@ class GameEngine:
             self.event_processor.process(dt, self.grid)
         
         # Traiter les événements d'abord (avec dt)
-        if self.ai_processor is not None:
-            self.ai_processor.process(dt, self.grid)
+        if self.architect_ai_processor is not None:
+            self.architect_ai_processor.process(self.grid)
 
         # Traiter le TowerProcessor (avec dt)
         if self.tower_processor is not None:
