@@ -20,6 +20,7 @@ wheels/
 
 # Environnements virtuels
 venv/
+.venv/
 
 # IDE et éditeurs
 .vscode/

@@ -50,8 +50,8 @@ class MovementProcessor(esper.Processor):
             if effective_speed != 0 and not esper.has_component(ent, isVined):
                 # Calculer la nouvelle position avec la vitesse effective
                 direction_rad = radians(pos.direction)
-                new_x = pos.x - effective_speed * cos(direction_rad)
-                new_y = pos.y - effective_speed * sin(direction_rad)
+                new_x = pos.x + effective_speed * cos(direction_rad)
+                new_y = pos.y + effective_speed * sin(direction_rad)
                 
                 # Vérifier si c'est un projectile
                 is_projectile = esper.has_component(ent, ProjectileComponent)

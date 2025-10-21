@@ -22,7 +22,7 @@ import numpy as np
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
-
+from tqdm import tqdm
 import esper
 from src.factory.unitType import UnitType
 from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
@@ -112,7 +112,16 @@ class KamikazeAiProcessor(esper.Processor):
         Assure-toi que la grille est indexée row-major: grid[row][col] -> grid[y][x]
         Les cellules bloquantes = 2 (île) ou 3 (nuage/mine).
         """
-        if grid is None:
+        if not grid:
+            return []
+
+        max_y = len(grid)
+        max_x = len(grid[0]) if max_y > 0 else 0
+
+        # Vérifier si le départ ou l'arrivée sont des obstacles
+        if not (0 <= start[0] < max_x and 0 <= start[1] < max_y and grid[start[1]][start[0]] not in (2, 3)):
+            return []
+        if not (0 <= goal[0] < max_x and 0 <= goal[1] < max_y and grid[goal[1]][goal[0]] not in (2, 3)):
             return []
 
         def heuristic(a, b):
@@ -120,15 +129,15 @@ class KamikazeAiProcessor(esper.Processor):
 
         open_set = []
         heapq.heappush(open_set, (0, start))
+        open_set_hash = {start}  # Pour des recherches O(1)
         came_from = {}
         g_score = {start: 0}
         f_score = {start: heuristic(start, goal)}
 
-        max_y = len(grid)
-        max_x = len(grid[0]) if max_y > 0 else 0
-
         while open_set:
             _, current = heapq.heappop(open_set)
+            open_set_hash.remove(current)
+
             if current == goal:
                 path = [current]
                 while current in came_from:
@@ -144,279 +153,117 @@ class KamikazeAiProcessor(esper.Processor):
                 if grid[ny][nx] in (2, 3):
                     continue
                 tentative_g = g_score[current] + 1
-                if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                if tentative_g < g_score.get(neighbor, float('inf')):
                     came_from[neighbor] = current
                     g_score[neighbor] = tentative_g
                     f_score[neighbor] = tentative_g + heuristic(neighbor, goal)
-                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
+                    if neighbor not in open_set_hash:
+                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
+                        open_set_hash.add(neighbor)
         return []
-
-    # --------------------------- simulations / génération de données ---------------------------
-    def generate_advanced_training_data(self, n_simulations: int = 500):
-        """Génération simplifiée de données d'entraînement pour le modèle.
-        (Version condensée — conserve la logique d'évitement local.)
-        """
-        all_states = []
-        all_rewards = []
-
-        # Simplification : crée des scénarios variés
-        for sim in range(n_simulations):
-            unit_pos = PositionComponent(x=random.uniform(100, 500), y=random.uniform(
-                100, 1400), direction=random.uniform(0, 360))
-            target_pos = PositionComponent(x=1800, y=750) if random.random(
-            ) < 0.7 else PositionComponent(x=random.uniform(1000, 1600), y=random.uniform(400, 1100))
-            obstacles = [PositionComponent(x=random.uniform(100, 1900), y=random.uniform(
-                100, 1400)) for _ in range(random.randint(2, 6))]
-            threats = []
-
-            states, actions, rewards = self.simulate_kamikaze_trajectory_rl_custom(
-                unit_pos, target_pos, obstacles, threats)
-            all_states.extend(states)
-            all_rewards.extend(rewards)
-
-        return all_states, [], all_rewards
-
-    # --------------------------- simulation RL (local) ---------------------------
-    def simulate_kamikaze_trajectory_rl_custom(self, unit_pos: PositionComponent, target_pos: PositionComponent, obstacles: List[PositionComponent], threats: List[PositionComponent]):
-        """Simule une trajectoire locale avec steering et évitement.
-
-        Retourne: (states_features, actions, rewards)
-        """
-        states, actions, rewards = [], [], []
-        boost_cd = 0.0
-        base_speed = 50.0
-        speed = base_speed
-        max_steps = 150
-        stuck_counter = 0
-        stuck_threshold = 6
-
-        last_distance = math.hypot(
-            target_pos.x - unit_pos.x, target_pos.y - unit_pos.y)
-
-        for step in range(max_steps):
-            features = self._get_features_for_state(
-                unit_pos, target_pos, obstacles, threats, boost_cd)
-            can_boost = boost_cd <= 0
-
-            # ACTION: steering-based — on calcule l'orientation désirée vers la cible mais on prend aussi en compte obstacles
-            angle_to_target = self.get_angle_to_target(unit_pos, target_pos)
-            angle_diff = (angle_to_target -
-                          unit_pos.direction + 180) % 360 - 180
-
-            # Détection obstacle le plus proche devant
-            obstacle_ahead = None
-            for obs in obstacles:
-                dist = math.hypot(obs.x - unit_pos.x, obs.y - unit_pos.y)
-                if dist < 3 * TILE_SIZE:
-                    if self.is_in_front(unit_pos, obs, distance_max=3 * TILE_SIZE, angle_cone=90):
-                        obstacle_ahead = obs
-                        break
-
-            # Décision simple : si menace devant, tourner loin du point; si obstacle devant, contourner; sinon s'aligner
-            if threats:
-                # priorité aux menaces
-                nearest_threat = min(threats, key=lambda t: math.hypot(
-                    t.x - unit_pos.x, t.y - unit_pos.y))
-                if self.is_in_front(unit_pos, nearest_threat, distance_max=4 * TILE_SIZE):
-                    action = self.turn_away_from(unit_pos, nearest_threat)
-                else:
-                    action = 0
-            elif obstacle_ahead is not None:
-                # contourner en choisissant le côté le plus libre
-                left_dir = (unit_pos.direction - 45) % 360
-                right_dir = (unit_pos.direction + 45) % 360
-                # estime la densité à gauche / droite
-                left_score = sum(1 for o in obstacles if self._angle_difference(left_dir, self.get_angle_to_target(
-                    unit_pos, o)) < 60 and math.hypot(o.x - unit_pos.x, o.y - unit_pos.y) < 5 * TILE_SIZE)
-                right_score = sum(1 for o in obstacles if self._angle_difference(right_dir, self.get_angle_to_target(
-                    unit_pos, o)) < 60 and math.hypot(o.x - unit_pos.x, o.y - unit_pos.y) < 5 * TILE_SIZE)
-                action = 1 if left_score < right_score else 2
-            else:
-                # s'aligner vers la cible (turn if big diff, else go/boost)
-                if abs(angle_diff) > 25:
-                    action = 2 if angle_diff > 0 else 1
-                else:
-                    if can_boost and math.hypot(target_pos.x - unit_pos.x, target_pos.y - unit_pos.y) > 10 * TILE_SIZE:
-                        action = 3
-                    else:
-                        action = 0
-
-            # appliquer action (sur la position direction/speed)
-            turn_angle = 18
-            if action == 1:
-                unit_pos.direction = (unit_pos.direction - turn_angle) % 360
-            elif action == 2:
-                unit_pos.direction = (unit_pos.direction + turn_angle) % 360
-            elif action == 3 and can_boost:
-                boost_cd = SPECIAL_ABILITY_COOLDOWN
-                speed = base_speed * 1.6
-            else:
-                # si pas de boost, ramener à vitesse normale graduellement
-                speed = max(base_speed, speed * 0.98)
-
-            # déplacement (steering proportionnel pour éviter orthogonaux brusques)
-            rad = math.radians(unit_pos.direction)
-            vx = math.cos(rad)
-            vy = math.sin(rad)
-            unit_pos.x += speed * vx * 0.1
-            unit_pos.y += speed * vy * 0.1
-
-            # bords de map — repousser doucement
-            map_w_px = MAP_WIDTH * TILE_SIZE
-            map_h_px = MAP_HEIGHT * TILE_SIZE
-            margin = TILE_SIZE
-            pushed = False
-            if unit_pos.x < margin:
-                unit_pos.x = margin
-                pushed = True
-            elif unit_pos.x > map_w_px - margin:
-                unit_pos.x = map_w_px - margin
-                pushed = True
-            if unit_pos.y < margin:
-                unit_pos.y = margin
-                pushed = True
-            elif unit_pos.y > map_h_px - margin:
-                unit_pos.y = map_h_px - margin
-                pushed = True
-
-            # récompenses
-            dist = math.hypot(target_pos.x - unit_pos.x,
-                              target_pos.y - unit_pos.y)
-            step_reward = 0
-            step_reward += 5 if dist < last_distance else -1
-            last_distance = dist
-
-            if pushed:
-                step_reward -= 15
-                stuck_counter += 1
-            else:
-                stuck_counter = 0
-
-            # pénalités collisions
-            for obs in obstacles:
-                if math.hypot(obs.x - unit_pos.x, obs.y - unit_pos.y) < TILE_SIZE * 0.7:
-                    step_reward -= 40
-                    stuck_counter += 1
-
-            for t in threats:
-                if math.hypot(t.x - unit_pos.x, t.y - unit_pos.y) < TILE_SIZE * 0.7:
-                    step_reward -= 30
-
-            if stuck_counter >= 6:
-                step_reward -= 40
-                # forcer rotation aléatoire pour se dégager
-                unit_pos.direction = (
-                    unit_pos.direction + random.choice([-90, 90, 135, -135])) % 360
-                stuck_counter = 0
-
-            # atteindre la cible
-            if dist < TILE_SIZE * 0.6:
-                step_reward += 150
-                states.append(features)
-                actions.append(action)
-                rewards.append(step_reward)
-                break
-
-            states.append(features)
-            actions.append(action)
-            rewards.append(step_reward)
-
-            if boost_cd > 0:
-                boost_cd = max(0.0, boost_cd - 0.1)
-
-        # timeout penalty
-        if len(rewards) >= max_steps:
-            rewards[-1] -= 30
-
-        return states, actions, rewards
 
     # --------------------------- processeur principal ---------------------------
     def process(self, dt: float, **kwargs):
+        # La logique de cooldown a été retirée pour rendre l'IA plus réactive.
+        # Le pathfinding et le steering sont maintenant gérés à chaque frame.
         for ent, (ai_comp, pos, vel, team) in esper.get_components(KamikazeAiComponent, PositionComponent, VelocityComponent, TeamComponent):
-            ai_comp.last_action_time += dt
-            if ai_comp.last_action_time < ai_comp.action_cooldown:
-                continue
-            ai_comp.last_action_time = 0
             if getattr(ai_comp, 'unit_type', None) == UnitType.KAMIKAZE:
                 self.kamikaze_logic(ent, pos, vel, team)
 
+
     # --------------------------- logique kamikaze ---------------------------
-    def kamikaze_logic(self, ent: int, pos: PositionComponent, vel: VelocityComponent, team: TeamComponent):
-        DECISION_COOLDOWN = 1.2
-        now = time.time()
-        path_key = ent
-        cooldown_info = self._kamikaze_decision_cooldown.get(
-            path_key, {'next_eval': 0, 'goal': None})
+    def kamikaze_logic(self, ent: int, pos: PositionComponent, vel: VelocityComponent, team: TeamComponent) -> None:
+        """Logique de décision et de mouvement pour une unité Kamikaze."""
+        # --- Couche de réflexe : Évitement d'urgence des menaces proches ---
+        threats = self.get_nearby_threats(pos, 4 * TILE_SIZE, team.team_id)
+        for threat_pos in threats:
+            if self.is_in_front(pos, threat_pos, distance_max=3 * TILE_SIZE, angle_cone=90):
+                # Manoeuvre d'esquive immédiate
+                angle_to_threat = self.get_angle_to_target(pos, threat_pos)
+                angle_diff = (angle_to_threat - pos.direction + 180) % 360 - 180
+                # Tourner pour s'éloigner
+                turn_direction = -1 if angle_diff > 0 else 1
+                pos.direction += turn_direction * 5.0 # Tourne brusquement
+                vel.currentSpeed = vel.maxUpSpeed # Accélère pour esquiver
+                return # L'esquive a la priorité sur le pathfinding
 
-        # réévaluer cible / chemin
-        if now >= cooldown_info['next_eval']:
-            target_pos = self.find_best_kamikaze_target(pos, team.team_id)
-            if target_pos is None:
-                vel.currentSpeed = 0
-                return
+        # --- Couche de planification : Pathfinding A* ---
+        """Logique de décision et de mouvement pour une unité Kamikaze."""
+        # 1. Choisir une cible stratégique finale
+        target_pos = self.find_best_kamikaze_target(pos, team.team_id)
 
-            start = (int(pos.x // TILE_SIZE), int(pos.y // TILE_SIZE))
-            goal = (int(target_pos.x // TILE_SIZE),
-                    int(target_pos.y // TILE_SIZE))
-            path = self.astar(self.world_map, start, goal)
-            self._kamikaze_paths[path_key] = {
-                'goal': goal, 'path': path, 'target_pos': target_pos}
-            self._kamikaze_decision_cooldown[path_key] = {
-                'next_eval': now + DECISION_COOLDOWN, 'goal': goal}
+        # 2. Calculer ou mettre à jour le chemin A*
+        path_info = self._kamikaze_paths.get(ent)
+        current_target = path_info.get('target') if path_info else None
+        path = path_info.get('path') if path_info else None
 
-        path_info = self._kamikaze_paths.get(path_key)
-        if not path_info or not path_info.get('path'):
-            # sans chemin : simple steering vers la cible directe
-            target_pos = self.find_best_kamikaze_target(pos, team.team_id)
-            next_waypoint = (target_pos.x, target_pos.y)
-        else:
+        recalculate_path = (
+            not path_info or
+            current_target != (target_pos.x, target_pos.y) or
+            not path
+        )
+
+        # Condition supplémentaire : recalculer si une menace obstrue le chemin à venir
+        if path and not recalculate_path:
+            waypoint_index = path_info.get('waypoint_index', 0)
+            # Vérifier les 3 prochains waypoints
+            path_to_check = path[waypoint_index:waypoint_index + 3]
+            # Utiliser un rayon de détection plus large pour la planification
+            threats_for_planning = self.get_nearby_threats(pos, 8 * TILE_SIZE, team.team_id)
+            if any(math.hypot(wp[0] - threat.x, wp[1] - threat.y) < 2 * TILE_SIZE for wp in path_to_check for threat in threats_for_planning):
+                # print(f"DEBUG: Threat detected on path for ent {ent}. Recalculating.") # Optional debug log
+                recalculate_path = True
+
+        if recalculate_path:
+            start_grid = (int(pos.x // TILE_SIZE), int(pos.y // TILE_SIZE))
+            goal_grid = (int(target_pos.x // TILE_SIZE), int(target_pos.y // TILE_SIZE))
+            path = self.astar(self.world_map, start_grid, goal_grid)
+            
+            if path:
+                # Convertir le chemin de grille en coordonnées mondiales
+                world_path = [(gx * TILE_SIZE + TILE_SIZE / 2, gy * TILE_SIZE + TILE_SIZE / 2) for gx, gy in path]
+                self._kamikaze_paths[ent] = {'path': world_path, 'target': (target_pos.x, target_pos.y), 'waypoint_index': 0}
+            else:
+                self._kamikaze_paths[ent] = {'path': [], 'target': (target_pos.x, target_pos.y), 'waypoint_index': 0}
+
+        # 3. Suivre le chemin (steering)
+        if ent in self._kamikaze_paths and self._kamikaze_paths[ent]['path']:
+            path_info = self._kamikaze_paths[ent]
             path = path_info['path']
-            # trouver prochain waypoint non atteint
-            next_waypoint = None
-            for wp in path[1:]:
-                wx = wp[0] * TILE_SIZE + TILE_SIZE // 2
-                wy = wp[1] * TILE_SIZE + TILE_SIZE // 2
-                if math.hypot(wx - pos.x, wy - pos.y) > TILE_SIZE * 0.4:
-                    next_waypoint = (wx, wy)
-                    break
-            if next_waypoint is None:
-                # si chemin terminé, viser la cible finale
-                target_pos = path_info.get('target_pos')
-                next_waypoint = (target_pos.x, target_pos.y)
+            waypoint_index = path_info['waypoint_index']
 
-        # collecte obstacles & menaces locales
-        obstacles = self.get_nearby_obstacles(pos, 6 * TILE_SIZE, team.team_id)
-        threats = self.get_nearby_threats(pos, 6 * TILE_SIZE, team.team_id)
+            if waypoint_index < len(path):
+                # Cible actuelle : le prochain waypoint
+                waypoint = path[waypoint_index]
+                waypoint_pos = PositionComponent(x=waypoint[0], y=waypoint[1])
 
-        # disponibilité boost
-        cd = 0.0
-        if esper.has_component(ent, SpeKamikazeComponent):
-            spe = esper.component_for_entity(ent, SpeKamikazeComponent)
-            cd = getattr(spe, 'cooldown', 0.0)
-        can_boost = cd <= 0
+                # Si on est assez proche du waypoint, passer au suivant
+                if math.hypot(pos.x - waypoint_pos.x, pos.y - waypoint_pos.y) < TILE_SIZE * 1.5:
+                    path_info['waypoint_index'] += 1
 
-        action = self.decide_kamikaze_action(pos, PositionComponent(
-            x=next_waypoint[0], y=next_waypoint[1]), obstacles, threats, can_boost)
+                # S'orienter vers le waypoint
+                angle_to_waypoint = self.get_angle_to_target(pos, waypoint_pos)
+                angle_diff = (angle_to_waypoint - pos.direction + 180) % 360 - 180
 
-        # Exécution de l'action (simplifiée : on modifie direction/boost)
-        if action == 1:
-            pos.direction = (pos.direction - 18) % 360
-        elif action == 2:
-            pos.direction = (pos.direction + 18) % 360
-        elif action == 3 and can_boost:
-            if esper.has_component(ent, SpeKamikazeComponent):
-                esper.component_for_entity(
-                    ent, SpeKamikazeComponent).activate()
+                # Tourner progressivement
+                if abs(angle_diff) > 5:
+                    pos.direction += math.copysign(min(abs(angle_diff), 3.0), angle_diff) # Tourne de 3 degrés/frame max
+                
+                # Avancer
+                vel.currentSpeed = vel.maxUpSpeed
 
-        # ralentir si obstacle dans un cône devant
-        slow = False
-        for obs in obstacles:
-            dist = math.hypot(obs.x - pos.x, obs.y - pos.y)
-            if dist < 2.2 * TILE_SIZE and self.is_in_front(pos, obs, distance_max=2.2 * TILE_SIZE, angle_cone=80):
-                slow = True
-                break
-
-        vel.currentSpeed = vel.maxUpSpeed * 0.35 if slow else vel.maxUpSpeed
+                # 4. Logique de boost
+                kamikaze_comp = esper.component_for_entity(ent, SpeKamikazeComponent)
+                if kamikaze_comp.can_activate() and abs(angle_diff) < 10: # Si bien aligné
+                    # Vérifier s'il n'y a pas d'obstacle proche devant
+                    obstacles = self.get_nearby_obstacles(pos, 5 * TILE_SIZE, team.team_id)
+                    if not any(self.is_in_front(pos, obs, distance_max=5 * TILE_SIZE, angle_cone=45) for obs in obstacles):
+                        kamikaze_comp.activate()
+        else:
+            # Pas de chemin, comportement par défaut (foncer vers la cible)
+            angle_to_target = self.get_angle_to_target(pos, target_pos)
+            pos.direction = angle_to_target
+            vel.currentSpeed = vel.maxUpSpeed
 
     # --------------------------- décisions / utilitaires ---------------------------
     def decide_kamikaze_action(self, my_pos: PositionComponent, target_pos: PositionComponent, obstacles: List[PositionComponent], threats: List[PositionComponent], can_boost: bool = True) -> int:
@@ -451,37 +298,52 @@ class KamikazeAiProcessor(esper.Processor):
         return 0
 
     def find_enemy_base_position(self, my_team_id: int) -> PositionComponent:
+        """Trouve la position de la base ENNEMIE."""
         BASE_SIZE = 4
         margin_tiles = 2
+
+        # Si je suis l'équipe 1, la base ennemie (équipe 2) est en bas à droite.
         if my_team_id == 1:
-            base_x_min, base_y_min = 0, 0
-        else:
             base_x_min, base_y_min = MAP_WIDTH - BASE_SIZE, MAP_HEIGHT - BASE_SIZE
-        center_x = max(margin_tiles, min(
-            base_x_min + BASE_SIZE / 2, MAP_WIDTH - margin_tiles))
-        center_y = max(margin_tiles, min(
-            base_y_min + BASE_SIZE / 2, MAP_HEIGHT - margin_tiles))
+        else:
+            # Si je suis l'équipe 2, la base ennemie (équipe 1) est en haut à gauche.
+            base_x_min, base_y_min = 0, 0
+
+        # Correction: Multiplier par TILE_SIZE pour obtenir les coordonnées en pixels.
+        center_x = (base_x_min + BASE_SIZE / 2)
+        center_y = (base_y_min + BASE_SIZE / 2)
         return PositionComponent(x=center_x * TILE_SIZE, y=center_y * TILE_SIZE)
 
     def find_best_kamikaze_target(self, my_pos: PositionComponent, my_team_id: int) -> PositionComponent:
         enemy_team_id = 2 if my_team_id == 1 else 1
-        TILE_RADIUS = 7 * TILE_SIZE
-        closest_heavy = None
-        min_dist = float('inf')
+        DETECTION_RADIUS = 10 * TILE_SIZE
+        best_target = None
+        best_score = float('inf')
+
+        # Facteur de pondération : à quel point la santé est plus importante que la distance.
+        # Une valeur de 5 * TILE_SIZE signifie qu'une unité avec 0% de vie a un "bonus" équivalent
+        # à être 5 cases plus proche.
+        HEALTH_WEIGHT = 5 * TILE_SIZE
+
         for ent, (pos, team, health) in esper.get_components(PositionComponent, TeamComponent, HealthComponent):
             if team.team_id == enemy_team_id and getattr(health, 'maxHealth', 0) > 200:
-                try:
-                    ut = esper.component_for_entity(ent, UnitType)
-                    ut_str = str(ut).upper()
-                except Exception:
-                    ut_str = ''
-                if any(ht in ut_str for ht in ("LEVIATHAN", "MARAUDER")):
-                    d = math.hypot(pos.x - my_pos.x, pos.y - my_pos.y)
-                    if d < TILE_RADIUS and d < min_dist:
-                        closest_heavy = pos
-                        min_dist = d
-        if closest_heavy is not None:
-            return closest_heavy
+                # Cible potentielle (unité lourde)
+                distance = math.hypot(pos.x - my_pos.x, pos.y - my_pos.y)
+
+                if distance < DETECTION_RADIUS:
+                    health_ratio = health.currentHealth / health.maxHealth if health.maxHealth > 0 else 1.0
+                    
+                    # Calcul du score : on favorise la distance faible et la santé faible.
+                    # Le score est la distance, réduite par un facteur lié aux dégâts subis.
+                    score = distance - (1.0 - health_ratio) * HEALTH_WEIGHT
+
+                    if score < best_score:
+                        best_score = score
+                        best_target = pos
+
+        if best_target is not None:
+            return best_target
+        # Si aucune cible lourde n'est trouvée, cibler la base ennemie.
         return self.find_enemy_base_position(my_team_id)
 
     def _get_features_for_state(self, my_pos: PositionComponent, target_pos: PositionComponent, obstacles: List[PositionComponent], threats: List[PositionComponent], boost_cooldown: float = 0.0) -> List[float]:
