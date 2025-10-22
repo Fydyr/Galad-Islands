@@ -46,6 +46,7 @@ from src.components.core.teamComponent import TeamComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
 from src.components.core.visionComponent import VisionComponent
+from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 
 # Importations des capacités spéciales
 
@@ -464,7 +465,12 @@ class GameRenderer:
         # Clé de cache optimisée : utiliser zoom discret + rotation arrondie
         rotation_key = round(pos.direction / 15) * 15  # Arrondir la rotation à 15 degrés près
         cache_key = (sprite.image_path, discrete_zoom, sprite.width, sprite.height, rotation_key)
-        
+
+        # Ajustement de la rotation pour les Kamikazes si leur sprite est orienté différemment
+        rotation_offset = 0
+        if es.has_component(entity, SpeKamikazeComponent):
+            rotation_offset = 0 # Le sprite est déjà orienté horizontalement, aucune rotation n'est nécessaire.
+        cache_key = (sprite.image_path, discrete_zoom, sprite.width, sprite.height, rotation_key, rotation_offset) # rotation_offset sera 0
         if not hasattr(self, '_sprite_cache'):
             self._sprite_cache = {}
             self._cache_access_order = []
@@ -483,11 +489,8 @@ class GameRenderer:
                 else:
                     scaled_image = pygame.transform.scale(image, (display_width, display_height))
                 
-                # Appliquer la rotation arrondie et mettre en cache
-                if rotation_key != 0:
-                    final_image = pygame.transform.rotate(scaled_image, -rotation_key)
-                else:
-                    final_image = scaled_image
+                # Appliquer la rotation combinée (direction + offset) et mettre en cache
+                final_image = pygame.transform.rotate(scaled_image, -(rotation_key + rotation_offset))
                 
                 self._sprite_cache[cache_key] = final_image
                 self._cache_access_order.append(cache_key)
@@ -498,10 +501,10 @@ class GameRenderer:
             if cache_key in self._cache_access_order:
                 self._cache_access_order.remove(cache_key)
             self._cache_access_order.append(cache_key)
-            
+
         final_image = self._sprite_cache[cache_key]
-        display_width = final_image.get_width()
-        display_height = final_image.get_height()
+        display_width = final_image.get_width() # Recalculer après rotation
+        display_height = final_image.get_height() # Recalculer après rotation
 
         screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
         

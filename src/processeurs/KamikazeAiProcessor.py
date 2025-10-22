@@ -13,8 +13,6 @@ dans ton projet (PositionComponent, VelocityComponent, etc.).
 import heapq
 import math
 import os
-import time
-import random
 from typing import List, Tuple, Optional
 
 import joblib
@@ -22,7 +20,6 @@ import numpy as np
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
-from tqdm import tqdm
 import esper
 from src.factory.unitType import UnitType
 from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
@@ -30,11 +27,10 @@ from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
-from src.components.core.baseComponent import BaseComponent
 from src.components.core.projectileComponent import ProjectileComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
-from src.constants.gameplay import SPECIAL_ABILITY_COOLDOWN
+from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 
 
 class KamikazeAiProcessor(esper.Processor):
@@ -54,6 +50,7 @@ class KamikazeAiProcessor(esper.Processor):
         # world_map doit être une grille [row][col] (y,x)
         self.world_map = world_map
         self._mines_for_training = []
+        self.inflated_world_map = self._create_inflated_map(world_map) if world_map else None
         self._kamikaze_decision_cooldown = {}
         self._kamikaze_paths = {}
 
@@ -105,6 +102,29 @@ class KamikazeAiProcessor(esper.Processor):
         mse = mean_squared_error(y_test, self.model.predict(X_test))
         print(f"✅ Entraînement terminé — MSE: {mse:.3f}")
 
+    def _create_inflated_map(self, original_map: List[List[int]]) -> List[List[int]]:
+        """Crée une carte où les obstacles sont "gonflés" pour le pathfinding."""
+        if not original_map:
+            return []
+        
+        max_y = len(original_map)
+        max_x = len(original_map[0])
+        inflated_map = [row[:] for row in original_map] # Copie la carte
+
+        # Rayon de "gonflement" en tuiles. 1 signifie que les tuiles adjacentes sont aussi bloquées.
+        # Cela permet d'éviter que les unités ne se collent aux obstacles.
+        buffer_radius = 1 
+
+        for y in range(max_y):
+            for x in range(max_x):
+                if original_map[y][x] in (2, 3): # Si c'est un obstacle (île ou mine/nuage)
+                    for dy in range(-buffer_radius, buffer_radius + 1):
+                        for dx in range(-buffer_radius, buffer_radius + 1):
+                            nx, ny = x + dx, y + dy
+                            if 0 <= nx < max_x and 0 <= ny < max_y and inflated_map[ny][nx] not in (2, 3):
+                                inflated_map[ny][nx] = 4 # Marque comme obstacle gonflé
+        return inflated_map
+
     # --------------------------- A* pathfinding ---------------------------
     def astar(self, grid: List[List[int]], start: Tuple[int, int], goal: Tuple[int, int]) -> List[Tuple[int, int]]:
         """A* sur une grille (grid[y][x]) — renvoie la liste de cases (x,y).
@@ -112,6 +132,10 @@ class KamikazeAiProcessor(esper.Processor):
         Assure-toi que la grille est indexée row-major: grid[row][col] -> grid[y][x]
         Les cellules bloquantes = 2 (île) ou 3 (nuage/mine).
         """
+        # Utilise la carte gonflée si elle existe, sinon la carte originale
+        if self.inflated_world_map:
+            grid = self.inflated_world_map
+
         if not grid:
             return []
 
@@ -120,9 +144,9 @@ class KamikazeAiProcessor(esper.Processor):
 
         # Vérifier si le départ ou l'arrivée sont des obstacles
         if not (0 <= start[0] < max_x and 0 <= start[1] < max_y and grid[start[1]][start[0]] not in (2, 3)):
-            return []
+            return [] # Start is an obstacle
         if not (0 <= goal[0] < max_x and 0 <= goal[1] < max_y and grid[goal[1]][goal[0]] not in (2, 3)):
-            return []
+            return [] # Goal is an obstacle
 
         def heuristic(a, b):
             return abs(a[0] - b[0]) + abs(a[1] - b[1])
@@ -150,7 +174,7 @@ class KamikazeAiProcessor(esper.Processor):
                 nx, ny = neighbor
                 if not (0 <= nx < max_x and 0 <= ny < max_y):
                     continue
-                if grid[ny][nx] in (2, 3):
+                if grid[ny][nx] in (2, 3, 4): # Check for inflated obstacles as well
                     continue
                 tentative_g = g_score[current] + 1
                 if tentative_g < g_score.get(neighbor, float('inf')):
@@ -168,31 +192,23 @@ class KamikazeAiProcessor(esper.Processor):
         # Le pathfinding et le steering sont maintenant gérés à chaque frame.
         for ent, (ai_comp, pos, vel, team) in esper.get_components(KamikazeAiComponent, PositionComponent, VelocityComponent, TeamComponent):
             if getattr(ai_comp, 'unit_type', None) == UnitType.KAMIKAZE:
+                # Si l'unité est sélectionnée par le joueur, l'IA ne doit pas la contrôler
+                if esper.has_component(ent, PlayerSelectedComponent):
+                    continue
                 self.kamikaze_logic(ent, pos, vel, team)
 
 
     # --------------------------- logique kamikaze ---------------------------
     def kamikaze_logic(self, ent: int, pos: PositionComponent, vel: VelocityComponent, team: TeamComponent) -> None:
-        """Logique de décision et de mouvement pour une unité Kamikaze."""
-        # --- Couche de réflexe : Évitement d'urgence des menaces proches ---
-        threats = self.get_nearby_threats(pos, 4 * TILE_SIZE, team.team_id)
-        for threat_pos in threats:
-            if self.is_in_front(pos, threat_pos, distance_max=3 * TILE_SIZE, angle_cone=90):
-                # Manoeuvre d'esquive immédiate
-                angle_to_threat = self.get_angle_to_target(pos, threat_pos)
-                angle_diff = (angle_to_threat - pos.direction + 180) % 360 - 180
-                # Tourner pour s'éloigner
-                turn_direction = -1 if angle_diff > 0 else 1
-                pos.direction += turn_direction * 5.0 # Tourne brusquement
-                vel.currentSpeed = vel.maxUpSpeed # Accélère pour esquiver
-                return # L'esquive a la priorité sur le pathfinding
-
-        # --- Couche de planification : Pathfinding A* ---
-        """Logique de décision et de mouvement pour une unité Kamikaze."""
-        # 1. Choisir une cible stratégique finale
+        """Logique de décision et de mouvement pour une unité Kamikaze, combinant pathfinding et évitement local."""
+        
+        # Vecteur de direction souhaité par le pathfinding
+        desired_direction_vector = np.array([0.0, 0.0])
+        desired_direction_angle = pos.direction # Par défaut, la direction actuelle si aucun chemin n'est trouvé
+        
+        # --- 1. Calcul de la direction souhaitée par le pathfinding ---
         target_pos = self.find_best_kamikaze_target(pos, team.team_id)
-
-        # 2. Calculer ou mettre à jour le chemin A*
+        
         path_info = self._kamikaze_paths.get(ent)
         current_target = path_info.get('target') if path_info else None
         path = path_info.get('path') if path_info else None
@@ -204,6 +220,7 @@ class KamikazeAiProcessor(esper.Processor):
         )
 
         # Condition supplémentaire : recalculer si une menace obstrue le chemin à venir
+        threats = self.get_nearby_threats(pos, 4 * TILE_SIZE, team.team_id)
         if path and not recalculate_path:
             waypoint_index = path_info.get('waypoint_index', 0)
             # Vérifier les 3 prochains waypoints
@@ -217,7 +234,7 @@ class KamikazeAiProcessor(esper.Processor):
         if recalculate_path:
             start_grid = (int(pos.x // TILE_SIZE), int(pos.y // TILE_SIZE))
             goal_grid = (int(target_pos.x // TILE_SIZE), int(target_pos.y // TILE_SIZE))
-            path = self.astar(self.world_map, start_grid, goal_grid)
+            path = self.astar(self.inflated_world_map, start_grid, goal_grid) # Utilise la carte gonflée
             
             if path:
                 # Convertir le chemin de grille en coordonnées mondiales
@@ -226,8 +243,9 @@ class KamikazeAiProcessor(esper.Processor):
             else:
                 self._kamikaze_paths[ent] = {'path': [], 'target': (target_pos.x, target_pos.y), 'waypoint_index': 0}
 
-        # 3. Suivre le chemin (steering)
+        # Suivre le chemin (steering) pour obtenir la direction souhaitée
         if ent in self._kamikaze_paths and self._kamikaze_paths[ent]['path']:
+            # desired_direction_angle est mis à jour ici
             path_info = self._kamikaze_paths[ent]
             path = path_info['path']
             waypoint_index = path_info['waypoint_index']
@@ -241,29 +259,87 @@ class KamikazeAiProcessor(esper.Processor):
                 if math.hypot(pos.x - waypoint_pos.x, pos.y - waypoint_pos.y) < TILE_SIZE * 1.5:
                     path_info['waypoint_index'] += 1
 
-                # S'orienter vers le waypoint
-                angle_to_waypoint = self.get_angle_to_target(pos, waypoint_pos)
-                angle_diff = (angle_to_waypoint - pos.direction + 180) % 360 - 180
-
-                # Tourner progressivement
-                if abs(angle_diff) > 5:
-                    pos.direction += math.copysign(min(abs(angle_diff), 3.0), angle_diff) # Tourne de 3 degrés/frame max
-                
-                # Avancer
-                vel.currentSpeed = vel.maxUpSpeed
-
-                # 4. Logique de boost
-                kamikaze_comp = esper.component_for_entity(ent, SpeKamikazeComponent)
-                if kamikaze_comp.can_activate() and abs(angle_diff) < 10: # Si bien aligné
-                    # Vérifier s'il n'y a pas d'obstacle proche devant
-                    obstacles = self.get_nearby_obstacles(pos, 5 * TILE_SIZE, team.team_id)
-                    if not any(self.is_in_front(pos, obs, distance_max=5 * TILE_SIZE, angle_cone=45) for obs in obstacles):
-                        kamikaze_comp.activate()
+                # Calculer la direction vers le waypoint
+                desired_direction_angle = self.get_angle_to_target(pos, waypoint_pos)
         else:
             # Pas de chemin, comportement par défaut (foncer vers la cible)
-            angle_to_target = self.get_angle_to_target(pos, target_pos)
-            pos.direction = angle_to_target
-            vel.currentSpeed = vel.maxUpSpeed
+            desired_direction_angle = self.get_angle_to_target(pos, target_pos)
+
+        # Convertir l'angle souhaité en vecteur de direction
+        desired_direction_vector = np.array([math.cos(math.radians(desired_direction_angle)), math.sin(math.radians(desired_direction_angle))])
+
+        # --- 2. Calcul des vecteurs d'évitement locaux ---
+        avoidance_vector = np.array([0.0, 0.0])
+        total_avoidance_weight = 0.0
+
+        # Éviter les projectiles (menaces)
+        # Utilise le même rayon que précédemment pour la détection des menaces
+        for threat_pos in threats: # 'threats' est déjà calculé plus haut
+            # Vérifier si la menace est devant et suffisamment proche
+            if self.is_in_front(pos, threat_pos, distance_max=3 * TILE_SIZE, angle_cone=90):
+                vec_to_threat = np.array([threat_pos.x - pos.x, threat_pos.y - pos.y])
+                dist_to_threat = np.linalg.norm(vec_to_threat)
+                if dist_to_threat > 0:
+                    # Vecteur d'évitement normalisé, inversé
+                    avoid_vec = -vec_to_threat / dist_to_threat 
+                    # Poids de l'évitement : plus la menace est proche, plus le poids est fort
+                    weight = (3 * TILE_SIZE - dist_to_threat) / (3 * TILE_SIZE) * 2.0 
+                    avoidance_vector += avoid_vec * weight
+                    total_avoidance_weight += weight
+
+        # Éviter les obstacles statiques (îles, mines)
+        # Utilise un rayon plus petit pour l'évitement local des obstacles statiques
+        obstacles = self.get_nearby_obstacles(pos, 2 * TILE_SIZE, team.team_id) 
+        for obs_pos in obstacles:
+            # Vérifier si l'obstacle est devant et suffisamment proche
+            if self.is_in_front(pos, obs_pos, distance_max=1.5 * TILE_SIZE, angle_cone=70): 
+                vec_to_obs = np.array([obs_pos.x - pos.x, obs_pos.y - pos.y])
+                dist_to_obs = np.linalg.norm(vec_to_obs)
+                if dist_to_obs > 0:
+                    # Vecteur d'évitement normalisé, inversé
+                    avoid_vec = -vec_to_obs / dist_to_obs
+                    # Poids de l'évitement : modéré pour les obstacles statiques
+                    weight = (1.5 * TILE_SIZE - dist_to_obs) / (1.5 * TILE_SIZE) * 1.0 
+                    avoidance_vector += avoid_vec * weight
+                    total_avoidance_weight += weight
+
+        # --- 3. Combinaison des vecteurs de direction ---
+        final_direction_vector = desired_direction_vector
+        if total_avoidance_weight > 0:
+            # Normaliser le vecteur d'évitement combiné
+            avoidance_vector /= total_avoidance_weight 
+            # Facteur de mélange : l'évitement prend plus de poids si total_avoidance_weight est élevé
+            blend_factor = min(1.0, total_avoidance_weight / 3.0) # Max 1.0 pour l'évitement pur
+            final_direction_vector = (1.0 - blend_factor) * desired_direction_vector + blend_factor * avoidance_vector
+            
+            # S'assurer que le vecteur final n'est pas nul après le mélange
+            if np.linalg.norm(final_direction_vector) < 0.01:
+                final_direction_vector = desired_direction_vector # Revenir à la direction souhaitée si le mélange annule tout
+            else:
+                final_direction_vector /= np.linalg.norm(final_direction_vector) # Re-normaliser
+
+        # Appliquer la direction et la vitesse finales
+        if np.linalg.norm(final_direction_vector) > 0:
+            # Le MovementProcessor utilise une convention où les angles sont inversés (cos/sin sont soustraits).
+            # Pour compenser, nous inversons le vecteur avant de calculer l'angle.
+            inverted_vector = -final_direction_vector
+            pos.direction = math.degrees(math.atan2(inverted_vector[1], inverted_vector[0]))
+        vel.currentSpeed = vel.maxUpSpeed # La vitesse reste maximale, l'évitement n'affecte que la direction
+
+        # --- 4. Logique de boost (après toutes les décisions de mouvement) ---
+        kamikaze_comp = esper.component_for_entity(ent, SpeKamikazeComponent)
+        # Utiliser l'angle_diff par rapport à la direction finale pour le boost
+        # Recalculer l'angle_diff par rapport à la direction actuelle de l'unité et la direction finale souhaitée
+        current_direction_angle = pos.direction
+        final_desired_angle = math.degrees(math.atan2(final_direction_vector[1], final_direction_vector[0]))
+        angle_diff_for_boost = (final_desired_angle - current_direction_angle + 180) % 360 - 180
+
+        if kamikaze_comp.can_activate() and abs(angle_diff_for_boost) < 10: # Si bien aligné
+            # Vérifier s'il n'y a pas d'obstacle proche devant
+            # Utilise get_nearby_obstacles avec un rayon plus grand pour la planification du boost
+            obstacles_for_boost = self.get_nearby_obstacles(pos, 5 * TILE_SIZE, team.team_id)
+            if not any(self.is_in_front(pos, obs, distance_max=5 * TILE_SIZE, angle_cone=45) for obs in obstacles_for_boost):
+                kamikaze_comp.activate()
 
     # --------------------------- décisions / utilitaires ---------------------------
     def decide_kamikaze_action(self, my_pos: PositionComponent, target_pos: PositionComponent, obstacles: List[PositionComponent], threats: List[PositionComponent], can_boost: bool = True) -> int:
