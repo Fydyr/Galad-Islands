@@ -67,6 +67,31 @@ class DangerMapService:
             indices = np.argwhere(mine_mask)
             self._mine_positions = indices.astype(np.int32)
 
+        # Base ennemie marquée comme dangereuse
+        enemy_base_center_x = self._grid_width - 3.0
+        enemy_base_center_y = self._grid_height - 2.8
+        base_radius_tiles = 5.0  # Rayon de danger autour de la base ennemie
+        base_intensity = self.settings.pathfinding.danger_weight * 2.0  # Intensité plus élevée que les mines
+
+        # Calculer les indices de grille pour la zone autour de la base
+        min_x = max(int(enemy_base_center_x - base_radius_tiles), 0)
+        max_x = min(int(enemy_base_center_x + base_radius_tiles), self._grid_width - 1)
+        min_y = max(int(enemy_base_center_y - base_radius_tiles), 0)
+        max_y = min(int(enemy_base_center_y + base_radius_tiles), self._grid_height - 1)
+
+        y_indices, x_indices = np.ogrid[min_y : max_y + 1, min_x : max_x + 1]
+        dx = (x_indices + 0.5) - enemy_base_center_x
+        dy = (y_indices + 0.5) - enemy_base_center_y
+        dist = np.sqrt(dx * dx + dy * dy)
+        mask = dist <= base_radius_tiles
+        if np.any(mask):
+            falloff = np.zeros_like(dist, dtype=np.float32)
+            falloff[mask] = 1.0 - (dist[mask] / base_radius_tiles)
+            addition = base_intensity * falloff
+            self._static[min_y : max_y + 1, min_x : max_x + 1] = np.maximum(
+                self._static[min_y : max_y + 1, min_x : max_x + 1], addition
+            )
+
     @property
     def field(self) -> np.ndarray:
         return self._field

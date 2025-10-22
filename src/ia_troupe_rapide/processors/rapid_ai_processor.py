@@ -311,14 +311,18 @@ class RapidUnitController:
         )
 
         # Attack transitions
+        # Coffres prioritaires - forcer la sortie vers GoTo depuis l'attaque
         fsm.add_transition(
             attack,
-            Transition(condition=self._attack_done, target=idle, priority=10)
+            Transition(condition=self._has_goto_objective, target=goto, priority=25)
         )
         fsm.add_transition(
             attack,
             Transition(condition=self._has_follow_to_die, target=follow_die, priority=15)
-       
+        )
+        fsm.add_transition(
+            attack,
+            Transition(condition=self._attack_done, target=idle, priority=10)
         )
         fsm.add_transition(
             follow,
@@ -456,39 +460,68 @@ class RapidUnitController:
         danger = self.danger_map.sample_world(context.position)
         health_ratio = context.health / max(context.max_health, 1.0)
         now = self.context_manager.time
+        nav_active = self.is_navigation_active(context)
+        nav_return_state = context.share_channel.get("nav_return") or self._persistent_nav_return
         
         # Hysteresis : seuil d'entrée > seuil de sortie pour éviter l'oscillation
         if context.in_flee_state:
             # En fuite : on continue tant que danger > seuil_liberation OU santé très basse
             should_still_flee = danger >= self.settings.danger.flee_release_threshold or health_ratio <= 0.2
-            LOGGER.debug("[AI] %s _should_flee: in_flee_state=True, danger=%.3f, threshold=%.3f, health=%.2f, should_still_flee=%s", 
-                        context.entity_id, danger, self.settings.danger.flee_release_threshold, health_ratio, should_still_flee)
+            LOGGER.debug(
+                "[AI] %s _should_flee: in_flee_state=True, danger=%.3f, threshold=%.3f, health=%.2f, should_still_flee=%s",
+                context.entity_id,
+                danger,
+                self.settings.danger.flee_release_threshold,
+                health_ratio,
+                should_still_flee,
+            )
             if not should_still_flee:
                 context.in_flee_state = False
                 context.flee_exit_time = now
                 LOGGER.debug("[AI] %s _should_flee: EXITING flee state", context.entity_id)
-            return should_still_flee
-        else:
-            # Pas en fuite : délai minimum avant de pouvoir re-entrer en fuite (1.0s au lieu de 0.5s)
-            if now - context.flee_exit_time < 1.0:
-                LOGGER.debug("[AI] %s _should_flee: cooldown active (%.1fs remaining), staying out of flee", 
-                            context.entity_id, 1.0 - (now - context.flee_exit_time))
                 return False
-            
-            # Si la santé est supérieure à 50%, interdire l'entrée en état flee
-            if health_ratio > 0.5:
-                LOGGER.debug("[AI] %s _should_flee: health=%.2f > 50%%, refusing flee state", 
-                            context.entity_id, health_ratio)
+
+            if nav_active and nav_return_state == "Flee":
+                LOGGER.debug(
+                    "[AI] %s _should_flee: navigation Flee active, délégation temporaire à GoTo",
+                    context.entity_id,
+                )
                 return False
-            
-            # Vérifier les conditions d'entrée en fuite
-            should_start_flee = danger >= self.settings.danger.flee_threshold or health_ratio <= self.settings.flee_health_ratio
-            LOGGER.debug("[AI] %s _should_flee: danger=%.3f, threshold=%.3f, health=%.2f, should_start_flee=%s", 
-                        context.entity_id, danger, self.settings.danger.flee_threshold, health_ratio, should_start_flee)
-            if should_start_flee:
-                context.in_flee_state = True
-                LOGGER.debug("[AI] %s _should_flee: ENTERING flee state", context.entity_id)
-            return should_start_flee
+
+            return True
+
+        # Pas en fuite : délai minimum avant de pouvoir re-entrer en fuite (1.0s au lieu de 0.5s)
+        if now - context.flee_exit_time < 1.0:
+            LOGGER.debug(
+                "[AI] %s _should_flee: cooldown active (%.1fs remaining), staying out of flee",
+                context.entity_id,
+                1.0 - (now - context.flee_exit_time),
+            )
+            return False
+
+        # Si la santé est supérieure à 50%, interdire l'entrée en état flee
+        if health_ratio > 0.5:
+            LOGGER.debug(
+                "[AI] %s _should_flee: health=%.2f > 50%%, refusing flee state",
+                context.entity_id,
+                health_ratio,
+            )
+            return False
+
+        # Vérifier les conditions d'entrée en fuite
+        should_start_flee = danger >= self.settings.danger.flee_threshold or health_ratio <= self.settings.flee_health_ratio
+        LOGGER.debug(
+            "[AI] %s _should_flee: danger=%.3f, threshold=%.3f, health=%.2f, should_start_flee=%s",
+            context.entity_id,
+            danger,
+            self.settings.danger.flee_threshold,
+            health_ratio,
+            should_start_flee,
+        )
+        if should_start_flee:
+            context.in_flee_state = True
+            LOGGER.debug("[AI] %s _should_flee: ENTERING flee state", context.entity_id)
+        return should_start_flee
 
     def _should_follow_druid(self, dt: float, context: UnitContext) -> bool:
         if not self.goal_evaluator.has_druid(context.team_id):
@@ -539,9 +572,18 @@ class RapidUnitController:
         return distance <= self.waypoint_radius
 
     def _attack_done(self, dt: float, context: UnitContext) -> bool:
+        """
+        Détermine si l'attaque est terminée et que l'unité doit quitter l'état Attack.
+        Les coffres ont priorité et forcer la sortie de l'attaque.
+        """
         objective = context.current_objective
         if objective is None:
             LOGGER.info("[AI] %s _attack_done: no objective, returning True", self.entity_id)
+            return True
+        
+        # Les coffres sont prioritaires - forcer la sortie de l'attaque
+        if objective.type in {"goto_chest"}:
+            LOGGER.info("[AI] %s _attack_done: chest objective detected, returning True (priority switch)", self.entity_id)
             return True
         
         # Pour les objectifs de position fixe comme attack_base, l'attaque ne se termine jamais
@@ -550,8 +592,22 @@ class RapidUnitController:
             LOGGER.info("[AI] %s _attack_done: attack_base objective, returning %s", self.entity_id, result)
             return result
         
-        # Pour les objectifs avec une entité cible, l'attaque se termine si l'entité n'existe plus
-        LOGGER.info("[AI] %s _attack_done: checking other objective types (type=%s)", self.entity_id, objective.type)
+        # Pour les objectifs d'attaque: l'attaque se termine si l'entité cible n'existe plus
+        if objective.type in {"attack", "attack_mobile"}:
+            if objective.target_entity is None:
+                LOGGER.info("[AI] %s _attack_done: attack objective without target entity, returning True", self.entity_id)
+                return True
+            try:
+                esper.component_for_entity(objective.target_entity, PositionComponent)
+                LOGGER.info("[AI] %s _attack_done: attack target still exists, returning False", self.entity_id)
+                return False
+            except KeyError:
+                LOGGER.info("[AI] %s _attack_done: attack target no longer exists, returning True", self.entity_id)
+                return True
+        
+        # Fallback pour types inconnus
+        LOGGER.info("[AI] %s _attack_done: unknown objective type=%s, returning True", self.entity_id, objective.type)
+        return True
 
     def _near_druid(self, dt: float, context: UnitContext) -> bool:
         if context.current_objective is None or context.current_objective.target_entity is None:
