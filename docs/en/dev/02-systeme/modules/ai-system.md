@@ -167,12 +167,51 @@ In addition to the Base AI, some units have their own autonomous behavior logic,
 
 **File**: `src/processeurs/KamikazeAiProcessor.py`
 
+Unlike the Base AI, the Kamikaze AI does not use a Machine Learning model. It is a **hybrid procedural AI** that combines classic algorithms to achieve intelligent and reactive navigation behavior.
+
 This processor manages the behavior of Kamikaze units:
 - **Target Acquisition**: It prioritizes nearby heavy enemy units. If none are found, it targets the enemy base.
-- **Long-Term Navigation (A* Pathfinding)**: It calculates an optimal path to its target using the A* algorithm on a map where static obstacles (islands) are "inflated" to create a safety margin.
-- **Short-Term Navigation (Local Avoidance)**: At every moment, it detects immediate dangers (projectiles, mines, other units) in its path. It then combines its path direction with an "avoidance vector" to smoothly steer around these dangers without stopping.
+- **Long-Term Navigation (A* Pathfinding)**: It calculates an optimal path to its target using the A* algorithm. To prevent the unit from "sticking" to obstacles, the pathfinding is performed on an "inflated map" (`inflated_world_map`) where islands are artificially expanded.
+    ```python
+    # Excerpt from KamikazeAiProcessor.py
+    
+    # The path is calculated on a map where obstacles are larger
+    path = self.astar(self.inflated_world_map, start_grid, goal_grid)
+    
+    if path:
+        # The path is then converted to world coordinates
+        world_path = [(gx * TILE_SIZE + TILE_SIZE / 2, gy * TILE_SIZE + TILE_SIZE / 2) for gx, gy in path]
+        self._kamikaze_paths[ent] = {'path': world_path, ...}
+    ```
+
+- **Short-Term Navigation (Local Avoidance)**: This is the core of the AI's reactivity. At every moment, it detects immediate dangers (projectiles, mines) and combines its path direction with an "avoidance vector" to smoothly steer around them.
+    ```python
+    # Excerpt from KamikazeAiProcessor.py
+
+    # 1. Vector towards the path's target (waypoint)
+    desired_direction_vector = np.array([math.cos(math.radians(desired_direction_angle)), ...])
+
+    # 2. Avoidance vector (pushes the unit away from dangers)
+    avoidance_vector = np.array([0.0, 0.0])
+    for threat_pos in threats:
+        # ... calculation of the avoidance vector for each threat
+        avoidance_vector += avoid_vec * weight
+
+    # 3. Combination of the two vectors
+    final_direction_vector = (1.0 - blend_factor) * desired_direction_vector + blend_factor * avoidance_vector
+    ```
+
 - **Dynamic Recalculation**: If its path becomes obstructed by a new danger (like a mine), it is capable of recalculating an entirely new route.
+    ```python
+    # Excerpt from KamikazeAiProcessor.py
+    all_dangers = threats + obstacles
+    if any(math.hypot(wp[0] - danger.x, wp[1] - danger.y) < 2 * TILE_SIZE for wp in path_to_check for danger in all_dangers):
+        # A danger is obstructing the path, a recalculation is needed
+        recalculate_path = True
+    ```
+
 - **Action**: Once in range of its final target, the unit self-destructs.
+- **Strategic Boost**: The AI saves its boost and specifically activates it when approaching the enemy base to maximize its chances of reaching the target.
 
 ### Other AIs (to be added)
 

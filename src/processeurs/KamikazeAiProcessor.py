@@ -11,15 +11,7 @@ dans ton projet (PositionComponent, VelocityComponent, etc.).
 """
 
 import heapq
-import math
-import os
 from typing import List, Tuple, Optional
-
-import joblib
-import numpy as np
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
 import esper
 from src.factory.unitType import UnitType
 from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
@@ -31,8 +23,9 @@ from src.components.core.projectileComponent import ProjectileComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
-
 from src.components.events.flyChestComponent import FlyingChestComponent
+import math
+import numpy as np
 
 class KamikazeAiProcessor(esper.Processor):
     """Processor d'IA pour les Kamikaze.
@@ -44,64 +37,12 @@ class KamikazeAiProcessor(esper.Processor):
     - simulation d'entraînement regroupée dans la classe
     """
 
-    MODEL_PATH = "src/models/kamikaze_ai_rf_model.pkl"
-
-    def __init__(self, world_map: Optional[List[List[int]]] = None, auto_train_model: bool = True):
+    def __init__(self, world_map: Optional[List[List[int]]] = None):
         super().__init__()
         # world_map doit être une grille [row][col] (y,x)
         self.world_map = world_map
-        self._mines_for_training = []
         self.inflated_world_map = self._create_inflated_map(world_map) if world_map else None
-        self._kamikaze_decision_cooldown = {}
         self._kamikaze_paths = {}
-
-        if auto_train_model:
-            self.load_or_train_model()
-
-    # --------------------------- modèle ---------------------------
-    def load_or_train_model(self):
-        if os.path.exists(self.MODEL_PATH):
-            print("🤖 Chargement du modèle IA Kamikaze...")
-            self.model = joblib.load(self.MODEL_PATH)
-            print("✅ Modèle chargé.")
-            return
-
-        alt = "src/models/kamikaze_ai_model.pkl"
-        if os.path.exists(alt):
-            print("🤖 Chargement du modèle IA Kamikaze (alt)...")
-            self.model = joblib.load(alt)
-            print("✅ Modèle chargé.")
-            return
-
-        print("🔧 Aucun modèle trouvé — entraînement d'un modèle basique...")
-        self.train_model()
-        os.makedirs(os.path.dirname(self.MODEL_PATH), exist_ok=True)
-        joblib.dump(self.model, self.MODEL_PATH)
-        print(f"💾 Modèle sauvegardé : {self.MODEL_PATH}")
-
-    def train_model(self):
-        # Garde une version simple : si tu veux reprendre l'entraînement RL/avancé,
-        # il vaut mieux externaliser ceci et fournir les données.
-        states, _, rewards = self.generate_advanced_training_data(
-            n_simulations=200)
-        if not states:
-            print("⚠️ Pas de données d'entraînement générées.")
-            # fallback trivial
-            self.model = DecisionTreeRegressor(max_depth=5, random_state=42)
-            X = np.zeros((1, 7))
-            y = np.array([0.0])
-            self.model.fit(X, y)
-            return
-
-        X = np.array(states)
-        y = np.array(rewards)
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42)
-        self.model = DecisionTreeRegressor(
-            max_depth=8, min_samples_split=10, random_state=42)
-        self.model.fit(X_train, y_train)
-        mse = mean_squared_error(y_test, self.model.predict(X_test))
-        print(f"✅ Entraînement terminé — MSE: {mse:.3f}")
 
     def _create_inflated_map(self, original_map: List[List[int]]) -> List[List[int]]:
         """Crée une carte où les obstacles sont "gonflés" pour le pathfinding."""
@@ -190,7 +131,6 @@ class KamikazeAiProcessor(esper.Processor):
     # --------------------------- processeur principal ---------------------------
     def process(self, dt: float, **kwargs):
         # La logique de cooldown a été retirée pour rendre l'IA plus réactive.
-        # Le pathfinding et le steering sont maintenant gérés à chaque frame.
         for ent, (ai_comp, pos, vel, team) in esper.get_components(KamikazeAiComponent, PositionComponent, VelocityComponent, TeamComponent):
             if getattr(ai_comp, 'unit_type', None) == UnitType.KAMIKAZE:
                 # Si l'unité est sélectionnée par le joueur, l'IA ne doit pas la contrôler
@@ -340,45 +280,26 @@ class KamikazeAiProcessor(esper.Processor):
         final_desired_angle = math.degrees(math.atan2(final_direction_vector[1], final_direction_vector[0]))
         angle_diff_for_boost = (final_desired_angle - current_direction_angle + 180) % 360 - 180
 
-        if kamikaze_comp.can_activate() and abs(angle_diff_for_boost) < 10: # Si bien aligné
+        # Condition de base pour le boost : capacité prête et unité bien alignée
+        can_boost_base = kamikaze_comp.can_activate() and abs(angle_diff_for_boost) < 15
+
+        # Condition supplémentaire : activer le boost près de la base ennemie
+        should_boost_near_base = False
+        enemy_base_pos = self.find_enemy_base_position(team.team_id)
+        # Vérifier si la cible actuelle est bien la base ennemie
+        if abs(target_pos.x - enemy_base_pos.x) < 1 and abs(target_pos.y - enemy_base_pos.y) < 1:
+            distance_to_base = math.hypot(pos.x - target_pos.x, pos.y - target_pos.y)
+            # Si on est à moins de 8 tuiles de la base, on active le boost
+            if distance_to_base < 8 * TILE_SIZE:
+                should_boost_near_base = True
+
+        if can_boost_base and should_boost_near_base:
             # Vérifier s'il n'y a pas d'obstacle proche devant
-            # Utilise get_nearby_obstacles avec un rayon plus grand pour la planification du boost
             obstacles_for_boost = self.get_nearby_obstacles(pos, 5 * TILE_SIZE, team.team_id)
             if not any(self.is_in_front(pos, obs, distance_max=5 * TILE_SIZE, angle_cone=45) for obs in obstacles_for_boost):
                 kamikaze_comp.activate()
 
     # --------------------------- décisions / utilitaires ---------------------------
-    def decide_kamikaze_action(self, my_pos: PositionComponent, target_pos: PositionComponent, obstacles: List[PositionComponent], threats: List[PositionComponent], can_boost: bool = True) -> int:
-        """Règles prioritaires : menaces -> obstacles -> alignement -> boost -> continuer"""
-        # menaces
-        for t in threats:
-            if self.is_in_front(my_pos, t, distance_max=4 * TILE_SIZE, angle_cone=100):
-                return self.turn_away_from(my_pos, t)
-
-        # obstacles
-        for obs in obstacles:
-            dist = math.hypot(obs.x - my_pos.x, obs.y - my_pos.y)
-            if dist < 3 * TILE_SIZE and self.is_in_front(my_pos, obs, distance_max=3 * TILE_SIZE, angle_cone=80):
-                return self.turn_away_from(my_pos, obs)
-
-        # alignement
-        angle_to_target = self.get_angle_to_target(my_pos, target_pos)
-        angle_diff = (angle_to_target - my_pos.direction + 180) % 360 - 180
-        dist = math.hypot(target_pos.x - my_pos.x, target_pos.y - my_pos.y)
-
-        if abs(angle_diff) > 20:
-            return 2 if angle_diff > 0 else 1
-
-        # boost si aligné et loin
-        if can_boost and abs(angle_diff) <= 15 and dist > 10 * TILE_SIZE:
-            # vérifier pas d'obstacle étendu devant
-            ahead = [o for o in obstacles if self.is_in_front(
-                my_pos, o, distance_max=8 * TILE_SIZE, angle_cone=60)]
-            if not ahead:
-                return 3
-
-        return 0
-
     def find_enemy_base_position(self, my_team_id: int) -> PositionComponent:
         """Trouve la position de la base ENNEMIE."""
         BASE_SIZE = 4
@@ -428,33 +349,6 @@ class KamikazeAiProcessor(esper.Processor):
         # Si aucune cible lourde n'est trouvée, cibler la base ennemie.
         return self.find_enemy_base_position(my_team_id)
 
-    def _get_features_for_state(self, my_pos: PositionComponent, target_pos: PositionComponent, obstacles: List[PositionComponent], threats: List[PositionComponent], boost_cooldown: float = 0.0) -> List[float]:
-        dist_to_target = math.hypot(
-            target_pos.x - my_pos.x, target_pos.y - my_pos.y) / TILE_SIZE
-        angle_to_target = (self.get_angle_to_target(
-            my_pos, target_pos) - my_pos.direction + 180) % 360 - 180
-
-        dist_to_obstacle, angle_to_obstacle = 999.0, 0.0
-        if obstacles:
-            closest_obs = min(obstacles, key=lambda o: math.hypot(
-                o.x - my_pos.x, o.y - my_pos.y))
-            dist_to_obstacle = math.hypot(
-                closest_obs.x - my_pos.x, closest_obs.y - my_pos.y) / TILE_SIZE
-            angle_to_obstacle = (self.get_angle_to_target(
-                my_pos, closest_obs) - my_pos.direction + 180) % 360 - 180
-
-        dist_to_threat, angle_to_threat = 999.0, 0.0
-        if threats:
-            closest_threat = min(threats, key=lambda t: math.hypot(
-                t.x - my_pos.x, t.y - my_pos.y))
-            dist_to_threat = math.hypot(
-                closest_threat.x - my_pos.x, closest_threat.y - my_pos.y) / TILE_SIZE
-            angle_to_threat = (self.get_angle_to_target(
-                my_pos, closest_threat) - my_pos.direction + 180) % 360 - 180
-
-        boost_ready = 1 if boost_cooldown <= 0 else 0
-        return [dist_to_target, angle_to_target, dist_to_obstacle, angle_to_obstacle, dist_to_threat, angle_to_threat, boost_ready]
-
     def get_nearby_obstacles(self, my_pos: PositionComponent, radius: float, my_team_id: int) -> List[PositionComponent]:
         obstacles = []
         if self.world_map:
@@ -488,6 +382,10 @@ class KamikazeAiProcessor(esper.Processor):
         return threats
 
     def get_angle_to_target(self, my_pos: PositionComponent, target_pos: PositionComponent) -> float:
+        """Calcule l'angle en degrés de my_pos vers target_pos.
+        
+        Utilise atan2(y, x) pour une convention standard où 0° est à droite.
+        """
         return math.degrees(math.atan2(target_pos.y - my_pos.y, target_pos.x - my_pos.x))
 
     def turn_away_from(self, my_pos: PositionComponent, target_pos: PositionComponent) -> int:
