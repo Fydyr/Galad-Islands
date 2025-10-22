@@ -81,6 +81,82 @@ scenarios = [
 ]
 ```
 
+### Creating and Training a New Base AI
+
+To create or refine a new version of the Base AI, the process primarily involves modifying the training script `train_unified_base_ai.py` and potentially the rule-based decision logic in `BaseAi.decide_action_for_training`.
+
+**Key Steps:**
+
+1.  **Define Desired Behaviors (the "Teacher")**
+    *   The `BaseAi.decide_action_for_training` method acts as a "teacher" for the Machine Learning model. This is where you define the ideal decision rules for the AI in various game states.
+    *   If you want the AI to learn new behaviors or change its priorities (e.g., prioritize a new unit type, or a different defense strategy), you must first implement these rules in this method.
+    *   The Machine Learning model will then learn to imitate and generalize these rules through simulations.
+
+2.  **Adjust Strategic Scenarios (`generate_scenario_examples`)**
+    *   In `train_unified_base_ai.py`, the `generate_scenario_examples` function creates game examples based on key situations.
+    *   If you introduce new units or significant game mechanics, it is crucial to add relevant scenarios here to guide the AI towards the correct decisions in these contexts.
+    *   You can adjust `repeat` and `reward_val` to over-weight certain behaviors deemed more important.
+
+3.  **Run Unified Training (`train_unified_base_ai.py`)**
+    *   The `train_unified_base_ai.py` script orchestrates the entire training process:
+        *   Generation of examples from strategic scenarios.
+        *   Simulation of full games through self-play (`simulate_self_play_game`).
+        *   Simulation of games with a reinforced victory objective (`generate_victory_scenario`).
+    *   Run the script with the desired parameters (number of scenarios, self-play games, etc.):
+        ```bash
+        python train_unified_base_ai.py --n_scenarios 2000 --n_selfplay 1000 --n_victory 500 --n_iterations 5
+        ```
+    *   The script will save the trained model as `src/models/base_ai_unified_final.pkl`.
+
+4.  **Verify AI Behavior (`demo_base_ai.py`)**
+    *   Use the `demo_base_ai.py` script to test the new model in a series of predefined scenarios.
+    *   Ensure that the AI makes the expected decisions and that its behavior aligns with your strategic expectations.
+    *   If the behavior is not satisfactory, return to step 1 or 2 to refine the rules and training scenarios.
+
+5.  **Integrate the New Model into the Game**
+    *   Once satisfied with the model, ensure that the `BaseAi.load_or_train_model()` method in `src/ia/BaseAi.py` is configured to load the `base_ai_unified_final.pkl` file. This is the default behavior if this file exists.
+
+This iterative process allows for progressively refining the base's intelligence to make it a more sophisticated and reactive opponent.
+
+## Unit AI
+
+> 🚧 **Section under construction**
+
+In addition to the Base AI, some units have their own autonomous behavior logic, managed by dedicated ECS processors.
+
+### Kamikaze AI (`KamikazeAiProcessor`)
+
+**File**: `src/processeurs/KamikazeAiProcessor.py`
+
+This processor manages the behavior of Kamikaze units:
+- **Target Acquisition**: It identifies the enemy base as the primary target.
+- **Navigation**: It calculates a direct path to the target.
+- **Action**: Once in range, the unit self-destructs to inflict damage on the base.
+
+### Other AIs (to be added)
+
+AI logic could be added for other units, for example:
+- **Druids**: Automatically heal the most wounded allies nearby.
+- **Scouts**: Autonomously explore unknown areas of the map.
+
+---
+
+*This documentation will be updated as new AIs are implemented.*
+        "name": "Early game - Exploration needed",
+        "gold": 100,
+        "enemy_base_known": 0, # <-- Enemy base unknown
+        "expected": "Scout"
+    },
+    {
+        "name": "Priority defense - Base heavily damaged",
+        "gold": 150,
+        "base_health_ratio": 0.5, # <-- Low health
+        "expected": "Marauder"
+    },
+    # ... other scenarios
+]
+```
+
 ## Unit AI
 
 > 🚧 **Section under construction**
