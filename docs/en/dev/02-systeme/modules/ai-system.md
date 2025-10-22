@@ -168,9 +168,11 @@ In addition to the Base AI, some units have their own autonomous behavior logic,
 **File**: `src/processeurs/KamikazeAiProcessor.py`
 
 This processor manages the behavior of Kamikaze units:
-- **Target Acquisition**: It identifies the enemy base as the primary target.
-- **Navigation**: It calculates a direct path to the target.
-- **Action**: Once in range, the unit self-destructs to inflict damage on the base.
+- **Target Acquisition**: It prioritizes nearby heavy enemy units. If none are found, it targets the enemy base.
+- **Long-Term Navigation (A* Pathfinding)**: It calculates an optimal path to its target using the A* algorithm on a map where static obstacles (islands) are "inflated" to create a safety margin.
+- **Short-Term Navigation (Local Avoidance)**: At every moment, it detects immediate dangers (projectiles, mines, other units) in its path. It then combines its path direction with an "avoidance vector" to smoothly steer around these dangers without stopping.
+- **Dynamic Recalculation**: If its path becomes obstructed by a new danger (like a mine), it is capable of recalculating an entirely new route.
+- **Action**: Once in range of its final target, the unit self-destructs.
 
 ### Other AIs (to be added)
 

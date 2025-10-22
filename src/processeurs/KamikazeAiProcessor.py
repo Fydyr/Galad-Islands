@@ -32,6 +32,7 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 
+from src.components.events.flyChestComponent import FlyingChestComponent
 
 class KamikazeAiProcessor(esper.Processor):
     """Processor d'IA pour les Kamikaze.
@@ -113,7 +114,7 @@ class KamikazeAiProcessor(esper.Processor):
 
         # Rayon de "gonflement" en tuiles. 1 signifie que les tuiles adjacentes sont aussi bloquées.
         # Cela permet d'éviter que les unités ne se collent aux obstacles.
-        buffer_radius = 1 
+        buffer_radius = 2 # Augmenté à 2 pour une plus grande marge de sécurité
 
         for y in range(max_y):
             for x in range(max_x):
@@ -220,16 +221,21 @@ class KamikazeAiProcessor(esper.Processor):
         )
 
         # Condition supplémentaire : recalculer si une menace obstrue le chemin à venir
-        threats = self.get_nearby_threats(pos, 4 * TILE_SIZE, team.team_id)
+        # Augmentation de la portée de détection pour l'évitement local
+        threats = self.get_nearby_threats(pos, 5 * TILE_SIZE, team.team_id)
+        obstacles = self.get_nearby_obstacles(pos, 3 * TILE_SIZE, team.team_id)
+
         if path and not recalculate_path:
             waypoint_index = path_info.get('waypoint_index', 0)
             # Vérifier les 3 prochains waypoints
             path_to_check = path[waypoint_index:waypoint_index + 3]
-            # Utiliser un rayon de détection plus large pour la planification
-            threats_for_planning = self.get_nearby_threats(pos, 8 * TILE_SIZE, team.team_id)
-            if any(math.hypot(wp[0] - threat.x, wp[1] - threat.y) < 2 * TILE_SIZE for wp in path_to_check for threat in threats_for_planning):
-                # print(f"DEBUG: Threat detected on path for ent {ent}. Recalculating.") # Optional debug log
+            
+            # Vérifier si un projectile ou un obstacle statique (mine) est sur le chemin
+            all_dangers = threats + obstacles
+            if any(math.hypot(wp[0] - danger.x, wp[1] - danger.y) < 2 * TILE_SIZE for wp in path_to_check for danger in all_dangers):
+                # Un danger obstrue le chemin, il faut recalculer
                 recalculate_path = True
+
 
         if recalculate_path:
             start_grid = (int(pos.x // TILE_SIZE), int(pos.y // TILE_SIZE))
@@ -274,32 +280,32 @@ class KamikazeAiProcessor(esper.Processor):
 
         # Éviter les projectiles (menaces)
         # Utilise le même rayon que précédemment pour la détection des menaces
-        for threat_pos in threats: # 'threats' est déjà calculé plus haut
+        for threat_pos in threats:
             # Vérifier si la menace est devant et suffisamment proche
-            if self.is_in_front(pos, threat_pos, distance_max=3 * TILE_SIZE, angle_cone=90):
+            if self.is_in_front(pos, threat_pos, distance_max=4 * TILE_SIZE, angle_cone=90):
                 vec_to_threat = np.array([threat_pos.x - pos.x, threat_pos.y - pos.y])
                 dist_to_threat = np.linalg.norm(vec_to_threat)
                 if dist_to_threat > 0:
                     # Vecteur d'évitement normalisé, inversé
                     avoid_vec = -vec_to_threat / dist_to_threat 
                     # Poids de l'évitement : plus la menace est proche, plus le poids est fort
-                    weight = (3 * TILE_SIZE - dist_to_threat) / (3 * TILE_SIZE) * 2.0 
+                    weight = (4 * TILE_SIZE - dist_to_threat) / (4 * TILE_SIZE) * 2.0 
                     avoidance_vector += avoid_vec * weight
                     total_avoidance_weight += weight
 
         # Éviter les obstacles statiques (îles, mines)
-        # Utilise un rayon plus petit pour l'évitement local des obstacles statiques
-        obstacles = self.get_nearby_obstacles(pos, 2 * TILE_SIZE, team.team_id) 
+        # 'obstacles' est déjà calculé plus haut
         for obs_pos in obstacles:
             # Vérifier si l'obstacle est devant et suffisamment proche
-            if self.is_in_front(pos, obs_pos, distance_max=1.5 * TILE_SIZE, angle_cone=70): 
+            # Augmentation de la distance de détection pour mieux anticiper
+            if self.is_in_front(pos, obs_pos, distance_max=2.5 * TILE_SIZE, angle_cone=70): 
                 vec_to_obs = np.array([obs_pos.x - pos.x, obs_pos.y - pos.y])
                 dist_to_obs = np.linalg.norm(vec_to_obs)
                 if dist_to_obs > 0:
                     # Vecteur d'évitement normalisé, inversé
                     avoid_vec = -vec_to_obs / dist_to_obs
                     # Poids de l'évitement : modéré pour les obstacles statiques
-                    weight = (1.5 * TILE_SIZE - dist_to_obs) / (1.5 * TILE_SIZE) * 1.0 
+                    weight = (2.5 * TILE_SIZE - dist_to_obs) / (2.5 * TILE_SIZE) * 1.5
                     avoidance_vector += avoid_vec * weight
                     total_avoidance_weight += weight
 
@@ -467,7 +473,8 @@ class KamikazeAiProcessor(esper.Processor):
                                 x=gx * TILE_SIZE + TILE_SIZE / 2, y=gy * TILE_SIZE + TILE_SIZE / 2))
         # ajouter mines/entités team_id==0
         for ent, (pos, team) in esper.get_components(PositionComponent, TeamComponent):
-            if getattr(team, 'team_id', None) == 0:
+            # Les entités neutres (team 0) sont des obstacles, SAUF les coffres volants.
+            if getattr(team, 'team_id', None) == 0 and not esper.has_component(ent, FlyingChestComponent):
                 if math.hypot(pos.x - my_pos.x, pos.y - my_pos.y) < radius:
                     obstacles.append(pos)
         return obstacles

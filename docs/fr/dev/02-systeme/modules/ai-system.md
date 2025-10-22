@@ -168,9 +168,11 @@ En plus de l'IA de la base, certaines unités possèdent leur propre logique de 
 **Fichier** : `src/processeurs/KamikazeAiProcessor.py`
 
 Ce processeur gère le comportement des unités Kamikaze :
-- **Recherche de cible** : Il identifie la base ennemie comme cible prioritaire.
-- **Navigation** : Il calcule une trajectoire directe vers la cible.
-- **Action** : Une fois à portée, l'unité s'autodétruit pour infliger des dégâts à la base.
+- **Recherche de cible** : Il identifie en priorité les unités ennemies lourdes à proximité. Si aucune n'est trouvée, il cible la base ennemie.
+- **Navigation à long terme (Pathfinding A\*)** : Il calcule un chemin optimal vers sa cible en utilisant l'algorithme A* sur une carte où les obstacles statiques (îles) sont "gonflés" pour créer une marge de sécurité.
+- **Navigation à court terme (Évitement local)** : À chaque instant, il détecte les dangers immédiats (projectiles, mines, autres unités) sur sa trajectoire. Il combine alors sa direction de chemin avec un "vecteur d'évitement" pour contourner ces dangers de manière fluide, sans s'arrêter.
+- **Recalcul dynamique** : Si son chemin est obstrué par un nouveau danger (comme une mine), il est capable de recalculer entièrement un nouvel itinéraire.
+- **Action** : Une fois à portée de sa cible finale, l'unité s'autodétruit.
 
 ### Autres IA (à venir)
 
