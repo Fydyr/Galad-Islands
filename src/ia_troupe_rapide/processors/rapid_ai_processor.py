@@ -768,22 +768,6 @@ class RapidUnitController:
                         self.entity_id,
                         objective.target_entity,
                     )
-            elif objective.type in {"attack", "attack_mobile", "follow_die"}:
-                candidate_ids = {state.entity_id for state in self.coordination.shared_states()}
-                candidate_ids.add(self.entity_id)
-                chosen = self.coordination.assign_rotating_role(
-                    "harass",
-                    candidate_ids,
-                    timestamp=now,
-                )
-                if chosen not in (None, self.entity_id):
-                    LOGGER.info(
-                        "[AI] %s rôle harcèlement occupé par %s, passage en survie",
-                        self.entity_id,
-                        chosen,
-                    )
-                    objective = Objective("survive", context.position)
-                    score = 0.0
             elif context.assigned_chest_id is not None:
                 self.coordination.release_chest(context.assigned_chest_id)
                 LOGGER.info(

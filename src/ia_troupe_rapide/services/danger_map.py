@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Tuple
 
+import math
 import numpy as np
 import esper
 from numpy.lib.stride_tricks import sliding_window_view
@@ -206,6 +207,55 @@ class DangerMapService:
         offset_y, offset_x = divmod(flat_index, window.shape[1])
         best_x = min_x + offset_x
         best_y = min_y + offset_y
+        return ((best_x + 0.5) * TILE_SIZE, (best_y + 0.5) * TILE_SIZE)
+
+    def find_safest_point_with_base_bonus(
+        self,
+        position: Tuple[float, float],
+        base_position: Optional[Tuple[float, float]],
+        search_radius_tiles: float = 6.0,
+        bonus_radius_tiles: float = 8.0,
+        bonus_intensity: float = 6.0,
+    ) -> Tuple[float, float]:
+        if base_position is None:
+            return self.find_safest_point(position, search_radius_tiles)
+
+        center_x = position[0] / TILE_SIZE
+        center_y = position[1] / TILE_SIZE
+        radius = max(search_radius_tiles, 1.0)
+
+        min_x = max(int(center_x - radius), 0)
+        max_x = min(int(center_x + radius), self._grid_width - 1)
+        min_y = max(int(center_y - radius), 0)
+        max_y = min(int(center_y + radius), self._grid_height - 1)
+
+        if min_x > max_x or min_y > max_y:
+            return position
+
+        base_grid_x = base_position[0] / TILE_SIZE
+        base_grid_y = base_position[1] / TILE_SIZE
+        max_bonus_radius = max(bonus_radius_tiles, 1.0)
+
+        best_value = math.inf
+        best_coord: Optional[Tuple[int, int]] = None
+
+        for grid_y in range(min_y, max_y + 1):
+            for grid_x in range(min_x, max_x + 1):
+                raw_value = float(self._field[grid_y, grid_x])
+                dist = math.hypot((grid_x + 0.5) - base_grid_x, (grid_y + 0.5) - base_grid_y)
+                bonus = 0.0
+                if dist <= max_bonus_radius:
+                    # Bonus décroissant pour favoriser les positions proches de la base alliée.
+                    bonus = bonus_intensity * (1.0 - (dist / max_bonus_radius))
+                adjusted_value = raw_value - bonus
+                if adjusted_value < best_value:
+                    best_value = adjusted_value
+                    best_coord = (grid_x, grid_y)
+
+        if best_coord is None:
+            return self.find_safest_point(position, search_radius_tiles)
+
+        best_x, best_y = best_coord
         return ((best_x + 0.5) * TILE_SIZE, (best_y + 0.5) * TILE_SIZE)
 
     def iter_mine_world_positions(self) -> Iterable[Tuple[float, float]]:

@@ -10,6 +10,7 @@ import numpy as np
 import esper
 
 from src.components.core.positionComponent import PositionComponent
+from src.components.core.velocityComponent import VelocityComponent
 
 from .base import RapidAIState
 
@@ -227,6 +228,12 @@ class AttackState(RapidAIState):
             return
         if radius.cooldown > 0:
             return
+        try:
+            velocity = esper.component_for_entity(context.entity_id, VelocityComponent)
+            # On stoppe immédiatement l'unité pour empêcher un déplacement involontaire pendant le tir.
+            velocity.currentSpeed = 0.0
+        except KeyError:
+            pass
         
         # Viser la position actuelle de la cible
         projectile_target = None

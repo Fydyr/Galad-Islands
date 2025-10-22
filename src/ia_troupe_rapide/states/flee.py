@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 
+import esper
+
 from .base import RapidAIState
+from src.components.core.baseComponent import BaseComponent
+from src.components.core.positionComponent import PositionComponent
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..processors.rapid_ai_processor import RapidUnitController
@@ -61,10 +65,25 @@ class FleeState(RapidAIState):
     def _find_accessible_safe_point(self, context: "UnitContext", search_radius_tiles: float) -> Optional[tuple[float, float]]:
         """Recherche un point sûr et franchissable pour la fuite."""
 
-        candidate = self.controller.danger_map.find_safest_point(context.position, search_radius_tiles)
+        base_position = self._get_team_base_position(context)
+        candidate = self.controller.danger_map.find_safest_point_with_base_bonus(
+            context.position,
+            base_position,
+            search_radius_tiles,
+        )
         if candidate is None:
             return None
         if not self.controller.pathfinding.is_world_blocked(candidate):
             return candidate
         adjusted = self.controller.pathfinding.find_accessible_world(candidate, search_radius_tiles + 4.0)
         return adjusted
+
+    def _get_team_base_position(self, context: "UnitContext") -> Optional[tuple[float, float]]:
+        base_entity = BaseComponent.get_enemy_base() if context.is_enemy else BaseComponent.get_ally_base()
+        if base_entity is None or not esper.has_component(base_entity, PositionComponent):
+            return None
+        try:
+            base_pos = esper.component_for_entity(base_entity, PositionComponent)
+        except KeyError:
+            return None
+        return (base_pos.x, base_pos.y)
