@@ -140,11 +140,11 @@ class StateAnalyzer:
         
         # Détermine le type d'unité si possible
         unit_type = None
-        if hasattr(entity, 'ClasseComponent'):
-            from src.components.core.classeComponent import ClasseComponent
-            if esper.has_component(entity, ClasseComponent):
-                class_comp = esper.component_for_entity(entity, ClasseComponent)
-                unit_type = class_comp.unit_type
+        #if hasattr(entity, 'ClasseComponent'):
+        from src.components.core.classeComponent import ClasseComponent
+        if esper.has_component(entity, ClasseComponent):
+            class_comp = esper.component_for_entity(entity, ClasseComponent)
+            unit_type = class_comp.unit_type
         
         return UnitState(
             entity_id=entity,
@@ -152,7 +152,7 @@ class StateAnalyzer:
             direction=pos_comp.direction,
             health=health_comp.currentHealth,
             max_health=health_comp.maxHealth,
-            health_ratio=health_comp.currentHealth / health_comp.maxHealth,
+            health_ratio=health_comp.currentHealth / health_comp.maxHealth if health_comp.maxHealth > 0 else 0.0,
             team=team_comp.team_id,
             velocity=velocity,
             is_ally=(team_comp.team_id == druid_team),

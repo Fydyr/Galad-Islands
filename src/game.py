@@ -1314,6 +1314,8 @@ class GameEngine:
             self.notification_system.update(dt)
 
         if self.druid_ai_processor is not None:
+            if hasattr(self, 'grid') and self.grid is not None:
+                self.druid_ai_processor.grid = self.grid
             self.druid_ai_processor.process(dt)
         
         # Traiter les capacités spéciales d'abord (avec dt)
