@@ -49,35 +49,30 @@ DRUID_HEAL_AMOUNT = get_unit_metadata(UnitType.DRUID).ally.stats.get("soin", 20)
 
 
 class AIControlProcessor(esper.Processor):
-    
+
     def __init__(self, grid: Grid):
-        self.grid = grid 
+        self.grid = grid
         self.pathfinding_service = a_star_pathfinding
         self.minimax_service = run_minimax
-        # Un timer pour éviter de spammer la console
         self.debug_timer = 0.0
 
     def process(self, dt: float):
         self.debug_timer -= dt
+        debug_this_frame = False
         if self.debug_timer <= 0:
-            print("[AI DEBUG 1] Le processeur AIControlProcessor.process() est appelé.")
-            self.debug_timer = 2.0 # Imprime toutes les 2 secondes
+            self.debug_timer = 2.0
+            debug_this_frame = True
 
-        # Boucle sur toutes les entités contrôlées par l'IA
         for ent, (ai, pos, team, vel, health) in esper.get_components(
-                AIControlledComponent, 
-                PositionComponent, 
+                AIControlledComponent,
+                PositionComponent,
                 TeamComponent,
                 VelocityComponent,
                 HealthComponent):
-            
-            print(f"[AI DEBUG 2] L'entité {ent} est contrôlée par l'IA.")
-            
-            ai.think_cooldown_current -= dt
 
-            # --- 1. GESTION DU MOUVEMENT (À CHAQUE FRAME) ---
+            # ... (Gestion du Mouvement reste la même) ...
             if ai.current_path:
-                print(f"[AI DEBUG 8] L'entité {ent} suit un chemin. Prochain point: {ai.current_path[0]}")
+                # ... (code mouvement) ...
                 try:
                     next_pos_coords = ai.current_path[0]
                 except IndexError:
@@ -89,13 +84,13 @@ class AIControlProcessor(esper.Processor):
                 dx = next_pos_coords[0] - pos.x
                 dy = next_pos_coords[1] - pos.y
                 dist = math.hypot(dx, dy)
-                
+
                 if dist < (TILE_SIZE / 2):
                     ai.current_path.pop(0)
                     if not ai.current_path:
-                        print(f"[AI DEBUG 8b] Entité {ent} a atteint la fin du chemin.")
+                        # print(f"[AI DEBUG 8b] Entité {ent} a atteint la fin du chemin.") # Moins de spam
                         vel.currentSpeed = 0
-                        ai.current_action = None 
+                        ai.current_action = None
                         continue
                     else:
                         next_pos_coords = ai.current_path[0]
@@ -105,19 +100,22 @@ class AIControlProcessor(esper.Processor):
                 angle = math.degrees(math.atan2(pos.y - next_pos_coords[1], pos.x - next_pos_coords[0]))
                 pos.direction = angle
                 vel.currentSpeed = vel.maxUpSpeed
-            
+
+
+            ai.think_cooldown_current -= dt
             # --- 2. GESTION DE LA DÉCISION (PÉRIODIQUEMENT) ---
             if ai.think_cooldown_current <= 0 and ai.current_action is None:
-                print(f"[AI DEBUG 3] L'entité {ent} commence à RÉFLÉCHIR (cooldown prêt).")
-                ai.think_cooldown_current = ai.think_cooldown_max 
-                
+                # print(f"[AI DEBUG 3] L'entité {ent} commence à RÉFLÉCHIR.") # Moins de spam
+                ai.think_cooldown_current = ai.think_cooldown_max
+
                 game_state = self._build_game_state(ent, ai, pos, team, health)
-                
+
                 if not game_state:
-                    print(f"[AI DEBUG 4] ECHEC _build_game_state pour l'entité {ent}.")
+                    # print(f"[AI DEBUG 4] ECHEC _build_game_state pour l'entité {ent}.") # Moins de spam
                     continue
-                
-                print(f"[AI DEBUG 4] Entité {ent} voit: {len(game_state['allies'])} alliés, {len(game_state['enemies'])} ennemis.")
+
+                if debug_this_frame: # Afficher l'état seulement toutes les 2s
+                     print(f"[AI DEBUG 4] Entité {ent} voit: {len(game_state['allies'])} alliés, {len(game_state['enemies'])} ennemis. Cooldown Special: {game_state['druid']['spec_cooldown']:.2f}")
 
                 best_action, best_score = self.minimax_service(
                     game_state,
@@ -127,20 +125,27 @@ class AIControlProcessor(esper.Processor):
                     beta=math.inf,
                     is_maximizing_player=True
                 )
-                
-                print(f"[AI DEBUG 5] L'entité {ent} a pris une décision: {best_action} (Score: {best_score})")
+
+                if debug_this_frame: # Afficher décision seulement toutes les 2s
+                    print(f"[AI DEBUG 5] Entité {ent} a pris une décision: {best_action} (Score: {best_score:.1f})")
 
                 if best_action:
                     ai.current_action = best_action
-                    self._execute_action(ent, ai, pos, best_action) # Passé 'pos' pour le debug 6
+                    self._execute_action(ent, ai, pos, best_action)
 
     def _build_game_state(self, druid_entity: int, ai: AIControlledComponent, druid_pos: PositionComponent, druid_team: TeamComponent, druid_health: HealthComponent) -> Optional[GameState]:
         """Construit un état de jeu simplifié pour Minimax."""
         try:
-            spe_druid = esper.component_for_entity(druid_entity, SpeDruid) 
-            radius = esper.component_for_entity(druid_entity, RadiusComponent) 
-        except esper.componentnotfound.ComponentNotFound:
-            return None 
+            spe_druid = esper.component_for_entity(druid_entity, SpeDruid)
+            radius = esper.component_for_entity(druid_entity, RadiusComponent)
+        except esper.ComponentNotFound:
+             # print(f"Erreur IA: Entité {druid_entity} n'est pas un Druide complet.") # Moins de spam
+            return None
+
+        # --- DEBUG COOLDOWN ---
+        # Lire la valeur actuelle du cooldown DANS le composant SpeDruid
+        current_spec_cooldown = getattr(spe_druid, 'cooldown', 999.0) # Lire la valeur réelle
+        # --- FIN DEBUG ---
 
         game_state: GameState = {
             "druid": {
@@ -149,18 +154,21 @@ class AIControlProcessor(esper.Processor):
                 "health": druid_health.currentHealth,
                 "max_health": druid_health.maxHealth,
                 "heal_cooldown": radius.cooldown,
-                "spec_cooldown": spe_druid.cooldown
+                # Utiliser la valeur lue pour le debug
+                "spec_cooldown": current_spec_cooldown
             },
             "allies": [],
             "enemies": []
         }
 
+        # ... (le reste de la fonction _build_game_state reste identique) ...
         for ent, (pos, health, team) in esper.get_components(PositionComponent, HealthComponent, TeamComponent):
+            # ... (code pour remplir allies et enemies) ...
             if ent == druid_entity:
-                continue 
-            
+                continue
+
             dist = math.hypot(pos.x - druid_pos.x, pos.y - druid_pos.y)
-            
+
             if dist > ai.vision_range:
                 continue
 
@@ -171,46 +179,52 @@ class AIControlProcessor(esper.Processor):
                 "max_health": health.maxHealth
             }
 
-            if team.team_id == druid_team.team_id: 
+            if team.team_id == druid_team.team_id:
                 game_state["allies"].append(entity_data)
-            
-            elif team.team_id != 0: 
+
+            elif team.team_id != 0:
                 is_vined = esper.has_component(ent, isVinedComponent)
                 entity_data["is_vined"] = is_vined
                 vine_duration = 0.0
                 if is_vined:
                     try:
                         vine_comp = esper.component_for_entity(ent, isVinedComponent)
-                        vine_duration = vine_comp.remaining_time 
-                    except esper.componentnotfound.ComponentNotFound:
-                        pass 
-                entity_data["vine_duration"] = vine_duration 
+                        vine_duration = vine_comp.remaining_time
+                    except esper.ComponentNotFound:
+                        pass
+                entity_data["vine_duration"] = vine_duration
                 game_state["enemies"].append(entity_data)
-        
+
+
         return game_state
 
-    # MODIFIÉ: Ajout de 'druid_pos_comp' pour le print
     def _execute_action(self, druid_entity: int, ai: AIControlledComponent, druid_pos_comp: PositionComponent, action: Tuple[str, Any]):
         """Traduit une décision Minimax en commandes de jeu."""
-        
+
         action_type, target_id = action
-        print(f"[AI DEBUG 6] L'entité {druid_entity} exécute l'action: {action}")
-        
+        # print(f"[AI DEBUG 6] L'entité {druid_entity} exécute l'action: {action}") # Moins de spam
+
         try:
             if action_type == "HEAL":
                 radius = esper.component_for_entity(druid_entity, RadiusComponent)
                 target_health = esper.component_for_entity(target_id, HealthComponent)
                 target_health.currentHealth = min(target_health.maxHealth, target_health.currentHealth + DRUID_HEAL_AMOUNT)
-                radius.cooldown = UNIT_COOLDOWN_DRUID 
-                ai.current_action = None 
+                radius.cooldown = UNIT_COOLDOWN_DRUID
+                ai.current_action = None
 
             elif action_type == "CAST_IVY":
                 target_pos = esper.component_for_entity(target_id, PositionComponent)
                 spe_druid = esper.component_for_entity(druid_entity, SpeDruid)
                 angle = math.degrees(math.atan2(druid_pos_comp.y - target_pos.y, druid_pos_comp.x - target_pos.x))
                 druid_pos_comp.direction = angle
-                spe_druid.launch_projectile(druid_entity) 
-                ai.current_action = None 
+                # --- VÉRIFICATION SUPPLÉMENTAIRE ---
+                if spe_druid.can_cast_ivy(): # Vérifier une dernière fois avant de lancer
+                    spe_druid.launch_projectile(druid_entity)
+                    print(f"[AI ACTION] Druid {druid_entity} LANCE LIERRE sur {target_id}") # Confirmation
+                else:
+                     print(f"[AI WARNING] Druid {druid_entity} voulait lancer lierre mais cooldown pas prêt in extremis!")
+                # --- FIN VÉRIFICATION ---
+                ai.current_action = None
 
             elif action_type in ["MOVE_TO_ALLY", "MOVE_TO_ENEMY", "FLEE"]:
                 target_pos_comp = esper.component_for_entity(target_id, PositionComponent)
@@ -223,27 +237,26 @@ class AIControlProcessor(esper.Processor):
                     dist = math.hypot(dx, dy)
                     if dist == 0: dist = 1.0
                     flee_dist = 10 * TILE_SIZE
-                    end_pos = (druid_pos_comp.x + (dx / dist) * flee_dist, 
+                    end_pos = (druid_pos_comp.x + (dx / dist) * flee_dist,
                                druid_pos_comp.y + (dy / dist) * flee_dist)
 
                 path = self.pathfinding_service(self.grid, start_pos, end_pos)
-                
-                print(f"[AI DEBUG 7] Pathfinding demandé. Chemin trouvé de {len(path)} points.")
+
+                # print(f"[AI DEBUG 7] Pathfinding demandé. Chemin trouvé de {len(path)} points.") # Moins de spam
 
                 if path and len(path) > 1:
-                    ai.current_path = path[1:] 
+                    ai.current_path = path[1:]
                 else:
-                    print(f"[AI DEBUG 7b] Pathfinding ÉCHOUÉ ou chemin trop court. L'IA va attendre.")
-                    ai.current_action = ("WAIT", None) # Fallback pour ne pas rester bloqué
-                    self._execute_action(druid_entity, ai, druid_pos_comp, ai.current_action) # Appel récursif pour WAIT
-            
+                    # print(f"[AI DEBUG 7b] Pathfinding ÉCHOUÉ ou chemin trop court.") # Moins de spam
+                    ai.current_action = None # Se remet en mode 'réflexion'
+
             elif action_type == "WAIT":
                 vel = esper.component_for_entity(druid_entity, VelocityComponent)
                 vel.currentSpeed = 0
                 ai.current_path = []
-                ai.current_action = None 
+                ai.current_action = None
 
-        except (esper.componentnotfound.ComponentNotFound, esper.deadentityerror.DeadEntityError):
-            print(f"[AI DEBUG 9] Action {action} ANNULÉE (cible morte ?)")
+        except (esper.ComponentNotFound, esper.DeadEntityError):
+            # print(f"[AI DEBUG 9] Action {action} ANNULÉE (cible morte ?)") # Moins de spam
             ai.current_action = None
             ai.current_path = []

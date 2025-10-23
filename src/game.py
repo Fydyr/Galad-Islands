@@ -1333,6 +1333,9 @@ class GameEngine:
         # Traiter les événements d'abord (avec dt)
         if self.event_processor is not None:
             self.event_processor.process(dt, self.grid)
+
+        if self.lifetime_processor is not None:
+            self.lifetime_processor.process(dt)
         
         # Traiter le TowerProcessor (avec dt)
         if self.tower_processor is not None:
