@@ -228,7 +228,7 @@ MAP_WIDTH = 45   # nombre de cases en largeur
 MAP_HEIGHT = 45  # nombre de cases en hauteur
 
 # Paramètres de génération de la carte
-MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.008)        # 0.8% de mines
+MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.00)        # 0.8% de mines
 GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.008)  # 0.8% d'îles
 CLOUD_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03)       # 3% de nuages
 
