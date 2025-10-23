@@ -21,7 +21,8 @@ from src.processeurs import movementProcessor, collisionProcessor, playerControl
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
-from src.processeurs.ai.druidAIProcessor import DruidAIProcessor 
+# IA - Import du nouveau processeur
+from src.processeurs.ai.aiControlProcessor import AIControlProcessor
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -35,7 +36,6 @@ from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
 
 # Importations des capacités spéciales
-
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
@@ -43,8 +43,8 @@ from src.components.special.speDruidComponent import SpeDruid
 from src.components.special.speArchitectComponent import SpeArchitect
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
 
-# IA du Druid
-from src.sklearn.druidAiController import DruidAIComponent
+# IA - Import du nouveau composant
+from src.components.ai.aiControlledComponent import AIControlledComponent
 
 # import event
 from src.managers.flying_chest_manager import FlyingChestManager
@@ -513,7 +513,9 @@ class GameEngine:
         self.player_controls = None
         self.capacities_processor = None
         self.lifetime_processor = None
-
+        self.druid_ai_processor = None # <-- AJOUTÉ
+        self.tower_processor = None # <-- AJOUTÉ
+        
         # Gestion de la sélection des unités
         self.selected_unit_id = None
         self.camera_follow_enabled = False
@@ -632,17 +634,21 @@ class GameEngine:
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
-        self.druid_ai_processor = DruidAIProcessor()
+        
+        # IA - Initialisation du processeur IA avec la grille
+        self.druid_ai_processor = AIControlProcessor(self.grid)
+        
         # Tower processor (gère tours de défense/soin)
         from src.processeurs.towerProcessor import TowerProcessor
         self.tower_processor = TowerProcessor()
 
-        #es.add_processor(self.druid_ai_processor, priority=1)
+        # AJOUT DES PROCESSEURS DANS L'ORDRE
+        #es.add_processor(self.druid_ai_processor, priority=1) 
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
-        es.add_processor(self.tower_processor, priority=5)
-        es.add_processor(self.lifetime_processor, priority=10)
+        #es.add_processor(self.tower_processor, priority=5)
+        #es.add_processor(self.lifetime_processor, priority=10)
         
         # Configurer les handlers d'événements
         es.set_handler('attack_event', create_projectile)
@@ -685,11 +691,11 @@ class GameEngine:
 
         # créer un DRUID
         enemy_druid = UnitFactory(
-            UnitType.DRUID, True, PositionComponent(enemy_spawn_x, enemy_spawn_y)) # <--- MODIFIÉ
+            UnitType.DRUID, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
 
         # Attache le composant IA à l'entité du druide ennemi
         if enemy_druid is not None:
-            es.add_component(enemy_druid, DruidAIComponent())
+            es.add_component(enemy_druid, AIControlledComponent()) # <-- MODIFIÉ
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
@@ -1313,10 +1319,12 @@ class GameEngine:
         if self.notification_system is not None:
             self.notification_system.update(dt)
 
+        # IA - Mise à jour du processeur IA (qui a besoin de dt)
         if self.druid_ai_processor is not None:
+            # Assurer que la grille est à jour (au cas où elle changerait, peu probable)
             if hasattr(self, 'grid') and self.grid is not None:
                 self.druid_ai_processor.grid = self.grid
-            self.druid_ai_processor.process(dt)
+            self.druid_ai_processor.process(dt) # <-- MODIFIÉ
         
         # Traiter les capacités spéciales d'abord (avec dt)
         if self.capacities_processor is not None:
@@ -1560,4 +1568,3 @@ def game(window=None, bg_original=None, select_sound=None):
     """
     engine = GameEngine(window, bg_original, select_sound)
     engine.run()
-
