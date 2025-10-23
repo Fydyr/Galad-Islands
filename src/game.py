@@ -694,8 +694,8 @@ class GameEngine:
             UnitType.DRUID, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
 
         # Attache le composant IA à l'entité du druide ennemi
-        if enemy_druid is not None:
-            es.add_component(enemy_druid, AIControlledComponent()) # <-- MODIFIÉ
+        #if enemy_druid is not None:
+            #es.add_component(enemy_druid, AIControlledComponent())
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""

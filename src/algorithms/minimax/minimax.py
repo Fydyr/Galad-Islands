@@ -120,10 +120,10 @@ def get_possible_actions(game_state: GameState, is_maximizing_player: bool) -> L
             # Action CAST_IVY : si ennemi à portée, non immobilisé, et sort prêt
             if can_vine and not enemy["is_vined"]:
                 actions.append(("CAST_IVY", enemy["id"]))
-        else:
+        #else:
             # Action MOVE_TO_ENEMY : si ennemi hors de portée et non immobilisé
-            if not enemy["is_vined"]:
-                actions.append(("MOVE_TO_ENEMY", enemy["id"]))
+            #if not enemy["is_vined"]:
+                #actions.append(("MOVE_TO_ENEMY", enemy["id"]))
 
     # 2. Actions de positionnement (Fuir)
     if enemies_in_range:
