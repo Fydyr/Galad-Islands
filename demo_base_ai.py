@@ -136,10 +136,7 @@ def demo_ai_decisions():
         # If scenario provides allied_units_health explicitly, call the rule-based
         # decision function directly so the new Druide rule is exercised.
         if "allied_units_health" in scenario:
-            best_action_index = ai.decide_action_for_training(
-                scenario['gold'], scenario['base_health_ratio'], scenario['allied_units'], scenario['enemy_units'], scenario['towers_needed'], scenario['enemy_base_known'], enemy_base_health, scenario.get('allied_units_health', 1.0)
-            )
-        else:
+            game_state['allied_units_health'] = scenario.get('allied_units_health', 1.0)
             best_action_index = ai._decide_action(game_state)
         action_name = actions_names[best_action_index]
         # Comparer avec le résultat attendu (plus flexible)

@@ -83,19 +83,19 @@ scenarios = [
 
 ### Creating and Training a New Base AI
 
-To create or refine a new version of the Base AI, the process primarily involves modifying the training script `train_unified_base_ai.py` and potentially the rule-based decision logic in `BaseAi.decide_action_for_training`.
+To create or refine a new version of the Base AI, the process involves modifying the training script `train_unified_base_ai.py`.
 
 **Key Steps:**
 
 1.  **Define Desired Behaviors (the "Teacher")**
-    *   The `BaseAi.decide_action_for_training` method acts as a "teacher" for the Machine Learning model. This is where you define the ideal decision rules for the AI in various game states.
+    *   The `decide_action_for_training` function within the `train_unified_base_ai.py` script acts as a "teacher" for the Machine Learning model. This is where you define the ideal decision rules for the AI in various game states.
     *   If you want the AI to learn new behaviors or change its priorities (e.g., prioritize a new unit type, or a different defense strategy), you must first implement these rules in this method.
     *   The Machine Learning model will then learn to imitate and generalize these rules through simulations.
 
 2.  **Adjust Strategic Scenarios (`generate_scenario_examples`)**
     *   In `train_unified_base_ai.py`, the `generate_scenario_examples` function creates game examples based on key situations.
     *   If you introduce new units or significant game mechanics, it is crucial to add relevant scenarios here to guide the AI towards the correct decisions in these contexts.
-    *   You can adjust `repeat` and `reward_val` to over-weight certain behaviors deemed more important.
+    *   You can adjust `repeat` and `reward_val` to overweight certain behaviors deemed more important.
 
 3.  **Run Unified Training (`train_unified_base_ai.py`)**
     *   The `train_unified_base_ai.py` script orchestrates the entire training process:
@@ -114,7 +114,8 @@ To create or refine a new version of the Base AI, the process primarily involves
     *   If the behavior is not satisfactory, return to step 1 or 2 to refine the rules and training scenarios.
 
 5.  **Integrate the New Model into the Game**
-    *   Once satisfied with the model, ensure that the `BaseAi.load_or_train_model()` method in `src/ia/BaseAi.py` is configured to load the `base_ai_unified_final.pkl` file. This is the default behavior if this file exists.
+    *   Once satisfied with the model, ensure that the `BaseAi.load_model()` method in `src/ia/BaseAi.py` is configured to load the `base_ai_unified_final.pkl` file. This is the default behavior if this file exists.
+    *   The in-game `BaseAi` class no longer contains the training logic; it only loads and uses the model.
 
 This iterative process allows for progressively refining the base's intelligence to make it a more sophisticated and reactive opponent.
 
