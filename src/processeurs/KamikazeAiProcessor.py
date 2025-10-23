@@ -24,8 +24,10 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.components.events.flyChestComponent import FlyingChestComponent
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 import math
 import numpy as np
+import random
 
 class KamikazeAiProcessor(esper.Processor):
     """Processor d'IA pour les Kamikaze.
@@ -43,6 +45,7 @@ class KamikazeAiProcessor(esper.Processor):
         self.world_map = world_map
         self.inflated_world_map = self._create_inflated_map(world_map) if world_map else None
         self._kamikaze_paths = {}
+        self._kamikaze_exploration_targets = {}
 
     def _create_inflated_map(self, original_map: List[List[int]]) -> List[List[int]]:
         """Crée une carte où les obstacles sont "gonflés" pour le pathfinding."""
@@ -147,9 +150,20 @@ class KamikazeAiProcessor(esper.Processor):
         desired_direction_vector = np.array([0.0, 0.0])
         desired_direction_angle = pos.direction # Par défaut, la direction actuelle si aucun chemin n'est trouvé
         
-        # --- 1. Calcul de la direction souhaitée par le pathfinding ---
-        target_pos = self.find_best_kamikaze_target(pos, team.team_id)
-        
+        # --- 1. Déterminer la cible (exploration ou attaque) ---
+        is_base_known = enemy_base_registry.is_enemy_base_known(team.team_id)
+
+        if not is_base_known:
+            # Mode RECHERCHE : la base n'est pas connue, on explore.
+            if ent not in self._kamikaze_exploration_targets or self._is_close_to_exploration_target(pos, ent):
+                self._kamikaze_exploration_targets[ent] = self._get_new_exploration_target(team.team_id)
+            target_pos = self._kamikaze_exploration_targets[ent]
+        else:
+            # Mode ATTAQUE : la base est connue, on cherche la meilleure cible.
+            if ent in self._kamikaze_exploration_targets:
+                del self._kamikaze_exploration_targets[ent]
+            target_pos = self.find_best_kamikaze_target(pos, team.team_id)
+
         path_info = self._kamikaze_paths.get(ent)
         current_target = path_info.get('target') if path_info else None
         path = path_info.get('path') if path_info else None
@@ -300,6 +314,40 @@ class KamikazeAiProcessor(esper.Processor):
                 kamikaze_comp.activate()
 
     # --------------------------- décisions / utilitaires ---------------------------
+    def _get_new_exploration_target(self, team_id: int) -> PositionComponent:
+        """Définit un nouveau point d'exploration pour trouver la base ennemie."""
+        map_w_pixels = MAP_WIDTH * TILE_SIZE
+        map_h_pixels = MAP_HEIGHT * TILE_SIZE
+
+        # Définir la zone de recherche (le quart de carte opposé)
+        if team_id == 1: # L'équipe 1 est en haut à gauche, cherche en bas à droite
+            search_area = (map_w_pixels / 2, map_h_pixels / 2, map_w_pixels, map_h_pixels)
+        else: # L'équipe 2 est en bas à droite, cherche en haut à gauche
+            search_area = (0, 0, map_w_pixels / 2, map_h_pixels / 2)
+
+        # Choisir un point aléatoire dans la zone de recherche
+        x = random.uniform(search_area[0], search_area[2])
+        y = random.uniform(search_area[1], search_area[3])
+
+        # S'assurer que le point n'est pas dans un obstacle
+        grid_x, grid_y = int(x // TILE_SIZE), int(y // TILE_SIZE)
+        if self.world_map and self.world_map[grid_y][grid_x] in (2, 3):
+            # Si c'est un obstacle, on réessaye
+            return self._get_new_exploration_target(team_id)
+
+        return PositionComponent(x=x, y=y)
+
+    def _is_close_to_exploration_target(self, pos: PositionComponent, ent: int) -> bool:
+        """Vérifie si l'unité est arrivée à son point d'exploration."""
+        if ent not in self._kamikaze_exploration_targets:
+            return True # Pas de cible, donc on en a besoin d'une nouvelle
+
+        target_pos = self._kamikaze_exploration_targets[ent]
+        distance = math.hypot(pos.x - target_pos.x, pos.y - target_pos.y)
+        
+        # Considéré "proche" si à moins de 2 tuiles de distance
+        return distance < 2 * TILE_SIZE
+
     def find_enemy_base_position(self, my_team_id: int) -> PositionComponent:
         """Trouve la position de la base ENNEMIE."""
         BASE_SIZE = 4
