@@ -170,7 +170,7 @@ In addition to the Base AI, some units have their own autonomous behavior logic,
 Unlike the Base AI, the Kamikaze AI does not use a Machine Learning model. It is a **hybrid procedural AI** that combines classic algorithms to achieve intelligent and reactive navigation behavior.
 
 This processor manages the behavior of Kamikaze units:
-- **Target Acquisition**: It prioritizes nearby heavy enemy units. If none are found, it targets the enemy base.
+- **Target Acquisition**: If the enemy base is not yet discovered (`KnownBaseProcessor`), the Kamikaze explores random points in the enemy's territory. Once the base is found, it prioritizes nearby heavy enemy units. If none are found, it targets the enemy base.
 - **Long-Term Navigation (A* Pathfinding)**: It calculates an optimal path to its target using the A* algorithm. To prevent the unit from "sticking" to obstacles, the pathfinding is performed on an "inflated map" (`inflated_world_map`) where islands are artificially expanded.
     ```python
     # Excerpt from KamikazeAiProcessor.py

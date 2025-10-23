@@ -89,7 +89,7 @@ Pour créer ou affiner une nouvelle version de l'IA de la base, le processus imp
 
 1.  **Définir les comportements souhaités (le "professeur")**
     *   La méthode `BaseAi.decide_action_for_training` agit comme un "professeur" pour le modèle de Machine Learning. C'est ici que vous définissez les règles de décision idéales pour l'IA dans divers états du jeu.
-    *   Si vous souhaitez que l'IA apprenne de nouveaux comportements ou modifie ses priorités (par exemple, privilégier un nouveau type d'unité, ou une stratégie de défense différente), vous devez d'abord implémenter ces règles dans cette méthode.
+    *   Si vous souhaitez que l'IA apprenne de nouveaux comportements ou modifie ses priorités (par exemple, privilégier un nouveau type d'unité ou une stratégie de défense différente), vous devez d'abord implémenter ces règles dans cette méthode.
     *   Le modèle de Machine Learning apprendra ensuite à imiter et à généraliser ces règles à travers les simulations.
 
 2.  **Ajuster les scénarios stratégiques (`generate_scenario_examples`)**
@@ -115,47 +115,9 @@ Pour créer ou affiner une nouvelle version de l'IA de la base, le processus imp
 
 5.  **Intégrer le nouveau modèle dans le jeu**
     *   Une fois satisfait du modèle, assurez-vous que la méthode `BaseAi.load_or_train_model()` dans `src/ia/BaseAi.py` est configurée pour charger le fichier `base_ai_unified_final.pkl`. C'est le comportement par défaut si ce fichier existe.
+    *   La classe `BaseAi` en jeu ne contient plus la logique d'entraînement, elle se contente de charger et d'utiliser le modèle.
 
 Ce processus itératif permet d'affiner progressivement l'intelligence de la base pour qu'elle devienne un adversaire plus sophistiqué et réactif.
-
-## IA des Unités
-
-> 🚧 **Section en cours de rédaction**
-
-En plus de l'IA de la base, certaines unités possèdent leur propre logique de comportement autonome, gérée par des processeurs ECS dédiés.
-
-### IA des Kamikazes (`KamikazeAiProcessor`)
-
-**Fichier** : `src/processeurs/KamikazeAiProcessor.py`
-
-Ce processeur gère le comportement des unités Kamikaze :
-- **Recherche de cible** : Il identifie la base ennemie comme cible prioritaire.
-- **Navigation** : Il calcule une trajectoire directe vers la cible.
-- **Action** : Une fois à portée, l'unité s'autodétruit pour infliger des dégâts à la base.
-
-### Autres IA (à venir)
-
-Des logiques d'IA pourraient être ajoutées pour d'autres unités, par exemple :
-- **Druides** : Soigner automatiquement les alliés les plus blessés à proximité.
-- **Éclaireurs** : Explorer de manière autonome les zones inconnues de la carte.
-
----
-
-*Cette documentation sera complétée au fur et à mesure de l'implémentation de nouvelles IA.*
-        "name": "Début de partie - Exploration nécessaire",
-        "gold": 100,
-        "enemy_base_known": 0, # <-- Base ennemie inconnue
-        "expected": "Éclaireur"
-    },
-    {
-        "name": "Défense prioritaire - Base très endommagée",
-        "gold": 150,
-        "base_health_ratio": 0.5, # <-- Santé basse
-        "expected": "Maraudeur"
-    },
-    # ... autres scénarios
-]
-```
 
 ## IA des Unités
 
@@ -170,7 +132,7 @@ En plus de l'IA de la base, certaines unités possèdent leur propre logique de 
 Contrairement à l'IA de la base, l'IA du Kamikaze n'utilise pas de modèle de Machine Learning. Il s'agit d'une **IA procédurale hybride** qui combine des algorithmes classiques pour obtenir un comportement de navigation intelligent et réactif.
 
 Ce processeur gère le comportement des unités Kamikaze :
-- **Recherche de cible** : Il identifie en priorité les unités ennemies lourdes à proximité. Si aucune n'est trouvée, il cible la base ennemie.
+- **Recherche de cible** : Si la base ennemie n'est pas encore découverte (`KnownBaseProcessor`), le Kamikaze explore des points aléatoires dans le territoire ennemi. Une fois la base trouvée, il identifie en priorité les unités ennemies lourdes à proximité. Si aucune n'est trouvée, il cible la base ennemie.
 - **Navigation à long terme (Pathfinding A\*)** : Il calcule un chemin optimal vers sa cible en utilisant l'algorithme A*. Pour éviter que l'unité ne "colle" aux obstacles, le pathfinding est exécuté sur une "carte gonflée" (`inflated_world_map`) où les îles sont artificiellement élargies.
     ```python
     # Extrait de KamikazeAiProcessor.py
