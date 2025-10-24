@@ -56,6 +56,7 @@ jobs:
                       --exclude-module sklearn \
                       --exclude-module joblib
 
+
       - name: Archive build
         if: runner.os == 'Windows'
         run: |
@@ -64,6 +65,8 @@ jobs:
           copy dist\galad-config-tool.exe galad-islands-windows\
           xcopy /E /I assets galad-islands-windows\assets
           copy RELEASE_README.md galad-islands-windows\README.md
+          mkdir galad-islands-windows\models
+          copy src\models\base_ai_unified_final.pkl galad-islands-windows\models\
           Compress-Archive -Path galad-islands-windows\* -DestinationPath galad-islands-windows.zip
         shell: pwsh
 
@@ -75,6 +78,8 @@ jobs:
           cp dist/galad-config-tool galad-islands-${{ runner.os }}/
           cp -r assets galad-islands-${{ runner.os }}/
           cp RELEASE_README.md galad-islands-${{ runner.os }}/README.md
+          mkdir -p galad-islands-${{ runner.os }}/models
+          cp src/models/base_ai_unified_final.pkl galad-islands-${{ runner.os }}/models/
           chmod +x galad-islands-${{ runner.os }}/galad-islands
           chmod +x galad-islands-${{ runner.os }}/galad-config-tool
           zip -r galad-islands-${{ runner.os }}.zip galad-islands-${{ runner.os }}
