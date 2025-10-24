@@ -17,35 +17,6 @@ from src.functions.optionsWindow import show_options_window
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 from src.functions.resource_path import get_resource_path
-import shutil
-
-def clear_pycache_recursively(root_dir: str):
-    """
-    Supprime récursivement tous les dossiers __pycache__ dans le répertoire spécifié et ses sous-dossiers.
-    
-    Cette fonction parcourt l'arborescence des fichiers à partir de root_dir, identifie les dossiers nommés '__pycache__'
-    et les supprime à l'aide de shutil.rmtree. Elle est utile pour nettoyer les fichiers compilés Python après des modifications
-    de code ou avant un déploiement, évitant ainsi les conflits de cache.
-    
-    Args:
-        root_dir (str): Le chemin du répertoire racine à partir duquel commencer la suppression récursive.
-    
-    Raises:
-        OSError: Si une erreur survient lors de la suppression d'un dossier (par exemple, permissions insuffisantes).
-    
-    Note:
-        Utilise os.walk pour une traversée efficace de l'arborescence, évitant les allocations mémoire inutiles.
-    """
-    for dirpath, dirnames, filenames in os.walk(root_dir):
-        if '__pycache__' in dirnames:
-            pycache_path = os.path.join(dirpath, '__pycache__')
-            try:
-                shutil.rmtree(pycache_path)
-                print(f"Dossier __pycache__ supprimé : {pycache_path}")
-            except OSError as e:
-                print(f"Erreur lors de la suppression de {pycache_path} : {e}")
-
-clear_pycache_recursively(os.getcwd())
 
 class MainMenu:
     """Main menu class."""
