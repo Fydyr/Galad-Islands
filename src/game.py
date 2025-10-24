@@ -180,6 +180,10 @@ class EventHandler:
                 self.game_engine._give_dev_gold(500)
             return
         elif controls.matches_action(controls.ACTION_SYSTEM_SHOP, event):
+            # Désactiver le raccourci boutique en mode IA vs IA
+            if self.game_engine.self_play_mode:
+                return
+
             self._open_shop()
         elif controls.matches_action(controls.ACTION_CAMERA_FOLLOW_TOGGLE, event):
             self.game_engine.toggle_camera_follow_mode()
@@ -217,6 +221,9 @@ class EventHandler:
         elif event.button == 1:  # Clic gauche : sélection
             self.game_engine.handle_mouse_selection(event.pos)
         elif event.button == 3:  # Clic droit : tir principal
+            # En mode IA vs IA, bloquer l'action d'attaque
+            if self.game_engine.self_play_mode:
+                return
             self.game_engine.trigger_selected_attack()
                 
     def _handle_mousemotion(self, event):
@@ -246,6 +253,9 @@ class EventHandler:
 
     def _open_shop(self):
         """Ouvre la boutique via l'ActionBar."""
+        # Désactiver la boutique en mode IA vs IA
+        if getattr(self.game_engine, 'self_play_mode', False):
+            return
         if self.game_engine.action_bar is not None:
             self.game_engine.action_bar._open_shop()
 
@@ -958,16 +968,16 @@ class GameEngine:
 
         # Si on est en mode self-play, activer les deux IA et désactiver le contrôle joueur
         if getattr(self, 'self_play_mode', False):
+            # Forcer l'activation des deux IA à chaque tick
             if ally_ai is not None:
                 ally_ai.enabled = True
             if enemy_ai is not None:
                 enemy_ai.enabled = True
-            # Désactiver les contrôles joueurs si possible
-            try:
-                if getattr(self, 'player_controls', None) is not None:
-                    self.player_controls.enabled = False
-            except Exception:
-                pass
+            # Désactiver les contrôles joueurs
+            if self.player_controls is not None:
+                self.player_controls.enabled = False
+            # S'assurer que la sélection d'unité est désactivée (aucune unité sélectionnée)
+            self._clear_current_selection()
             return
 
         # Si le joueur contrôle les alliés, désactive l'IA alliée et active l'IA ennemie
@@ -987,6 +997,17 @@ class GameEngine:
                 ally_ai.enabled = True
             if enemy_ai is not None:
                 enemy_ai.enabled = True
+
+        # Si on vient de sortir du mode self-play, s'assurer que les deux IA sont réactivées
+        if not getattr(self, 'self_play_mode', False):
+            if ally_ai is not None and enemy_ai is not None:
+                if not ally_ai.enabled and not enemy_ai.enabled:
+                    ally_ai.enabled = True
+                    enemy_ai.enabled = True
+        
+        # S'assurer que les contrôles joueurs sont réactivés si on n'est pas en self-play
+        if not getattr(self, 'self_play_mode', False) and self.player_controls is not None:
+            self.player_controls.enabled = True
         
         # Configurer les handlers d'événements
         es.set_handler('attack_event', create_projectile)
@@ -1021,10 +1042,12 @@ class GameEngine:
         # Créer les unités
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
         player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
-        if player_unit is not None:
+
+        # En mode Joueur vs IA, sélectionner une unité par défaut. Pas en mode IA vs IA.
+        if not self.self_play_mode and player_unit is not None:
             self._set_selected_entity(player_unit)
 
-        # Créer un druide ennemi à une position équivalente à celle du druid allié
+        # Créer une unité ennemie équivalente
         enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(
             is_enemy=True, jitter=TILE_SIZE * 0.1)  # Même jitter que l'allié
         enemy_druid = UnitFactory(
@@ -1040,18 +1063,15 @@ class GameEngine:
     def enable_self_play(self):
         """Active le mode self-play : IA vs IA et désactive le contrôle joueur."""
         self.self_play_mode = True
+        
+        # S'assurer qu'aucune unité n'est sélectionnée
+        self._clear_current_selection()
+
         # Activer les deux IA
         if getattr(self, 'ally_base_ai', None) is not None:
             self.ally_base_ai.enabled = True
         if getattr(self, 'enemy_base_ai', None) is not None:
             self.enemy_base_ai.enabled = True
-
-        # Désactiver le processeur de contrôle joueur si présent dans esper
-        try:
-            # retirer le PlayerControlProcessor si présent
-            es.remove_processor(PlayerControlProcessor)
-        except Exception:
-            pass
 
         # Signaler à l'ActionBar (si présente)
         try:
@@ -1064,18 +1084,6 @@ class GameEngine:
         """Désactive le mode self-play et restaure le contrôle joueur."""
         self.self_play_mode = False
         # Rétablir activation normale des IA via _update_base_ai_activation lors du prochain tick
-
-        # Réactiver le processeur de contrôle joueur : tenter de ré-ajouter si absent
-        try:
-            # tenter de ré-ajouter le PlayerControlProcessor
-            try:
-                # créer une instance légère et l'ajouter
-                self.player_controls = PlayerControlProcessor(self.grid)
-                es.add_processor(self.player_controls, priority=4)
-            except Exception:
-                pass
-        except Exception:
-            pass
 
         try:
             if getattr(self, 'action_bar', None) is not None:
@@ -1747,9 +1755,14 @@ class GameEngine:
         # Passer les informations nécessaires aux processeurs qui en ont besoin
         active_team = self.action_bar.current_camp if self.action_bar else Team.ALLY
         self._update_base_ai_activation(active_team)
+        
+        # En mode self-play, on s'assure que le paramètre `active_player_team_id` n'interfère pas avec les IA.
+        # On passe une valeur neutre (0) pour que les IA ne se désactivent pas mutuellement.
+        active_player_id_for_ai = 0 if self.self_play_mode else active_team
+
         es.process(
-            dt=dt,  # Passer dt pour les processeurs qui l'utilisent
-            active_player_team_id=active_team
+            dt=dt,
+            active_player_team_id=active_player_id_for_ai
         )
 
         if self.flying_chest_processor is not None:
@@ -1952,14 +1965,17 @@ class GameEngine:
                 player_comp.stored_gold = max(0, amount)
                 return
 
-
-def game(window=None, bg_original=None, select_sound=None):
+def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
     """Point d'entrée principal du jeu (compatibilité avec l'API existante).
     
     Args:
         window: Surface pygame existante (optionnel)
         bg_original: Image de fond pour les modales (optionnel)  
         select_sound: Son de sélection pour les modales (optionnel)
+        mode: "player_vs_ai" ou "ai_vs_ai"
     """
     engine = GameEngine(window, bg_original, select_sound)
+    if mode == "ai_vs_ai":
+        engine.enable_self_play()
+        
     engine.run()

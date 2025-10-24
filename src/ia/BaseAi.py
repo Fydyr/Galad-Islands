@@ -23,6 +23,7 @@ from src.factory.unitFactory import UnitFactory
 from src.factory.unitType import UnitType
 from src.components.core.positionComponent import PositionComponent
 from src.constants.team import Team
+from src.settings.settings import config_manager
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
 
 
@@ -57,9 +58,6 @@ class BaseAi(esper.Processor):
         6: {"name": "Kamikaze", "unit_type": UnitType.KAMIKAZE, "cost": UNIT_COSTS.get("kamikaze", 60), "reserve": 50},
     }
 
-    # Flag pour activer les logs de décision détaillés
-    debug_mode = False
-
     def __init__(self, team_id=2):
         self.default_team_id = team_id
         self.gold_reserve = 50
@@ -69,6 +67,9 @@ class BaseAi(esper.Processor):
         self.enabled = True
         self.model = None
         self.load_model()
+        
+        # Activer les logs de l'IA si le mode développeur est activé
+        self.debug_mode = config_manager.get('dev_mode', False)
 
     def load_model(self):
         """Charge le modèle de décision pré-entraîné."""
@@ -113,10 +114,10 @@ class BaseAi(esper.Processor):
             action_name = self.ACTION_MAPPING.get(action, {}).get("name", "Inconnue")
             gold = game_state['gold']
             base_hp = game_state['base_health_ratio']
-            ally_u, enemy_u = game_state['allied_units'], game_state['enemy_units']
-            print(f"🤖 IA Base (team {ai_team_id}): {action_name} | Or={gold} HP={base_hp:.0%} Alliés={ally_u} Ennemis={enemy_u}")
+            ally_u, enemy_u = game_state['allied_units'], game_state['enemy_units']            
+            print(f"🤖 IA Base (team {self.default_team_id}): {action_name} | Or={gold} HP={base_hp:.0%} Alliés={ally_u} Ennemis={enemy_u} | Base ennemie connue: {game_state['enemy_base_known']}")
 
-        if self._execute_action(action, ai_team_id):
+        if self._execute_action(action, self.default_team_id):
             self.last_action_time = 0
 
     def _get_current_game_state(self, ai_team_id: int):

@@ -23,8 +23,13 @@ class PlayerControlProcessor(esper.Processor):
         self.fire_event = False  # Initialisation de l'état de l'événement de tir
         self.slowing_down = False  # Indique si le frein est activé
         self.change_mode_cooldown = 0
+        self.enabled = True
 
     def process(self, **kwargs):
+        # Si le processeur est désactivé (mode IA vs IA), ne rien faire.
+        if not self.enabled:
+            return
+
         keys = pygame.key.get_pressed()
         modifiers_state = pygame.key.get_mods()
         for entity, selected in esper.get_component(PlayerSelectedComponent):

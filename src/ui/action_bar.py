@@ -152,6 +152,10 @@ class ActionBar:
         # Boutons d'action
         self.action_buttons: List[ActionButton] = []
         self.button_rects: List[pygame.Rect] = []
+
+        # Synchroniser le mode self-play avec le moteur de jeu si disponible
+        if self.game_engine is not None and hasattr(self.game_engine, 'self_play_mode'):
+            self.self_play_mode = bool(self.game_engine.self_play_mode)
         self.global_button_rects: List[pygame.Rect] = []
         self.camp_button_rect: Optional[pygame.Rect] = None
         self.hovered_button = -1
@@ -159,7 +163,7 @@ class ActionBar:
         self.hovered_camp_button = False
         self.pressed_button = -1
         
-        # Boutique intégrée - accès direct aux composants
+    # Boutique intégrée - accès direct aux composants
         self.shop = Shop(screen_width, screen_height)
         self.on_camp_change: Optional[Callable[[int], None]] = None
         self.game_engine = None  # Référence vers le moteur de jeu
@@ -412,25 +416,41 @@ class ActionBar:
         """Met à jour les positions des boutons."""
         self.button_rects.clear()
         self.global_button_rects.clear()
-        
+
         # Taille adaptative selon la résolution
         button_size = max(40, min(60, self.screen_width // 20))
         button_spacing = max(3, min(5, button_size // 12))
         start_x = 10
         start_y = self.screen_height - self.bar_height + 10
-        
+
         # Boutons normaux (à gauche)
         # Si une unité est sélectionnée et que c'est un Architect allié, activer les boutons build
         is_architect_selected = False
         if self.selected_unit and hasattr(self, 'game_engine') and self.game_engine:
             sel_id = self.game_engine.selected_unit_id
-            if sel_id is not None and esper.has_component(sel_id, SpeArchitect):
+            if sel_id is not None and esper.entity_exists(sel_id) and esper.has_component(sel_id, SpeArchitect):
                 is_architect_selected = True
 
-        # Mettre à jour visibilité des boutons de construction
+        # Masquage total des boutons non globaux en mode self-play
         for btn in self.action_buttons:
-            if btn.action_type in (ActionType.BUILD_DEFENSE_TOWER, ActionType.BUILD_HEAL_TOWER):
-                btn.visible = is_architect_selected
+            if self.self_play_mode:
+                btn.visible = btn.is_global
+            else:
+                # Les boutons de construction ne sont visibles que si un architecte est sélectionné ET qu'on n'est pas en mode spectateur.
+                if btn.action_type in (ActionType.BUILD_DEFENSE_TOWER, ActionType.BUILD_HEAL_TOWER):
+                    btn.visible = is_architect_selected
+                # Les boutons d'action d'unité ne sont visibles que si une unité est sélectionnée
+                elif btn.action_type in [ActionType.SPECIAL_ABILITY, ActionType.ATTACK_MODE]:
+                    btn.visible = self.selected_unit is not None
+                # Le bouton de la boutique est toujours visible sauf en self-play
+                elif btn.action_type == ActionType.OPEN_SHOP:
+                    btn.visible = True
+                # Les boutons globaux (comme le debug) ne sont pas affectés
+
+        # # DIAGNOSTIC : Affichage de l'état self_play_mode et des boutons visibles
+        # print(f"[ActionBar] self_play_mode={self.self_play_mode}")
+        # for btn in self.action_buttons:
+        #     print(f"  - {btn.action_type}: visible={btn.visible}, is_global={btn.is_global}")
 
         normal_buttons = [btn for btn in self.action_buttons if btn.visible and not btn.is_global]
         for i, button in enumerate(normal_buttons):
@@ -438,7 +458,7 @@ class ActionBar:
             y = start_y
             rect = pygame.Rect(x, y, button_size, button_size)
             self.button_rects.append(rect)
-        
+
         # Boutons globaux (à droite, plus espacés du bord)
         global_buttons = [btn for btn in self.action_buttons if btn.is_global]
         # Gérer la visibilité spéciale pour le bouton dev : n'afficher que si mode debug ou dev_mode config
@@ -455,7 +475,7 @@ class ActionBar:
             y = start_y
             rect = pygame.Rect(x, y, button_size, button_size)
             self.global_button_rects.append(rect)
-        
+
         # Bouton de changement de camp (en haut à droite de la barre)
         camp_button_size = max(30, min(40, button_size // 1.5))
         self.camp_button_rect = pygame.Rect(
@@ -782,12 +802,8 @@ class ActionBar:
     def select_unit(self, unit_info: Optional[UnitInfo]):
         """Sélectionne une unité et met à jour la barre d'action."""
         self.selected_unit = unit_info
-        
-        # Mettre à jour la visibilité des boutons selon l'unité sélectionnée
-        for button in self.action_buttons:
-            if button.action_type in [ActionType.SPECIAL_ABILITY, ActionType.ATTACK_MODE]:
-                button.visible = unit_info is not None
-        
+
+        # La visibilité des boutons est maintenant gérée dans _update_button_positions
         self._update_button_positions()
     
     def update_player_gold(self, gold: int):
@@ -803,6 +819,9 @@ class ActionBar:
     def update(self, dt: float):
         """Met à jour la barre d'action."""
         self.button_glow_timer += dt
+
+        # S'assurer que la visibilité des boutons est correcte à chaque frame
+        self._update_button_positions()
         
         # Mettre à jour la boutique
         self.shop.update(dt)
