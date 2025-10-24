@@ -275,6 +275,7 @@ class AILeviathanProcessor(esper.Processor):
         Attack the nearest enemy.
         Maintains optimal attack distance, turns towards enemy, and fires when aligned.
         Uses special ability when available.
+        Automatically enables lateral shooting when enemies are on the sides.
 
         Args:
             entity: Entity ID
@@ -298,6 +299,8 @@ class AILeviathanProcessor(esper.Processor):
         # VERY relaxed alignment thresholds - AI shoots more easily!
         ALIGN_TOLERANCE_ATTACK = 50.0  # Very loose - shoot almost always when facing enemy
         ALIGN_TOLERANCE_SPECIAL = 35.0  # Also relaxed for special ability
+        SIDE_ANGLE_MIN = 60.0  # Minimum angle to consider enemy on the side (60° to 120°)
+        SIDE_ANGLE_MAX = 120.0  # Maximum angle to consider enemy on the side
 
         # Turn towards enemy (but slower when in attack range)
         in_attack_range = state.nearest_enemy_distance <= MAX_ENEMY_DISTANCE
@@ -349,6 +352,21 @@ class AILeviathanProcessor(esper.Processor):
             # Attack if in range and ROUGHLY aligned (very permissive)
             in_attack_range = state.nearest_enemy_distance <= MAX_ENEMY_DISTANCE
 
+            # Check if enemy is on the side (between 60° and 120° on either side)
+            abs_angle = abs(angle_diff)
+            enemy_on_side = SIDE_ANGLE_MIN <= abs_angle <= SIDE_ANGLE_MAX
+
+            # Automatically enable/disable lateral shooting based on enemy position
+            if radius.can_shoot_from_side:
+                if enemy_on_side and in_attack_range:
+                    if not radius.lateral_shooting:
+                        radius.lateral_shooting = True
+                        logger.info(f"AI entity {entity}: Enabled lateral shooting (enemy at {angle_diff:.1f}°)")
+                elif not enemy_on_side:
+                    if radius.lateral_shooting:
+                        radius.lateral_shooting = False
+                        logger.debug(f"AI entity {entity}: Disabled lateral shooting")
+
             if in_attack_range and abs(angle_diff) < ALIGN_TOLERANCE_ATTACK:
                 # Activate special ability if available and aligned
                 if spe_lev.can_activate() and abs(angle_diff) < ALIGN_TOLERANCE_SPECIAL:
@@ -360,6 +378,13 @@ class AILeviathanProcessor(esper.Processor):
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
                     logger.debug(f"AI entity {entity}: Attacking enemy at distance={state.nearest_enemy_distance:.0f}, angle_diff={angle_diff:.1f}")
+
+            # Also fire lateral shots if enemy is on the side
+            elif in_attack_range and enemy_on_side and radius.lateral_shooting:
+                if radius.cooldown <= 0:
+                    esper.dispatch_event("attack_event", entity)
+                    radius.cooldown = radius.bullet_cooldown
+                    logger.info(f"AI entity {entity}: Firing lateral shots at enemy on side (angle={angle_diff:.1f}°)")
 
     def _attackBase(
         self,
@@ -373,6 +398,7 @@ class AILeviathanProcessor(esper.Processor):
         Attack the enemy base.
         Simplified logic: approach to good range, align roughly, then fire continuously.
         Uses special ability when available and aligned.
+        Disables lateral shooting to focus fire on the base.
 
         Args:
             entity: Entity ID
@@ -381,6 +407,13 @@ class AILeviathanProcessor(esper.Processor):
             spe_lev: Special ability component
             state: Current game state
         """
+        # Disable lateral shooting when attacking base - focus all fire forward
+        if esper.has_component(entity, RadiusComponent):
+            radius = esper.component_for_entity(entity, RadiusComponent)
+            if radius.lateral_shooting:
+                radius.lateral_shooting = False
+                logger.debug(f"AI entity {entity}: Disabled lateral shooting for base attack")
+
         # Calculate angle difference to target
         target_angle = state.angle_to_base
         angle_diff = (target_angle - pos.direction + 180) % 360 - 180
