@@ -475,10 +475,12 @@ class GameRenderer:
         if not controllers:
             return t("debug.ai_state.empty")
 
+        # Filtrer les contrôleurs dont l'entité n'existe plus ou est morte
         state_counts = Counter(
             controller.state_machine.current_state.name
-            for controller in controllers.values()
+            for entity_id, controller in controllers.items()
             if getattr(controller, "state_machine", None) is not None
+            and es.entity_exists(entity_id)
         )
 
         if not state_counts:

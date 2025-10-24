@@ -162,17 +162,43 @@ class RapidTroopAIProcessor(esper.Processor):
         self.danger_map.update(dt)
 
     def _cleanup_dead_entities(self) -> None:
-        """Supprime les contrôleurs pour les entités qui n'existent plus dans le monde."""
+        """Supprime les contrôleurs des entités disparues ou mortes."""
         if self.world is None:
             # Le monde n'est pas encore initialisé - ne pas nettoyer
             return
+
         existing_entities = set(self.world._entities.keys())
-        removed = [entity for entity in self.controllers if entity not in existing_entities]
-        for entity in removed:
-            del self.controllers[entity]
-            self.context_manager.remove_context(entity)
-        if removed:
-            self.coordination.cleanup(existing_entities)
+        stale_entities: List[int] = []
+
+        for entity in list(self.controllers.keys()):
+            if entity not in existing_entities:
+                stale_entities.append(entity)
+                continue
+            if not esper.has_component(entity, HealthComponent):
+                stale_entities.append(entity)
+                continue
+
+            health = esper.component_for_entity(entity, HealthComponent)
+            if health.currentHealth <= 0:
+                stale_entities.append(entity)
+
+        if not stale_entities:
+            return
+
+        dead_set = set(stale_entities)
+        for entity in stale_entities:
+            self._discard_entity_state(entity)
+
+        alive_entities = existing_entities.difference(dead_set)
+        self.coordination.cleanup(alive_entities)
+
+    def _discard_entity_state(self, entity_id: int) -> None:
+        """Retire toutes les références internes associées à l'entité fournie."""
+        controller = self.controllers.pop(entity_id, None)
+        if controller and controller.context and controller.context.assigned_chest_id is not None:
+            self.coordination.release_chest(controller.context.assigned_chest_id)
+        self.context_manager.remove_context(entity_id)
+        LOGGER.debug("[AI] Removed controller for entity %s", entity_id)
 
     def _push_env_events(self) -> None:
         # Publish chest events
