@@ -70,9 +70,9 @@ class AIControlProcessor(esper.Processor):
                 VelocityComponent,
                 HealthComponent):
 
-            # ... (Gestion du Mouvement reste la même) ...
+            # Gestion du Mouvement
             if ai.current_path:
-                # ... (code mouvement) ...
+                # code mouvement
                 try:
                     next_pos_coords = ai.current_path[0]
                 except IndexError:
@@ -88,7 +88,7 @@ class AIControlProcessor(esper.Processor):
                 if dist < (TILE_SIZE / 2):
                     ai.current_path.pop(0)
                     if not ai.current_path:
-                        # print(f"[AI DEBUG 8b] Entité {ent} a atteint la fin du chemin.") # Moins de spam
+                        # print(f"[AI DEBUG 8b] Entité {ent} a atteint la fin du chemin.") Moins de spam
                         vel.currentSpeed = 0
                         ai.current_action = None
                         continue
@@ -105,13 +105,13 @@ class AIControlProcessor(esper.Processor):
             ai.think_cooldown_current -= dt
             # --- 2. GESTION DE LA DÉCISION (PÉRIODIQUEMENT) ---
             if ai.think_cooldown_current <= 0 and ai.current_action is None:
-                # print(f"[AI DEBUG 3] L'entité {ent} commence à RÉFLÉCHIR.") # Moins de spam
+                # print(f"[AI DEBUG 3] L'entité {ent} commence à RÉFLÉCHIR.") Moins de spam
                 ai.think_cooldown_current = ai.think_cooldown_max
 
                 game_state = self._build_game_state(ent, ai, pos, team, health)
 
                 if not game_state:
-                    # print(f"[AI DEBUG 4] ECHEC _build_game_state pour l'entité {ent}.") # Moins de spam
+                    # print(f"[AI DEBUG 4] ECHEC _build_game_state pour l'entité {ent}.") Moins de spam
                     continue
 
                 if debug_this_frame: # Afficher l'état seulement toutes les 2s
@@ -139,7 +139,7 @@ class AIControlProcessor(esper.Processor):
             spe_druid = esper.component_for_entity(druid_entity, SpeDruid)
             radius = esper.component_for_entity(druid_entity, RadiusComponent)
         except esper.ComponentNotFound:
-             # print(f"Erreur IA: Entité {druid_entity} n'est pas un Druide complet.") # Moins de spam
+             # print(f"Erreur IA: Entité {druid_entity} n'est pas un Druide complet.") Moins de spam
             return None
 
         # --- DEBUG COOLDOWN ---
@@ -161,9 +161,8 @@ class AIControlProcessor(esper.Processor):
             "enemies": []
         }
 
-        # ... (le reste de la fonction _build_game_state reste identique) ...
+        
         for ent, (pos, health, team) in esper.get_components(PositionComponent, HealthComponent, TeamComponent):
-            # ... (code pour remplir allies et enemies) ...
             if ent == druid_entity:
                 continue
 
@@ -202,7 +201,7 @@ class AIControlProcessor(esper.Processor):
         """Traduit une décision Minimax en commandes de jeu."""
 
         action_type, target_id = action
-        # print(f"[AI DEBUG 6] L'entité {druid_entity} exécute l'action: {action}") # Moins de spam
+        # print(f"[AI DEBUG 6] L'entité {druid_entity} exécute l'action: {action}") Moins de spam
 
         try:
             if action_type == "HEAL":
@@ -242,12 +241,12 @@ class AIControlProcessor(esper.Processor):
 
                 path = self.pathfinding_service(self.grid, start_pos, end_pos)
 
-                # print(f"[AI DEBUG 7] Pathfinding demandé. Chemin trouvé de {len(path)} points.") # Moins de spam
+                # print(f"[AI DEBUG 7] Pathfinding demandé. Chemin trouvé de {len(path)} points.") Moins de spam
 
                 if path and len(path) > 1:
                     ai.current_path = path[1:]
                 else:
-                    # print(f"[AI DEBUG 7b] Pathfinding ÉCHOUÉ ou chemin trop court.") # Moins de spam
+                    # print(f"[AI DEBUG 7b] Pathfinding ÉCHOUÉ ou chemin trop court.") Moins de spam
                     ai.current_action = None # Se remet en mode 'réflexion'
 
             elif action_type == "WAIT":
@@ -257,6 +256,6 @@ class AIControlProcessor(esper.Processor):
                 ai.current_action = None
 
         except (esper.ComponentNotFound, esper.DeadEntityError):
-            # print(f"[AI DEBUG 9] Action {action} ANNULÉE (cible morte ?)") # Moins de spam
+            # print(f"[AI DEBUG 9] Action {action} ANNULÉE (cible morte ?)") Moins de spam
             ai.current_action = None
             ai.current_path = []

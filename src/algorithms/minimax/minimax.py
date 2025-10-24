@@ -26,7 +26,7 @@ GameState = Dict[str, Any]
 Action = Tuple[str, Any]
 AI_DEPTH = 3
 
-# ... (Constantes de scoring et _get_pixel_distance restent les mêmes) ...
+# Constantes de scoring et _get_pixel_distance
 SCORE_VINED_ENEMY = 1000.0
 SCORE_HEAL_ALLY = 500.0
 SCORE_WEIGHT_ALLY_HEALTH = 2.0
@@ -42,7 +42,7 @@ def _get_pixel_distance(pos1: PositionPixel, pos2: PositionPixel) -> float:
     return math.hypot(pos1[0] - pos2[0], pos1[1] - pos2[1])
 
 def evaluate_state(game_state: GameState) -> float:
-    # ... (evaluate_state reste la même) ...
+    """Évalue l'état du jeu et retourne un score numérique."""
     score = 0.0
     druid = game_state["druid"]
     for ally in game_state["allies"]:
@@ -125,7 +125,7 @@ def get_possible_actions(game_state: GameState, is_maximizing_player: bool) -> L
     return actions
 
 def simulate_action(game_state: GameState, action: Action, grid: Grid) -> GameState:
-    # ... (simulate_action reste la même) ...
+    # simulate_action reste la même
     new_state = copy.deepcopy(game_state)
     druid = new_state["druid"]
     action_type, target_id = action
@@ -179,7 +179,7 @@ def simulate_action(game_state: GameState, action: Action, grid: Grid) -> GameSt
 
 
 def run_minimax(game_state: GameState, grid: Grid, depth: int, alpha: float, beta: float, is_maximizing_player: bool) -> Tuple[Optional[Action], float]:
-    # ... (run_minimax reste la même, avec sa logique de tri et d'élagage) ...
+    # run_minimax avec sa logique de tri et d'élagage
     if depth == 0 or game_state["druid"]["health"] <= 0:
         return None, evaluate_state(game_state)
 
