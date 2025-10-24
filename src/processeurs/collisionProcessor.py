@@ -2,6 +2,7 @@ import esper
 import numpy as np
 import pygame
 import math
+import random
 from src.components.core.positionComponent import PositionComponent as Position
 from src.components.core.spriteComponent import SpriteComponent as Sprite
 from src.components.core.canCollideComponent import CanCollideComponent as CanCollide
@@ -288,18 +289,22 @@ class CollisionProcessor(esper.Processor):
         is_projectile2 = esper.has_component(entity2, ProjectileComponent)
         is_mine1 = self._is_mine_entity(entity1)
         is_mine2 = self._is_mine_entity(entity2)
+        is_chest1 = esper.has_component(entity1, FlyingChestComponent)
+        is_chest2 = esper.has_component(entity2, FlyingChestComponent)
+
         # Si un projectile touche une mine, la mine ne prend pas de dégâts
 
         # Gestion spéciale pour le Kamikaze
         is_kamikaze1 = esper.has_component(entity1, SpeKamikazeComponent)
         is_kamikaze2 = esper.has_component(entity2, SpeKamikazeComponent)
 
-        if is_kamikaze1 and not is_mine2: # Le kamikaze explose sur tout sauf les mines
+        # Le Kamikaze explose sur tout, sauf les mines et les coffres.
+        if is_kamikaze1 and not is_mine2 and not is_chest2:
             self._create_explosion_at_entity(entity1)
             processHealth(entity2, esper.component_for_entity(entity1, Attack).hitPoints, entity1)
             esper.delete_entity(entity1)
             return # Fin du traitement pour cette paire
-        if is_kamikaze2 and not is_mine1:
+        if is_kamikaze2 and not is_mine1 and not is_chest1:
             self._create_explosion_at_entity(entity2)
             processHealth(entity1, esper.component_for_entity(entity2, Attack).hitPoints, entity2)
             esper.delete_entity(entity2)
@@ -638,6 +643,21 @@ class CollisionProcessor(esper.Processor):
             # Reculer en conservant le signe (on recule dans la direction opposée)
             dx = magnitude * math.cos(dir_rad)
             dy = magnitude * math.sin(dir_rad)
+            # Nouvelle logique de rebond : calculer un angle de réflexion
+            # On suppose que l'obstacle est une surface verticale ou horizontale
+            # pour simplifier. On inverse la composante de vitesse perpendiculaire.
+            current_angle_rad = math.radians(pos.direction)
+            
+            # On inverse la direction de 180 degrés comme base
+            new_direction_rad = current_angle_rad + math.pi
+            
+            # Ajout d'un angle aléatoire pour éviter les blocages parfaits
+            random_angle_offset = math.radians(random.uniform(-30, 30))
+            new_direction_rad += random_angle_offset
+            
+            # Appliquer le déplacement de recul
+            dx = magnitude * math.cos(new_direction_rad)
+            dy = magnitude * math.sin(new_direction_rad)
 
             # Si l'entité avait une vitesse, la mettre à 0
             if hasattr(velocity, 'currentSpeed'):
@@ -655,6 +675,11 @@ class CollisionProcessor(esper.Processor):
                 pos.y = max(0, min(pos.y, max_y * TILE_SIZE - 1))
                 
             pos.direction = (pos.direction + 180) % 360
+            # Appliquer la nouvelle position de recul
+            pos.x -= dx
+            pos.y -= dy
+            
+            pos.direction = math.degrees(new_direction_rad) % 360
 
             # Marquer un court stun sur le composant velocity si possible
             # On stocke stun_timer sur l'objet velocity pour éviter d'introduire un nouveau composant
