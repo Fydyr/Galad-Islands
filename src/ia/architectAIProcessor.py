@@ -3,9 +3,7 @@
 import esper
 import numpy as np
 import logging
-import os
 import random
-import joblib
 from typing import Optional, Tuple
 from dataclasses import fields
 
@@ -22,7 +20,7 @@ from src.components.core.playerComponent import PlayerComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 
 # AI and pathfinding
-from src.ia.decision_tree import ArchitectDecisionTree, GameState, DecisionAction
+from src.ia.decision_tree import ArchitectMinimax, GameState, DecisionAction
 from src.ia.pathfinding import SimplePathfinder
 from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
 logger = logging.getLogger(__name__)
@@ -59,25 +57,10 @@ class ArchitectAIProcessor(esper.Processor):
         self._island_cache = None
         self._mine_cache = None
 
-        # --- ML Model Loading ---
-        self.ml_model = None
-        self.label_encoder = None
-        self.use_ml_model = False
-
-        if joblib:
-            model_path = os.path.join(os.path.dirname(__file__), "model/architect_model.joblib")
-            try:
-                if os.path.exists(model_path):
-                    data = joblib.load(model_path)
-                    self.ml_model = data["model"]
-                    self.label_encoder = data["label_encoder"]
-                    self.use_ml_model = True
-                    logger.info("ArchitectAIProcessor: Successfully loaded trained ML model.")
-                else:
-                    logger.warning("ArchitectAIProcessor: ML model file not found. Falling back to rule-based decision tree.")
-            except Exception as e:
-                logger.error(f"ArchitectAIProcessor: Error loading ML model: {e}. Falling back to rule-based decision tree.")
-
+        # --- AI Decision Making ---
+        # Use the rule-based decision tree directly.
+        self.decision_maker = ArchitectMinimax()
+        
         logger.info("ArchitectAIProcessor initialized.")
 
     def process(self, grid):
@@ -115,13 +98,8 @@ class ArchitectAIProcessor(esper.Processor):
             if state is None:
                 continue
 
-            # 2. Make a decision (using ML model if available)
-            if not (self.use_ml_model and self.ml_model and self.label_encoder):
-                continue # Cannot make a decision without the model
-
-            feature_vector = self._gamestate_to_features(state)
-            action_index = self.ml_model.predict(feature_vector.reshape(1, -1))[0]
-            action = self.label_encoder.inverse_transform([action_index])[0]
+            # 2. Make a decision using the Minimax algorithm
+            action = self.decision_maker.decide(state)
 
             ai_comp.setVetoMax()
 
@@ -263,7 +241,6 @@ class ArchitectAIProcessor(esper.Processor):
         elif self._entity_paths.get(entity):
             # The target_pos is implicitly the end of the current path.
             self._navigate_to_target(entity, pos, vel, self._entity_path_targets.get(entity))
-            self._navigate_to_target(entity, pos, vel, target_pos)
         else:
             vel.currentSpeed = 0
 
@@ -458,20 +435,3 @@ class ArchitectAIProcessor(esper.Processor):
         
         distance_moved = np.hypot(end_pos[0] - start_pos[0], end_pos[1] - start_pos[1])
         return distance_moved < TILE_SIZE * 0.5 # If moved less than half a tile in 3s
-
-    def _gamestate_to_features(self, state: GameState) -> np.ndarray:
-        """Converts a GameState object into a flat numpy array of numerical features."""
-        feature_list = []
-        # Use a fixed order of fields to ensure consistency
-        for field in fields(GameState):
-            value = getattr(state, field.name)
-            if isinstance(value, (tuple, list)):
-                feature_list.extend(value)
-            elif isinstance(value, bool):
-                feature_list.append(1 if value else 0)
-            elif value is None:
-                # Replace None with a value that the model can handle, e.g., -1.0
-                feature_list.append(-1.0)
-            else:
-                feature_list.append(value)
-        return np.array(feature_list, dtype=np.float32)

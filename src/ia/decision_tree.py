@@ -1,8 +1,10 @@
-"""Strategic decision model for an AI unit focusing on positioning and survival."""
+"""Strategic decision model for an AI unit using a Minimax algorithm."""
 
 import numpy as np
+import copy
 from typing import Tuple, Optional
 from dataclasses import dataclass
+import logging
 
 # --- AI Sensory Input ---
 @dataclass
@@ -51,90 +53,160 @@ class DecisionAction:
     MOVE_RANDOMLY = "move_randomly"
     DO_NOTHING = "do_nothing"
 
+logger = logging.getLogger(__name__)
 
-class ArchitectDecisionTree:
+
+class ArchitectMinimax:
     """
-    A decision model for an AI that prioritizes survival and strategic positioning.
-
-    Decision Logic:
-    1.  **Emergency**: If stuck, try to get unstuck.
-    2.  **Survival**: If health is low and an enemy is near, evade.
-    3.  **Support**: If ability is ready and allies are nearby, activate it.
-    4.  **Expansion**: If on an island with enough gold, find a new island to expand to.
-    5.  **Repositioning**: If on an island but an enemy is too close, find a safer island.
-    6.  **Positioning**: If not on an island, navigate to a safe one.
-    7.  **Regrouping**: If safe, move towards nearby allies.
-    8.  **Idle**: If safe on an island and with allies, do nothing.
-    9.  **Default**: If no other options, move randomly to explore.
+    A decision model for an AI that uses the Minimax algorithm to choose the best
+    strategic action by looking ahead at possible future states.
     """
 
-    # --- Behavior Thresholds ---
-    LOW_HP_PERCENTAGE = 0.4  # 40% HP is considered low.
-    ENEMY_EVASION_DISTANCE = 350.0  # Distance at which to start evading an enemy.
-    ALLY_REGROUP_DISTANCE = 600.0  # Distance to consider regrouping with an ally.
-    ISLAND_PROXIMITY_THRESHOLD = 50.0 # Close enough to be considered "on" an island.
-    ENOUGH_GOLD_FOR_TOWER = 400 # Gold needed to consider expanding.
+    # --- Minimax Configuration ---
+    SEARCH_DEPTH = 2  # How many moves to look ahead (AI move + Opponent move).
+    SIM_TIME_STEP = 1.0 # Seconds per simulated move.
+    SIM_SPEED = 150.0 # Units per second for simulation.
 
     def __init__(self):
-        """Initialize the decision tree."""
-        self.previous_decision = DecisionAction.DO_NOTHING
+        """Initialize the Minimax decision-maker."""
+        self.possible_actions = [
+            DecisionAction.NAVIGATE_TO_ISLAND,
+            DecisionAction.CHOOSE_ANOTHER_ISLAND,
+            DecisionAction.EVADE_ENEMY,
+            DecisionAction.NAVIGATE_TO_ALLY,
+            DecisionAction.ACTIVATE_ARCHITECT_ABILITY,
+            DecisionAction.GET_UNSTUCK,
+            DecisionAction.MOVE_RANDOMLY,
+            DecisionAction.DO_NOTHING,
+        ]
 
     def decide(self, state: GameState) -> str:
         """
-        Make a strategic decision based on the current game state.
+        Uses the Minimax algorithm to find the best action.
 
         Args:
             state: Current game state
 
         Returns:
-            A string representing the chosen strategic action.
+            The best strategic action found by Minimax.
         """
-        health_ratio = state.current_hp / state.maximum_hp if state.maximum_hp > 0 else 0
-
-        # 1. Emergency: If stuck, prioritize getting unstuck.
+        # Immediate override for being stuck, as it's a critical state.
         if state.is_stuck:
-            self.previous_decision = DecisionAction.GET_UNSTUCK
-            return self.previous_decision
+            return DecisionAction.GET_UNSTUCK
 
-        # 2. Survival: Evade if low on health and an enemy is close.
-        if health_ratio < self.LOW_HP_PERCENTAGE and state.closest_foe_dist < self.ENEMY_EVASION_DISTANCE:
-            self.previous_decision = DecisionAction.EVADE_ENEMY
-            return self.previous_decision
+        best_score = -np.inf
+        best_action = DecisionAction.DO_NOTHING
 
-        # 3. Support: Activate ability if available and allies are nearby.
-        if state.architect_ability_available and state.nearby_allies_count > 0:
-            self.previous_decision = DecisionAction.ACTIVATE_ARCHITECT_ABILITY
-            return self.previous_decision
+        for action in self.possible_actions:
+            # Simulate our move
+            next_state = self._get_next_state(state, action)
+            # Run minimax for the opponent's turn
+            score = self._minimax(next_state, self.SEARCH_DEPTH - 1, False)
 
-        # 4. Expansion: If safe on an island with enough gold, find a new island.
-        if state.is_on_island and state.player_gold >= self.ENOUGH_GOLD_FOR_TOWER and state.closest_foe_dist > self.ENEMY_EVASION_DISTANCE:
-            self.previous_decision = DecisionAction.CHOOSE_ANOTHER_ISLAND
-            return self.previous_decision
+            if score > best_score:
+                best_score = score
+                best_action = action
 
-        # 5. Repositioning: If on an island but an enemy is too close, find a new, safer island.
-        if state.is_on_island and state.closest_foe_dist < self.ENEMY_EVASION_DISTANCE:
-            self.previous_decision = DecisionAction.CHOOSE_ANOTHER_ISLAND
-            return self.previous_decision
+        logger.info(f"Architect AI decided: {best_action}")
+        return best_action
 
-        # 6. Positioning: If not on an island, navigate to a safe one.
-        if not state.is_on_island and state.closest_island_dist is not None:
-            self.previous_decision = DecisionAction.NAVIGATE_TO_ISLAND
-            return self.previous_decision
+    def _minimax(self, state: GameState, depth: int, is_maximizing_player: bool) -> float:
+        """Recursive Minimax function with alpha-beta pruning."""
+        if depth == 0:
+            return self._evaluate_state(state)
 
-        # 7. Regrouping: If safe and allies are nearby, move towards them.
-        if state.nearby_allies_count > 0 and state.closest_ally_dist is not None and state.closest_ally_dist < self.ALLY_REGROUP_DISTANCE:
-            self.previous_decision = DecisionAction.NAVIGATE_TO_ALLY
-            return self.previous_decision
+        if is_maximizing_player:
+            max_eval = -np.inf
+            for action in self.possible_actions:
+                next_state = self._get_next_state(state, action)
+                evaluation = self._minimax(next_state, depth - 1, False)
+                max_eval = max(max_eval, evaluation)
+            return max_eval
+        else:  # Minimizing player (opponent)
+            min_eval = np.inf
+            # Simulate opponent's best move (which for us is just getting closer)
+            next_state = self._get_next_state(state, "OPPONENT_ADVANCE")
+            evaluation = self._minimax(next_state, depth - 1, True)
+            min_eval = min(min_eval, evaluation)
+            return min_eval
 
-        # 8. Idle: If safe on an island, do nothing.
+    def _evaluate_state(self, state: GameState) -> float:
+        """
+        Heuristic function to score a game state. Higher is better for the AI.
+        """
+        score = 0.0
+
+        # Health is critical
+        health_ratio = state.current_hp / state.maximum_hp if state.maximum_hp > 0 else 0
+        score += health_ratio * 200
+
+        # Being close to enemies is dangerous
+        if state.closest_foe_dist < 1000:
+            score -= (1000 - state.closest_foe_dist) * 0.5
+
+        # Being on an island is highly valuable
         if state.is_on_island:
-            self.previous_decision = DecisionAction.DO_NOTHING
-            return self.previous_decision
+            score += 150
 
-        # 8. Default: If no other clear objective, move randomly.
-        self.previous_decision = DecisionAction.MOVE_RANDOMLY
-        return self.previous_decision
+        # Having the ability ready is good
+        if state.architect_ability_available:
+            score += 50
 
-    def getActionName(self) -> str:
-        """Returns the name of the most recently decided action."""
-        return self.previous_decision
+        # Being near allies is beneficial
+        if state.closest_ally_dist < 800:
+            score += (800 - state.closest_ally_dist) * 0.1
+
+        # Gold provides future opportunities
+        score += state.player_gold * 0.05
+
+        return score
+
+    def _get_next_state(self, current_state: GameState, action: str) -> GameState:
+        """
+        Simulates the result of an action to produce a future game state.
+        This is a simplified projection, not a full game engine simulation.
+        """
+        next_state = copy.deepcopy(current_state)
+        move_dist = self.SIM_SPEED * self.SIM_TIME_STEP
+
+        # --- Simulate Movement ---
+        bearing = 0
+        if action == DecisionAction.NAVIGATE_TO_ISLAND and next_state.closest_island_bearing is not None:
+            bearing = next_state.closest_island_bearing
+        elif action == DecisionAction.NAVIGATE_TO_ALLY and next_state.closest_ally_bearing is not None:
+            bearing = next_state.closest_ally_bearing
+        elif action == DecisionAction.EVADE_ENEMY:
+            bearing = (next_state.closest_foe_bearing + 180) % 360
+        elif action == "OPPONENT_ADVANCE": # Special case for opponent simulation
+            # Simulate enemy moving towards us
+            rad = np.deg2rad((next_state.closest_foe_bearing + 180) % 360)
+            dx = move_dist * np.cos(rad)
+            dy = move_dist * np.sin(rad)
+            next_state.closest_foe_dist = max(0, next_state.closest_foe_dist - move_dist)
+            return next_state # No further simulation needed for opponent
+        else: # For other actions like DO_NOTHING, CHOOSE_ISLAND, etc., assume no movement
+            move_dist = 0
+
+        if move_dist > 0:
+            rad = np.deg2rad(bearing)
+            dx = move_dist * np.cos(rad)
+            dy = move_dist * np.sin(rad)
+            
+            # Update our position
+            pos = next_state.current_position
+            next_state.current_position = (pos[0] + dx, pos[1] + dy)
+            
+            # --- Update Distances based on our new position ---
+            if next_state.closest_foe_dist is not None:
+                next_state.closest_foe_dist = np.hypot(next_state.closest_foe_dist * np.cos(np.deg2rad(next_state.closest_foe_bearing)) - dx, next_state.closest_foe_dist * np.sin(np.deg2rad(next_state.closest_foe_bearing)) - dy)
+            if next_state.closest_ally_dist is not None:
+                next_state.closest_ally_dist = np.hypot(next_state.closest_ally_dist * np.cos(np.deg2rad(next_state.closest_ally_bearing)) - dx, next_state.closest_ally_dist * np.sin(np.deg2rad(next_state.closest_ally_bearing)) - dy)
+            if next_state.closest_island_dist is not None:
+                next_state.closest_island_dist = np.hypot(next_state.closest_island_dist * np.cos(np.deg2rad(next_state.closest_island_bearing)) - dx, next_state.closest_island_dist * np.sin(np.deg2rad(next_state.closest_island_bearing)) - dy)
+                next_state.is_on_island = next_state.closest_island_dist < 50.0
+
+        # --- Simulate Action Effects ---
+        if action == DecisionAction.ACTIVATE_ARCHITECT_ABILITY:
+            next_state.architect_ability_available = False
+
+        return next_state

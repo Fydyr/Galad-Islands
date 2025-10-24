@@ -282,7 +282,7 @@ class ActionBar:
         ]
         
         # Vérifier si le mode debug ou dev_mode est activé pour afficher le bouton
-        if config_manager.get('dev_mode', True):
+        if config_manager.get('dev_mode', False):
             global_buttons.append(
                 ActionButton(
                     action_type=ActionType.DEV_GIVE_GOLD,
