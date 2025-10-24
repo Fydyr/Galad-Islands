@@ -127,6 +127,12 @@ class AILeviathanProcessor(esper.Processor):
                 logger.debug(f"Entity {entity}: Player controlled, skipping AI")
                 continue
 
+            # CRITICAL: Decrement attack cooldown for AI units
+            if esper.has_component(entity, RadiusComponent):
+                radius = esper.component_for_entity(entity, RadiusComponent)
+                if radius.cooldown > 0:
+                    radius.cooldown -= dt * 60  # Decrement cooldown (dt is in seconds, cooldown in frames at 60fps)
+
             # Check if ready for new action (cooldown)
             if not ai_comp.isReadyForAction(self.elapsed_time):
                 continue
@@ -145,6 +151,9 @@ class AILeviathanProcessor(esper.Processor):
             # Debug log for first action only
             if ai_comp.actions_taken == 0:
                 logger.info(f"AI entity {entity} (team {team.team_id}) started - Target: enemy base at distance {state.distance_to_base:.0f}")
+
+            # DEBUG: Log action chosen (disabled for performance)
+            # logger.debug(f"AI entity {entity} ACTION: {action} (enemies={state.enemies_count}, nearest_dist={state.nearest_enemy_distance:.0f})")
 
             # Execute the chosen action
             self._executeAction(entity, action, pos, vel, spe_lev, state)
@@ -186,10 +195,6 @@ class AILeviathanProcessor(esper.Processor):
         nearest_enemy_angle = enemy_info[2]  # Already in degrees
         enemies_count = int(enemy_info[0])
 
-        # Get mine information
-        mine_info = self._getNearbyMines(pos)
-        nearest_mine_distance = mine_info[1] * 500.0  # Denormalize
-
         # Check for island ahead
         angle_rad = pos.direction * np.pi / 180
         look_ahead_distance = 150
@@ -215,7 +220,6 @@ class AILeviathanProcessor(esper.Processor):
             nearest_enemy_distance=nearest_enemy_distance,
             nearest_enemy_angle=nearest_enemy_angle,
             enemies_count=enemies_count,
-            nearest_mine_distance=nearest_mine_distance,
             nearest_island_ahead=nearest_island_ahead,
             nearest_storm_distance=nearest_storm_distance,
             nearest_bandit_distance=nearest_bandit_distance,
@@ -288,75 +292,74 @@ class AILeviathanProcessor(esper.Processor):
         target_angle = state.nearest_enemy_angle
         angle_diff = (target_angle - pos.direction + 180) % 360 - 180
 
-        # Relaxed alignment thresholds
-        ALIGN_TOLERANCE_ATTACK = 35.0  # Can attack with loose alignment
-        ALIGN_TOLERANCE_SPECIAL = 25.0  # Special ability slightly more precise
+        # DEBUG: Log rotation details (temporarily enabled)
+        logger.info(f"AI entity {entity} ROTATION: current_dir={pos.direction:.1f}, target_angle={target_angle:.1f}, angle_diff={angle_diff:.1f}")
 
-        # Distance-based movement logic
-        if state.nearest_enemy_distance < MIN_ENEMY_DISTANCE:
-            # Too close - back up while keeping aim
-            if abs(angle_diff) > ALIGN_TOLERANCE_ATTACK:
-                turn_speed = 6
-                if angle_diff > 0:
-                    pos.direction = (pos.direction - turn_speed) % 360
-                else:
-                    pos.direction = (pos.direction + turn_speed) % 360
-            vel.currentSpeed = -vel.maxUpSpeed * 0.4  # Back up
-            logger.debug(f"AI entity {entity}: Enemy too close ({state.nearest_enemy_distance:.0f}), backing up")
+        # VERY relaxed alignment thresholds - AI shoots more easily!
+        ALIGN_TOLERANCE_ATTACK = 50.0  # Very loose - shoot almost always when facing enemy
+        ALIGN_TOLERANCE_SPECIAL = 35.0  # Also relaxed for special ability
 
-        elif state.nearest_enemy_distance > MAX_ENEMY_DISTANCE:
-            # Too far - approach while turning
-            turn_speed = 8
-            if abs(angle_diff) > ALIGN_TOLERANCE_ATTACK:
-                if angle_diff > 0:
-                    pos.direction = (pos.direction - turn_speed) % 360
-                else:
-                    pos.direction = (pos.direction + turn_speed) % 360
-            vel.currentSpeed = vel.maxUpSpeed * 0.5  # Approach
-            logger.debug(f"AI entity {entity}: Enemy too far ({state.nearest_enemy_distance:.0f}), approaching")
+        # Turn towards enemy (but slower when in attack range)
+        in_attack_range = state.nearest_enemy_distance <= MAX_ENEMY_DISTANCE
 
-        elif state.nearest_enemy_distance > OPTIMAL_ENEMY_DISTANCE:
-            # Slightly too far - approach slowly while aligning
-            if abs(angle_diff) > ALIGN_TOLERANCE_ATTACK:
-                turn_speed = 7
+        if in_attack_range and abs(angle_diff) < ALIGN_TOLERANCE_ATTACK:
+            # In range and aligned - STOP turning and STOP moving to fire
+            turn_speed = 3  # Gentle correction only
+            if abs(angle_diff) > 2:  # Only micro-adjust
                 if angle_diff > 0:
-                    pos.direction = (pos.direction - turn_speed) % 360
-                else:
                     pos.direction = (pos.direction + turn_speed) % 360
-                vel.currentSpeed = vel.maxUpSpeed * 0.2
-            else:
-                vel.currentSpeed = vel.maxUpSpeed * 0.3  # Slow approach when aligned
+                else:
+                    pos.direction = (pos.direction - turn_speed) % 360
+
+            # CRITICAL: Stop all movement when ready to fire
+            vel.currentSpeed = 0
 
         else:
-            # At good distance - stop and focus on attacking
-            if abs(angle_diff) > ALIGN_TOLERANCE_ATTACK:
-                turn_speed = 6
+            # Not yet in firing position - turn aggressively
+            turn_speed = 8
+            if abs(angle_diff) > 5:
                 if angle_diff > 0:
-                    pos.direction = (pos.direction - turn_speed) % 360
-                else:
                     pos.direction = (pos.direction + turn_speed) % 360
-                vel.currentSpeed = 0  # Stop to aim
-            else:
-                vel.currentSpeed = 0  # Perfect - stop and fire
+                else:
+                    pos.direction = (pos.direction - turn_speed) % 360
 
-        # Fire weapon if in range and aligned enough
+            # Distance-based movement logic
+            if state.nearest_enemy_distance < MIN_ENEMY_DISTANCE:
+                # Too close - back up
+                vel.currentSpeed = -vel.maxUpSpeed * 0.4
+                logger.debug(f"AI entity {entity}: Enemy too close ({state.nearest_enemy_distance:.0f}), backing up")
+
+            elif state.nearest_enemy_distance > MAX_ENEMY_DISTANCE:
+                # Too far - approach quickly
+                vel.currentSpeed = vel.maxUpSpeed * 0.7
+                logger.debug(f"AI entity {entity}: Enemy too far ({state.nearest_enemy_distance:.0f}), approaching")
+
+            elif state.nearest_enemy_distance > OPTIMAL_ENEMY_DISTANCE:
+                # Slightly too far - approach carefully
+                vel.currentSpeed = vel.maxUpSpeed * 0.4
+
+            else:
+                # Good distance but not aligned yet - turn in place
+                vel.currentSpeed = 0
+
+        # Fire weapon aggressively - shoot as soon as roughly aligned!
         if esper.has_component(entity, RadiusComponent):
             radius = esper.component_for_entity(entity, RadiusComponent)
 
-            # Attack if in range and aligned
-            in_attack_range = MIN_ENEMY_DISTANCE <= state.nearest_enemy_distance <= MAX_ENEMY_DISTANCE
+            # Attack if in range and ROUGHLY aligned (very permissive)
+            in_attack_range = state.nearest_enemy_distance <= MAX_ENEMY_DISTANCE
 
             if in_attack_range and abs(angle_diff) < ALIGN_TOLERANCE_ATTACK:
-                # Activate special ability if available and reasonably aligned
+                # Activate special ability if available and aligned
                 if spe_lev.can_activate() and abs(angle_diff) < ALIGN_TOLERANCE_SPECIAL:
                     spe_lev.activate()
                     logger.debug(f"AI entity {entity} activated special ability for enemy attack")
 
-                # Fire normal attack
+                # Fire normal attack ALWAYS when cooldown is ready
                 if radius.cooldown <= 0:
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
-                    logger.debug(f"AI entity {entity}: Attacking enemy! Distance={state.nearest_enemy_distance:.0f}, angle_diff={angle_diff:.1f}")
+                    logger.debug(f"AI entity {entity}: Attacking enemy at distance={state.nearest_enemy_distance:.0f}, angle_diff={angle_diff:.1f}")
 
     def _attackBase(
         self,
@@ -387,82 +390,81 @@ class AILeviathanProcessor(esper.Processor):
         MIN_SAFE_DISTANCE = 200.0  # Minimum distance to maintain
         MAX_ATTACK_RANGE = 450.0  # Maximum effective attack range (same as decision tree)
 
-        # Relaxed angle tolerances to reduce circling
-        ALIGN_TOLERANCE_ATTACK = 40.0  # Can attack with loose alignment
-        ALIGN_TOLERANCE_SPECIAL = 25.0  # Special ability slightly more precise
+        # VERY relaxed angle tolerances - shoot easily!
+        ALIGN_TOLERANCE_ATTACK = 55.0  # Very loose - attack almost always
+        ALIGN_TOLERANCE_SPECIAL = 40.0  # Also relaxed for special ability
 
         # Determine if aligned enough
         is_aligned_for_attack = abs(angle_diff) < ALIGN_TOLERANCE_ATTACK
         is_aligned_for_special = abs(angle_diff) < ALIGN_TOLERANCE_SPECIAL
 
-        # Simplified movement logic
-        if state.distance_to_base > MAX_ATTACK_RANGE:
-            # Too far - approach while gradually turning
-            turn_speed = 8
-            if angle_diff > 0:
-                pos.direction = (pos.direction - turn_speed) % 360
-            else:
-                pos.direction = (pos.direction + turn_speed) % 360
-            vel.currentSpeed = vel.maxUpSpeed * 0.6
-            logger.debug(f"AI entity {entity}: Approaching base, distance={state.distance_to_base:.0f}, angle_diff={angle_diff:.1f}")
+        # Check if in attack range
+        in_attack_range = state.distance_to_base <= MAX_ATTACK_RANGE
 
-        elif state.distance_to_base > OPTIMAL_ATTACK_DISTANCE:
-            # Within max range but not optimal - approach while turning
-            if abs(angle_diff) > 45:
-                # Only turn if severely misaligned
-                turn_speed = 6
+        if in_attack_range and is_aligned_for_attack:
+            # In range and aligned - STOP moving and fire!
+            turn_speed = 3  # Gentle correction only
+            if abs(angle_diff) > 2:  # Only micro-adjust
                 if angle_diff > 0:
-                    pos.direction = (pos.direction - turn_speed) % 360
-                else:
                     pos.direction = (pos.direction + turn_speed) % 360
-                vel.currentSpeed = vel.maxUpSpeed * 0.4
-            else:
-                # Good enough alignment - move forward
-                vel.currentSpeed = vel.maxUpSpeed * 0.5
-            logger.debug(f"AI entity {entity}: Moving to optimal distance, distance={state.distance_to_base:.0f}")
+                else:
+                    pos.direction = (pos.direction - turn_speed) % 360
 
-        elif state.distance_to_base < MIN_SAFE_DISTANCE:
-            # Too close - back up while turning if needed
-            if abs(angle_diff) > 45:
-                turn_speed = 5
-                if angle_diff > 0:
-                    pos.direction = (pos.direction - turn_speed) % 360
-                else:
-                    pos.direction = (pos.direction + turn_speed) % 360
-            vel.currentSpeed = -vel.maxUpSpeed * 0.3
-            logger.debug(f"AI entity {entity}: Too close to base, backing up, distance={state.distance_to_base:.0f}")
-
-        else:
-            # At good distance - slow turn and stop for attacking
-            if abs(angle_diff) > ALIGN_TOLERANCE_ATTACK:
-                turn_speed = 5
-                if angle_diff > 0:
-                    pos.direction = (pos.direction - turn_speed) % 360
-                else:
-                    pos.direction = (pos.direction + turn_speed) % 360
-                vel.currentSpeed = vel.maxUpSpeed * 0.2  # Very slow movement while aligning
+            # Handle distance but prioritize stopping to fire
+            if state.distance_to_base < MIN_SAFE_DISTANCE:
+                # Too close - back up slowly
+                vel.currentSpeed = -vel.maxUpSpeed * 0.2
             else:
-                # Good alignment - stop and focus on attacking
+                # CRITICAL: Stop completely to fire
                 vel.currentSpeed = 0
 
-        # Attack logic - fire as soon as in range and roughly aligned
+        else:
+            # Not yet in firing position - turn and move aggressively
+            turn_speed = 8
+            if abs(angle_diff) > 5:
+                if angle_diff > 0:
+                    pos.direction = (pos.direction + turn_speed) % 360
+                else:
+                    pos.direction = (pos.direction - turn_speed) % 360
+
+            # Distance-based movement logic
+            if state.distance_to_base > MAX_ATTACK_RANGE:
+                # Too far - approach quickly
+                vel.currentSpeed = vel.maxUpSpeed * 0.7
+                logger.debug(f"AI entity {entity}: Approaching base, distance={state.distance_to_base:.0f}, angle_diff={angle_diff:.1f}")
+
+            elif state.distance_to_base > OPTIMAL_ATTACK_DISTANCE:
+                # Within max range but not aligned - approach carefully
+                vel.currentSpeed = vel.maxUpSpeed * 0.4
+                logger.debug(f"AI entity {entity}: Moving to optimal distance, distance={state.distance_to_base:.0f}")
+
+            elif state.distance_to_base < MIN_SAFE_DISTANCE:
+                # Too close - back up
+                vel.currentSpeed = -vel.maxUpSpeed * 0.3
+                logger.debug(f"AI entity {entity}: Too close to base, backing up, distance={state.distance_to_base:.0f}")
+
+            else:
+                # Good distance but not aligned - turn in place
+                vel.currentSpeed = 0
+
+        # Attack logic - fire aggressively as soon as in range and roughly aligned!
         if esper.has_component(entity, RadiusComponent):
             radius = esper.component_for_entity(entity, RadiusComponent)
 
-            # More permissive attack conditions
-            in_attack_range = state.distance_to_base <= MAX_ATTACK_RANGE and state.distance_to_base >= MIN_SAFE_DISTANCE
+            # Very permissive attack conditions - shoot whenever possible!
+            in_attack_range = state.distance_to_base <= MAX_ATTACK_RANGE
 
             if in_attack_range and is_aligned_for_attack:
-                # Activate special ability if available and reasonably aligned
+                # Activate special ability if available and aligned
                 if spe_lev.can_activate() and is_aligned_for_special:
                     spe_lev.activate()
-                    logger.info(f"AI entity {entity}: Activated special ability against base!")
+                    logger.debug(f"AI entity {entity}: Activated special ability against base!")
 
-                # Fire normal attack as often as possible
+                # Fire normal attack ALWAYS when cooldown is ready
                 if radius.cooldown <= 0:
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
-                    logger.info(f"AI entity {entity}: Attacking base! Distance={state.distance_to_base:.0f}, angle_diff={angle_diff:.1f}")
+                    logger.debug(f"AI entity {entity}: Attacking base at distance={state.distance_to_base:.0f}, angle_diff={angle_diff:.1f}")
 
     def _avoidObstacle(
         self,
@@ -630,11 +632,13 @@ class AILeviathanProcessor(esper.Processor):
             vel: Velocity component
             state: Current game state
         """
+        # DISABLED: Stuck detection interferes with attack behavior
+        # The AI intentionally stops to fire, which was incorrectly detected as "stuck"
         # Check if entity is stuck (only when trying to move)
-        if self._isStuck(entity, pos, vel):
-            logger.info(f"Entity {entity} is stuck, attempting unstuck maneuver")
-            self._unstuck(entity, pos, vel)
-            return
+        # if self._isStuck(entity, pos, vel):
+        #     logger.info(f"Entity {entity} is stuck, attempting unstuck maneuver")
+        #     self._unstuck(entity, pos, vel)
+        #     return
 
         # Use enemy base position from state (already calculated)
         enemy_base_pos = state.enemy_base_position
@@ -709,7 +713,7 @@ class AILeviathanProcessor(esper.Processor):
         # If no path found or pathfinder not available, use direct navigation with obstacle avoidance
         if next_waypoint is None:
             # Check for obstacles ahead
-            if state.nearest_island_ahead or state.nearest_mine_distance < 150:
+            if state.nearest_island_ahead:
                 # Obstacle detected ahead - turn to avoid it
                 import random
                 turn_direction = random.choice([-45, 45])  # Turn left or right
@@ -759,13 +763,18 @@ class AILeviathanProcessor(esper.Processor):
         self.entity_cache = {
             'enemies': {},
             'allies': {},
-            'mines': [],
             'storms': [],
             'bandits': [],
         }
 
         for entity, (other_pos, other_team) in esper.get_components(PositionComponent, TeamComponent):
             team_id = other_team.team_id
+
+            # IGNORE team_id=0 (mines and neutral entities)
+            # Only track actual player/AI teams (team_id >= 1)
+            if team_id == 0:
+                continue
+
             if team_id not in self.entity_cache['enemies']:
                 self.entity_cache['enemies'][team_id] = []
             if team_id not in self.entity_cache['allies']:
@@ -775,13 +784,6 @@ class AILeviathanProcessor(esper.Processor):
             self.entity_cache['allies'][team_id].append((entity, other_pos.x, other_pos.y))
 
         from src.components.core.attackComponent import AttackComponent
-        for mine_entity, (mine_pos, mine_health, mine_team, mine_attack) in esper.get_components(
-            PositionComponent, HealthComponent, TeamComponent, AttackComponent
-        ):
-            if (mine_health.maxHealth == 1 and mine_team.team_id == 0 and int(mine_attack.hitPoints) == 40):
-                self.entity_cache['mines'].append((mine_pos.x, mine_pos.y))
-
-        # Cache storms (tornades)
         try:
             from src.components.events.stormComponent import Storm
             for storm_entity, (storm_pos, storm_comp) in esper.get_components(PositionComponent, Storm):
@@ -844,40 +846,13 @@ class AILeviathanProcessor(esper.Processor):
 
                     if distance_sq < min_distance * min_distance:
                         min_distance = distance_sq ** 0.5
-                        angle_to_nearest = np.arctan2(dy, dx) * 180 / np.pi  # Convert to degrees
+                        angle_to_nearest = (np.arctan2(dy, dx) * 180 / np.pi + 180) % 360  # Convert to degrees and add 180° to face enemy
 
         min_distance_norm = min(min_distance / detection_radius, 1.0) if min_distance != float('inf') else 1.0
 
         avg_health_ratio = total_health_ratio / enemies_nearby if enemies_nearby > 0 else 0.0
 
         return (float(enemies_nearby), min_distance_norm, angle_to_nearest, avg_health_ratio)
-
-    def _getNearbyMines(self, pos: PositionComponent) -> Tuple[float, float]:
-        """
-        Detect nearby mines using cached data.
-
-        Returns:
-            (mine_count, min_normalized_distance)
-        """
-        mines_count = 0.0
-        min_distance = float('inf')
-        detection_radius = 500.0
-        detection_radius_sq = detection_radius * detection_radius
-
-        if not self.entity_cache:
-            self._updateEntityCache()
-
-        for mine_x, mine_y in self.entity_cache['mines']:
-            distance_sq = (mine_x - pos.x) ** 2 + (mine_y - pos.y) ** 2
-
-            if distance_sq < detection_radius_sq:
-                mines_count += 1.0
-                distance = distance_sq ** 0.5
-                min_distance = min(min_distance, distance)
-
-        min_distance_norm = min(min_distance / detection_radius, 1.0) if mines_count > 0 else 1.0
-
-        return (mines_count, min_distance_norm)
 
     def _getNearbyStorms(self, pos: PositionComponent) -> float:
         """
@@ -946,7 +921,7 @@ class AILeviathanProcessor(esper.Processor):
         dx = enemy_base_pos[0] - pos.x
         dy = enemy_base_pos[1] - pos.y
         distance = (dx * dx + dy * dy) ** 0.5
-        angle = np.arctan2(dy, dx) * 180 / np.pi  # Convert to degrees directly
+        angle = (np.arctan2(dy, dx) * 180 / np.pi + 180) % 360  # Convert to degrees and add 180° to face base
 
         # Return distance in pixels (no normalization), angle in degrees, and WORLD coordinates
         return (distance, angle, enemy_base_pos[0], enemy_base_pos[1])
@@ -1042,10 +1017,12 @@ class AILeviathanProcessor(esper.Processor):
 
     def _getObstaclesAround(self, pos: PositionComponent, radius: float = 1000, team: TeamComponent = None) -> list:
         """
-        Get all obstacles (islands, mines, storms, bandits) around a position.
+        Get all obstacles (islands, storms, bandits) around a position.
 
-        Note: Enemy units are NOT included as obstacles - the decision tree
-        handles enemy engagement separately to ensure combat behavior.
+        Note:
+        - Enemy units are NOT included - decision tree handles combat
+        - MINES are NOT included - projectiles pass over them
+        - Only real blocking obstacles are returned
 
         Args:
             pos: Position to check around
@@ -1073,7 +1050,8 @@ class AILeviathanProcessor(esper.Processor):
                     if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
                         tile_type = self.map_grid[grid_y][grid_x]
 
-                        if TileType(tile_type).is_island() or tile_type == TileType.MINE:
+                        # Only add islands as obstacles from the map grid
+                        if TileType(tile_type).is_island():
                             world_x = (grid_x + 0.5) * TILE_SIZE
                             world_y = (grid_y + 0.5) * TILE_SIZE
 
@@ -1085,12 +1063,8 @@ class AILeviathanProcessor(esper.Processor):
         if not self.entity_cache:
             self._updateEntityCache()
 
-        # Add mines
-        for mine_x, mine_y in self.entity_cache['mines']:
-            dist = ((mine_x - pos.x) ** 2 + (mine_y - pos.y) ** 2) ** 0.5
-            if dist < radius:
-                mine_radius = TILE_SIZE * 2.5
-                obstacles.append((mine_x, mine_y, mine_radius))
+        # Projectiles pass over them, so they should not block movement
+        # The AI will navigate through them without issue
 
         # Add storms (tornades)
         for storm_x, storm_y, storm_radius in self.entity_cache['storms']:

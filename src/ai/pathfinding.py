@@ -1,12 +1,19 @@
+"""A* pathfinding for Leviathan AI"""
 
 import heapq
 import numpy as np
-from typing import Tuple, List, Optional, Set
+from typing import Tuple, List, Optional
 
 
 class Pathfinder:
     """
-    A* pathfinding that uses the map grid directly and avoids dynamic obstacles.
+    A* pathfinding that avoids islands and dynamic obstacles.
+
+    Completely removed from pathfinding logic.
+    Only avoids:
+    - Islands (from map grid)
+    - Storms (dynamic)
+    - Bandits (dynamic)
     """
 
     def __init__(self, map_grid, tile_size: int):
@@ -22,7 +29,8 @@ class Pathfinder:
         self.map_height = len(map_grid) if map_grid else 0
         self.map_width = len(map_grid[0]) if map_grid and len(map_grid) > 0 else 0
 
-        # Dynamic obstacles (updated externally by AI processor)
+        # Dynamic obstacles (storms, bandits - NO MINES!)
+        # Updated externally by AI processor
         self.dynamic_obstacles = []  # List of (x, y, radius) in world coordinates
 
     def findPath(
@@ -32,7 +40,7 @@ class Pathfinder:
         max_iterations: int = 2000
     ) -> Optional[List[Tuple[float, float]]]:
         """
-        Find path from start to goal avoiding islands.
+        Find path from start to goal avoiding islands and dynamic obstacles.
 
         Args:
             start: Starting position (world coordinates)
@@ -118,7 +126,7 @@ class Pathfinder:
                 if self._isIsland(neighbor):
                     continue
 
-                # Check for dynamic obstacles (storms, bandits, enemies)
+                # Check for dynamic obstacles (storms, bandits - NO MINES!)
                 if self._isDynamicObstacle(neighbor):
                     continue
 
@@ -174,11 +182,15 @@ class Pathfinder:
             return True  # Treat errors as obstacles
 
     def _isDynamicObstacle(self, pos: Tuple[int, int]) -> bool:
-        """Check if grid position is blocked by a dynamic obstacle (storm, bandit, enemy unit)."""
+        """
+        Check if grid position is blocked by a dynamic obstacle.
+
+        Only checks: storms, bandits
+        """
         # Convert grid position to world coordinates
         world_pos = self._gridToWorld(pos)
 
-        # Check against all dynamic obstacles
+        # Check against all dynamic obstacles (storms, bandits)
         for obstacle_x, obstacle_y, obstacle_radius in self.dynamic_obstacles:
             dx = world_pos[0] - obstacle_x
             dy = world_pos[1] - obstacle_y

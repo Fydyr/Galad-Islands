@@ -1,13 +1,13 @@
-"""Decision tree for Leviathan AI navigation and combat."""
+"""Decision tree for Leviathan AI"""
 
 import numpy as np
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from dataclasses import dataclass
 
 
 @dataclass
 class GameState:
-    """Game state information for decision making."""
+    """Game state information for decision making"""
     position: Tuple[float, float]
     direction: float
     health: float
@@ -18,8 +18,7 @@ class GameState:
     nearest_enemy_angle: float
     enemies_count: int
 
-    # Obstacle information
-    nearest_mine_distance: float
+    # Obstacle information (NO MINES!)
     nearest_island_ahead: bool
 
     # Goal information
@@ -27,7 +26,7 @@ class GameState:
     distance_to_base: float
     angle_to_base: float
 
-    # Additional obstacles (with default values, must come after non-default fields)
+    # Additional obstacles (with default values)
     nearest_storm_distance: float = float('inf')
     nearest_bandit_distance: float = float('inf')
 
@@ -43,22 +42,22 @@ class DecisionAction:
 
 class LeviathanDecisionTree:
     """
-    Simple decision tree for Leviathan AI.
+    Simple and aggressive decision tree for Leviathan AI.
 
-    Decision logic:
-    1. If dangerous obstacle very close (storm, bandit) -> Avoid immediately
-    2. If enemy is close and on path to base -> Attack
-    3. If obstacle ahead (mine, island) -> Avoid
-    4. Otherwise -> Navigate to enemy base
+    NO MINES - Completely removed from all logic.
+
+    Priority:
+    1. Attack enemies in range
+    2. Attack base in range
+    3. Avoid dangerous obstacles (storms, bandits only)
+    4. Navigate to base
     """
 
     # Detection thresholds
-    ENEMY_ATTACK_DISTANCE = 350.0  # Attack if enemy within this distance
-    ENEMY_PATH_ANGLE_THRESHOLD = 25.0  # Consider enemy "on path" if within this angle
-    MINE_AVOID_DISTANCE = 200.0  # Avoid mines within this distance
-    STORM_AVOID_DISTANCE = 200.0  # Avoid storms within this distance
-    BANDIT_AVOID_DISTANCE = 200.0  # Avoid bandits within this distance
-    BASE_ATTACK_DISTANCE = 400.0  # Attack base when within this distance
+    ENEMY_ATTACK_DISTANCE = 350.0
+    STORM_AVOID_DISTANCE = 200.0
+    BANDIT_AVOID_DISTANCE = 200.0
+    BASE_ATTACK_DISTANCE = 400.0
 
     def __init__(self):
         """Initialize the decision tree."""
@@ -68,46 +67,43 @@ class LeviathanDecisionTree:
         """
         Make a decision based on the current game state.
 
+        Priority order (NO MINES):
+        1. Attack enemy if in range
+        2. Attack base if in range
+        3. Avoid dangerous obstacles (storms/bandits only)
+        4. Navigate to base
+
         Args:
             state: Current game state
 
         Returns:
-            Action to take (MOVE_TO_BASE, ATTACK_ENEMY, ATTACK_BASE, AVOID_OBSTACLE, or IDLE)
+            Best action to take
         """
 
-        # Priority 1: Attack enemy if close (projectiles pass over islands!)
+        # Priority 1: Attack enemy if in range
         if self._shouldAttackEnemy(state):
             self.last_action = DecisionAction.ATTACK_ENEMY
             return DecisionAction.ATTACK_ENEMY
 
-        # Priority 2: Attack base if close enough (projectiles pass over islands!)
+        # Priority 2: Attack base if in range
         if state.distance_to_base < self.BASE_ATTACK_DISTANCE:
             self.last_action = DecisionAction.ATTACK_BASE
             return DecisionAction.ATTACK_BASE
 
-        # Priority 3: Avoid dangerous obstacles only when navigating
-        # (storms and bandits are always dangerous, but islands/mines only matter when moving)
+        # Priority 3: Avoid ONLY dangerous obstacles (storms/bandits)
         if self._shouldAvoidObstacle(state):
             self.last_action = DecisionAction.AVOID_OBSTACLE
             return DecisionAction.AVOID_OBSTACLE
 
-        # Priority 4: Navigate to enemy base (default action)
+        # Priority 4: Navigate to base
         self.last_action = DecisionAction.MOVE_TO_BASE
         return DecisionAction.MOVE_TO_BASE
 
     def _shouldAttackEnemy(self, state: GameState) -> bool:
-        """
-        Determine if we should attack an enemy.
-
-        Attack conditions:
-        - Enemy exists and is within attack distance
-
-        Simple and aggressive: attack any enemy that comes close enough!
-        """
+        """Determine if we should attack an enemy."""
         if state.enemies_count == 0:
             return False
 
-        # Attack any enemy within range
         if state.nearest_enemy_distance <= self.ENEMY_ATTACK_DISTANCE:
             return True
 
@@ -117,25 +113,15 @@ class LeviathanDecisionTree:
         """
         Determine if we should avoid an obstacle.
 
-        Avoid conditions:
-        - Storm is very close (dangerous!)
-        - Bandit is very close (dangerous!)
-        - Mine is close
-        - Island is directly ahead
+        ONLY dangerous dynamic obstacles:
+        - Storms (always dangerous)
+        - Bandits (always dangerous)
         """
         # Check for dangerous dynamic obstacles
         if state.nearest_storm_distance < self.STORM_AVOID_DISTANCE:
             return True
 
         if state.nearest_bandit_distance < self.BANDIT_AVOID_DISTANCE:
-            return True
-
-        # Check for mines
-        if state.nearest_mine_distance < self.MINE_AVOID_DISTANCE:
-            return True
-
-        # Check for islands ahead
-        if state.nearest_island_ahead:
             return True
 
         return False
