@@ -16,12 +16,12 @@ from dataclasses import fields
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 from decision_tree import ArchitectDecisionTree, GameState, DecisionAction
 
 
 # --- Configuration ---
-NUM_SAMPLES = 1000000  # Number of game scenarios to generate for training
+NUM_SAMPLES = 20000  # Number of game scenarios to generate for training
 # Construct path relative to this script's location to avoid CWD issues.
 SCRIPT_DIR = os.path.dirname(__file__)
 MODEL_OUTPUT_PATH = os.path.join(SCRIPT_DIR, "model/architect_model.joblib")
@@ -44,14 +44,17 @@ def generate_random_gamestate() -> GameState:
         current_heading=random.uniform(0, 360),
         current_hp=current_hp,
         maximum_hp=max_hp,
-        closest_foe_dist=random.uniform(50.0, 7000.0),
+        player_gold=random.randint(0, 4000),
+        closest_foe_dist=random.uniform(50.0, 2000.0),
         closest_foe_bearing=random.uniform(0, 360),
         nearby_foes_count=random.randint(0, 7),
-        closest_ally_dist=random.uniform(50.0, 7000.0),
-        closest_ally_bearing=random.uniform(0, 360),
+        closest_ally_dist=random.uniform(50.0, 1000.0), # Reduced max distance to generate more "regroup" scenarios
+        closest_ally_bearing=random.uniform(0, 360), 
         nearby_allies_count=random.randint(0, 6),
         closest_island_dist=closest_island_dist,
         closest_island_bearing=random.uniform(0, 360),
+        closest_mine_dist=random.uniform(50.0, 2000.0),
+        closest_mine_bearing=random.uniform(0, 360),
         is_on_island=is_on_island,
     )
 
@@ -121,7 +124,7 @@ def main():
 
     # --- 3. Train the Decision Tree Classifier ---
     print("Training Decision Tree model...")
-    model = DecisionTreeClassifier(random_state=42, max_depth=20, min_samples_leaf=12)
+    model = DecisionTreeClassifier(random_state=42, max_depth=10, min_samples_leaf=6)
     model.fit(X_train, y_train)
 
     # --- 4. Evaluate the Model ---
@@ -129,6 +132,15 @@ def main():
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
     print(f"Model Accuracy on Test Set: {accuracy:.4f}")
+    
+    # Optional: Print confusion matrix to see which actions are being confused
+    try:
+        cm = confusion_matrix(y_test, y_pred)
+        print("Confusion Matrix:")
+        print(cm)
+        print("Labels:", label_encoder.inverse_transform(np.arange(len(label_encoder.classes_))))
+    except Exception as e:
+        print(f"Could not display confusion matrix: {e}")
 
     if accuracy < 0.95:
         print("Warning: Model accuracy is lower than expected. The trained model may not perfectly replicate the expert's logic.")

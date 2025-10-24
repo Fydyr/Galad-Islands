@@ -18,6 +18,7 @@ from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.teamComponent import TeamComponent
+from src.components.core.playerComponent import PlayerComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 
 # AI and pathfinding
@@ -56,6 +57,7 @@ class ArchitectAIProcessor(esper.Processor):
         # Information caches
         self._entity_info_cache = {}
         self._island_cache = None
+        self._mine_cache = None
 
         # --- ML Model Loading ---
         self.ml_model = None
@@ -158,10 +160,22 @@ class ArchitectAIProcessor(esper.Processor):
         # Find closest island
         closest_island_dist, closest_island_bearing, is_on_island = self._find_closest_island(pos)
 
+        # Find closest mine
+        closest_mine_dist, closest_mine_bearing = self._find_closest_mine(pos)
+
         # Architect-specific ability info
         architect_comp = esper.component_for_entity(entity, SpeArchitect)
         ability_available = architect_comp.available
         ability_cooldown = architect_comp.timer # timer acts as cooldown
+        
+        
+        # Get player gold for the AI's team
+        player_gold = 0
+        for _, (player_comp, player_team) in esper.get_components(PlayerComponent, TeamComponent):
+            if player_team.team_id == team.team_id:
+                player_gold = player_comp.get_gold()
+                break
+            
         return GameState(
             current_position=(pos.x, pos.y),
             current_heading=pos.direction,
@@ -169,6 +183,7 @@ class ArchitectAIProcessor(esper.Processor):
             maximum_hp=health.maxHealth,
             closest_foe_dist=closest_foe_dist,
             closest_foe_bearing=closest_foe_bearing,
+            player_gold=player_gold,
             nearby_foes_count=nearby_foes_count,
             closest_ally_dist=closest_ally_dist,
             closest_ally_bearing=closest_ally_bearing,
@@ -176,6 +191,8 @@ class ArchitectAIProcessor(esper.Processor):
             closest_island_dist=closest_island_dist,
             closest_island_bearing=closest_island_bearing,
             is_on_island=is_on_island,
+            closest_mine_dist=closest_mine_dist,
+            closest_mine_bearing=closest_mine_bearing,
             is_stuck=is_stuck,
             architect_ability_available=ability_available,
             architect_ability_cooldown=ability_cooldown,
@@ -333,6 +350,33 @@ class ArchitectAIProcessor(esper.Processor):
         is_on = dist < self.ISLAND_PROXIMITY_THRESHOLD
         
         return dist, bearing, is_on
+
+    def _find_closest_mine(self, pos: PositionComponent):
+        """Finds the closest mine from a pre-computed cache."""
+        from src.constants.map_tiles import TileType
+        if self._mine_cache is None and self.map_grid is not None:
+            self._mine_cache = []
+            for y, row in enumerate(self.map_grid):
+                for x, tile_val in enumerate(row):
+                    if tile_val == TileType.MINE.value:
+                        self._mine_cache.append(((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE))
+
+        if not self._mine_cache:
+            return float('inf'), 0
+
+        closest_dist_sq = float('inf')
+        closest_pos = None
+        for mine_pos in self._mine_cache:
+            dist_sq = (mine_pos[0] - pos.x)**2 + (mine_pos[1] - pos.y)**2
+            if dist_sq < closest_dist_sq:
+                closest_dist_sq = dist_sq
+                closest_pos = mine_pos
+
+        dist = np.sqrt(closest_dist_sq)
+        dx, dy = closest_pos[0] - pos.x, closest_pos[1] - pos.y
+        bearing = (np.arctan2(dy, dx) * 180 / np.pi + 360) % 360
+
+        return dist, bearing
 
     def _find_safer_island(self, current_island_pos: Optional[Tuple[float, float]], enemy_pos: Tuple[float, float]):
         """Finds an island that is further away from the given enemy position."""

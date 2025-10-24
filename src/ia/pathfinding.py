@@ -11,7 +11,7 @@ class SimplePathfinder:
     """
     # --- Tile Movement Costs ---
     COST_ISLAND = 10.0  # High cost to cross islands, but not impossible.
-    COST_OBSTACLE = 100.0 # Very high cost for mines/clouds, making them highly undesirable.
+    COST_OBSTACLE = 5000.0 # Very high cost for mines/clouds, making them highly undesirable.
 
     def __init__(self, map_grid, tile_size: int):
         """

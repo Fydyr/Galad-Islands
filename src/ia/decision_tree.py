@@ -12,6 +12,7 @@ class GameState:
     current_heading: float
     current_hp: float
     maximum_hp: float
+    player_gold: int
 
     # Hostile unit information
     closest_foe_dist: float
@@ -27,6 +28,10 @@ class GameState:
     closest_island_dist: Optional[float]
     closest_island_bearing: Optional[float]
     is_on_island: bool
+
+    # Mine information
+    closest_mine_dist: Optional[float]
+    closest_mine_bearing: Optional[float]
     is_stuck: bool
 
     # Architect-specific ability information
@@ -55,11 +60,12 @@ class ArchitectDecisionTree:
     1.  **Emergency**: If stuck, try to get unstuck.
     2.  **Survival**: If health is low and an enemy is near, evade.
     3.  **Support**: If ability is ready and allies are nearby, activate it.
-    4.  **Repositioning**: If on an island but an enemy is too close, find a safer island.
-    5.  **Positioning**: If not on an island, navigate to a safe one.
-    6.  **Regrouping**: If safe, move towards nearby allies.
-    7.  **Idle**: If safe on an island and with allies, do nothing.
-    8.  **Default**: If no other options, move randomly to explore.
+    4.  **Expansion**: If on an island with enough gold, find a new island to expand to.
+    5.  **Repositioning**: If on an island but an enemy is too close, find a safer island.
+    6.  **Positioning**: If not on an island, navigate to a safe one.
+    7.  **Regrouping**: If safe, move towards nearby allies.
+    8.  **Idle**: If safe on an island and with allies, do nothing.
+    9.  **Default**: If no other options, move randomly to explore.
     """
 
     # --- Behavior Thresholds ---
@@ -67,6 +73,7 @@ class ArchitectDecisionTree:
     ENEMY_EVASION_DISTANCE = 350.0  # Distance at which to start evading an enemy.
     ALLY_REGROUP_DISTANCE = 600.0  # Distance to consider regrouping with an ally.
     ISLAND_PROXIMITY_THRESHOLD = 50.0 # Close enough to be considered "on" an island.
+    ENOUGH_GOLD_FOR_TOWER = 400 # Gold needed to consider expanding.
 
     def __init__(self):
         """Initialize the decision tree."""
@@ -99,22 +106,27 @@ class ArchitectDecisionTree:
             self.previous_decision = DecisionAction.ACTIVATE_ARCHITECT_ABILITY
             return self.previous_decision
 
-        # 4. Repositioning: If on an island but an enemy is too close, find a new, safer island.
+        # 4. Expansion: If safe on an island with enough gold, find a new island.
+        if state.is_on_island and state.player_gold >= self.ENOUGH_GOLD_FOR_TOWER and state.closest_foe_dist > self.ENEMY_EVASION_DISTANCE:
+            self.previous_decision = DecisionAction.CHOOSE_ANOTHER_ISLAND
+            return self.previous_decision
+
+        # 5. Repositioning: If on an island but an enemy is too close, find a new, safer island.
         if state.is_on_island and state.closest_foe_dist < self.ENEMY_EVASION_DISTANCE:
             self.previous_decision = DecisionAction.CHOOSE_ANOTHER_ISLAND
             return self.previous_decision
 
-        # 5. Positioning: If not on an island, navigate to a safe one.
+        # 6. Positioning: If not on an island, navigate to a safe one.
         if not state.is_on_island and state.closest_island_dist is not None:
             self.previous_decision = DecisionAction.NAVIGATE_TO_ISLAND
             return self.previous_decision
 
-        # 6. Regrouping: If safe and allies are nearby, move towards them.
+        # 7. Regrouping: If safe and allies are nearby, move towards them.
         if state.nearby_allies_count > 0 and state.closest_ally_dist is not None and state.closest_ally_dist < self.ALLY_REGROUP_DISTANCE:
             self.previous_decision = DecisionAction.NAVIGATE_TO_ALLY
             return self.previous_decision
 
-        # 7. Idle: If safe on an island, do nothing.
+        # 8. Idle: If safe on an island, do nothing.
         if state.is_on_island:
             self.previous_decision = DecisionAction.DO_NOTHING
             return self.previous_decision
