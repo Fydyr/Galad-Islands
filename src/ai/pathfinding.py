@@ -9,11 +9,11 @@ class Pathfinder:
     """
     A* pathfinding that avoids islands and dynamic obstacles.
 
-    Completely removed from pathfinding logic.
-    Only avoids:
+    Avoids:
     - Islands (from map grid)
     - Storms (dynamic)
     - Bandits (dynamic)
+    - Mines (from map grid)
     """
 
     def __init__(self, map_grid, tile_size: int):
@@ -29,9 +29,12 @@ class Pathfinder:
         self.map_height = len(map_grid) if map_grid else 0
         self.map_width = len(map_grid[0]) if map_grid and len(map_grid) > 0 else 0
 
-        # Dynamic obstacles (storms, bandits - NO MINES!)
+        # Dynamic obstacles (storms, bandits, mines)
         # Updated externally by AI processor
         self.dynamic_obstacles = []  # List of (x, y, radius) in world coordinates
+
+        # Safety margin around static obstacles (islands, mines)
+        self.static_obstacle_margin = tile_size * 0.5  # Half a tile margin
 
     def findPath(
         self,
@@ -126,7 +129,11 @@ class Pathfinder:
                 if self._isIsland(neighbor):
                     continue
 
-                # Check for dynamic obstacles (storms, bandits - NO MINES!)
+                # Check if neighbor is a mine
+                if self._isMine(neighbor):
+                    continue
+
+                # Check for dynamic obstacles (storms, bandits, mines)
                 if self._isDynamicObstacle(neighbor):
                     continue
 
@@ -173,24 +180,93 @@ class Pathfinder:
         return 0 <= pos[0] < self.map_width and 0 <= pos[1] < self.map_height
 
     def _isIsland(self, pos: Tuple[int, int]) -> bool:
-        """Check if grid position is an island."""
+        """Check if grid position is an island or too close to one."""
         from src.constants.map_tiles import TileType
+
+        # Check the position itself
         try:
             tile_type = self.map_grid[pos[1]][pos[0]]
-            return TileType(tile_type).is_island()
+            if TileType(tile_type).is_island():
+                return True
         except:
             return True  # Treat errors as obstacles
+
+        # Check neighboring cells for safety margin
+        # Convert to world coords to measure distance
+        world_pos = self._gridToWorld(pos)
+
+        # Check surrounding tiles (3x3 grid)
+        for dy in range(-1, 2):
+            for dx in range(-1, 2):
+                neighbor = (pos[0] + dx, pos[1] + dy)
+                if not self._isValidGrid(neighbor):
+                    continue
+
+                try:
+                    tile_type = self.map_grid[neighbor[1]][neighbor[0]]
+                    if TileType(tile_type).is_island():
+                        # Calculate distance to this island tile
+                        neighbor_world = self._gridToWorld(neighbor)
+                        distance = ((world_pos[0] - neighbor_world[0]) ** 2 +
+                                  (world_pos[1] - neighbor_world[1]) ** 2) ** 0.5
+
+                        # If within safety margin, consider it blocked
+                        if distance < self.static_obstacle_margin:
+                            return True
+                except:
+                    continue
+
+        return False
+
+    def _isMine(self, pos: Tuple[int, int]) -> bool:
+        """Check if grid position is a mine or too close to one."""
+        from src.constants.map_tiles import TileType
+
+        # Check the position itself
+        try:
+            tile_type = self.map_grid[pos[1]][pos[0]]
+            if TileType(tile_type) == TileType.MINE:
+                return True
+        except:
+            return False  # Treat errors as safe
+
+        # Check neighboring cells for safety margin
+        # Convert to world coords to measure distance
+        world_pos = self._gridToWorld(pos)
+
+        # Check surrounding tiles (3x3 grid)
+        for dy in range(-1, 2):
+            for dx in range(-1, 2):
+                neighbor = (pos[0] + dx, pos[1] + dy)
+                if not self._isValidGrid(neighbor):
+                    continue
+
+                try:
+                    tile_type = self.map_grid[neighbor[1]][neighbor[0]]
+                    if TileType(tile_type) == TileType.MINE:
+                        # Calculate distance to this mine tile
+                        neighbor_world = self._gridToWorld(neighbor)
+                        distance = ((world_pos[0] - neighbor_world[0]) ** 2 +
+                                  (world_pos[1] - neighbor_world[1]) ** 2) ** 0.5
+
+                        # If within safety margin, consider it blocked
+                        if distance < self.static_obstacle_margin:
+                            return True
+                except:
+                    continue
+
+        return False
 
     def _isDynamicObstacle(self, pos: Tuple[int, int]) -> bool:
         """
         Check if grid position is blocked by a dynamic obstacle.
 
-        Only checks: storms, bandits
+        Checks: storms, bandits, mines (dynamic list)
         """
         # Convert grid position to world coordinates
         world_pos = self._gridToWorld(pos)
 
-        # Check against all dynamic obstacles (storms, bandits)
+        # Check against all dynamic obstacles (storms, bandits, mines)
         for obstacle_x, obstacle_y, obstacle_radius in self.dynamic_obstacles:
             dx = world_pos[0] - obstacle_x
             dy = world_pos[1] - obstacle_y

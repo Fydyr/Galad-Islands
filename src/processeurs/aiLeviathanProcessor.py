@@ -202,9 +202,10 @@ class AILeviathanProcessor(esper.Processor):
         ahead_y = pos.y + look_ahead_distance * np.sin(angle_rad)
         nearest_island_ahead = self._isIslandAtPosition(ahead_x, ahead_y)
 
-        # Get storm and bandit information
+        # Get storm, bandit, and mine information
         nearest_storm_distance = self._getNearbyStorms(pos)
         nearest_bandit_distance = self._getNearbyBandits(pos)
+        nearest_mine_distance = self._getNearbyMines(pos)
 
         # Get enemy base information
         base_info = self._getEnemyBaseInfo(entity, pos, team)
@@ -223,6 +224,7 @@ class AILeviathanProcessor(esper.Processor):
             nearest_island_ahead=nearest_island_ahead,
             nearest_storm_distance=nearest_storm_distance,
             nearest_bandit_distance=nearest_bandit_distance,
+            nearest_mine_distance=nearest_mine_distance,
             enemy_base_position=enemy_base_position,
             distance_to_base=distance_to_base,
             angle_to_base=angle_to_base,
@@ -935,6 +937,45 @@ class AILeviathanProcessor(esper.Processor):
 
         return min_distance
 
+    def _getNearbyMines(self, pos: PositionComponent) -> float:
+        """
+        Detect nearby mines by scanning the map grid.
+
+        Returns:
+            min_distance to nearest mine (or inf if none)
+        """
+        min_distance = float('inf')
+        detection_radius = 400.0
+
+        if self.map_grid is None:
+            return min_distance
+
+        from src.settings.settings import MAP_WIDTH, MAP_HEIGHT
+
+        center_grid_x = int(pos.x // TILE_SIZE)
+        center_grid_y = int(pos.y // TILE_SIZE)
+
+        tile_radius = int(detection_radius // TILE_SIZE) + 1
+
+        for dy in range(-tile_radius, tile_radius + 1):
+            for dx in range(-tile_radius, tile_radius + 1):
+                grid_x = center_grid_x + dx
+                grid_y = center_grid_y + dy
+
+                if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
+                    tile_type = self.map_grid[grid_y][grid_x]
+
+                    if TileType(tile_type) == TileType.MINE:
+                        mine_world_x = (grid_x + 0.5) * TILE_SIZE
+                        mine_world_y = (grid_y + 0.5) * TILE_SIZE
+
+                        distance = ((mine_world_x - pos.x) ** 2 + (mine_world_y - pos.y) ** 2) ** 0.5
+
+                        if distance < detection_radius:
+                            min_distance = min(min_distance, distance)
+
+        return min_distance
+
     def _getEnemyBaseInfo(
         self, entity: int, pos: PositionComponent, team: TeamComponent
     ) -> Tuple[float, float, float, float]:
@@ -1027,40 +1068,12 @@ class AILeviathanProcessor(esper.Processor):
 
         return distance <= vision_range_pixels
 
-    def _explore(self, entity: int, pos: PositionComponent, vel: VelocityComponent, state: GameState):
-        """
-        Explore the map to find the enemy base.
-        Moves in the general direction of the base while avoiding obstacles.
-
-        Args:
-            entity: Entity ID (unused but kept for consistency)
-            pos: Position component
-            vel: Velocity component
-            state: Current game state
-        """
-        _ = entity  # Unused but kept for API consistency
-        # Move towards the general direction of the enemy base
-        target_angle = state.angle_to_base
-        angle_diff = (target_angle - pos.direction + 180) % 360 - 180
-
-        # Turn towards the base direction
-        if abs(angle_diff) > 10:
-            if angle_diff > 0:
-                pos.direction = (pos.direction - 8) % 360
-            else:
-                pos.direction = (pos.direction + 8) % 360
-            vel.currentSpeed = vel.maxUpSpeed * 0.6  # Move while turning
-        else:
-            # Well aligned, move forward
-            vel.currentSpeed = vel.maxUpSpeed * 0.8
-
     def _getObstaclesAround(self, pos: PositionComponent, radius: float = 1000, team: TeamComponent = None) -> list:
         """
-        Get all obstacles (islands, storms, bandits) around a position.
+        Get all obstacles (islands, storms, bandits, mines) around a position.
 
         Note:
         - Enemy units are NOT included - decision tree handles combat
-        - MINES are NOT included - projectiles pass over them
         - Only real blocking obstacles are returned
 
         Args:
@@ -1089,7 +1102,7 @@ class AILeviathanProcessor(esper.Processor):
                     if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
                         tile_type = self.map_grid[grid_y][grid_x]
 
-                        # Only add islands as obstacles from the map grid
+                        # Add islands as obstacles from the map grid
                         if TileType(tile_type).is_island():
                             world_x = (grid_x + 0.5) * TILE_SIZE
                             world_y = (grid_y + 0.5) * TILE_SIZE
@@ -1099,11 +1112,19 @@ class AILeviathanProcessor(esper.Processor):
                                 obstacle_radius = TILE_SIZE * 1.5
                                 obstacles.append((world_x, world_y, obstacle_radius))
 
+                        # Add mines as obstacles from the map grid
+                        elif TileType(tile_type) == TileType.MINE:
+                            world_x = (grid_x + 0.5) * TILE_SIZE
+                            world_y = (grid_y + 0.5) * TILE_SIZE
+
+                            dist = ((world_x - pos.x) ** 2 + (world_y - pos.y) ** 2) ** 0.5
+                            if dist < radius:
+                                # Larger radius to ensure safe clearance
+                                obstacle_radius = TILE_SIZE * 1.2
+                                obstacles.append((world_x, world_y, obstacle_radius))
+
         if not self.entity_cache:
             self._updateEntityCache()
-
-        # Projectiles pass over them, so they should not block movement
-        # The AI will navigate through them without issue
 
         # Add storms (tornades)
         for storm_x, storm_y, storm_radius in self.entity_cache['storms']:
@@ -1116,10 +1137,6 @@ class AILeviathanProcessor(esper.Processor):
             dist = ((bandit_x - pos.x) ** 2 + (bandit_y - pos.y) ** 2) ** 0.5
             if dist < radius:
                 obstacles.append((bandit_x, bandit_y, bandit_radius))
-
-        # NOTE: We do NOT add enemy units as obstacles for pathfinding
-        # The decision tree handles enemy engagement separately
-        # Adding enemies as obstacles would make the AI avoid combat instead of engaging
 
         return obstacles
 

@@ -18,7 +18,7 @@ class GameState:
     nearest_enemy_angle: float
     enemies_count: int
 
-    # Obstacle information (NO MINES!)
+    # Obstacle information
     nearest_island_ahead: bool
 
     # Goal information
@@ -29,6 +29,7 @@ class GameState:
     # Additional obstacles (with default values)
     nearest_storm_distance: float = float('inf')
     nearest_bandit_distance: float = float('inf')
+    nearest_mine_distance: float = float('inf')
 
 
 class DecisionAction:
@@ -44,12 +45,10 @@ class LeviathanDecisionTree:
     """
     Simple and aggressive decision tree for Leviathan AI.
 
-    NO MINES - Completely removed from all logic.
-
     Priority:
     1. Attack enemies in range
     2. Attack base in range
-    3. Avoid dangerous obstacles (storms, bandits only)
+    3. Avoid dangerous obstacles (storms, bandits, mines)
     4. Navigate to base
     """
 
@@ -57,6 +56,7 @@ class LeviathanDecisionTree:
     ENEMY_ATTACK_DISTANCE = 350.0
     STORM_AVOID_DISTANCE = 200.0
     BANDIT_AVOID_DISTANCE = 200.0
+    MINE_AVOID_DISTANCE = 150.0
     BASE_ATTACK_DISTANCE = 400.0
 
     def __init__(self):
@@ -67,10 +67,10 @@ class LeviathanDecisionTree:
         """
         Make a decision based on the current game state.
 
-        Priority order (NO MINES):
+        Priority order:
         1. Attack enemy if in range
         2. Attack base if in range
-        3. Avoid dangerous obstacles (storms/bandits only)
+        3. Avoid dangerous obstacles (storms/bandits/mines)
         4. Navigate to base
 
         Args:
@@ -90,7 +90,7 @@ class LeviathanDecisionTree:
             self.last_action = DecisionAction.ATTACK_BASE
             return DecisionAction.ATTACK_BASE
 
-        # Priority 3: Avoid ONLY dangerous obstacles (storms/bandits)
+        # Priority 3: Avoid dangerous obstacles (storms/bandits/mines)
         if self._shouldAvoidObstacle(state):
             self.last_action = DecisionAction.AVOID_OBSTACLE
             return DecisionAction.AVOID_OBSTACLE
@@ -113,15 +113,19 @@ class LeviathanDecisionTree:
         """
         Determine if we should avoid an obstacle.
 
-        ONLY dangerous dynamic obstacles:
+        Dangerous obstacles:
         - Storms (always dangerous)
         - Bandits (always dangerous)
+        - Mines (cause 40 damage on contact)
         """
         # Check for dangerous dynamic obstacles
         if state.nearest_storm_distance < self.STORM_AVOID_DISTANCE:
             return True
 
         if state.nearest_bandit_distance < self.BANDIT_AVOID_DISTANCE:
+            return True
+
+        if state.nearest_mine_distance < self.MINE_AVOID_DISTANCE:
             return True
 
         return False
