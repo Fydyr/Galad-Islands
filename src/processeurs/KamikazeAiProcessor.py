@@ -266,17 +266,31 @@ class KamikazeAiProcessor(esper.Processor):
         # --- 3. Combinaison des vecteurs de direction ---
         final_direction_vector = desired_direction_vector
         if total_avoidance_weight > 0:
-            # Normaliser le vecteur d'évitement combiné
-            avoidance_vector /= total_avoidance_weight 
-            # Facteur de mélange : l'évitement prend plus de poids si total_avoidance_weight est élevé
-            blend_factor = min(1.0, total_avoidance_weight / 3.0) # Max 1.0 pour l'évitement pur
-            final_direction_vector = (1.0 - blend_factor) * desired_direction_vector + blend_factor * avoidance_vector
-            
-            # S'assurer que le vecteur final n'est pas nul après le mélange
-            if np.linalg.norm(final_direction_vector) < 0.01:
-                final_direction_vector = desired_direction_vector # Revenir à la direction souhaitée si le mélange annule tout
-            else:
-                final_direction_vector /= np.linalg.norm(final_direction_vector) # Re-normaliser
+             # Normaliser le vecteur d'évitement combiné
+             avoidance_vector /= total_avoidance_weight
+ 
+        # --- NOUVEAU: Calcul du vecteur de flocking ---
+        flocking_vector = self._calculate_flocking_vectors(pos, ent, team)
+
+        # --- 4. Combinaison finale des vecteurs ---
+        # Poids pour chaque comportement (ajustables)
+        WEIGHT_PATH = 1.0      # Suivi du chemin
+        WEIGHT_AVOIDANCE = 2.5 # Évitement des dangers
+        WEIGHT_FLOCKING = 0.8  # Comportement de groupe
+
+        # Combinaison pondérée
+        final_direction_vector = (
+            desired_direction_vector * WEIGHT_PATH +
+            avoidance_vector * WEIGHT_AVOIDANCE +
+            flocking_vector * WEIGHT_FLOCKING
+        )
+
+        # Normaliser le vecteur final s'il n'est pas nul
+        if np.linalg.norm(final_direction_vector) > 0.01:
+            final_direction_vector /= np.linalg.norm(final_direction_vector)
+        else:
+            # Si le vecteur est nul (forces opposées), on garde la direction du chemin
+            final_direction_vector = desired_direction_vector
 
         # Appliquer la direction et la vitesse finales
         if np.linalg.norm(final_direction_vector) > 0:
@@ -286,7 +300,7 @@ class KamikazeAiProcessor(esper.Processor):
             pos.direction = math.degrees(math.atan2(inverted_vector[1], inverted_vector[0]))
         vel.currentSpeed = vel.maxUpSpeed # La vitesse reste maximale, l'évitement n'affecte que la direction
 
-        # --- 4. Logique de boost (après toutes les décisions de mouvement) ---
+        # --- 5. Logique de boost (après toutes les décisions de mouvement) ---
         kamikaze_comp = esper.component_for_entity(ent, SpeKamikazeComponent)
         # Utiliser l'angle_diff par rapport à la direction finale pour le boost
         # Recalculer l'angle_diff par rapport à la direction actuelle de l'unité et la direction finale souhaitée
@@ -314,6 +328,71 @@ class KamikazeAiProcessor(esper.Processor):
                 kamikaze_comp.activate()
 
     # --------------------------- décisions / utilitaires ---------------------------
+
+    def _calculate_flocking_vectors(self, pos: PositionComponent, ent: int, team: TeamComponent) -> np.ndarray:
+        """Calcule les vecteurs de séparation, alignement et cohésion."""
+        
+        # Paramètres du flocking (tu pourras les ajuster)
+        PERCEPTION_RADIUS = 4 * TILE_SIZE
+        SEPARATION_DISTANCE = 2 * TILE_SIZE
+
+        # Poids pour chaque règle
+        WEIGHT_SEPARATION = 1.8
+        WEIGHT_ALIGNMENT = 0.6
+        WEIGHT_COHESION = 0.4
+
+        separation_vector = np.array([0.0, 0.0])
+        alignment_vector = np.array([0.0, 0.0])
+        cohesion_vector = np.array([0.0, 0.0])
+        
+        neighbors = self.get_nearby_allies(pos, ent, PERCEPTION_RADIUS, team.team_id)
+        
+        if not neighbors:
+            return np.array([0.0, 0.0])
+
+        # Calculer le centre de masse et la direction moyenne
+        center_of_mass = np.array([0.0, 0.0])
+        avg_direction_vector = np.array([0.0, 0.0])
+
+        for neighbor_ent, neighbor_pos, neighbor_vel in neighbors:
+            # Séparation
+            dist = math.hypot(pos.x - neighbor_pos.x, pos.y - neighbor_pos.y)
+            if dist < SEPARATION_DISTANCE and dist > 0:
+                away_vector = np.array([pos.x - neighbor_pos.x, pos.y - neighbor_pos.y])
+                separation_vector += away_vector / (dist * dist) # Plus fort quand on est très proche
+
+            # Pour Alignement et Cohésion
+            center_of_mass += np.array([neighbor_pos.x, neighbor_pos.y])
+            neighbor_direction_rad = math.radians(neighbor_pos.direction)
+            avg_direction_vector += np.array([math.cos(neighbor_direction_rad), math.sin(neighbor_direction_rad)])
+
+        # Finaliser les calculs
+        num_neighbors = len(neighbors)
+        if num_neighbors > 0:
+            # Alignement
+            avg_direction_vector /= num_neighbors
+            if np.linalg.norm(avg_direction_vector) > 0:
+                alignment_vector = avg_direction_vector / np.linalg.norm(avg_direction_vector)
+
+            # Cohésion
+            center_of_mass /= num_neighbors
+            vec_to_center = center_of_mass - np.array([pos.x, pos.y])
+            if np.linalg.norm(vec_to_center) > 0:
+                cohesion_vector = vec_to_center / np.linalg.norm(vec_to_center)
+
+        # Combinaison pondérée des vecteurs de flocking
+        flocking_vector = (
+            separation_vector * WEIGHT_SEPARATION +
+            alignment_vector * WEIGHT_ALIGNMENT +
+            cohesion_vector * WEIGHT_COHESION
+        )
+        
+        # Normaliser le vecteur final de flocking s'il n'est pas nul
+        if np.linalg.norm(flocking_vector) > 0:
+            flocking_vector = flocking_vector / np.linalg.norm(flocking_vector)
+
+        return flocking_vector
+
     def _get_new_exploration_target(self, team_id: int) -> PositionComponent:
         """Définit un nouveau point d'exploration pour trouver la base ennemie."""
         map_w_pixels = MAP_WIDTH * TILE_SIZE
@@ -420,6 +499,19 @@ class KamikazeAiProcessor(esper.Processor):
                 if math.hypot(pos.x - my_pos.x, pos.y - my_pos.y) < radius:
                     obstacles.append(pos)
         return obstacles
+
+    def get_nearby_allies(self, my_pos: PositionComponent, my_ent: int, radius: float, my_team_id: int) -> List[Tuple[int, PositionComponent, VelocityComponent]]:
+        """Trouve les autres kamikazes alliés à proximité."""
+        allies = []
+        # On ne cherche que les entités qui ont aussi une IA de kamikaze
+        for ent, (ai_comp, pos, vel, team) in esper.get_components(KamikazeAiComponent, PositionComponent, VelocityComponent, TeamComponent):
+            if ent == my_ent or team.team_id != my_team_id:
+                continue
+            
+            if getattr(ai_comp, 'unit_type', None) == UnitType.KAMIKAZE:
+                if math.hypot(pos.x - my_pos.x, pos.y - my_pos.y) < radius:
+                    allies.append((ent, pos, vel))
+        return allies
 
     def get_nearby_threats(self, my_pos: PositionComponent, radius: float, my_team_id: int) -> List[PositionComponent]:
         threats = []

@@ -204,6 +204,7 @@ class BaseAi(esper.Processor):
         if self.model is None:
             return 0 # Ne rien faire si aucun modèle n'est chargé
 
+        # Le modèle est entraîné avec 9 caractéristiques (état + action)
         features = [
             game_state['gold'],
             game_state['base_health_ratio'],
@@ -211,16 +212,15 @@ class BaseAi(esper.Processor):
             game_state['enemy_units'],
             game_state['enemy_base_known'],
             game_state['towers_needed'],
-            game_state['enemy_base_health_ratio']
+            game_state['enemy_base_health_ratio'],
+            game_state.get('allied_units_health', 1.0) # Ajout de la santé moyenne des alliés
         ]
 
         try:
             # Calculer Q pour chaque action
             q_values = []
             for action in range(7):
-                # include allied_units_health feature (model trained with 9 features before action)
-                allied_health = game_state.get('allied_units_health', 1.0)
-                state_action = features + [allied_health, action]
+                state_action = features + [action]
                 q_value = self.model.predict([state_action])[0]
                 q_values.append(q_value)
 

@@ -90,14 +90,14 @@ class UnifiedBaseAiTrainer:
             # IA 1 (alliés)
             if game_state['ally_base_health'] > 0:
                 state_ally = self._get_state_for_ai(game_state, is_ally=True)
-                action_ally = ai1.decide_action_for_training(*state_ally)
+                action_ally = self.decide_action_for_training(*state_ally)
                 reward_ally = self._apply_action_simulation(action_ally, game_state, is_ally=True)
                 state_action_ally = state_ally + [action_ally]
                 ai1_experiences.append((state_action_ally, reward_ally))
             # IA 2 (ennemis)
             if game_state['enemy_base_health'] > 0:
                 state_enemy = self._get_state_for_ai(game_state, is_ally=False)
-                action_enemy = ai2.decide_action_for_training(*state_enemy)
+                action_enemy = self.decide_action_for_training(*state_enemy)
                 reward_enemy = self._apply_action_simulation(action_enemy, game_state, is_ally=False)
                 state_action_enemy = state_enemy + [action_enemy]
                 ai2_experiences.append((state_action_enemy, reward_enemy))
@@ -115,6 +115,48 @@ class UnifiedBaseAiTrainer:
                         ai2_experiences[i] = (sa, r - bonus_victory)
                 break
         return ai1_experiences, ai2_experiences
+
+    def decide_action_for_training(self, gold, base_health_ratio, allied_units, enemy_units, enemy_base_known, towers_needed, enemy_base_health_ratio, allied_units_health):
+        """Logique de décision à base de règles pour l'entraînement."""
+        # Priorité absolue : défense si la base est très faible et en infériorité
+        if base_health_ratio < 0.4 and allied_units < enemy_units + 2:
+            if gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
+                return 6  # Kamikaze pour une défense rapide
+            if gold >= UNIT_COSTS["maraudeur"] + self.gold_reserve:
+                return 3  # Maraudeur
+
+        # Exploration si la base ennemie est inconnue
+        if not enemy_base_known:
+            if gold >= UNIT_COSTS["scout"]:
+                return 1  # Éclaireur
+
+        # Soin si les unités sont blessées
+        if allied_units_health < 0.5 and allied_units > 3:
+            if gold >= UNIT_COSTS["druid"] + self.gold_reserve:
+                return 5 # Druide
+
+        # Coup de grâce si la base ennemie est faible
+        if enemy_base_health_ratio < 0.2:
+            if gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
+                return 6  # Kamikaze
+
+        # Stratégie générale
+        if allied_units < enemy_units:
+            # Renforcer avec des unités de combat
+            if gold >= UNIT_COSTS["maraudeur"] + self.gold_reserve:
+                return 3  # Maraudeur
+            if gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
+                return 6  # Kamikaze
+        elif gold > 300 and allied_units > enemy_units + 3:
+            # Avantage économique et militaire -> unité lourde
+            if gold >= UNIT_COSTS["leviathan"] + self.gold_reserve:
+                return 4  # Léviathan
+        
+        # Si aucune condition n'est remplie, économiser
+        if gold < 100:
+            return 0 # Ne rien faire
+
+        return random.choices([0, 1, 3, 6], weights=[0.4, 0.1, 0.3, 0.2], k=1)[0]
 
     def _get_state_for_ai(self, game_state, is_ally=True):
         """Retourne un vecteur d'état pour `decide_action_for_training`.
