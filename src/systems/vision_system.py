@@ -225,13 +225,14 @@ class VisionSystem:
             return True
         return False
 
-    def create_fog_surface(self, camera) -> Optional[pygame.Surface]:
+    def create_fog_surface(self, camera, team_id: int) -> Optional[pygame.Surface]:
         """
         Crée une surface unique pour le brouillard de guerre, optimisée pour le rendu.
 
         Args:
             camera: Instance de la caméra pour les calculs de viewport
-
+            team_id: L'ID de l'équipe dont on veut afficher la perspective.
+        
         Returns:
             pygame.Surface | None: Une surface contenant le brouillard de guerre à afficher
                                    par-dessus le monde, ou None si non applicable.
@@ -258,10 +259,10 @@ class VisionSystem:
 
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
-                if not self.is_tile_visible(x, y):
+                if not self.is_tile_visible(x, y, team_id):
                     screen_x, screen_y = camera.world_to_screen(x * TILE_SIZE, y * TILE_SIZE)
                     
-                    if not self.is_tile_explored(x, y):
+                    if not self.is_tile_explored(x, y, team_id):
                         # Zone non explorée : dessiner un nuage
                         cloud_subsurface = self._get_cloud_subsurface(x, y, tile_size)
                         if cloud_subsurface:

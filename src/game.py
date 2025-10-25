@@ -338,21 +338,13 @@ class GameRenderer:
             game_map.afficher_grille(window, grid, images, camera)
             
     def _render_fog_of_war(self, window, camera):
-        """Rend le brouillard de guerre avec nuages et brouillard léger."""
+        """Rend le brouillard de guerre basé sur la visibilité de l'équipe actuelle."""
         current_team = self.game_engine.action_bar.current_camp
-
-        # Mettre à jour la visibilité pour l'équipe actuelle
-        vision_system.update_visibility(current_team)
-
         # Créer la surface du brouillard de guerre pour la vue actuelle
         # Cette méthode est déjà optimisée pour ne dessiner que ce qui est visible à l'écran.
-        fog_surface = vision_system.create_fog_surface(camera)
-
-        # Afficher la surface du brouillard en une seule opération de blit
+        fog_surface = vision_system.create_fog_surface(camera, current_team)
         if fog_surface:
             window.blit(fog_surface, (0, 0))
-
-
 
     def _render_vision_circles(self, window, camera):
         """Rend les cercles blancs représentant la portée de vision des unités."""
@@ -1769,6 +1761,16 @@ class GameEngine:
             self.flying_chest_processor.process(dt)
         if self.island_resource_manager is not None:
             self.island_resource_manager.update(dt)
+            
+        # Mettre à jour la visibilité pour le brouillard de guerre
+        # En mode self-play, on met à jour pour les deux équipes pour que les IA aient une vision correcte.
+        if self.self_play_mode:
+            vision_system.update_visibility(Team.ALLY)
+            vision_system.update_visibility(Team.ENEMY)
+        else:
+            # En mode joueur, on ne met à jour que pour l'équipe active.
+            current_team = self.action_bar.current_camp if self.action_bar else Team.ALLY
+            vision_system.update_visibility(current_team)
             
         # Les tempêtes sont gérées par storm_processor (processeur ECS)
 
