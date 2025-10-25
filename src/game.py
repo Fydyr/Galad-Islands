@@ -32,7 +32,7 @@ from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProc
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
-from src.processeurs.KamikazeAiProcessor import KamikazeAiProcessor
+from src.ia.KamikazeAi import KamikazeAiProcessor
 from src.ia.BaseAi import BaseAi
 
 # Importations des composants

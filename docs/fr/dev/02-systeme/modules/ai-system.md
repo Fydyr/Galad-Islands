@@ -12,6 +12,8 @@ Le système d'IA de Galad Islands est conçu pour offrir un adversaire crédible
 
 ## IA de la Base (`BaseAi`)
 
+**Fichier** : `src/ia/BaseAI.py`
+
 L'IA de la base est le cerveau stratégique de l'équipe adverse. Elle décide quelle unité produire en fonction de l'état actuel du jeu.
 
 ### Architecture
@@ -127,7 +129,7 @@ En plus de l'IA de la base, certaines unités possèdent leur propre logique de 
 
 ### IA des Kamikazes (`KamikazeAiProcessor`)
 
-**Fichier** : `src/processeurs/KamikazeAiProcessor.py`
+**Fichier** : `src/ia/KamikazeAi.py`
 
 Contrairement à l'IA de la base, l'IA du Kamikaze n'utilise pas de modèle de Machine Learning. Il s'agit d'une **IA procédurale hybride** qui combine des algorithmes classiques pour obtenir un comportement de navigation intelligent et réactif.
 

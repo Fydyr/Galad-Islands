@@ -12,6 +12,8 @@ The AI system in Galad Islands is designed to provide a credible opponent and au
 
 ## Base AI (`BaseAi`)
 
+**Fichier** : `src/ia/BaseAi.py`
+
 The Base AI is the strategic brain of the opposing team. It decides which unit to produce based on the current state of the game.
 
 ### Architecture
@@ -127,46 +129,7 @@ In addition to the Base AI, some units have their own autonomous behavior logic,
 
 ### Kamikaze AI (`KamikazeAiProcessor`)
 
-**File**: `src/processeurs/KamikazeAiProcessor.py`
-
-This processor manages the behavior of Kamikaze units:
-- **Target Acquisition**: It identifies the enemy base as the primary target.
-- **Navigation**: It calculates a direct path to the target.
-- **Action**: Once in range, the unit self-destructs to inflict damage on the base.
-
-### Other AIs (to be added)
-
-AI logic could be added for other units, for example:
-- **Druids**: Automatically heal the most wounded allies nearby.
-- **Scouts**: Autonomously explore unknown areas of the map.
-
----
-
-*This documentation will be updated as new AIs are implemented.*
-        "name": "Early game - Exploration needed",
-        "gold": 100,
-        "enemy_base_known": 0, # <-- Enemy base unknown
-        "expected": "Scout"
-    },
-    {
-        "name": "Priority defense - Base heavily damaged",
-        "gold": 150,
-        "base_health_ratio": 0.5, # <-- Low health
-        "expected": "Marauder"
-    },
-    # ... other scenarios
-]
-```
-
-## Unit AI
-
-> 🚧 **Section under construction**
-
-In addition to the Base AI, some units have their own autonomous behavior logic, managed by dedicated ECS processors.
-
-### Kamikaze AI (`KamikazeAiProcessor`)
-
-**File**: `src/processeurs/KamikazeAiProcessor.py`
+**File**: `src/ia/KamikazeAi.py`
 
 Unlike the Base AI, the Kamikaze AI does not use a Machine Learning model. It is a **hybrid procedural AI** that combines classic algorithms to achieve intelligent and reactive navigation behavior.
 
