@@ -91,21 +91,17 @@ class BaseAi(esper.Processor):
         if not getattr(self, 'enabled', True):
             return
 
+        # En mode joueur, l'IA de l'équipe contrôlée est désactivée.
         if self.default_team_id == active_player_team_id:
             return
-
-        ai_team_id = Team.ENEMY if active_player_team_id == Team.ALLY else Team.ALLY
 
         self.last_action_time += dt
         if self.last_action_time < self.action_cooldown:
             return
-
-        time_since_last_decision = time.time() - self.last_decision_time
-        game_state = self._get_current_game_state(ai_team_id)
+        
+        game_state = self._get_current_game_state(self.default_team_id)
         if game_state is None:
             return
-
-        game_state['time_since_last_decision'] = time_since_last_decision
 
         action = self._decide_action(game_state)
         self.last_decision_time = time.time()
