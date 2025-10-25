@@ -10,7 +10,7 @@ class SimplePathfinder:
     A* pathfinding that uses the map grid directly.
     """
     # --- Tile Movement Costs ---
-    COST_ISLAND = 10.0  # High cost to cross islands, but not impossible.
+    COST_ISLAND = 100.0  # High cost to cross islands, but not impossible.
     COST_OBSTACLE = 5000.0 # Very high cost for mines/clouds, making them highly undesirable.
 
     def __init__(self, map_grid, tile_size: int):
@@ -53,15 +53,12 @@ class SimplePathfinder:
         start_grid = self._worldToGrid(start)
         goal_grid = self._worldToGrid(goal)
 
-        # Validate positions
-        if not self._isValidGrid(start_grid) or not self._isValidGrid(goal_grid):
+        # Validate start position
+        if not self._isValidGrid(start_grid):
             return None
-
-        # If goal is on an island, find nearest valid position
-        if self._isObstacle(goal_grid):
-            goal_grid = self._findNearestNavigablePosition(goal_grid)
-            if goal_grid is None:
-                return None
+        # If goal is out of bounds, try to find the closest valid point on the map edge
+        if not self._isValidGrid(goal_grid):
+            return None
 
         # Run A*
         enemy_grid_positions = None
@@ -125,8 +122,8 @@ class SimplePathfinder:
 
                 # Get additional cost from tile type (e.g., island, mine)
                 # Check if the current node is on an island to adjust costs
-                is_currently_on_island = self._is_island(current)
-                tile_cost = self._getTileCost(neighbor, enemy_grid_positions, is_currently_on_island)
+                is_currently_on_buildable_island = self._is_island_buildable(current)
+                tile_cost = self._getTileCost(neighbor, enemy_grid_positions, is_currently_on_buildable_island)
 
                 # Calculate cost (diagonal moves cost more)
                 move_cost = 1.414 if dx != 0 and dy != 0 else 1.0
@@ -171,7 +168,7 @@ class SimplePathfinder:
         """Check if grid position is within bounds."""
         return 0 <= pos[0] < self.map_width and 0 <= pos[1] < self.map_height
 
-    def _getTileCost(self, pos: Tuple[int, int], enemy_grid_positions: Optional[Set[Tuple[int, int]]], on_island: bool = False) -> float:
+    def _getTileCost(self, pos: Tuple[int, int], enemy_grid_positions: Optional[Set[Tuple[int, int]]], on_buildable_island: bool = False) -> float:
         """
         Gets the additional movement cost for a given tile.
         Mines and clouds are heavily penalized, islands are moderately penalized.
@@ -180,7 +177,7 @@ class SimplePathfinder:
         Args:
             pos: The grid position to evaluate.
             enemy_grid_positions: Positions of enemies to avoid.
-            on_island: If the path is currently on an island tile.
+            on_buildable_island: If the path is currently on a buildable island tile.
         """
         try:
             tile_type = self.map_grid[pos[1]][pos[0]]
@@ -188,10 +185,9 @@ class SimplePathfinder:
 
             if self._isObstacle(pos, tile_type):
                 return self.COST_OBSTACLE
-            elif self._is_island(pos, tile_type):
-                # If we are already on an island, make crossing to another island very expensive
-                return self.COST_OBSTACLE if on_island else self.COST_ISLAND
-                return self.COST_ISLAND
+            elif self._is_island_buildable(pos, tile_type):
+                # Penalize entering an island from water. Crossing between island tiles is free.
+                return 0.0 if on_buildable_island else self.COST_ISLAND
 
             cost = 0.0
             # Add cost for being near an enemy
@@ -208,13 +204,14 @@ class SimplePathfinder:
             self.logger.warning(f"Could not determine tile cost for {pos}: {e}")
             return self.COST_OBSTACLE  # Treat errors or out-of-bounds as high-cost obstacles
 
-    def _is_island(self, pos: Tuple[int, int], tile_type: Optional[int] = None) -> bool:
-        """Check if a grid position is an island tile."""
+    def _is_island_buildable(self, pos: Tuple[int, int], tile_type: Optional[int] = None) -> bool:
+        """Check if a grid position is a buildable island tile."""
         try:
             if tile_type is None:
                 tile_type = self.map_grid[pos[1]][pos[0]]
-            return TileType(tile_type).is_island()
+            return TileType(tile_type).is_island_buildable()
         except (IndexError, ValueError):
+            logging.warning(f"Could not determine if position {pos} is buildable island.")
             return False
 
     def _isObstacle(self, pos: Tuple[int, int], tile_type: Optional[int] = None) -> bool:
@@ -224,6 +221,7 @@ class SimplePathfinder:
                 tile_type = self.map_grid[pos[1]][pos[0]]
             return tile_type in [TileType.MINE.value, TileType.CLOUD.value]
         except (IndexError, ValueError):
+            logging.warning(f"Could not determine if position {pos} is an obstacle.")
             return True
 
     def _findNearestNavigablePosition(self, pos: Tuple[int, int]) -> Optional[Tuple[int, int]]:

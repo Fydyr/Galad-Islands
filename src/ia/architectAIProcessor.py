@@ -21,7 +21,7 @@ from src.components.core.baseComponent import BaseComponent # Import BaseCompone
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 
 # AI and pathfinding
-from src.ia.decision_tree import ArchitectMinimax, GameState, DecisionAction
+from src.ia.min_max import ArchitectMinimax, GameState, DecisionAction
 from src.ia.pathfinding import SimplePathfinder
 from src.settings.settings import TILE_SIZE
 from src.constants.map_tiles import TileType
@@ -52,11 +52,13 @@ class ArchitectAIProcessor(esper.Processor):
         self._entity_paths = {}
         self._entity_path_targets = {}
         self._entity_random_targets = {}
+        self._entity_taboo_targets = {} # For preventing repeated pathfinding to the same spot
         self._entity_position_history = {} # For stuck detection
 
         # Information caches
         self._entity_info_cache = {}
         self._island_cache = None
+        self._island_groups = None # To store groups of connected islands
         self._mine_cache = None
 
         # --- AI Decision Making ---
@@ -99,6 +101,10 @@ class ArchitectAIProcessor(esper.Processor):
             if state is None:
                 continue
 
+            # Debug print for current AI tile
+            current_grid_x = int(pos.x // TILE_SIZE)
+            current_grid_y = int(pos.y // TILE_SIZE)
+            logger.info(f"Architect AI (Entity {entity}) at grid: ({current_grid_x}, {current_grid_y})")
             # 2. Make a decision using the Minimax algorithm
             action = self.decision_maker.decide(state)
 
@@ -177,6 +183,8 @@ class ArchitectAIProcessor(esper.Processor):
             is_stuck=is_stuck,
             architect_ability_available=ability_available,
             architect_ability_cooldown=ability_cooldown,
+            # Pass island group info to the state
+            island_groups=self._get_island_groups(),
         )
 
     def _execute_action(
@@ -186,6 +194,18 @@ class ArchitectAIProcessor(esper.Processor):
         target_pos = None
         
         if action == DecisionAction.NAVIGATE_TO_ISLAND:
+            # --- Taboo List Logic ---
+            # If the closest island is a recently failed target, force choosing another one.
+            potential_target = self._get_target_from_bearing(pos, state.closest_island_dist, state.closest_island_bearing)
+            taboo_list = self._entity_taboo_targets.get(entity, [])
+            
+            is_taboo = False
+            for taboo_target, timestamp in taboo_list:
+                if np.hypot(potential_target[0] - taboo_target[0], potential_target[1] - taboo_target[1]) < TILE_SIZE:
+                    is_taboo = True
+                    break
+            
+            action = DecisionAction.CHOOSE_ANOTHER_ISLAND if is_taboo else action
             target_pos = self._get_target_from_bearing(pos, state.closest_island_dist, state.closest_island_bearing)
         
         elif action == DecisionAction.NAVIGATE_TO_ALLY:
@@ -217,11 +237,11 @@ class ArchitectAIProcessor(esper.Processor):
                 self._navigate_to_target(entity, pos, vel, target_pos)
 
         elif action == DecisionAction.CHOOSE_ANOTHER_ISLAND:
-            # Find a safer island (further from the closest enemy)
-            target_pos = self._find_safer_island(
-                current_island_pos=self._get_target_from_bearing(pos, state.closest_island_dist, state.closest_island_bearing),
-                enemy_pos=self._get_target_from_bearing(pos, state.closest_foe_dist, state.closest_foe_bearing)
+            # Find a random island from a different group.
+            target_pos = self._find_island_in_different_group(
+                (pos.x, pos.y)
             )
+            
 
         elif action == DecisionAction.MOVE_RANDOMLY:
             # Simple wandering: pick a random direction and move.
@@ -268,10 +288,16 @@ class ArchitectAIProcessor(esper.Processor):
             return
 
         # Check if we need a new path
+        # Only recalculate if the target has changed significantly (more than 2 tiles away)
+        # or if there's no existing path.
         current_target = self._entity_path_targets.get(entity)
-        dist_to_target = np.hypot(target_pos[0] - current_target[0], target_pos[1] - current_target[1]) if current_target else float('inf')
+        needs_new_path = True
+        if current_target and self._entity_paths.get(entity):
+            dist_to_target = np.hypot(target_pos[0] - current_target[0], target_pos[1] - current_target[1])
+            if dist_to_target < TILE_SIZE * 2: # If new target is close to old one, don't recalculate
+                needs_new_path = False
 
-        if entity not in self._entity_paths or not self._entity_paths[entity] or dist_to_target > TILE_SIZE * 2:
+        if needs_new_path:
             # Gather enemy positions to pass to the pathfinder for avoidance
             enemy_positions = []
             for _, (other_pos, other_team, _) in esper.get_components(PositionComponent, TeamComponent, HealthComponent):
@@ -283,17 +309,41 @@ class ArchitectAIProcessor(esper.Processor):
             if path and len(path) > 1:
                 self._entity_paths[entity] = path[1:]  # Skip current pos
                 self._entity_path_targets[entity] = target_pos
+                # Clear taboo list on successful path generation
+                if entity in self._entity_taboo_targets:
+                    self._entity_taboo_targets[entity] = []
             else:
+                # Pathfinding failed, add target to taboo list to avoid retrying immediately
+                if entity not in self._entity_taboo_targets:
+                    self._entity_taboo_targets[entity] = []
+                # Add target with a timestamp, keep list short
+                self._entity_taboo_targets[entity].append((target_pos, time.time()))
+                self._entity_taboo_targets[entity] = self._entity_taboo_targets[entity][-5:] # Keep last 5 failed targets
                 self._clear_path(entity)
 
         # Follow the path
         if self._entity_paths.get(entity):
-            waypoint = self._entity_paths[entity][0]
-            if self._is_close_to_target(pos, waypoint, TILE_SIZE * 1.5):
+            path = self._entity_paths[entity]
+            waypoint = path[0]
+
+            # Debug print for pathfinding target tile
+            waypoint_grid_x = int(waypoint[0] // TILE_SIZE)
+            waypoint_grid_y = int(waypoint[1] // TILE_SIZE)
+            logger.info(f"Architect AI (Entity {entity}) pathfinding to grid: ({waypoint_grid_x}, {waypoint_grid_y})")
+            # Check if we are close to the current waypoint
+            if self._is_close_to_target(pos, waypoint, TILE_SIZE * 1.2):
                 self._entity_paths[entity].pop(0)
-                if not self._entity_paths.get(entity): # Reached end of path
+                # If that was the last waypoint, we've arrived.
+                if not path:
                     vel.currentSpeed = 0
+                    self._clear_path(entity)
                     return
+            
+            # If we are on an island and the original goal was an island, stop.
+            if self._find_closest_island(pos)[2] and self._is_island_target(target_pos):
+                vel.currentSpeed = 0
+                self._clear_path(entity)
+                return
             
             # Navigate to the current waypoint
             target_angle = self._get_angle_to_target(pos, waypoint)
@@ -346,7 +396,9 @@ class ArchitectAIProcessor(esper.Processor):
             unit_count += 1
             if dist_sq < closest_dist_sq:
                 closest_dist_sq = dist_sq
-                closest_bearing = (np.arctan2(dy, dx) * 180 / np.pi + 360) % 360
+                # Invert dy for arctan2 because Pygame's Y-axis is inverted (0 is at the top)
+                # Standard math functions assume Y increases upwards.
+                closest_bearing = (np.arctan2(-dy, dx) * 180 / np.pi + 360) % 360
                 closest_unit_team_id = other_team.team_id # Store the team_id
 
         return (np.sqrt(closest_dist_sq) if unit_count > 0 else float('inf'), closest_bearing, closest_unit_team_id, unit_count)
@@ -357,7 +409,9 @@ class ArchitectAIProcessor(esper.Processor):
             self._island_cache = []
             for y, row in enumerate(self.map_grid):
                 for x, tile_val in enumerate(row):
-                    if TileType(tile_val).is_island():
+                    tile_type = TileType(tile_val)
+                    # A buildable island is a valid target.
+                    if tile_type.is_island_buildable():
                         self._island_cache.append(((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE))
         
         if not self._island_cache:
@@ -373,10 +427,58 @@ class ArchitectAIProcessor(esper.Processor):
         
         dist = np.sqrt(closest_dist_sq)
         dx, dy = closest_pos[0] - pos.x, closest_pos[1] - pos.y
-        bearing = (np.arctan2(dy, dx) * 180 / np.pi + 360) % 360
+        # Invert dy for arctan2 because Pygame's Y-axis is inverted.
+        bearing = (np.arctan2(-dy, dx) * 180 / np.pi + 360) % 360
         is_on = dist < self.ISLAND_PROXIMITY_THRESHOLD
         
         return dist, bearing, is_on
+
+    def _get_island_groups(self) -> list:
+        """
+        Finds and caches groups of connected islands.
+        An island group is a list of island positions that are adjacent.
+        """
+        if self._island_groups is None and self.map_grid is not None:
+            self._island_groups = []
+            visited = set()
+            height, width = len(self.map_grid), len(self.map_grid[0])
+
+            for y in range(height):
+                for x in range(width):
+                    if (y, x) in visited:
+                        continue
+
+                    tile_val = self.map_grid[y][x]
+                    tile_type = TileType(tile_val)
+                    # A buildable island is a valid target for grouping.
+                    if tile_type.is_island_buildable():
+                        # Start a new group search (BFS)
+                        new_group = []
+                        q = [(y, x)]
+                        visited.add((y, x))
+
+                        while q:
+                            cy, cx = q.pop(0)
+                            # Add world coordinates to the group
+                            new_group.append(((cx + 0.5) * TILE_SIZE, (cy + 0.5) * TILE_SIZE))
+
+                            # Check 8 neighbors
+                            for dy in range(-1, 2):
+                                for dx in range(-1, 2):
+                                    if dx == 0 and dy == 0:
+                                        continue
+                                    ny, nx = cy + dy, cx + dx
+
+                                    if 0 <= ny < height and 0 <= nx < width and (ny, nx) not in visited:
+                                        neighbor_tile_type = TileType(self.map_grid[ny][nx])
+                                        if neighbor_tile_type.is_island_buildable():
+                                            visited.add((ny, nx))
+                                            q.append((ny, nx))
+                        
+                        if new_group:
+                            self._island_groups.append(new_group)
+        
+        return self._island_groups if self._island_groups is not None else []
 
     def _find_closest_mine(self, pos: PositionComponent):
         """Finds the closest mine from a pre-computed cache."""
@@ -384,6 +486,14 @@ class ArchitectAIProcessor(esper.Processor):
             self._mine_cache = []
             for y, row in enumerate(self.map_grid):
                 for x, tile_val in enumerate(row):
+                    # Ensure we don't add mines that are on islands to this cache,
+                    # as they are handled by pathfinding costs differently.
+                    # This check assumes mines are not supposed to be on islands.
+                    # If they can be, this logic might need adjustment.
+                    is_on_island = False
+                    if TileType(self.map_grid[y][x]).is_island():
+                        is_on_island = True
+
                     if tile_val == TileType.MINE.value:
                         self._mine_cache.append(((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE))
 
@@ -400,33 +510,42 @@ class ArchitectAIProcessor(esper.Processor):
 
         dist = np.sqrt(closest_dist_sq)
         dx, dy = closest_pos[0] - pos.x, closest_pos[1] - pos.y
-        bearing = (np.arctan2(dy, dx) * 180 / np.pi + 360) % 360
+        # Invert dy for arctan2 because Pygame's Y-axis is inverted.
+        bearing = (np.arctan2(-dy, dx) * 180 / np.pi + 360) % 360
 
         return dist, bearing
 
-    def _find_safer_island(self, current_island_pos: Optional[Tuple[float, float]], enemy_pos: Tuple[float, float]):
-        """Finds an island that is further away from the given enemy position."""
-        if not self._island_cache:
+    def _find_island_in_different_group(self, current_pos: Tuple[float, float]) -> Optional[Tuple[float, float]]:
+        """Finds a random island that is not in the same group as the closest island."""
+        island_groups = self._get_island_groups()
+        if not island_groups:
             return None
 
-        # Filter out the current island
-        possible_islands = self._island_cache
-        if current_island_pos:
-            possible_islands = [p for p in self._island_cache if np.hypot(p[0]-current_island_pos[0], p[1]-current_island_pos[1]) > TILE_SIZE]
+        # 1. Find the group of the island closest to the AI
+        closest_island_pos, _ = self._find_closest_island_pos(current_pos)
+        if closest_island_pos is None:
+            # Not near any island, pick a random one from any group
+            random_group = random.choice(island_groups)
+            return random.choice(random_group)
 
-        if not possible_islands:
-            return random.choice(self._island_cache) if self._island_cache else None
+        current_island_group = None
+        for group in island_groups:
+            for island_pos in group:
+                if np.hypot(island_pos[0] - closest_island_pos[0], island_pos[1] - closest_island_pos[1]) < 1.0:
+                    current_island_group = group
+                    break
+            if current_island_group:
+                break
 
-        # Find the island that maximizes distance from the enemy
-        best_island = None
-        max_dist_sq = -1
-        for island in possible_islands:
-            dist_sq = (island[0] - enemy_pos[0])**2 + (island[1] - enemy_pos[1])**2
-            if dist_sq > max_dist_sq:
-                max_dist_sq = dist_sq
-                best_island = island
+        # 2. Find all other groups
+        other_groups = [g for g in island_groups if g is not current_island_group]
 
-        return best_island
+        if not other_groups:
+            return None # No other groups to choose from
+
+        # 3. Pick a random island from a random "other" group
+        random_other_group = random.choice(other_groups)
+        return random.choice(random_other_group)
 
     def _find_random_island(self, current_island_pos: Optional[Tuple[float, float]] = None) -> Optional[Tuple[float, float]]:
         """Finds a random island, avoiding the current one if provided."""
@@ -438,23 +557,52 @@ class ArchitectAIProcessor(esper.Processor):
 
         return random.choice(possible_islands) if possible_islands else None
 
+    def _find_closest_island_pos(self, pos: Tuple[float, float]) -> Tuple[Optional[Tuple[float, float]], float]:
+        """Helper to find only the position of the closest island and its distance."""
+        if self._island_cache is None:
+            self._find_closest_island(PositionComponent(pos[0], pos[1])) # This will populate the cache
+
+        if not self._island_cache:
+            return None, float('inf')
+
+        closest_dist_sq = float('inf')
+        closest_pos = None
+        for island_pos in self._island_cache:
+            dist_sq = (island_pos[0] - pos[0])**2 + (island_pos[1] - pos[1])**2
+            if dist_sq < closest_dist_sq:
+                closest_dist_sq = dist_sq
+                closest_pos = island_pos
+        return closest_pos, np.sqrt(closest_dist_sq)
+
+    def _is_island_target(self, target_pos: Tuple[float, float]) -> bool:
+        """Checks if a world coordinate target is on an island tile."""
+        if not target_pos or not self.map_grid:
+            return False
+        grid_x = int(target_pos[0] // TILE_SIZE)
+        grid_y = int(target_pos[1] // TILE_SIZE)
+        tile_val = self.map_grid[grid_y][grid_x]
+        return TileType(tile_val).is_island_buildable()
     # --- Utility Methods ---
 
     def _get_target_from_bearing(self, pos: PositionComponent, dist: float, bearing: float) -> Tuple[float, float]:
         """Calculates a world position from a distance and bearing."""
+        if dist is None or bearing is None:
+            return (pos.x, pos.y)
         rad = np.deg2rad(bearing)
-        return (pos.x + dist * np.cos(rad), pos.y + dist * np.sin(rad))
+        return (pos.x + dist * np.cos(rad), pos.y - dist * np.sin(rad))
 
     def _get_angle_to_target(self, pos: PositionComponent, target_pos: Tuple[float, float]) -> float:
         """Calculates the angle from current position to a target."""
         dx = target_pos[0] - pos.x
         dy = target_pos[1] - pos.y
-        return (np.arctan2(dy, dx) * 180 / np.pi + 360) % 360
+        # Invert dy for arctan2 because Pygame's Y-axis is inverted (0 is at the top).
+        # Standard math functions assume Y increases upwards.
+        return (np.arctan2(-dy, dx) * 180 / np.pi + 360) % 360
 
     def _turn_and_move(self, pos: PositionComponent, vel: VelocityComponent, target_angle: float, speed: float):
         """Turns the entity towards a target angle and sets its speed."""
         angle_diff = (target_angle - pos.direction + 180) % 360 - 180
-        turn_speed = 10.0 # degrees per frame/tick
+        turn_speed = 15.0 # degrees per frame/tick
         
         if abs(angle_diff) > turn_speed:
             pos.direction = (pos.direction + np.sign(angle_diff) * turn_speed + 360) % 360
