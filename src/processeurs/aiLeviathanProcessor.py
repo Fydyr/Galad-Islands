@@ -298,7 +298,7 @@ class AILeviathanProcessor(esper.Processor):
 
         # VERY relaxed alignment thresholds - AI shoots more easily!
         ALIGN_TOLERANCE_ATTACK = 50.0  # Very loose - shoot almost always when facing enemy
-        ALIGN_TOLERANCE_SPECIAL = 35.0  # Also relaxed for special ability
+        ALIGN_TOLERANCE_SPECIAL = 60.0  # More relaxed for special ability - use it more often!
         SIDE_ANGLE_MIN = 60.0  # Minimum angle to consider enemy on the side (60° to 120°)
         SIDE_ANGLE_MAX = 120.0  # Maximum angle to consider enemy on the side
 
@@ -368,16 +368,19 @@ class AILeviathanProcessor(esper.Processor):
                         logger.debug(f"AI entity {entity}: Disabled lateral shooting")
 
             if in_attack_range and abs(angle_diff) < ALIGN_TOLERANCE_ATTACK:
-                # Activate special ability if available and aligned
-                if spe_lev.can_activate() and abs(angle_diff) < ALIGN_TOLERANCE_SPECIAL:
+                # Activate special ability VERY AGGRESSIVELY - use it whenever possible!
+                # Special ability has 15s cooldown, so use it often to maximize DPS
+                should_use_special = spe_lev.can_activate()  # Just use it whenever available and in combat!
+
+                if should_use_special:
                     spe_lev.activate()
-                    logger.debug(f"AI entity {entity} activated special ability for enemy attack")
+                    logger.info(f"AI entity {entity} activated special ability AGGRESSIVELY (enemies={state.enemies_count}, dist={state.nearest_enemy_distance:.0f}, angle={angle_diff:.1f})")
 
                 # Fire normal attack ALWAYS when cooldown is ready
                 if radius.cooldown <= 0:
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
-                    logger.debug(f"AI entity {entity}: Attacking enemy at distance={state.nearest_enemy_distance:.0f}, angle_diff={angle_diff:.1f}")
+                    logger.debug(f"AI entity {entity}: Attacking enemy at distance={state.nearest_enemy_distance:.0f}, angle_diff={angle_diff:.1f})")
 
             # Also fire lateral shots if enemy is on the side
             elif in_attack_range and enemy_on_side and radius.lateral_shooting:
@@ -425,7 +428,7 @@ class AILeviathanProcessor(esper.Processor):
 
         # VERY relaxed angle tolerances - shoot easily!
         ALIGN_TOLERANCE_ATTACK = 55.0  # Very loose - attack almost always
-        ALIGN_TOLERANCE_SPECIAL = 40.0  # Also relaxed for special ability
+        ALIGN_TOLERANCE_SPECIAL = 65.0  # Even more relaxed for special ability when attacking base!
 
         # Determine if aligned enough
         is_aligned_for_attack = abs(angle_diff) < ALIGN_TOLERANCE_ATTACK
@@ -488,10 +491,13 @@ class AILeviathanProcessor(esper.Processor):
             in_attack_range = state.distance_to_base <= MAX_ATTACK_RANGE
 
             if in_attack_range and is_aligned_for_attack:
-                # Activate special ability if available and aligned
-                if spe_lev.can_activate() and is_aligned_for_special:
+                # Activate special ability VERY AGGRESSIVELY when attacking base!
+                # Use it every time it's available to maximize base damage
+                should_use_special = spe_lev.can_activate()  # Always use when available!
+
+                if should_use_special:
                     spe_lev.activate()
-                    logger.debug(f"AI entity {entity}: Activated special ability against base!")
+                    logger.info(f"AI entity {entity} activated special ability against BASE AGGRESSIVELY (enemies_nearby={state.enemies_count}, dist={state.distance_to_base:.0f}, angle={angle_diff:.1f})")
 
                 # Fire normal attack ALWAYS when cooldown is ready
                 if radius.cooldown <= 0:
