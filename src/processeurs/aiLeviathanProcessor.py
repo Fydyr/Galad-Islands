@@ -195,12 +195,18 @@ class AILeviathanProcessor(esper.Processor):
         nearest_enemy_angle = enemy_info[2]  # Already in degrees
         enemies_count = int(enemy_info[0])
 
-        # Check for island ahead
-        angle_rad = pos.direction * np.pi / 180
-        look_ahead_distance = 150
-        ahead_x = pos.x + look_ahead_distance * np.cos(angle_rad)
-        ahead_y = pos.y + look_ahead_distance * np.sin(angle_rad)
-        nearest_island_ahead = self._isIslandAtPosition(ahead_x, ahead_y)
+        # Check for island ahead with wider detection cone for better obstacle avoidance
+        look_ahead_distance = 300  # Increased from 150 to give more reaction time at max speed
+
+        # Check multiple points in a cone ahead (center, left, right)
+        nearest_island_ahead = False
+        for angle_offset in [0, -20, 20, -35, 35]:  # Check center and sides
+            check_angle = (pos.direction + angle_offset) * np.pi / 180
+            ahead_x = pos.x + look_ahead_distance * np.cos(check_angle)
+            ahead_y = pos.y + look_ahead_distance * np.sin(check_angle)
+            if self._isIslandAtPosition(ahead_x, ahead_y):
+                nearest_island_ahead = True
+                break
 
         # Get storm, bandit, and mine information
         nearest_storm_distance = self._getNearbyStorms(pos)
@@ -331,17 +337,17 @@ class AILeviathanProcessor(esper.Processor):
             # Distance-based movement logic
             if state.nearest_enemy_distance < MIN_ENEMY_DISTANCE:
                 # Too close - back up
-                vel.currentSpeed = -vel.maxUpSpeed * 0.4
+                vel.currentSpeed = vel.maxReverseSpeed
                 logger.debug(f"AI entity {entity}: Enemy too close ({state.nearest_enemy_distance:.0f}), backing up")
 
             elif state.nearest_enemy_distance > MAX_ENEMY_DISTANCE:
                 # Too far - approach quickly
-                vel.currentSpeed = vel.maxUpSpeed * 0.7
+                vel.currentSpeed = vel.maxUpSpeed
                 logger.debug(f"AI entity {entity}: Enemy too far ({state.nearest_enemy_distance:.0f}), approaching")
 
             elif state.nearest_enemy_distance > OPTIMAL_ENEMY_DISTANCE:
                 # Slightly too far - approach carefully
-                vel.currentSpeed = vel.maxUpSpeed * 0.4
+                vel.currentSpeed = vel.maxUpSpeed
 
             else:
                 # Good distance but not aligned yet - turn in place
@@ -450,8 +456,8 @@ class AILeviathanProcessor(esper.Processor):
 
             # Handle distance but prioritize stopping to fire
             if state.distance_to_base < MIN_SAFE_DISTANCE:
-                # Too close - back up slowly
-                vel.currentSpeed = -vel.maxUpSpeed * 0.2
+                # Too close - back up
+                vel.currentSpeed = vel.maxReverseSpeed
             else:
                 # CRITICAL: Stop completely to fire
                 vel.currentSpeed = 0
@@ -468,17 +474,17 @@ class AILeviathanProcessor(esper.Processor):
             # Distance-based movement logic
             if state.distance_to_base > MAX_ATTACK_RANGE:
                 # Too far - approach quickly
-                vel.currentSpeed = vel.maxUpSpeed * 0.7
+                vel.currentSpeed = vel.maxUpSpeed
                 logger.debug(f"AI entity {entity}: Approaching base, distance={state.distance_to_base:.0f}, angle_diff={angle_diff:.1f}")
 
             elif state.distance_to_base > OPTIMAL_ATTACK_DISTANCE:
                 # Within max range but not aligned - approach carefully
-                vel.currentSpeed = vel.maxUpSpeed * 0.4
+                vel.currentSpeed = vel.maxUpSpeed
                 logger.debug(f"AI entity {entity}: Moving to optimal distance, distance={state.distance_to_base:.0f}")
 
             elif state.distance_to_base < MIN_SAFE_DISTANCE:
                 # Too close - back up
-                vel.currentSpeed = -vel.maxUpSpeed * 0.3
+                vel.currentSpeed = vel.maxReverseSpeed
                 logger.debug(f"AI entity {entity}: Too close to base, backing up, distance={state.distance_to_base:.0f}")
 
             else:
@@ -515,7 +521,8 @@ class AILeviathanProcessor(esper.Processor):
         state: GameState,
     ):
         """
-        Avoid obstacles (mines, islands).
+        Avoid obstacles (mines, islands) intelligently with gradual turning.
+        Checks multiple directions and turns progressively.
 
         Args:
             entity: Entity ID
@@ -523,9 +530,53 @@ class AILeviathanProcessor(esper.Processor):
             vel: Velocity component
             state: Current game state
         """
-        # Turn away from obstacle
-        pos.direction = (pos.direction + 45) % 360
-        vel.currentSpeed = vel.maxUpSpeed * 0.5
+        # Check multiple directions to find the safest path at various angles
+        test_distance = 250  # Distance to check ahead
+        best_angle = None
+        best_score = -1
+
+        # Test angles from -120 to +120 degrees in 30 degree increments
+        for angle_offset in range(-120, 121, 30):
+            test_angle = (pos.direction + angle_offset) % 360
+            test_rad = test_angle * np.pi / 180
+            test_x = pos.x + test_distance * np.cos(test_rad)
+            test_y = pos.y + test_distance * np.sin(test_rad)
+
+            # Check if this direction is clear
+            if not self._isIslandAtPosition(test_x, test_y):
+                # Calculate score: prefer directions closer to base
+                angle_to_base = state.angle_to_base
+                angle_diff = abs((test_angle - angle_to_base + 180) % 360 - 180)
+                score = 180 - angle_diff  # Higher score = closer to base direction
+
+                if score > best_score:
+                    best_score = score
+                    best_angle = test_angle
+
+        if best_angle is not None:
+            # Turn gradually towards the best direction (max 45 degrees per frame)
+            current_dir = pos.direction
+            target_diff = (best_angle - current_dir + 180) % 360 - 180
+
+            # Limit turn rate for smoother movement
+            max_turn = 45
+            if abs(target_diff) > max_turn:
+                turn_amount = max_turn if target_diff > 0 else -max_turn
+            else:
+                turn_amount = target_diff
+
+            pos.direction = (pos.direction + turn_amount) % 360
+
+            # Reduce speed while turning sharply for better control
+            if abs(turn_amount) > 30:
+                vel.currentSpeed = vel.maxUpSpeed * 0.6
+            else:
+                vel.currentSpeed = vel.maxUpSpeed * 0.8
+        else:
+            # Everything blocked - back up and turn around
+            vel.currentSpeed = vel.maxReverseSpeed
+            pos.direction = (pos.direction + 180) % 360
+            logger.warning(f"Entity {entity}: Completely blocked, backing up and turning around!")
 
         # Invalidate path when avoiding obstacle
         if hasattr(self, '_entity_paths') and entity in self._entity_paths:
@@ -604,7 +655,7 @@ class AILeviathanProcessor(esper.Processor):
         pos.direction = (pos.direction + random.choice([90, -90, 180])) % 360
 
         # Move forward
-        vel.currentSpeed = vel.maxUpSpeed * 0.5
+        vel.currentSpeed = vel.maxUpSpeed
 
         # Clear path to force recalculation
         if hasattr(self, '_entity_paths') and entity in self._entity_paths:
@@ -759,7 +810,7 @@ class AILeviathanProcessor(esper.Processor):
                 import random
                 turn_direction = random.choice([-45, 45])  # Turn left or right
                 pos.direction = (pos.direction + turn_direction) % 360
-                vel.currentSpeed = vel.maxUpSpeed * 0.5
+                vel.currentSpeed = vel.maxUpSpeed
                 logger.debug(f"Entity {entity}: Obstacle ahead in fallback mode, turning {turn_direction}°")
                 return
 
@@ -777,9 +828,9 @@ class AILeviathanProcessor(esper.Processor):
                 else:
                     pos.direction = (pos.direction - 8) % 360
 
-                vel.currentSpeed = vel.maxUpSpeed * 0.6
+                vel.currentSpeed = vel.maxUpSpeed
             else:
-                vel.currentSpeed = vel.maxUpSpeed * 0.8
+                vel.currentSpeed = vel.maxUpSpeed
             return
 
         # Navigate to next waypoint from A* path
@@ -795,7 +846,7 @@ class AILeviathanProcessor(esper.Processor):
                 pos.direction = (pos.direction - 10) % 360
             else:
                 pos.direction = (pos.direction + 10) % 360
-            vel.currentSpeed = vel.maxUpSpeed * 0.7
+            vel.currentSpeed = vel.maxUpSpeed
         else:
             vel.currentSpeed = vel.maxUpSpeed
 

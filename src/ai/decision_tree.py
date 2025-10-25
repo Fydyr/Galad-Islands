@@ -58,6 +58,7 @@ class LeviathanDecisionTree:
     BANDIT_AVOID_DISTANCE = 200.0
     MINE_AVOID_DISTANCE = 150.0
     BASE_ATTACK_DISTANCE = 400.0
+    ISLAND_AVOID_PRIORITY = True  # Always avoid islands with highest priority
 
     def __init__(self):
         """Initialize the decision tree."""
@@ -68,9 +69,9 @@ class LeviathanDecisionTree:
         Make a decision based on the current game state.
 
         Priority order:
-        1. Attack enemy if in range
-        2. Attack base if in range
-        3. Avoid dangerous obstacles (storms/bandits/mines)
+        1. Avoid dangerous obstacles (islands/storms/bandits/mines) - HIGHEST PRIORITY
+        2. Attack enemy if in range
+        3. Attack base if in range
         4. Navigate to base
 
         Args:
@@ -80,20 +81,20 @@ class LeviathanDecisionTree:
             Best action to take
         """
 
-        # Priority 1: Attack enemy if in range
+        # Priority 1: Avoid dangerous obstacles (HIGHEST PRIORITY to prevent collisions at max speed)
+        if self._shouldAvoidObstacle(state):
+            self.last_action = DecisionAction.AVOID_OBSTACLE
+            return DecisionAction.AVOID_OBSTACLE
+
+        # Priority 2: Attack enemy if in range
         if self._shouldAttackEnemy(state):
             self.last_action = DecisionAction.ATTACK_ENEMY
             return DecisionAction.ATTACK_ENEMY
 
-        # Priority 2: Attack base if in range
+        # Priority 3: Attack base if in range
         if state.distance_to_base < self.BASE_ATTACK_DISTANCE:
             self.last_action = DecisionAction.ATTACK_BASE
             return DecisionAction.ATTACK_BASE
-
-        # Priority 3: Avoid dangerous obstacles (storms/bandits/mines)
-        if self._shouldAvoidObstacle(state):
-            self.last_action = DecisionAction.AVOID_OBSTACLE
-            return DecisionAction.AVOID_OBSTACLE
 
         # Priority 4: Navigate to base
         self.last_action = DecisionAction.MOVE_TO_BASE
@@ -114,10 +115,15 @@ class LeviathanDecisionTree:
         Determine if we should avoid an obstacle.
 
         Dangerous obstacles:
+        - Islands (always block path - HIGHEST PRIORITY)
         - Storms (always dangerous)
         - Bandits (always dangerous)
         - Mines (cause 40 damage on contact)
         """
+        # Check for islands ahead (HIGHEST PRIORITY - always avoid)
+        if state.nearest_island_ahead:
+            return True
+
         # Check for dangerous dynamic obstacles
         if state.nearest_storm_distance < self.STORM_AVOID_DISTANCE:
             return True
