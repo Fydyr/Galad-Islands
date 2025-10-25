@@ -15,10 +15,12 @@ class GameState:
     current_hp: float
     maximum_hp: float
     player_gold: int
+    team_id: int
 
     # Hostile unit information
     closest_foe_dist: float
     closest_foe_bearing: float
+    closest_foe_team_id: Optional[int] # Added to identify foe type
     nearby_foes_count: int
 
     # Ally information
@@ -63,9 +65,12 @@ class ArchitectMinimax:
     """
 
     # --- Minimax Configuration ---
-    SEARCH_DEPTH = 2  # How many moves to look ahead (AI move + Opponent move).
+    SEARCH_DEPTH = 3  # How many moves to look ahead (AI move + Opponent move).
     SIM_TIME_STEP = 1.0 # Seconds per simulated move.
+    TOWER_COST_THRESHOLD = 150 # Gold needed to consider building a tower.
+    ALLY_REGROUP_MAX_DIST = 1200 # Max distance to consider regrouping with an ally.
     SIM_SPEED = 150.0 # Units per second for simulation.
+    DANGER_TEAM_IDS = {1, 2} # Team IDs that warrant full evasion penalty.
 
     def __init__(self):
         """Initialize the Minimax decision-maker."""
@@ -94,10 +99,22 @@ class ArchitectMinimax:
         if state.is_stuck:
             return DecisionAction.GET_UNSTUCK
 
+        # --- Dynamically filter possible actions based on the current state ---
+        current_actions = self.possible_actions.copy()
+
+        # NAVIGATE_TO_ALLY is only viable if an ally is close enough AND we don't have money for a tower.
+        can_regroup = (
+            state.closest_ally_dist is not None and
+            state.closest_ally_dist < self.ALLY_REGROUP_MAX_DIST and
+            state.player_gold < self.TOWER_COST_THRESHOLD
+        )
+        if not can_regroup and DecisionAction.NAVIGATE_TO_ALLY in current_actions:
+            current_actions.remove(DecisionAction.NAVIGATE_TO_ALLY)
+
         best_score = -np.inf
         best_action = DecisionAction.DO_NOTHING
 
-        for action in self.possible_actions:
+        for action in current_actions:
             # Simulate our move
             next_state = self._get_next_state(state, action)
             # Run minimax for the opponent's turn
@@ -140,13 +157,18 @@ class ArchitectMinimax:
         health_ratio = state.current_hp / state.maximum_hp if state.maximum_hp > 0 else 0
         score += health_ratio * 200
 
-        # Being close to enemies is dangerous
-        if state.closest_foe_dist < 1000:
-            score -= (1000 - state.closest_foe_dist) * 0.5
+        # Being close to enemies is dangerous, but less of a penalty to make EVADE a closer-range decision
+        # Apply full penalty only for specific "danger" team IDs
+        if state.closest_foe_dist is not None and state.closest_foe_dist < 500 and state.closest_foe_team_id is not None:
+            if state.closest_foe_team_id == 0:
+                # Extremely high penalty for team_id 0 (mines, hazards) to ensure avoidance.
+                score -= (500 - state.closest_foe_dist) * 1.5
+            elif state.closest_foe_team_id != state.team_id:
+                score -= (500 - state.closest_foe_dist) * 0.2
 
-        # Being on an island is highly valuable
-        if state.is_on_island:
-            score += 150
+        # Being on an island is good for an Architect, especially with money
+        if state.is_on_island and state.player_gold > self.TOWER_COST_THRESHOLD:
+            score += 200
 
         # Having the ability ready is good
         if state.architect_ability_available:
@@ -177,13 +199,6 @@ class ArchitectMinimax:
             bearing = next_state.closest_ally_bearing
         elif action == DecisionAction.EVADE_ENEMY:
             bearing = (next_state.closest_foe_bearing + 180) % 360
-        elif action == "OPPONENT_ADVANCE": # Special case for opponent simulation
-            # Simulate enemy moving towards us
-            rad = np.deg2rad((next_state.closest_foe_bearing + 180) % 360)
-            dx = move_dist * np.cos(rad)
-            dy = move_dist * np.sin(rad)
-            next_state.closest_foe_dist = max(0, next_state.closest_foe_dist - move_dist)
-            return next_state # No further simulation needed for opponent
         else: # For other actions like DO_NOTHING, CHOOSE_ISLAND, etc., assume no movement
             move_dist = 0
 
@@ -195,10 +210,19 @@ class ArchitectMinimax:
             # Update our position
             pos = next_state.current_position
             next_state.current_position = (pos[0] + dx, pos[1] + dy)
-            
+
             # --- Update Distances based on our new position ---
-            if next_state.closest_foe_dist is not None:
-                next_state.closest_foe_dist = np.hypot(next_state.closest_foe_dist * np.cos(np.deg2rad(next_state.closest_foe_bearing)) - dx, next_state.closest_foe_dist * np.sin(np.deg2rad(next_state.closest_foe_bearing)) - dy)
+            # A simplified and more robust way to update distances after our move
+            if action == DecisionAction.EVADE_ENEMY and next_state.closest_foe_dist is not None:
+                next_state.closest_foe_dist += move_dist # We moved directly away
+            elif next_state.closest_foe_dist is not None:
+                # Recalculate using vector math, as we moved towards a different target
+                foe_vector_x = next_state.closest_foe_dist * np.cos(np.deg2rad(next_state.closest_foe_bearing))
+                foe_vector_y = next_state.closest_foe_dist * np.sin(np.deg2rad(next_state.closest_foe_bearing))
+                new_foe_vector_x = foe_vector_x - dx
+                new_foe_vector_y = foe_vector_y - dy
+                next_state.closest_foe_dist = np.hypot(new_foe_vector_x, new_foe_vector_y)
+
             if next_state.closest_ally_dist is not None:
                 next_state.closest_ally_dist = np.hypot(next_state.closest_ally_dist * np.cos(np.deg2rad(next_state.closest_ally_bearing)) - dx, next_state.closest_ally_dist * np.sin(np.deg2rad(next_state.closest_ally_bearing)) - dy)
             if next_state.closest_island_dist is not None:
@@ -206,6 +230,11 @@ class ArchitectMinimax:
                 next_state.is_on_island = next_state.closest_island_dist < 50.0
 
         # --- Simulate Action Effects ---
+        if action == "OPPONENT_ADVANCE": # Special case for opponent simulation
+            # Simulate enemy moving towards us. This happens *after* our potential move.
+            if next_state.closest_foe_dist is not None:
+                next_state.closest_foe_dist = max(0, next_state.closest_foe_dist - move_dist)
+
         if action == DecisionAction.ACTIVATE_ARCHITECT_ABILITY:
             next_state.architect_ability_available = False
 

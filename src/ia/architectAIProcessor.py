@@ -1,11 +1,11 @@
 """Processor managing the Architect's AI with a decision tree and A* pathfinding."""
 
+import time
 import esper
 import numpy as np
 import logging
 import random
 from typing import Optional, Tuple
-from dataclasses import fields
 
 # Assuming new components for the Architect unit exist
 from src.ia.architectAIComponent import ArchitectAIComponent
@@ -17,12 +17,14 @@ from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.playerComponent import PlayerComponent
+from src.components.core.baseComponent import BaseComponent # Import BaseComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 
 # AI and pathfinding
 from src.ia.decision_tree import ArchitectMinimax, GameState, DecisionAction
 from src.ia.pathfinding import SimplePathfinder
-from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
+from src.settings.settings import TILE_SIZE
+from src.constants.map_tiles import TileType
 logger = logging.getLogger(__name__)
 
 
@@ -71,7 +73,6 @@ class ArchitectAIProcessor(esper.Processor):
             logger.info("ArchitectAIProcessor: SimplePathfinder initialized.")
 
         # Calculate dt
-        import time
         current_time = time.time()
         dt = current_time - getattr(self, '_last_process_time', current_time)
         self._last_process_time = current_time
@@ -114,12 +115,12 @@ class ArchitectAIProcessor(esper.Processor):
         all_entities = list(esper.get_components(PositionComponent, TeamComponent, HealthComponent))
         
         # Find closest foe
-        closest_foe_dist, closest_foe_bearing, nearby_foes_count = self._find_closest_unit(
+        closest_foe_dist, closest_foe_bearing, closest_foe_team_id, nearby_foes_count = self._find_closest_unit(
             pos, team.team_id, all_entities, False
         )
 
-        # Find closest ally
-        closest_ally_dist, closest_ally_bearing, nearby_allies_count = self._find_closest_unit(
+        # Find closest ally (we don't need the ally's team_id for current logic, so we discard it with _)
+        closest_ally_dist, closest_ally_bearing, _, nearby_allies_count = self._find_closest_unit(
             pos, team.team_id, all_entities, True
         )
 
@@ -160,7 +161,9 @@ class ArchitectAIProcessor(esper.Processor):
             current_hp=health.currentHealth,
             maximum_hp=health.maxHealth,
             closest_foe_dist=closest_foe_dist,
+            team_id=team.team_id,
             closest_foe_bearing=closest_foe_bearing,
+            closest_foe_team_id=closest_foe_team_id,
             player_gold=player_gold,
             nearby_foes_count=nearby_foes_count,
             closest_ally_dist=closest_ally_dist,
@@ -189,11 +192,29 @@ class ArchitectAIProcessor(esper.Processor):
             target_pos = self._get_target_from_bearing(pos, state.closest_ally_dist, state.closest_ally_bearing)
 
         elif action == DecisionAction.EVADE_ENEMY:
-            # Move directly away from the enemy
-            evade_angle = (state.closest_foe_bearing + 180) % 360
-            self._turn_and_move(pos, vel, evade_angle, vel.maxUpSpeed)
-            self._clear_path(entity) # Stop pathfinding when evading
-            return
+            # Find a safe point away from the enemy and pathfind to it.
+            # This is more intelligent than just moving directly away, as it considers multiple escape routes.
+            self._clear_path(entity) # Force a recalculation of the path for evasion.
+            
+            base_evade_bearing = (state.closest_foe_bearing + 180) % 360
+            safe_distance = TILE_SIZE * 12 # Target a point ~12 tiles away
+
+            potential_targets = []
+            # Check several directions around the main escape vector
+            for angle_offset in [0, -30, 30, -60, 60]:
+                bearing = (base_evade_bearing + angle_offset + 360) % 360
+                potential_target = self._get_target_from_bearing(pos, safe_distance, bearing)
+                
+                # Check if a path exists to this potential target
+                if self.pathfinder:
+                    path = self.pathfinder.findPath((pos.x, pos.y), potential_target)
+                    if path:
+                        potential_targets.append(potential_target)
+
+            if potential_targets:
+                # For now, we just pick the first valid one. Could be improved to pick the "best" one.
+                target_pos = potential_targets[0]
+                self._navigate_to_target(entity, pos, vel, target_pos)
 
         elif action == DecisionAction.CHOOSE_ANOTHER_ISLAND:
             # Find a safer island (further from the closest enemy)
@@ -203,16 +224,12 @@ class ArchitectAIProcessor(esper.Processor):
             )
 
         elif action == DecisionAction.MOVE_RANDOMLY:
-            # If already following a path, let it finish instead of starting a new random one.
-            if self._entity_paths.get(entity):
-                # Continue following the existing path by doing nothing here.
-                # The navigation logic at the end of the function will handle it.
-                pass
-
-            # If no random target or we reached it, find a new one
-            if entity not in self._entity_random_targets or self._is_close_to_target(pos, self._entity_random_targets[entity]):
-                self._entity_random_targets[entity] = (random.uniform(0, MAP_WIDTH * TILE_SIZE), random.uniform(0, MAP_HEIGHT * TILE_SIZE))
-            target_pos = self._entity_random_targets[entity]
+            # Simple wandering: pick a random direction and move.
+            # This is less goal-oriented than pathfinding to a random point.
+            random_bearing = (pos.direction + random.uniform(-45, 45)) % 360
+            self._turn_and_move(pos, vel, random_bearing, vel.maxUpSpeed * 0.7) # Move at a slower pace
+            self._clear_path(entity) # Stop any previous pathfinding
+            return
 
         elif action == DecisionAction.GET_UNSTUCK:
             # Move in a random direction away from the current spot to break free
@@ -255,7 +272,14 @@ class ArchitectAIProcessor(esper.Processor):
         dist_to_target = np.hypot(target_pos[0] - current_target[0], target_pos[1] - current_target[1]) if current_target else float('inf')
 
         if entity not in self._entity_paths or not self._entity_paths[entity] or dist_to_target > TILE_SIZE * 2:
-            path = self.pathfinder.findPath((pos.x, pos.y), target_pos)
+            # Gather enemy positions to pass to the pathfinder for avoidance
+            enemy_positions = []
+            for _, (other_pos, other_team, _) in esper.get_components(PositionComponent, TeamComponent, HealthComponent):
+                my_team_id = esper.component_for_entity(entity, TeamComponent).team_id
+                if other_team.team_id != my_team_id:
+                    enemy_positions.append((other_pos.x, other_pos.y))
+
+            path = self.pathfinder.findPath((pos.x, pos.y), target_pos, enemy_positions=enemy_positions)
             if path and len(path) > 1:
                 self._entity_paths[entity] = path[1:]  # Skip current pos
                 self._entity_path_targets[entity] = target_pos
@@ -282,28 +306,54 @@ class ArchitectAIProcessor(esper.Processor):
         """Helper to find the closest ally or foe."""
         closest_dist_sq = float('inf')
         closest_bearing = 0
+        closest_unit_team_id = None # New: to store team_id of the closest unit
         unit_count = 0
 
-        for _, (other_pos, other_team, _) in all_entities:
-            is_ally = other_team.team_id == my_team_id
-            if (find_allies and not is_ally) or (not find_allies and is_ally):
-                continue
+        for ent, (other_pos, other_team, _) in all_entities:
+            # Skip if it's the unit itself
             if other_pos is my_pos:
                 continue
 
+            # If looking for allies, explicitly exclude base entities.
+            # The BaseComponent identifies the main base structures.
+            if find_allies and esper.has_component(ent, BaseComponent):
+                continue
+            # Determine if the other unit is an ally or a foe candidate
+            # Explicitly handle team_id 0 as an enemy, as per request.
+            # This means team_id 0 is never an ally, and always a foe.
+            is_ally_candidate = False
+            is_foe_candidate = False
+
+            is_ally = other_team.team_id == my_team_id
+
+            if other_team.team_id == 0:
+                is_foe_candidate = True # Team 0 is always a foe
+            else:
+                is_ally_candidate = is_ally
+                is_foe_candidate = not is_ally
+
+            # Filter based on whether we are looking for allies or foes
+            if find_allies: # We are looking for allies
+                if not is_ally_candidate: # If it's not an ally candidate, skip
+                    continue
+            else: # We are looking for foes
+                if not is_foe_candidate: # If it's not a foe candidate, skip
+                    continue
+
+            # If we reach here, it's a valid target (ally or foe)
             dx, dy = other_pos.x - my_pos.x, other_pos.y - my_pos.y
             dist_sq = dx*dx + dy*dy
             unit_count += 1
             if dist_sq < closest_dist_sq:
                 closest_dist_sq = dist_sq
                 closest_bearing = (np.arctan2(dy, dx) * 180 / np.pi + 360) % 360
+                closest_unit_team_id = other_team.team_id # Store the team_id
 
-        return (np.sqrt(closest_dist_sq) if unit_count > 0 else float('inf'), closest_bearing, unit_count)
+        return (np.sqrt(closest_dist_sq) if unit_count > 0 else float('inf'), closest_bearing, closest_unit_team_id, unit_count)
 
     def _find_closest_island(self, pos: PositionComponent):
         """Finds the closest island from a pre-computed cache."""
         if self._island_cache is None and self.map_grid is not None:
-            from src.constants.map_tiles import TileType
             self._island_cache = []
             for y, row in enumerate(self.map_grid):
                 for x, tile_val in enumerate(row):
@@ -330,7 +380,6 @@ class ArchitectAIProcessor(esper.Processor):
 
     def _find_closest_mine(self, pos: PositionComponent):
         """Finds the closest mine from a pre-computed cache."""
-        from src.constants.map_tiles import TileType
         if self._mine_cache is None and self.map_grid is not None:
             self._mine_cache = []
             for y, row in enumerate(self.map_grid):

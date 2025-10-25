@@ -2,8 +2,8 @@
 import heapq
 import numpy as np
 import logging
-from typing import Tuple, List, Optional, Set
-
+from typing import Tuple, List, Optional, Set, Iterable
+from src.constants.map_tiles import TileType
 
 class SimplePathfinder:
     """
@@ -31,7 +31,8 @@ class SimplePathfinder:
         self,
         start: Tuple[float, float],
         goal: Tuple[float, float],
-        max_iterations: int = 2000
+        max_iterations: int = 2000,
+        enemy_positions: Optional[Iterable[Tuple[float, float]]] = None
     ) -> Optional[List[Tuple[float, float]]]:
         """
         Find path from start to goal avoiding islands.
@@ -40,6 +41,7 @@ class SimplePathfinder:
             start: Starting position (world coordinates)
             goal: Goal position (world coordinates)
             max_iterations: Maximum iterations
+            enemy_positions: An iterable of world coordinates for known enemies.
 
         Returns:
             List of waypoints in world coordinates, or None if no path
@@ -62,7 +64,10 @@ class SimplePathfinder:
                 return None
 
         # Run A*
-        path_grid = self._astar(start_grid, goal_grid, max_iterations)
+        enemy_grid_positions = None
+        if enemy_positions:
+            enemy_grid_positions = {self._worldToGrid(pos) for pos in enemy_positions}
+        path_grid = self._astar(start_grid, goal_grid, max_iterations, enemy_grid_positions)
 
         if path_grid is None or len(path_grid) == 0:
             return None
@@ -79,7 +84,8 @@ class SimplePathfinder:
         self,
         start: Tuple[int, int],
         goal: Tuple[int, int],
-        max_iterations: int
+        max_iterations: int,
+        enemy_grid_positions: Optional[Set[Tuple[int, int]]] = None
     ) -> Optional[List[Tuple[int, int]]]:
         """A* algorithm on grid coordinates."""
 
@@ -118,11 +124,14 @@ class SimplePathfinder:
                     continue
 
                 # Get additional cost from tile type (e.g., island, mine)
-                tile_cost = self._getTileCost(neighbor)
+                # Check if the current node is on an island to adjust costs
+                is_currently_on_island = self._is_island(current)
+                tile_cost = self._getTileCost(neighbor, enemy_grid_positions, is_currently_on_island)
 
                 # Calculate cost (diagonal moves cost more)
                 move_cost = 1.414 if dx != 0 and dy != 0 else 1.0
                 tentative_g = g_score[current] + move_cost + tile_cost
+
 
                 if neighbor not in g_score or tentative_g < g_score[neighbor]:
                     came_from[neighbor] = current
@@ -162,32 +171,57 @@ class SimplePathfinder:
         """Check if grid position is within bounds."""
         return 0 <= pos[0] < self.map_width and 0 <= pos[1] < self.map_height
 
-    def _getTileCost(self, pos: Tuple[int, int]) -> float:
+    def _getTileCost(self, pos: Tuple[int, int], enemy_grid_positions: Optional[Set[Tuple[int, int]]], on_island: bool = False) -> float:
         """
         Gets the additional movement cost for a given tile.
         Mines and clouds are heavily penalized, islands are moderately penalized.
+        Tiles near enemies also get a penalty.
+
+        Args:
+            pos: The grid position to evaluate.
+            enemy_grid_positions: Positions of enemies to avoid.
+            on_island: If the path is currently on an island tile.
         """
-        from src.constants.map_tiles import TileType
         try:
             tile_type = self.map_grid[pos[1]][pos[0]]
             tile = TileType(tile_type)
 
-            # Assuming TileType has members like MINE and CLOUD.
-            # We use .value for comparison as we don't have the enum definition here.
-            if tile.value in [TileType.MINE.value, TileType.CLOUD.value]:
+            if self._isObstacle(pos, tile_type):
                 return self.COST_OBSTACLE
-            elif tile.is_island():
+            elif self._is_island(pos, tile_type):
+                # If we are already on an island, make crossing to another island very expensive
+                return self.COST_OBSTACLE if on_island else self.COST_ISLAND
                 return self.COST_ISLAND
-            return 0.0  # Water has no extra cost
+
+            cost = 0.0
+            # Add cost for being near an enemy
+            if enemy_grid_positions:
+                for enemy_pos in enemy_grid_positions:
+                    dist_sq = (pos[0] - enemy_pos[0])**2 + (pos[1] - enemy_pos[1])**2
+                    if dist_sq < 25: # 5 tile radius
+                        # Add cost inversely proportional to the square of the distance
+                        cost += 100.0 / (dist_sq + 1)
+
+            return cost
+
         except (IndexError, ValueError) as e:
             self.logger.warning(f"Could not determine tile cost for {pos}: {e}")
             return self.COST_OBSTACLE  # Treat errors or out-of-bounds as high-cost obstacles
 
-    def _isObstacle(self, pos: Tuple[int, int]) -> bool:
-        """Check if a grid position is a high-cost obstacle (mine or cloud)."""
-        from src.constants.map_tiles import TileType
+    def _is_island(self, pos: Tuple[int, int], tile_type: Optional[int] = None) -> bool:
+        """Check if a grid position is an island tile."""
         try:
-            tile_type = self.map_grid[pos[1]][pos[0]]
+            if tile_type is None:
+                tile_type = self.map_grid[pos[1]][pos[0]]
+            return TileType(tile_type).is_island()
+        except (IndexError, ValueError):
+            return False
+
+    def _isObstacle(self, pos: Tuple[int, int], tile_type: Optional[int] = None) -> bool:
+        """Check if a grid position is a high-cost obstacle (mine or cloud)."""
+        try:
+            if tile_type is None:
+                tile_type = self.map_grid[pos[1]][pos[0]]
             return tile_type in [TileType.MINE.value, TileType.CLOUD.value]
         except (IndexError, ValueError):
             return True
