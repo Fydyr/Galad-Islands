@@ -1,4 +1,10 @@
-"""Processor managing the Leviathan's AI with decision tree and A* pathfinding."""
+"""
+Leviathan AI Processor
+
+This module implements the artificial intelligence system for Leviathan units using
+a decision tree for tactical decisions and A* pathfinding for strategic navigation.
+Optimized for high performance with caching and pre-computed data structures.
+"""
 
 import esper
 import numpy as np
@@ -24,75 +30,97 @@ logger = logging.getLogger(__name__)
 
 class AILeviathanProcessor(esper.Processor):
     """
-    Processor managing the Leviathan's artificial intelligence using decision tree.
+    Advanced AI processor for autonomous Leviathan unit control.
 
-    This processor:
-    1. Observes the game state (position, health, enemies, obstacles)
-    2. Uses a decision tree to choose an action
-    3. Uses A* pathfinding to navigate to the enemy base
-    4. Executes the chosen action
+    Architecture:
+        - Decision Tree: Hierarchical tactical decision-making system
+        - A* Pathfinding: Strategic navigation with obstacle avoidance
+        - Entity Caching: Performance-optimized entity tracking
+        - Pre-computed Data: Island/mine detection cache for fast lookups
+
+    Decision Priority:
+        1. Obstacle Avoidance (islands, storms, mines, bandits)
+        2. Enemy Engagement (when in range)
+        3. Base Attack (when visible)
+        4. Base Navigation (default behavior)
+
+    Performance Features:
+        - Cached entity positions (updated every 30 frames)
+        - Pre-computed obstacle map for pathfinding
+        - Optimized distance calculations (squared distances)
+        - Vectorized trigonometric operations
     """
 
     def __init__(self):
-        """Initialize the AI processor with decision tree and pathfinding."""
+        """
+        Initialize the AI processor with optimized data structures.
+
+        Sets up:
+            - Decision tree for tactical choices
+            - Pathfinding system (lazy initialization)
+            - Entity caching system
+            - Performance tracking metrics
+        """
         super().__init__()
 
-        # Decision tree for action selection
+        # Core AI Systems
         self.decision_tree = LeviathanDecisionTree()
+        self.map_grid = None  # Initialized externally by game manager
+        self.pathfinder = None  # Lazy initialization after map_grid is available
 
-        # Map grid for obstacle detection (initialized later by game.py)
-        self.map_grid = None
-
-        # A* pathfinding system (initialized after map_grid is set)
-        self.pathfinder = None
-
-        # Entity cache for performance
+        # Performance: Entity Cache System
         self.entity_cache = {}
-        self.cache_update_frequency = 30  # Update every 30 frames (~0.5s at 60fps) - less frequent for better perf
+        self.cache_update_frequency = 30  # Frames between updates (~0.5s at 60 FPS)
         self.cache_frame_counter = 0
 
-        # Timing
+        # Timing System
         self.elapsed_time = 0.0
 
-        # Statistics
+        # Performance Metrics
         self.total_actions = 0
         self.actions_by_type = {}
 
-        # Debug flags
+        # Debug State (minimal for production)
         self._first_navigation_logged = False
         self._rotation_log_count = 0
 
-        # Obstacle avoidance memory (entity_id -> last_turn_direction)
-        self._last_obstacle_turn = {}
+        # Navigation Memory
+        self._last_obstacle_turn = {}  # entity_id -> last_turn_direction
 
-        # Path recalculation cooldown (entity_id -> last_recalc_time)
-        self._path_recalc_cooldown = {}
-        self.min_recalc_interval = 3.0  # seconds between path recalculations (veto A*)
+        # Pathfinding Optimization: Rate Limiting
+        self._path_recalc_cooldown = {}  # entity_id -> last_recalc_timestamp
+        self.min_recalc_interval = 3.0  # Seconds between path recalculations
 
-        # Stuck detection (entity_id -> {last_position, stuck_time, last_unstuck_time})
+        # Stuck Detection System (currently disabled)
         self._stuck_detection = {}
-        self.stuck_threshold = 2.5  # seconds without moving = stuck
-        self.min_movement_distance = 25.0  # pixels (minimum movement to not be considered stuck)
-        self.unstuck_cooldown = 4.0  # seconds between unstuck attempts
-
-        # Initialization complete
+        self.stuck_threshold = 2.5  # Seconds without movement threshold
+        self.min_movement_distance = 25.0  # Minimum pixel movement
+        self.unstuck_cooldown = 4.0  # Cooldown between unstuck attempts
 
     def process(self, *args, **kwargs):
         """
-        Process all Leviathans with enabled AI.
+        Main processing loop for AI-controlled Leviathan units.
 
-        Called by ECS without dt parameter, so we calculate dt ourselves.
+        Called every frame by the ECS. Handles:
+            1. Lazy initialization of pathfinding system
+            2. Delta time calculation for frame-independent timing
+            3. Periodic entity cache updates
+            4. AI decision-making and action execution
+            5. Performance metrics tracking
+
+        Note:
+            ECS doesn't provide dt parameter, so we calculate it internally.
         """
-        # Initialize pathfinder if map_grid is available but pathfinder not yet created
+        # Lazy Initialization: Create pathfinder when map becomes available
         if self.map_grid is not None and self.pathfinder is None:
             self.pathfinder = Pathfinder(self.map_grid, TILE_SIZE)
 
-        # Calculate dt from elapsed time tracking
+        # Frame-Independent Timing: Calculate delta time
         import time
         current_time = time.time()
         if not hasattr(self, '_last_process_time'):
             self._last_process_time = current_time
-            dt = 0.016  # Default to ~60 FPS
+            dt = 0.016  # Default: 60 FPS assumption
         else:
             dt = current_time - self._last_process_time
             self._last_process_time = current_time
@@ -100,12 +128,12 @@ class AILeviathanProcessor(esper.Processor):
         self.elapsed_time += dt
         self.cache_frame_counter += 1
 
-        # Update entity cache periodically
+        # Performance Optimization: Update entity cache periodically
         if self.cache_frame_counter >= self.cache_update_frequency:
             self._updateEntityCache()
             self.cache_frame_counter = 0
 
-        # Process each AI-controlled Leviathan
+        # Main AI Loop: Process each autonomous Leviathan
         ai_entities_found = 0
         for entity, (ai_comp, spe_lev, pos, vel, health, team) in esper.get_components(
             AILeviathanComponent,
@@ -117,37 +145,38 @@ class AILeviathanProcessor(esper.Processor):
         ):
             ai_entities_found += 1
 
+            # Skip disabled AI
             if not ai_comp.enabled:
                 continue
 
-            # Disable AI if player is controlling this unit
+            # Skip player-controlled units
             if esper.has_component(entity, PlayerSelectedComponent):
                 continue
 
-            # CRITICAL: Decrement attack cooldown for AI units
+            # Update Attack Cooldown: Frame-rate independent decrement
             if esper.has_component(entity, RadiusComponent):
                 radius = esper.component_for_entity(entity, RadiusComponent)
                 if radius.cooldown > 0:
-                    radius.cooldown -= dt * 60  # Decrement cooldown (dt is in seconds, cooldown in frames at 60fps)
+                    radius.cooldown -= dt * 60  # Convert dt (seconds) to frames at 60 FPS
 
-            # Check if ready for new action (cooldown)
+            # Action Throttling: Respect AI action cooldown
             if not ai_comp.isReadyForAction(self.elapsed_time):
                 continue
 
-            # Extract current game state
+            # Perception: Gather current game state
             state = self._extractGameState(entity, pos, vel, health, team)
 
-            # Make decision using decision tree
+            # Decision: Query decision tree for optimal action
             action = self.decision_tree.decide(state)
 
-            # Execute the chosen action
+            # Execution: Perform the chosen action
             self._executeAction(entity, action, pos, vel, spe_lev, state)
 
-            # Update timing
+            # State Update: Record timing and statistics
             ai_comp.last_action_time = self.elapsed_time
             ai_comp.actions_taken += 1
 
-            # Update statistics
+            # Metrics: Track action distribution
             self.total_actions += 1
             if action not in self.actions_by_type:
                 self.actions_by_type[action] = 0
@@ -162,30 +191,36 @@ class AILeviathanProcessor(esper.Processor):
         team: TeamComponent,
     ) -> GameState:
         """
-        Extract the current game state for decision making.
+        Perception phase: Extract comprehensive game state for decision-making.
+
+        Gathers all relevant tactical and strategic information:
+            - Enemy positions and threat assessment
+            - Obstacle detection (islands, storms, mines, bandits)
+            - Goal location (enemy base)
+            - Unit status (health, position, orientation)
 
         Args:
-            entity: Entity ID
-            pos: Position component
-            vel: Velocity component
-            health: Health component
-            team: Team component
+            entity: Entity identifier
+            pos: Position component (x, y, direction)
+            vel: Velocity component (current speed)
+            health: Health component (current/max HP)
+            team: Team component (team affiliation)
 
         Returns:
-            GameState object with all relevant information
+            GameState: Structured state information for decision tree
         """
-        # Get enemy information
+        # Threat Assessment: Identify nearby enemies
         enemy_info = self._getNearestEnemies(entity, pos, team)
-        nearest_enemy_distance = enemy_info[1] * 500.0  # Denormalize
-        nearest_enemy_angle = enemy_info[2]  # Already in degrees
+        nearest_enemy_distance = enemy_info[1] * 500.0  # Denormalize from [0,1] to pixels
+        nearest_enemy_angle = enemy_info[2]  # Degrees
         enemies_count = int(enemy_info[0])
 
-        # OPTIMIZED: Check for island ahead - fewer checks, vectorized
-        look_ahead_distance = 300
+        # Obstacle Detection: Forward-looking island detection (optimized)
+        look_ahead_distance = 300  # Pixels
         nearest_island_ahead = False
 
-        # Reduce checks from 5 to 3 for performance
-        angle_offsets = [0, -30, 30]
+        # Performance: 3-point cone detection (center, left, right)
+        angle_offsets = [0, -30, 30]  # Degrees
         direction_rad = pos.direction * np.pi / 180
 
         for angle_offset in angle_offsets:
@@ -196,16 +231,16 @@ class AILeviathanProcessor(esper.Processor):
                 nearest_island_ahead = True
                 break
 
-        # Get storm, bandit, and mine information
+        # Environmental Threats: Detect dynamic obstacles
         nearest_storm_distance = self._getNearbyStorms(pos)
         nearest_bandit_distance = self._getNearbyBandits(pos)
         nearest_mine_distance = self._getNearbyMines(pos)
 
-        # Get enemy base information
+        # Strategic Goal: Locate enemy base
         base_info = self._getEnemyBaseInfo(entity, pos, team)
-        enemy_base_position = (base_info[2], base_info[3])  # World coordinates
-        distance_to_base = base_info[0]  # Distance in pixels (real distance, not normalized)
-        angle_to_base = base_info[1]  # Already in degrees
+        enemy_base_position = (base_info[2], base_info[3])  # World coordinates (pixels)
+        distance_to_base = base_info[0]  # Pixels
+        angle_to_base = base_info[1]  # Degrees
 
         return GameState(
             position=(pos.x, pos.y),
@@ -234,15 +269,22 @@ class AILeviathanProcessor(esper.Processor):
         state: GameState,
     ):
         """
-        Execute the action chosen by the decision tree.
+        Action execution phase: Translate decision tree output into concrete actions.
+
+        Dispatches to specialized behavior handlers based on action type:
+            - ATTACK_BASE: Engage enemy base with optimal positioning
+            - ATTACK_ENEMY: Combat behavior with distance management
+            - AVOID_OBSTACLE: Collision avoidance and evasive maneuvers
+            - MOVE_TO_BASE: Strategic navigation to objective
+            - IDLE: Standby state (minimal activity)
 
         Args:
-            entity: Entity ID
-            action: Action to execute
-            pos: Position component
-            vel: Velocity component
-            spe_lev: Special ability component
-            state: Current game state
+            entity: Entity identifier
+            action: Action string from decision tree
+            pos: Position component (mutable)
+            vel: Velocity component (mutable)
+            spe_lev: Special ability component (mutable)
+            state: Current game state (read-only)
         """
         if action == DecisionAction.ATTACK_BASE:
             self._attackBase(entity, pos, vel, spe_lev, state)
@@ -268,50 +310,61 @@ class AILeviathanProcessor(esper.Processor):
         state: GameState,
     ):
         """
-        Attack the nearest enemy.
-        Maintains optimal attack distance, turns towards enemy, and fires when aligned.
-        Uses special ability when available.
-        Automatically enables lateral shooting when enemies are on the sides.
+        Combat behavior: Engage nearest enemy with optimal tactics.
+
+        Tactical Features:
+            - Dynamic distance management (approach/retreat)
+            - Precision targeting with alignment tolerances
+            - Automatic lateral fire when enemy is on flank
+            - Aggressive special ability usage for DPS maximization
+            - Stop-to-fire behavior for accuracy
+
+        Combat Parameters:
+            - Optimal range: 280px (ideal DPS distance)
+            - Min range: 150px (retreat threshold)
+            - Max range: 350px (engagement limit)
+            - Alignment tolerance: 50° for main guns, 60° for special ability
+            - Lateral fire arc: 60-120° on either flank
 
         Args:
-            entity: Entity ID
-            pos: Position component
-            vel: Velocity component
-            spe_lev: Special ability component
-            state: Current game state
+            entity: Entity identifier
+            pos: Position component (mutable - direction)
+            vel: Velocity component (mutable - speed)
+            spe_lev: Special ability component (mutable - activation)
+            state: Current game state (read-only)
         """
-        # Distance management
+        # Combat Range Configuration
         OPTIMAL_ENEMY_DISTANCE = 280.0  # Ideal attack distance
         MIN_ENEMY_DISTANCE = 150.0  # Too close - back up
         MAX_ENEMY_DISTANCE = 350.0  # Maximum attack range
 
-        # Turn towards enemy
+        # Targeting System: Calculate angle to enemy
         target_angle = state.nearest_enemy_angle
         angle_diff = (target_angle - pos.direction + 180) % 360 - 180
 
-        # VERY relaxed alignment thresholds - AI shoots more easily!
-        ALIGN_TOLERANCE_ATTACK = 50.0  # Very loose - shoot almost always when facing enemy
-        ALIGN_TOLERANCE_SPECIAL = 60.0  # More relaxed for special ability - use it more often!
-        SIDE_ANGLE_MIN = 60.0  # Minimum angle to consider enemy on the side (60° to 120°)
-        SIDE_ANGLE_MAX = 120.0  # Maximum angle to consider enemy on the side
+        # Firing Solution Parameters
+        ALIGN_TOLERANCE_ATTACK = 50.0  # Main weapons fire arc
+        ALIGN_TOLERANCE_SPECIAL = 60.0  # Special ability fire arc (wider)
+        SIDE_ANGLE_MIN = 60.0  # Lateral fire minimum angle
+        SIDE_ANGLE_MAX = 120.0  # Lateral fire maximum angle
 
-        # Turn towards enemy (but slower when in attack range)
+        # Combat Maneuvering: Adaptive turn rate based on range
         in_attack_range = state.nearest_enemy_distance <= MAX_ENEMY_DISTANCE
 
         if in_attack_range and abs(angle_diff) < ALIGN_TOLERANCE_ATTACK:
-            # In range and aligned - STOP turning and STOP moving to fire
-            turn_speed = 3  # Gentle correction only
-            if abs(angle_diff) > 2:  # Only micro-adjust
+            # Fire Mode: Fine-tune aim and hold position
+            turn_speed = 3  # Precision adjustment
+            if abs(angle_diff) > 2:
                 if angle_diff > 0:
                     pos.direction = (pos.direction + turn_speed) % 360
                 else:
                     pos.direction = (pos.direction - turn_speed) % 360
 
-            # CRITICAL: Stop all movement when ready to fire
+            # Stop-to-Fire: Maximize accuracy
             vel.currentSpeed = 0
 
         else:
-            # Not yet in firing position - turn aggressively
+            # Approach Mode: Aggressive repositioning
             turn_speed = 8
             if abs(angle_diff) > 5:
                 if angle_diff > 0:
@@ -319,55 +372,56 @@ class AILeviathanProcessor(esper.Processor):
                 else:
                     pos.direction = (pos.direction - turn_speed) % 360
 
-            # Distance-based movement logic
+            # Dynamic Range Management
             if state.nearest_enemy_distance < MIN_ENEMY_DISTANCE:
-                # Too close - back up
+                # Retreat: Enemy too close
                 vel.currentSpeed = vel.maxReverseSpeed
 
             elif state.nearest_enemy_distance > MAX_ENEMY_DISTANCE:
-                # Too far - approach quickly
+                # Advance: Enemy out of range
                 vel.currentSpeed = vel.maxUpSpeed
 
             elif state.nearest_enemy_distance > OPTIMAL_ENEMY_DISTANCE:
-                # Slightly too far - approach carefully
+                # Close: Move to optimal range
                 vel.currentSpeed = vel.maxUpSpeed
 
             else:
-                # Good distance but not aligned yet - turn in place
+                # Hold: Turn in place at good range
                 vel.currentSpeed = 0
 
-        # Fire weapon aggressively - shoot as soon as roughly aligned!
+        # Weapon Systems: Fire control and special ability management
         if esper.has_component(entity, RadiusComponent):
             radius = esper.component_for_entity(entity, RadiusComponent)
 
-            # Attack if in range and ROUGHLY aligned (very permissive)
+            # Range Check: Verify target is within engagement envelope
             in_attack_range = state.nearest_enemy_distance <= MAX_ENEMY_DISTANCE
 
-            # Check if enemy is on the side (between 60° and 120° on either side)
+            # Flanking Detection: Identify lateral fire opportunities
             abs_angle = abs(angle_diff)
             enemy_on_side = SIDE_ANGLE_MIN <= abs_angle <= SIDE_ANGLE_MAX
 
-            # Automatically enable/disable lateral shooting based on enemy position
+            # Lateral Fire Control: Automatic activation based on geometry
             if radius.can_shoot_from_side:
                 if enemy_on_side and in_attack_range:
                     radius.lateral_shooting = True
                 elif not enemy_on_side:
                     radius.lateral_shooting = False
 
+            # Primary Fire: Forward-facing weapons
             if in_attack_range and abs(angle_diff) < ALIGN_TOLERANCE_ATTACK:
-                # Activate special ability VERY AGGRESSIVELY - use it whenever possible!
-                # Special ability has 15s cooldown, so use it often to maximize DPS
-                should_use_special = spe_lev.can_activate()  # Just use it whenever available and in combat!
+                # Special Ability: Aggressive usage for maximum DPS
+                # 15s cooldown means frequent opportunities in extended combat
+                should_use_special = spe_lev.can_activate()
 
                 if should_use_special:
                     spe_lev.activate()
 
-                # Fire normal attack ALWAYS when cooldown is ready
+                # Main Weapons: Fire when cooldown ready
                 if radius.cooldown <= 0:
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
 
-            # Also fire lateral shots if enemy is on the side
+            # Secondary Fire: Lateral weapons when flanked
             elif in_attack_range and enemy_on_side and radius.lateral_shooting:
                 if radius.cooldown <= 0:
                     esper.dispatch_event("attack_event", entity)
@@ -382,35 +436,44 @@ class AILeviathanProcessor(esper.Processor):
         state: GameState,
     ):
         """
-        Attack the enemy base.
-        Simplified logic: approach to good range, align roughly, then fire continuously.
-        Uses special ability when available and aligned.
-        Disables lateral shooting to focus fire on the base.
+        Strategic objective: Engage enemy base with concentrated firepower.
+
+        Assault Tactics:
+            - Approach to optimal siege range
+            - Focus all forward firepower (lateral fire disabled)
+            - Aggressive special ability usage
+            - Defensive positioning (maintain safe distance from base defenses)
+
+        Siege Parameters:
+            - Optimal range: 320px (balance between DPS and safety)
+            - Min range: 200px (safety threshold from base defenses)
+            - Max range: 450px (maximum effective bombardment range)
+            - Alignment tolerance: 55° main guns, 65° special ability
 
         Args:
-            entity: Entity ID
-            pos: Position component
-            vel: Velocity component
-            spe_lev: Special ability component
-            state: Current game state
+            entity: Entity identifier
+            pos: Position component (mutable - direction)
+            vel: Velocity component (mutable - speed)
+            spe_lev: Special ability component (mutable - activation)
+            state: Current game state (read-only)
         """
-        # Disable lateral shooting when attacking base - focus all fire forward
+        # Fire Discipline: Disable lateral guns for focused bombardment
         if esper.has_component(entity, RadiusComponent):
             radius = esper.component_for_entity(entity, RadiusComponent)
             radius.lateral_shooting = False
 
-        # Calculate angle difference to target
+        # Target Acquisition: Calculate bearing to base
         target_angle = state.angle_to_base
         angle_diff = (target_angle - pos.direction + 180) % 360 - 180
 
-        # Simplified attack positioning
-        OPTIMAL_ATTACK_DISTANCE = 320.0  # Ideal distance for attacking
-        MIN_SAFE_DISTANCE = 200.0  # Minimum distance to maintain
-        MAX_ATTACK_RANGE = 450.0  # Maximum effective attack range (same as decision tree)
+        # Siege Range Configuration
+        OPTIMAL_ATTACK_DISTANCE = 320.0  # Ideal bombardment range
+        MIN_SAFE_DISTANCE = 200.0  # Defensive safety margin
+        MAX_ATTACK_RANGE = 450.0  # Maximum effective range
 
-        # VERY relaxed angle tolerances - shoot easily!
-        ALIGN_TOLERANCE_ATTACK = 55.0  # Very loose - attack almost always
-        ALIGN_TOLERANCE_SPECIAL = 65.0  # Even more relaxed for special ability when attacking base!
+        # Firing Solution Parameters (relaxed for sustained bombardment)
+        ALIGN_TOLERANCE_ATTACK = 55.0  # Main weapons
+        ALIGN_TOLERANCE_SPECIAL = 65.0  # Special ability
 
         # Determine if aligned enough
         is_aligned_for_attack = abs(angle_diff) < ALIGN_TOLERANCE_ATTACK

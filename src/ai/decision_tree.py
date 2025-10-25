@@ -1,4 +1,10 @@
-"""Decision tree for Leviathan AI"""
+"""
+Leviathan Decision Tree
+
+Hierarchical decision-making system for autonomous tactical AI.
+Implements priority-based behavior selection with obstacle avoidance,
+combat engagement, and strategic navigation.
+"""
 
 import numpy as np
 from typing import Tuple, Optional, List
@@ -7,33 +13,53 @@ from dataclasses import dataclass
 
 @dataclass
 class GameState:
-    """Game state information for decision making"""
-    position: Tuple[float, float]
-    direction: float
-    health: float
-    max_health: float
+    """
+    Comprehensive game state snapshot for AI decision-making.
 
-    # Enemy information
-    nearest_enemy_distance: float
-    nearest_enemy_angle: float
-    enemies_count: int
+    Contains all perception data gathered by the AI processor:
+        - Unit status (position, health, orientation)
+        - Threat assessment (enemy positions, counts)
+        - Obstacle detection (islands, storms, bandits, mines)
+        - Strategic objectives (enemy base location)
 
-    # Obstacle information
-    nearest_island_ahead: bool
+    All distances are in pixels, all angles are in degrees.
+    """
+    # Unit Status
+    position: Tuple[float, float]  # (x, y) world coordinates
+    direction: float  # Facing direction in degrees [0, 360)
+    health: float  # Current hit points
+    max_health: float  # Maximum hit points
 
-    # Goal information
-    enemy_base_position: Tuple[float, float]
-    distance_to_base: float
-    angle_to_base: float
+    # Threat Assessment
+    nearest_enemy_distance: float  # Distance to closest enemy (pixels)
+    nearest_enemy_angle: float  # Bearing to closest enemy (degrees)
+    enemies_count: int  # Number of enemies in detection range
 
-    # Additional obstacles (with default values)
+    # Obstacle Detection
+    nearest_island_ahead: bool  # Island in forward cone
+
+    # Strategic Objective
+    enemy_base_position: Tuple[float, float]  # (x, y) base coordinates
+    distance_to_base: float  # Distance to enemy base (pixels)
+    angle_to_base: float  # Bearing to enemy base (degrees)
+
+    # Environmental Hazards (optional, default to infinity)
     nearest_storm_distance: float = float('inf')
     nearest_bandit_distance: float = float('inf')
     nearest_mine_distance: float = float('inf')
 
 
 class DecisionAction:
-    """Available actions for the Leviathan."""
+    """
+    Action enumeration for AI behavior selection.
+
+    Available tactical actions:
+        - MOVE_TO_BASE: Strategic navigation to enemy base
+        - ATTACK_ENEMY: Engage enemy units in combat
+        - ATTACK_BASE: Siege enemy base with bombardment
+        - AVOID_OBSTACLE: Collision avoidance and evasive maneuvers
+        - IDLE: Standby state (no active behavior)
+    """
     MOVE_TO_BASE = "move_to_base"
     ATTACK_ENEMY = "attack_enemy"
     ATTACK_BASE = "attack_base"
@@ -43,65 +69,98 @@ class DecisionAction:
 
 class LeviathanDecisionTree:
     """
-    Simple and aggressive decision tree for Leviathan AI.
+    Priority-based hierarchical decision tree for autonomous combat AI.
 
-    Priority:
-    1. Attack enemies in range
-    2. Attack base in range
-    3. Avoid dangerous obstacles (storms, bandits, mines)
-    4. Navigate to base
+    Decision Priority (highest to lowest):
+        1. Obstacle Avoidance - Prevent collisions and damage
+        2. Enemy Engagement - Eliminate threats in range
+        3. Base Attack - Siege strategic objective
+        4. Navigation - Move towards enemy base
+
+    Design Philosophy:
+        - Safety first: Obstacle avoidance has absolute priority
+        - Aggressive combat: Engage enemies opportunistically
+        - Goal-oriented: Always progress towards base when safe
+
+    Tuning Parameters:
+        All thresholds are in pixels and can be adjusted for behavior tuning.
     """
 
-    # Detection thresholds
-    ENEMY_ATTACK_DISTANCE = 350.0
-    STORM_AVOID_DISTANCE = 200.0
-    BANDIT_AVOID_DISTANCE = 200.0
-    MINE_AVOID_DISTANCE = 150.0
-    BASE_ATTACK_DISTANCE = 400.0
-    ISLAND_AVOID_PRIORITY = True  # Always avoid islands with highest priority
+    # Combat Engagement Thresholds
+    ENEMY_ATTACK_DISTANCE = 350.0  # Maximum enemy engagement range
+    BASE_ATTACK_DISTANCE = 400.0  # Maximum base bombardment range
+
+    # Obstacle Avoidance Thresholds
+    STORM_AVOID_DISTANCE = 200.0  # Storm safety margin
+    BANDIT_AVOID_DISTANCE = 200.0  # Bandit safety margin
+    MINE_AVOID_DISTANCE = 150.0  # Mine safety margin
+    ISLAND_AVOID_PRIORITY = True  # Islands have absolute priority
 
     def __init__(self):
-        """Initialize the decision tree."""
+        """
+        Initialize decision tree with default state.
+
+        Maintains state memory for debugging and analytics.
+        """
         self.last_action = DecisionAction.IDLE
 
     def decide(self, state: GameState) -> str:
         """
-        Make a decision based on the current game state.
+        Main decision-making function: Select optimal action based on game state.
 
-        Priority order:
-        1. Avoid dangerous obstacles (islands/storms/bandits/mines) - HIGHEST PRIORITY
-        2. Attack enemy if in range
-        3. Attack base if in range
-        4. Navigate to base
+        Implements hierarchical priority system where higher-priority conditions
+        short-circuit lower priorities. This ensures critical safety behaviors
+        (obstacle avoidance) always execute before tactical behaviors (combat).
+
+        Decision Flow:
+            1. Safety Check: Obstacle avoidance (absolute priority)
+            2. Tactical Check: Enemy engagement (opportunistic)
+            3. Strategic Check: Base attack (goal-oriented)
+            4. Default: Navigation (always progressing)
+
+        Args:
+            state: Complete game state snapshot from perception phase
+
+        Returns:
+            Action string (see DecisionAction for available actions)
+
+        Performance:
+            O(1) - All checks are simple threshold comparisons
+        """
+
+        # Priority 1: Safety - Avoid all obstacles (prevents collision damage)
+        if self._shouldAvoidObstacle(state):
+            self.last_action = DecisionAction.AVOID_OBSTACLE
+            return DecisionAction.AVOID_OBSTACLE
+
+        # Priority 2: Tactics - Engage enemies in range (eliminate threats)
+        if self._shouldAttackEnemy(state):
+            self.last_action = DecisionAction.ATTACK_ENEMY
+            return DecisionAction.ATTACK_ENEMY
+
+        # Priority 3: Strategy - Attack base when reachable (achieve objective)
+        if state.distance_to_base < self.BASE_ATTACK_DISTANCE:
+            self.last_action = DecisionAction.ATTACK_BASE
+            return DecisionAction.ATTACK_BASE
+
+        # Priority 4: Default - Navigate towards base (always progressing)
+        self.last_action = DecisionAction.MOVE_TO_BASE
+        return DecisionAction.MOVE_TO_BASE
+
+    def _shouldAttackEnemy(self, state: GameState) -> bool:
+        """
+        Evaluate enemy engagement conditions.
+
+        Engagement Criteria:
+            - At least one enemy detected
+            - Enemy within weapon range
 
         Args:
             state: Current game state
 
         Returns:
-            Best action to take
+            True if should engage enemy
         """
-
-        # Priority 1: Avoid dangerous obstacles (HIGHEST PRIORITY to prevent collisions at max speed)
-        if self._shouldAvoidObstacle(state):
-            self.last_action = DecisionAction.AVOID_OBSTACLE
-            return DecisionAction.AVOID_OBSTACLE
-
-        # Priority 2: Attack enemy if in range
-        if self._shouldAttackEnemy(state):
-            self.last_action = DecisionAction.ATTACK_ENEMY
-            return DecisionAction.ATTACK_ENEMY
-
-        # Priority 3: Attack base if in range
-        if state.distance_to_base < self.BASE_ATTACK_DISTANCE:
-            self.last_action = DecisionAction.ATTACK_BASE
-            return DecisionAction.ATTACK_BASE
-
-        # Priority 4: Navigate to base
-        self.last_action = DecisionAction.MOVE_TO_BASE
-        return DecisionAction.MOVE_TO_BASE
-
-    def _shouldAttackEnemy(self, state: GameState) -> bool:
-        """Determine if we should attack an enemy."""
         if state.enemies_count == 0:
             return False
 
@@ -112,19 +171,25 @@ class LeviathanDecisionTree:
 
     def _shouldAvoidObstacle(self, state: GameState) -> bool:
         """
-        Determine if we should avoid an obstacle.
+        Evaluate obstacle avoidance conditions.
 
-        Dangerous obstacles:
-        - Islands (always block path - HIGHEST PRIORITY)
-        - Storms (always dangerous)
-        - Bandits (always dangerous)
-        - Mines (cause 40 damage on contact)
+        Checks multiple hazard types with individual safety margins:
+            - Islands: Absolute blockers (highest priority)
+            - Storms: Environmental hazards (200px margin)
+            - Bandits: Enemy units (200px margin)
+            - Mines: Explosive traps (150px margin, 40 damage on contact)
+
+        Args:
+            state: Current game state
+
+        Returns:
+            True if any obstacle is within safety threshold
         """
-        # Check for islands ahead (HIGHEST PRIORITY - always avoid)
+        # Critical: Islands are absolute collision blockers
         if state.nearest_island_ahead:
             return True
 
-        # Check for dangerous dynamic obstacles
+        # Dynamic hazards with configured safety margins
         if state.nearest_storm_distance < self.STORM_AVOID_DISTANCE:
             return True
 
@@ -137,5 +202,10 @@ class LeviathanDecisionTree:
         return False
 
     def getActionName(self) -> str:
-        """Get the name of the last action taken."""
+        """
+        Retrieve last executed action for debugging/analytics.
+
+        Returns:
+            String identifier of last action taken
+        """
         return self.last_action
