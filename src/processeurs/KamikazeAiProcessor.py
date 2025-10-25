@@ -22,11 +22,13 @@ from src.components.core.teamComponent import TeamComponent
 from src.components.core.projectileComponent import ProjectileComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
+from src.components.core.steeringComponent import SteeringComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.components.events.flyChestComponent import FlyingChestComponent
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
 import math
 import numpy as np
+import pygame
 import random
 
 class KamikazeAiProcessor(esper.Processor):
@@ -136,7 +138,12 @@ class KamikazeAiProcessor(esper.Processor):
         # La logique de cooldown a été retirée pour rendre l'IA plus réactive.
         for ent, (ai_comp, pos, vel, team) in esper.get_components(KamikazeAiComponent, PositionComponent, VelocityComponent, TeamComponent):
             if getattr(ai_comp, 'unit_type', None) == UnitType.KAMIKAZE:
-                # Si l'unité est sélectionnée par le joueur, l'IA ne doit pas la contrôler
+                # S'assurer que l'unité a un composant de steering pour le lissage
+                if not esper.has_component(ent, SteeringComponent):
+                    esper.add_component(ent, SteeringComponent())
+                
+                # Si l'unité est sélectionnée par le joueur, l'IA ne doit pas la contrôler.
+                # On réinitialise aussi son chemin pour qu'elle ne reparte pas bizarrement.
                 if esper.has_component(ent, PlayerSelectedComponent):
                     continue
                 self.kamikaze_logic(ent, pos, vel, team)
@@ -146,25 +153,62 @@ class KamikazeAiProcessor(esper.Processor):
     def kamikaze_logic(self, ent: int, pos: PositionComponent, vel: VelocityComponent, team: TeamComponent) -> None:
         """Logique de décision et de mouvement pour une unité Kamikaze, combinant pathfinding et évitement local."""
         
+        # Gérer l'étourdissement (stun) dû à un knockback.
+        # Si l'unité est étourdie, on décrémente le timer et on ne fait rien d'autre.
+        if hasattr(vel, 'stun_timer') and vel.stun_timer > 0:
+            # dt est passé par es.process(), mais n'est pas dans la signature de process. On utilise une valeur fixe.
+            vel.stun_timer -= 0.016 # On suppose un dt de 16ms (60 FPS)
+            return
+        
         # Vecteur de direction souhaité par le pathfinding
         desired_direction_vector = np.array([0.0, 0.0])
         desired_direction_angle = pos.direction # Par défaut, la direction actuelle si aucun chemin n'est trouvé
         
+        # Cooldown pour la recherche de nouvelle cible (en secondes)
+        TARGET_RECALC_COOLDOWN = 2.0
+
+        path_info = self._kamikaze_paths.get(ent)
+        current_target_id = path_info.get('target_entity_id') if path_info else None
+
         # --- 1. Déterminer la cible (exploration ou attaque) ---
         is_base_known = enemy_base_registry.is_enemy_base_known(team.team_id)
 
         if not is_base_known:
             # Mode RECHERCHE : la base n'est pas connue, on explore.
+            current_target_id = None # On ne suit pas une entité en exploration
             if ent not in self._kamikaze_exploration_targets or self._is_close_to_exploration_target(pos, ent):
                 self._kamikaze_exploration_targets[ent] = self._get_new_exploration_target(team.team_id)
             target_pos = self._kamikaze_exploration_targets[ent]
+            target_id = None
         else:
             # Mode ATTAQUE : la base est connue, on cherche la meilleure cible.
             if ent in self._kamikaze_exploration_targets:
                 del self._kamikaze_exploration_targets[ent]
-            target_pos = self.find_best_kamikaze_target(pos, team.team_id)
 
-        path_info = self._kamikaze_paths.get(ent)
+            # --- NOUVELLE LOGIQUE AVEC COOLDOWN ---
+            time_since_last_recalc = (pygame.time.get_ticks() - path_info.get('last_target_recalc_time', 0)) / 1000.0 if path_info else float('inf')
+            
+            # Conditions pour recalculer la cible :
+            # 1. Le cooldown est écoulé
+            # 2. Il n'y a pas de cible actuelle
+            # 3. La cible actuelle n'existe plus
+            should_recalc_target = (
+                time_since_last_recalc > TARGET_RECALC_COOLDOWN or
+                current_target_id is None or
+                not esper.entity_exists(current_target_id)
+            )
+
+            if should_recalc_target:
+                # On cherche une nouvelle cible (avec la logique de persistance)
+                target_pos, target_id = self.find_best_kamikaze_target(pos, team.team_id, current_target_id)
+                # Mettre à jour le timer de recalcul
+                if path_info:
+                    path_info['last_target_recalc_time'] = pygame.time.get_ticks()
+            else:
+                # Garder la cible actuelle car le cooldown n'est pas terminé
+                target_pos = esper.component_for_entity(current_target_id, PositionComponent)
+                target_id = current_target_id
+
         current_target = path_info.get('target') if path_info else None
         path = path_info.get('path') if path_info else None
 
@@ -199,9 +243,17 @@ class KamikazeAiProcessor(esper.Processor):
             if path:
                 # Convertir le chemin de grille en coordonnées mondiales
                 world_path = [(gx * TILE_SIZE + TILE_SIZE / 2, gy * TILE_SIZE + TILE_SIZE / 2) for gx, gy in path]
-                self._kamikaze_paths[ent] = {'path': world_path, 'target': (target_pos.x, target_pos.y), 'waypoint_index': 0}
+                if ent not in self._kamikaze_paths:
+                    self._kamikaze_paths[ent] = {}
+                self._kamikaze_paths[ent].update({'path': world_path, 'target': (target_pos.x, target_pos.y), 'waypoint_index': 0, 'target_entity_id': target_id})
+                # Initialiser le timer si c'est la première fois
+                if 'last_target_recalc_time' not in self._kamikaze_paths[ent]:
+                    self._kamikaze_paths[ent]['last_target_recalc_time'] = pygame.time.get_ticks()
             else:
-                self._kamikaze_paths[ent] = {'path': [], 'target': (target_pos.x, target_pos.y), 'waypoint_index': 0}
+                if ent not in self._kamikaze_paths:
+                    self._kamikaze_paths[ent] = {}
+                self._kamikaze_paths[ent].update({'path': [], 'target': (target_pos.x, target_pos.y), 'waypoint_index': 0, 'target_entity_id': target_id})
+
 
         # Suivre le chemin (steering) pour obtenir la direction souhaitée
         if ent in self._kamikaze_paths and self._kamikaze_paths[ent]['path']:
@@ -256,38 +308,86 @@ class KamikazeAiProcessor(esper.Processor):
                 vec_to_obs = np.array([obs_pos.x - pos.x, obs_pos.y - pos.y])
                 dist_to_obs = np.linalg.norm(vec_to_obs)
                 if dist_to_obs > 0:
-                    # Vecteur d'évitement normalisé, inversé
-                    avoid_vec = -vec_to_obs / dist_to_obs
-                    # Poids de l'évitement : modéré pour les obstacles statiques
-                    weight = (2.5 * TILE_SIZE - dist_to_obs) / (2.5 * TILE_SIZE) * 1.5
+                    # --- NOUVELLE LOGIQUE D'ÉVITEMENT "GLISSANT" ---
+                    # On calcule un vecteur tangent à l'obstacle pour "glisser" le long.
+                    
+                    # Vecteur de l'unité vers l'obstacle
+                    to_obstacle = vec_to_obs / dist_to_obs
+                    
+                    # Calculer les deux vecteurs tangents (perpendiculaires au vecteur vers l'obstacle)
+                    tangent1 = np.array([-to_obstacle[1], to_obstacle[0]]) # Tangente "gauche"
+                    tangent2 = np.array([to_obstacle[1], -to_obstacle[0]]) # Tangente "droite"
+                    
+                    # Normaliser le vecteur de direction désiré pour la comparaison
+                    if np.linalg.norm(desired_direction_vector) > 0:
+                        normalized_desired = desired_direction_vector / np.linalg.norm(desired_direction_vector)
+                    else:
+                        normalized_desired = np.array([0.0, 0.0])
+
+                    # Choisir la tangente qui est la plus alignée avec la direction désirée
+                    if np.dot(tangent1, normalized_desired) > np.dot(tangent2, normalized_desired):
+                        avoid_vec = tangent1
+                    else:
+                        avoid_vec = tangent2
+                    
+                    # Poids de l'évitement : plus fort quand on est proche
+                    weight = (1.0 - (dist_to_obs / (2.5 * TILE_SIZE))) ** 2 * 3.0 # Poids quadratique
                     avoidance_vector += avoid_vec * weight
                     total_avoidance_weight += weight
 
         # --- 3. Combinaison des vecteurs de direction ---
-        final_direction_vector = desired_direction_vector
+        # Normaliser le vecteur d'évitement s'il est utilisé
         if total_avoidance_weight > 0:
-             # Normaliser le vecteur d'évitement combiné
-             avoidance_vector /= total_avoidance_weight
+            # Normalisation prudente pour éviter la division par zéro
+            norm = np.linalg.norm(avoidance_vector)
+            if norm > 0.01:
+                avoidance_vector /= norm
  
         # --- NOUVEAU: Calcul du vecteur de flocking ---
         flocking_vector = self._calculate_flocking_vectors(pos, ent, team)
 
         # --- 4. Combinaison finale des vecteurs ---
         # Poids pour chaque comportement (ajustables)
-        WEIGHT_PATH = 1.0      # Suivi du chemin
-        WEIGHT_AVOIDANCE = 2.5 # Évitement des dangers
-        WEIGHT_FLOCKING = 0.8  # Comportement de groupe
+        # Le poids de l'évitement est maintenant géré par un "blend_factor"
+        # pour éviter les conflits directs.
+        WEIGHT_PATH = 1.0
+        WEIGHT_FLOCKING = 0.5  # Réduit pour prioriser le chemin et l'évitement
 
-        # Combinaison pondérée
-        final_direction_vector = (
-            desired_direction_vector * WEIGHT_PATH +
-            avoidance_vector * WEIGHT_AVOIDANCE +
-            flocking_vector * WEIGHT_FLOCKING
-        )
+        # Calcul du "blend_factor" : à quel point on doit se concentrer sur l'évitement.
+        # Il est proportionnel au poids total des menaces détectées.
+        # On le limite à 0.9 pour toujours garder un peu de direction vers la cible.
+        blend_factor = min(0.9, total_avoidance_weight / 3.0) # 3.0 est une valeur d'ajustement
+
+        # --- NOUVELLE LOGIQUE DE COMBINAISON ---
+        # Si le blend_factor est très élevé (danger imminent), on donne la priorité à l'évitement.
+        # Sinon, on mélange les comportements.
+        if blend_factor > 0.7: # Seuil de "panique" pour l'évitement
+            # On ignore presque le chemin et on se concentre sur l'évitement et un peu de flocking
+            final_direction_vector = avoidance_vector * 0.9 + flocking_vector * 0.1
+        else:
+            # Combinaison pondérée classique
+            # On combine d'abord le chemin et le flocking
+            path_and_flock_vector = desired_direction_vector * WEIGHT_PATH + flocking_vector * WEIGHT_FLOCKING
+            # Ensuite, on "mélange" avec le vecteur d'évitement
+            final_direction_vector = (1.0 - blend_factor) * path_and_flock_vector + blend_factor * avoidance_vector
+
+        # --- NOUVEAU: Lissage de la direction pour éviter la panique ---
+        steering = esper.component_for_entity(ent, SteeringComponent)
+        
+        # Lissage adaptatif : on lisse moins quand on doit éviter un danger.
+        # Si blend_factor est élevé (danger), le lissage diminue.
+        SMOOTHING_BASE = 0.90 # Lissage de base élevé pour des mouvements fluides
+        SMOOTHING_FACTOR = SMOOTHING_BASE * (1.0 - blend_factor * 0.5)
+        
+        # On combine le vecteur de la frame précédente avec le nouveau vecteur désiré.
+        smoothed_vector = (steering.last_velocity_vector * SMOOTHING_FACTOR) + (final_direction_vector * (1.0 - SMOOTHING_FACTOR))
+
+        # On met à jour le vecteur de la frame précédente pour la prochaine itération.
+        steering.last_velocity_vector = smoothed_vector
 
         # Normaliser le vecteur final s'il n'est pas nul
-        if np.linalg.norm(final_direction_vector) > 0.01:
-            final_direction_vector /= np.linalg.norm(final_direction_vector)
+        if np.linalg.norm(smoothed_vector) > 0.01:
+            final_direction_vector = smoothed_vector / np.linalg.norm(smoothed_vector)
         else:
             # Si le vecteur est nul (forces opposées), on garde la direction du chemin
             final_direction_vector = desired_direction_vector
@@ -444,37 +544,66 @@ class KamikazeAiProcessor(esper.Processor):
         center_y = (base_y_min + BASE_SIZE / 2)
         return PositionComponent(x=center_x * TILE_SIZE, y=center_y * TILE_SIZE)
 
-    def find_best_kamikaze_target(self, my_pos: PositionComponent, my_team_id: int) -> PositionComponent:
+    def find_best_kamikaze_target(self, my_pos: PositionComponent, my_team_id: int, current_target_id: Optional[int]) -> Tuple[Optional[PositionComponent], Optional[int]]:
         enemy_team_id = 2 if my_team_id == 1 else 1
         DETECTION_RADIUS = 10 * TILE_SIZE
         best_target = None
+        best_target_id = None
         best_score = float('inf')
 
+        # Seuil pour changer de cible. On ne change que si la nouvelle cible est 15% meilleure.
+        STICKINESS_THRESHOLD = 0.85
         # Facteur de pondération : à quel point la santé est plus importante que la distance.
         # Une valeur de 5 * TILE_SIZE signifie qu'une unité avec 0% de vie a un "bonus" équivalent
         # à être 5 cases plus proche.
         HEALTH_WEIGHT = 5 * TILE_SIZE
 
+        # Itérer sur toutes les entités avec les composants de base pour une cible potentielle
         for ent, (pos, team, health) in esper.get_components(PositionComponent, TeamComponent, HealthComponent):
-            if team.team_id == enemy_team_id and getattr(health, 'maxHealth', 0) > 200:
-                # Cible potentielle (unité lourde)
-                distance = math.hypot(pos.x - my_pos.x, pos.y - my_pos.y)
+            if team.team_id == enemy_team_id:
+                # Une cible est prioritaire si c'est une unité lourde OU un autre kamikaze
+                is_heavy_unit = getattr(health, 'maxHealth', 0) > 200
+                is_kamikaze_unit = esper.has_component(ent, SpeKamikazeComponent)
 
-                if distance < DETECTION_RADIUS:
-                    health_ratio = health.currentHealth / health.maxHealth if health.maxHealth > 0 else 1.0
-                    
-                    # Calcul du score : on favorise la distance faible et la santé faible.
-                    # Le score est la distance, réduite par un facteur lié aux dégâts subis.
-                    score = distance - (1.0 - health_ratio) * HEALTH_WEIGHT
+                if is_heavy_unit or is_kamikaze_unit:
+                    # Cible potentielle (unité lourde ou kamikaze)
+                    distance = math.hypot(pos.x - my_pos.x, pos.y - my_pos.y)
 
-                    if score < best_score:
-                        best_score = score
-                        best_target = pos
+                    if distance < DETECTION_RADIUS:
+                        health_ratio = health.currentHealth / health.maxHealth if health.maxHealth > 0 else 1.0
+                        
+                        # Calcul du score : on favorise la distance faible et la santé faible.
+                        score = distance - (1.0 - health_ratio) * HEALTH_WEIGHT
 
-        if best_target is not None:
-            return best_target
-        # Si aucune cible lourde n'est trouvée, cibler la base ennemie.
-        return self.find_enemy_base_position(my_team_id)
+                        if score < best_score:
+                            best_score = score
+                            best_target_id = ent
+                            best_target = pos
+
+        # Logique de persistance de la cible
+        if current_target_id and esper.entity_exists(current_target_id):
+            # Calculer le score de la cible actuelle
+            current_target_pos = esper.component_for_entity(current_target_id, PositionComponent)
+            current_target_health = esper.component_for_entity(current_target_id, HealthComponent)
+            current_dist = math.hypot(current_target_pos.x - my_pos.x, current_target_pos.y - my_pos.y)
+            current_health_ratio = current_target_health.currentHealth / current_target_health.maxHealth if current_target_health.maxHealth > 0 else 1.0
+            current_score = current_dist - (1.0 - current_health_ratio) * HEALTH_WEIGHT
+
+            # On ne change de cible que si la nouvelle est significativement meilleure
+            if best_score < current_score * STICKINESS_THRESHOLD:
+                # La nouvelle cible est bien meilleure, on la retourne
+                return best_target, best_target_id
+            else:
+                # La nouvelle cible n'est pas assez intéressante, on garde l'actuelle
+                return current_target_pos, current_target_id
+
+        # Si pas de cible actuelle ou si la nouvelle est bien meilleure
+        if best_target:
+            return best_target, best_target_id
+        
+        # Si aucune cible prioritaire n'est trouvée, cibler la base ennemie.
+        enemy_base_pos = self.find_enemy_base_position(my_team_id)
+        return enemy_base_pos, None # Pas d'ID d'entité pour la base
 
     def get_nearby_obstacles(self, my_pos: PositionComponent, radius: float, my_team_id: int) -> List[PositionComponent]:
         obstacles = []
