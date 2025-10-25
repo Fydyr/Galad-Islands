@@ -48,7 +48,7 @@ class AILeviathanProcessor(esper.Processor):
 
         # Entity cache for performance
         self.entity_cache = {}
-        self.cache_update_frequency = 10  # Update every 10 frames instead of 5
+        self.cache_update_frequency = 30  # Update every 30 frames (~0.5s at 60fps) - less frequent for better perf
         self.cache_frame_counter = 0
 
         # Timing
@@ -75,7 +75,7 @@ class AILeviathanProcessor(esper.Processor):
         self.min_movement_distance = 25.0  # pixels (minimum movement to not be considered stuck)
         self.unstuck_cooldown = 4.0  # seconds between unstuck attempts
 
-        logger.info("AILeviathanProcessor initialized with decision tree and A* pathfinding")
+        # Initialization complete
 
     def process(self, *args, **kwargs):
         """
@@ -86,7 +86,6 @@ class AILeviathanProcessor(esper.Processor):
         # Initialize pathfinder if map_grid is available but pathfinder not yet created
         if self.map_grid is not None and self.pathfinder is None:
             self.pathfinder = Pathfinder(self.map_grid, TILE_SIZE)
-            logger.info("Pathfinder initialized successfully")
 
         # Calculate dt from elapsed time tracking
         import time
@@ -119,12 +118,10 @@ class AILeviathanProcessor(esper.Processor):
             ai_entities_found += 1
 
             if not ai_comp.enabled:
-                logger.debug(f"Entity {entity}: AI disabled")
                 continue
 
             # Disable AI if player is controlling this unit
             if esper.has_component(entity, PlayerSelectedComponent):
-                logger.debug(f"Entity {entity}: Player controlled, skipping AI")
                 continue
 
             # CRITICAL: Decrement attack cooldown for AI units
@@ -137,23 +134,11 @@ class AILeviathanProcessor(esper.Processor):
             if not ai_comp.isReadyForAction(self.elapsed_time):
                 continue
 
-            # Log first time entity is processed
-            if not hasattr(self, '_first_entity_processed'):
-                self._first_entity_processed = True
-                logger.info(f"AI processing entity {entity} (team {team.team_id}) at position ({pos.x:.0f}, {pos.y:.0f})")
-
             # Extract current game state
             state = self._extractGameState(entity, pos, vel, health, team)
 
             # Make decision using decision tree
             action = self.decision_tree.decide(state)
-
-            # Debug log for first action only
-            if ai_comp.actions_taken == 0:
-                logger.info(f"AI entity {entity} (team {team.team_id}) started - Target: enemy base at distance {state.distance_to_base:.0f}")
-
-            # DEBUG: Log action chosen (disabled for performance)
-            # logger.debug(f"AI entity {entity} ACTION: {action} (enemies={state.enemies_count}, nearest_dist={state.nearest_enemy_distance:.0f})")
 
             # Execute the chosen action
             self._executeAction(entity, action, pos, vel, spe_lev, state)
@@ -195,13 +180,16 @@ class AILeviathanProcessor(esper.Processor):
         nearest_enemy_angle = enemy_info[2]  # Already in degrees
         enemies_count = int(enemy_info[0])
 
-        # Check for island ahead with wider detection cone for better obstacle avoidance
-        look_ahead_distance = 300  # Increased from 150 to give more reaction time at max speed
-
-        # Check multiple points in a cone ahead (center, left, right)
+        # OPTIMIZED: Check for island ahead - fewer checks, vectorized
+        look_ahead_distance = 300
         nearest_island_ahead = False
-        for angle_offset in [0, -20, 20, -35, 35]:  # Check center and sides
-            check_angle = (pos.direction + angle_offset) * np.pi / 180
+
+        # Reduce checks from 5 to 3 for performance
+        angle_offsets = [0, -30, 30]
+        direction_rad = pos.direction * np.pi / 180
+
+        for angle_offset in angle_offsets:
+            check_angle = direction_rad + (angle_offset * np.pi / 180)
             ahead_x = pos.x + look_ahead_distance * np.cos(check_angle)
             ahead_y = pos.y + look_ahead_distance * np.sin(check_angle)
             if self._isIslandAtPosition(ahead_x, ahead_y):
@@ -301,9 +289,6 @@ class AILeviathanProcessor(esper.Processor):
         target_angle = state.nearest_enemy_angle
         angle_diff = (target_angle - pos.direction + 180) % 360 - 180
 
-        # DEBUG: Log rotation details (temporarily enabled)
-        logger.info(f"AI entity {entity} ROTATION: current_dir={pos.direction:.1f}, target_angle={target_angle:.1f}, angle_diff={angle_diff:.1f}")
-
         # VERY relaxed alignment thresholds - AI shoots more easily!
         ALIGN_TOLERANCE_ATTACK = 50.0  # Very loose - shoot almost always when facing enemy
         ALIGN_TOLERANCE_SPECIAL = 60.0  # More relaxed for special ability - use it more often!
@@ -338,12 +323,10 @@ class AILeviathanProcessor(esper.Processor):
             if state.nearest_enemy_distance < MIN_ENEMY_DISTANCE:
                 # Too close - back up
                 vel.currentSpeed = vel.maxReverseSpeed
-                logger.debug(f"AI entity {entity}: Enemy too close ({state.nearest_enemy_distance:.0f}), backing up")
 
             elif state.nearest_enemy_distance > MAX_ENEMY_DISTANCE:
                 # Too far - approach quickly
                 vel.currentSpeed = vel.maxUpSpeed
-                logger.debug(f"AI entity {entity}: Enemy too far ({state.nearest_enemy_distance:.0f}), approaching")
 
             elif state.nearest_enemy_distance > OPTIMAL_ENEMY_DISTANCE:
                 # Slightly too far - approach carefully
@@ -367,13 +350,9 @@ class AILeviathanProcessor(esper.Processor):
             # Automatically enable/disable lateral shooting based on enemy position
             if radius.can_shoot_from_side:
                 if enemy_on_side and in_attack_range:
-                    if not radius.lateral_shooting:
-                        radius.lateral_shooting = True
-                        logger.info(f"AI entity {entity}: Enabled lateral shooting (enemy at {angle_diff:.1f}°)")
+                    radius.lateral_shooting = True
                 elif not enemy_on_side:
-                    if radius.lateral_shooting:
-                        radius.lateral_shooting = False
-                        logger.debug(f"AI entity {entity}: Disabled lateral shooting")
+                    radius.lateral_shooting = False
 
             if in_attack_range and abs(angle_diff) < ALIGN_TOLERANCE_ATTACK:
                 # Activate special ability VERY AGGRESSIVELY - use it whenever possible!
@@ -382,20 +361,17 @@ class AILeviathanProcessor(esper.Processor):
 
                 if should_use_special:
                     spe_lev.activate()
-                    logger.info(f"AI entity {entity} activated special ability AGGRESSIVELY (enemies={state.enemies_count}, dist={state.nearest_enemy_distance:.0f}, angle={angle_diff:.1f})")
 
                 # Fire normal attack ALWAYS when cooldown is ready
                 if radius.cooldown <= 0:
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
-                    logger.debug(f"AI entity {entity}: Attacking enemy at distance={state.nearest_enemy_distance:.0f}, angle_diff={angle_diff:.1f})")
 
             # Also fire lateral shots if enemy is on the side
             elif in_attack_range and enemy_on_side and radius.lateral_shooting:
                 if radius.cooldown <= 0:
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
-                    logger.info(f"AI entity {entity}: Firing lateral shots at enemy on side (angle={angle_diff:.1f}°)")
 
     def _attackBase(
         self,
@@ -421,9 +397,7 @@ class AILeviathanProcessor(esper.Processor):
         # Disable lateral shooting when attacking base - focus all fire forward
         if esper.has_component(entity, RadiusComponent):
             radius = esper.component_for_entity(entity, RadiusComponent)
-            if radius.lateral_shooting:
-                radius.lateral_shooting = False
-                logger.debug(f"AI entity {entity}: Disabled lateral shooting for base attack")
+            radius.lateral_shooting = False
 
         # Calculate angle difference to target
         target_angle = state.angle_to_base
@@ -475,17 +449,14 @@ class AILeviathanProcessor(esper.Processor):
             if state.distance_to_base > MAX_ATTACK_RANGE:
                 # Too far - approach quickly
                 vel.currentSpeed = vel.maxUpSpeed
-                logger.debug(f"AI entity {entity}: Approaching base, distance={state.distance_to_base:.0f}, angle_diff={angle_diff:.1f}")
 
             elif state.distance_to_base > OPTIMAL_ATTACK_DISTANCE:
                 # Within max range but not aligned - approach carefully
                 vel.currentSpeed = vel.maxUpSpeed
-                logger.debug(f"AI entity {entity}: Moving to optimal distance, distance={state.distance_to_base:.0f}")
 
             elif state.distance_to_base < MIN_SAFE_DISTANCE:
                 # Too close - back up
                 vel.currentSpeed = vel.maxReverseSpeed
-                logger.debug(f"AI entity {entity}: Too close to base, backing up, distance={state.distance_to_base:.0f}")
 
             else:
                 # Good distance but not aligned - turn in place
@@ -505,13 +476,11 @@ class AILeviathanProcessor(esper.Processor):
 
                 if should_use_special:
                     spe_lev.activate()
-                    logger.info(f"AI entity {entity} activated special ability against BASE AGGRESSIVELY (enemies_nearby={state.enemies_count}, dist={state.distance_to_base:.0f}, angle={angle_diff:.1f})")
 
                 # Fire normal attack ALWAYS when cooldown is ready
                 if radius.cooldown <= 0:
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
-                    logger.debug(f"AI entity {entity}: Attacking base at distance={state.distance_to_base:.0f}, angle_diff={angle_diff:.1f}")
 
     def _avoidObstacle(
         self,
@@ -576,7 +545,6 @@ class AILeviathanProcessor(esper.Processor):
             # Everything blocked - back up and turn around
             vel.currentSpeed = vel.maxReverseSpeed
             pos.direction = (pos.direction + 180) % 360
-            logger.warning(f"Entity {entity}: Completely blocked, backing up and turning around!")
 
         # Invalidate path when avoiding obstacle
         if hasattr(self, '_entity_paths') and entity in self._entity_paths:
@@ -671,8 +639,6 @@ class AILeviathanProcessor(esper.Processor):
             self._stuck_detection[entity]['last_unstuck_time'] = self.elapsed_time
             self._stuck_detection[entity]['last_position'] = (pos.x, pos.y)
 
-        logger.debug(f"Entity {entity} unstuck maneuver: turned to {pos.direction:.0f}°")
-
     def _isPathBlocked(self, path: list, obstacles: list) -> bool:
         """
         Check if a path is blocked by obstacles.
@@ -724,13 +690,7 @@ class AILeviathanProcessor(esper.Processor):
             vel: Velocity component
             state: Current game state
         """
-        # DISABLED: Stuck detection interferes with attack behavior
-        # The AI intentionally stops to fire, which was incorrectly detected as "stuck"
-        # Check if entity is stuck (only when trying to move)
-        # if self._isStuck(entity, pos, vel):
-        #     logger.info(f"Entity {entity} is stuck, attempting unstuck maneuver")
-        #     self._unstuck(entity, pos, vel)
-        #     return
+        # Stuck detection disabled - interferes with attack behavior
 
         # Use enemy base position from state (already calculated)
         enemy_base_pos = state.enemy_base_position
@@ -786,17 +746,11 @@ class AILeviathanProcessor(esper.Processor):
                     self._entity_path_targets[entity] = enemy_base_pos
                     # Record recalculation time
                     self._path_recalc_cooldown[entity] = self.elapsed_time
-                    if not self._first_navigation_logged:
-                        logger.info(f"A* path found with {len(path)} waypoints from {current_pos} to {enemy_base_pos}")
-                        self._first_navigation_logged = True
                 else:
                     # No path found, clear cached path
                     self._entity_paths[entity] = []
                     # Record recalculation time even on failure to avoid constant retrying
                     self._path_recalc_cooldown[entity] = self.elapsed_time
-                    if not self._first_navigation_logged:
-                        logger.warning(f"A* pathfinding failed from {current_pos} to {enemy_base_pos}")
-                        self._first_navigation_logged = True
 
             # Get next waypoint from path
             if entity in self._entity_paths and self._entity_paths[entity]:
@@ -811,7 +765,6 @@ class AILeviathanProcessor(esper.Processor):
                 turn_direction = random.choice([-45, 45])  # Turn left or right
                 pos.direction = (pos.direction + turn_direction) % 360
                 vel.currentSpeed = vel.maxUpSpeed
-                logger.debug(f"Entity {entity}: Obstacle ahead in fallback mode, turning {turn_direction}°")
                 return
 
             # Navigate directly to base
@@ -878,7 +831,7 @@ class AILeviathanProcessor(esper.Processor):
         from src.components.core.attackComponent import AttackComponent
         try:
             from src.components.events.stormComponent import Storm
-            for storm_entity, (storm_pos, storm_comp) in esper.get_components(PositionComponent, Storm):
+            for _, (storm_pos, _) in esper.get_components(PositionComponent, Storm):
                 # Use storm radius from settings (1.5 tiles)
                 storm_radius = 1.5 * TILE_SIZE
                 self.entity_cache['storms'].append((storm_pos.x, storm_pos.y, storm_radius))
@@ -888,7 +841,7 @@ class AILeviathanProcessor(esper.Processor):
         # Cache bandits
         try:
             from src.components.events.banditsComponent import Bandits
-            for bandit_entity, (bandit_pos, bandit_comp) in esper.get_components(PositionComponent, Bandits):
+            for _, (bandit_pos, _) in esper.get_components(PositionComponent, Bandits):
                 # Bandits have a larger avoidance radius to give AI space to maneuver
                 bandit_radius = 2.0 * TILE_SIZE
                 self.entity_cache['bandits'].append((bandit_pos.x, bandit_pos.y, bandit_radius))
@@ -990,7 +943,7 @@ class AILeviathanProcessor(esper.Processor):
 
     def _getNearbyMines(self, pos: PositionComponent) -> float:
         """
-        Detect nearby mines by scanning the map grid.
+        OPTIMIZED: Detect nearby mines by scanning the map grid with early exit.
 
         Returns:
             min_distance to nearest mine (or inf if none)
@@ -1008,22 +961,31 @@ class AILeviathanProcessor(esper.Processor):
 
         tile_radius = int(detection_radius // TILE_SIZE) + 1
 
-        for dy in range(-tile_radius, tile_radius + 1):
-            for dx in range(-tile_radius, tile_radius + 1):
-                grid_x = center_grid_x + dx
-                grid_y = center_grid_y + dy
+        # OPTIMIZED: Check in spiral pattern for early exit
+        for radius in range(tile_radius + 1):
+            for dy in range(-radius, radius + 1):
+                for dx in range(-radius, radius + 1):
+                    # Skip already checked cells
+                    if abs(dx) < radius and abs(dy) < radius:
+                        continue
 
-                if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
-                    tile_type = self.map_grid[grid_y][grid_x]
+                    grid_x = center_grid_x + dx
+                    grid_y = center_grid_y + dy
 
-                    if TileType(tile_type) == TileType.MINE:
-                        mine_world_x = (grid_x + 0.5) * TILE_SIZE
-                        mine_world_y = (grid_y + 0.5) * TILE_SIZE
+                    if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
+                        tile_type = self.map_grid[grid_y][grid_x]
 
-                        distance = ((mine_world_x - pos.x) ** 2 + (mine_world_y - pos.y) ** 2) ** 0.5
+                        if TileType(tile_type) == TileType.MINE:
+                            mine_world_x = (grid_x + 0.5) * TILE_SIZE
+                            mine_world_y = (grid_y + 0.5) * TILE_SIZE
 
-                        if distance < detection_radius:
-                            min_distance = min(min_distance, distance)
+                            distance = ((mine_world_x - pos.x) ** 2 + (mine_world_y - pos.y) ** 2) ** 0.5
+
+                            if distance < detection_radius:
+                                min_distance = min(min_distance, distance)
+                                # Early exit if we found a close mine
+                                if min_distance < 200:
+                                    return min_distance
 
         return min_distance
 
@@ -1069,9 +1031,6 @@ class AILeviathanProcessor(esper.Processor):
             True if position is on an island
         """
         if self.map_grid is None:
-            if not hasattr(self, '_map_grid_warning_logged'):
-                logger.warning("Map grid not initialized for AI pathfinding!")
-                self._map_grid_warning_logged = True
             return False
 
         try:
@@ -1086,8 +1045,7 @@ class AILeviathanProcessor(esper.Processor):
             else:
                 # Out of bounds
                 return False
-        except Exception as e:
-            logger.error(f"Error checking island at ({x:.0f}, {y:.0f}): {e}")
+        except Exception:
             return False
 
     def _isBaseVisible(self, entity: int, base_position: Tuple[float, float]) -> bool:
@@ -1121,11 +1079,12 @@ class AILeviathanProcessor(esper.Processor):
 
     def _getObstaclesAround(self, pos: PositionComponent, radius: float = 1000, team: TeamComponent = None) -> list:
         """
-        Get all obstacles (islands, storms, bandits, mines) around a position.
+        OPTIMIZED: Get all obstacles (islands, storms, bandits, mines) around a position.
 
         Note:
         - Enemy units are NOT included - decision tree handles combat
         - Only real blocking obstacles are returned
+        - Uses pre-computed pathfinder cache for islands/mines
 
         Args:
             pos: Position to check around
@@ -1137,56 +1096,41 @@ class AILeviathanProcessor(esper.Processor):
         """
         obstacles = []
 
-        if self.map_grid is not None:
-            from src.settings.settings import MAP_WIDTH, MAP_HEIGHT
-
+        # OPTIMIZED: Use pathfinder's pre-computed cache if available
+        if self.pathfinder is not None and hasattr(self.pathfinder, '_blocked_cache'):
             center_grid_x = int(pos.x // TILE_SIZE)
             center_grid_y = int(pos.y // TILE_SIZE)
-
             tile_radius = int(radius // TILE_SIZE) + 2
 
-            for dy in range(-tile_radius, tile_radius + 1):
-                for dx in range(-tile_radius, tile_radius + 1):
-                    grid_x = center_grid_x + dx
-                    grid_y = center_grid_y + dy
+            # Only check blocked cells from cache (much faster)
+            for blocked_pos in self.pathfinder._blocked_cache.keys():
+                grid_x, grid_y = blocked_pos
 
-                    if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
-                        tile_type = self.map_grid[grid_y][grid_x]
+                # Quick distance check in grid space first
+                if abs(grid_x - center_grid_x) > tile_radius or abs(grid_y - center_grid_y) > tile_radius:
+                    continue
 
-                        # Add islands as obstacles from the map grid
-                        if TileType(tile_type).is_island():
-                            world_x = (grid_x + 0.5) * TILE_SIZE
-                            world_y = (grid_y + 0.5) * TILE_SIZE
+                world_x = (grid_x + 0.5) * TILE_SIZE
+                world_y = (grid_y + 0.5) * TILE_SIZE
 
-                            dist = ((world_x - pos.x) ** 2 + (world_y - pos.y) ** 2) ** 0.5
-                            if dist < radius:
-                                obstacle_radius = TILE_SIZE * 1.5
-                                obstacles.append((world_x, world_y, obstacle_radius))
-
-                        # Add mines as obstacles from the map grid
-                        elif TileType(tile_type) == TileType.MINE:
-                            world_x = (grid_x + 0.5) * TILE_SIZE
-                            world_y = (grid_y + 0.5) * TILE_SIZE
-
-                            dist = ((world_x - pos.x) ** 2 + (world_y - pos.y) ** 2) ** 0.5
-                            if dist < radius:
-                                # Larger radius to ensure safe clearance
-                                obstacle_radius = TILE_SIZE * 1.2
-                                obstacles.append((world_x, world_y, obstacle_radius))
+                # Distance check in world space
+                dist_sq = (world_x - pos.x) ** 2 + (world_y - pos.y) ** 2
+                if dist_sq < radius * radius:
+                    obstacle_radius = TILE_SIZE * 1.5
+                    obstacles.append((world_x, world_y, obstacle_radius))
 
         if not self.entity_cache:
             self._updateEntityCache()
 
-        # Add storms (tornades)
+        # Add storms and bandits from cache (much faster than scanning all entities)
         for storm_x, storm_y, storm_radius in self.entity_cache['storms']:
-            dist = ((storm_x - pos.x) ** 2 + (storm_y - pos.y) ** 2) ** 0.5
-            if dist < radius:
+            dist_sq = (storm_x - pos.x) ** 2 + (storm_y - pos.y) ** 2
+            if dist_sq < radius * radius:
                 obstacles.append((storm_x, storm_y, storm_radius))
 
-        # Add bandits
         for bandit_x, bandit_y, bandit_radius in self.entity_cache['bandits']:
-            dist = ((bandit_x - pos.x) ** 2 + (bandit_y - pos.y) ** 2) ** 0.5
-            if dist < radius:
+            dist_sq = (bandit_x - pos.x) ** 2 + (bandit_y - pos.y) ** 2
+            if dist_sq < radius * radius:
                 obstacles.append((bandit_x, bandit_y, bandit_radius))
 
         return obstacles

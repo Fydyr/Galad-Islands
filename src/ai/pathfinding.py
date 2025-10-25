@@ -36,6 +36,10 @@ class Pathfinder:
         # Safety margin around static obstacles (islands, mines)
         self.static_obstacle_margin = tile_size * 0.5  # Half a tile margin
 
+        # PERFORMANCE: Pre-compute blocked cells cache
+        self._blocked_cache = {}
+        self._buildBlockedCache()
+
     def findPath(
         self,
         start: Tuple[float, float],
@@ -65,7 +69,7 @@ class Pathfinder:
             return None
 
         # If goal is on an island, find nearest valid position
-        if self._isIsland(goal_grid):
+        if goal_grid in self._blocked_cache:
             goal_grid = self._findNearestValidPosition(goal_grid)
             if goal_grid is None:
                 return None
@@ -126,11 +130,8 @@ class Pathfinder:
                 if not self._isValidGrid(neighbor):
                     continue
 
-                if self._isIsland(neighbor):
-                    continue
-
-                # Check if neighbor is a mine
-                if self._isMine(neighbor):
+                # OPTIMIZED: Use pre-computed cache instead of recalculating
+                if neighbor in self._blocked_cache:
                     continue
 
                 # Check for dynamic obstacles (storms, bandits, mines)
@@ -278,8 +279,50 @@ class Pathfinder:
 
         return False
 
+    def _buildBlockedCache(self):
+        """Pre-compute all blocked cells (islands + mines with safety margins) - HUGE PERFORMANCE BOOST"""
+        from src.constants.map_tiles import TileType
+
+        if self.map_grid is None:
+            return
+
+        # Reset cache
+        self._blocked_cache = {}
+
+        # First pass: mark all islands and mines
+        for y in range(self.map_height):
+            for x in range(self.map_width):
+                try:
+                    tile_type = self.map_grid[y][x]
+                    if TileType(tile_type).is_island() or TileType(tile_type) == TileType.MINE:
+                        self._blocked_cache[(x, y)] = True
+                except:
+                    self._blocked_cache[(x, y)] = True
+
+        # Second pass: mark cells within safety margin of islands/mines
+        blocked_positions = list(self._blocked_cache.keys())
+        for blocked_pos in blocked_positions:
+            # Check 3x3 neighborhood
+            for dy in range(-1, 2):
+                for dx in range(-1, 2):
+                    if dx == 0 and dy == 0:
+                        continue
+
+                    neighbor = (blocked_pos[0] + dx, blocked_pos[1] + dy)
+                    if not self._isValidGrid(neighbor):
+                        continue
+
+                    # Calculate distance
+                    blocked_world = self._gridToWorld(blocked_pos)
+                    neighbor_world = self._gridToWorld(neighbor)
+                    distance = ((blocked_world[0] - neighbor_world[0]) ** 2 +
+                              (blocked_world[1] - neighbor_world[1]) ** 2) ** 0.5
+
+                    if distance < self.static_obstacle_margin:
+                        self._blocked_cache[neighbor] = True
+
     def _findNearestValidPosition(self, pos: Tuple[int, int]) -> Optional[Tuple[int, int]]:
-        """Find nearest non-island position."""
+        """Find nearest non-blocked position - OPTIMIZED with cache."""
         for radius in range(1, 20):
             for dx in range(-radius, radius + 1):
                 for dy in range(-radius, radius + 1):
@@ -287,7 +330,7 @@ class Pathfinder:
                         continue
 
                     neighbor = (pos[0] + dx, pos[1] + dy)
-                    if self._isValidGrid(neighbor) and not self._isIsland(neighbor):
+                    if self._isValidGrid(neighbor) and neighbor not in self._blocked_cache:
                         return neighbor
         return None
 
