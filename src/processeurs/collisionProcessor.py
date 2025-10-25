@@ -291,24 +291,6 @@ class CollisionProcessor(esper.Processor):
         is_mine2 = self._is_mine_entity(entity2)
         is_chest1 = esper.has_component(entity1, FlyingChestComponent)
         is_chest2 = esper.has_component(entity2, FlyingChestComponent)
-
-        # Si un projectile touche une mine, la mine ne prend pas de dégâts
-
-        # Gestion spéciale pour le Kamikaze
-        is_kamikaze1 = esper.has_component(entity1, SpeKamikazeComponent)
-        is_kamikaze2 = esper.has_component(entity2, SpeKamikazeComponent)
-
-        # Le Kamikaze explose sur tout, sauf les mines et les coffres.
-        if is_kamikaze1 and not is_mine2 and not is_chest2:
-            self._create_explosion_at_entity(entity1)
-            processHealth(entity2, esper.component_for_entity(entity1, Attack).hitPoints, entity1)
-            esper.delete_entity(entity1)
-            return # Fin du traitement pour cette paire
-        if is_kamikaze2 and not is_mine1 and not is_chest1:
-            self._create_explosion_at_entity(entity2)
-            processHealth(entity1, esper.component_for_entity(entity2, Attack).hitPoints, entity2)
-            esper.delete_entity(entity2)
-            return
         # Mais le projectile peut être détruit
         if (is_projectile1 and is_mine2) or (is_projectile2 and is_mine1):
             # Détruire seulement le projectile et créer une explosion
@@ -391,6 +373,20 @@ class CollisionProcessor(esper.Processor):
             if attack2 and health1:
                 health1.currentHealth -= int(attack2.hitPoints)
         
+        # --- GESTION SPÉCIALE KAMIKAZE ---
+        # Doit être après le dispatch pour que la mine prenne les dégâts avant d'être checkée.
+        is_kamikaze1 = esper.has_component(entity1, SpeKamikazeComponent)
+        is_kamikaze2 = esper.has_component(entity2, SpeKamikazeComponent)
+
+        # Le Kamikaze explose sur tout, sauf les coffres.
+        if is_kamikaze1 and not is_chest2:
+            self._create_explosion_at_entity(entity1)
+            esper.delete_entity(entity1)
+
+        if is_kamikaze2 and not is_chest1:
+            self._create_explosion_at_entity(entity2)
+            esper.delete_entity(entity2)
+
         # Si une mine touche une autre entité (par ex. un vaisseau), elle explose et disparaît
         if is_mine1:
             self._create_explosion_at_entity(entity1)
