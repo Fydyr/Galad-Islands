@@ -19,7 +19,7 @@
     - [5.2 Préparer l’environnement Python](#52-préparer-lenvironnement-python)
     - [5.3 Lancer le jeu](#53-lancer-le-jeu)
     - [5.4 Interagir avec les unités et observer l’IA](#54-interagir-avec-les-unités-et-observer-lia)
-  - [6. Réglages "avancés" utiles](#6-réglages-avancés-utiles)
+  - [6. Réglages avancés utiles](#6-réglages-avancés-utiles)
 
 ## 1. Informations générales
 
@@ -245,7 +245,7 @@ NOTE: Le système de navigation est hybride - les états demandent
 
 - **Relancer la scène** : revenir au menu principal via `Échap` puis « Jouer » pour réinitialiser la situation si nécessaire.
 
-## 6. Réglages "avancés" utiles
+## 6. Réglages avancés utiles
 
 - `assets/ia_troupe_rapide/config.json` (ou `config/ia_troupe_rapide.json` si présent) permet de surcharger les paramètres sans modifier le code.
 - Les seuils de danger (`DangerSettings`) contrôlent l’entrée/sortie de l’état `Flee` et l’agressivité globale.
