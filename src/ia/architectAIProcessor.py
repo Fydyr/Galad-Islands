@@ -159,31 +159,48 @@ class ArchitectAIProcessor(esper.Processor):
             if player_team.team_id == team.team_id:
                 player_gold = player_comp.get_gold()
                 break
+
+        # Calculate total allied HP
+        total_allies_hp = 0.0
+        total_allies_max_hp = 0.0
+        for _, (ally_health, ally_team) in esper.get_components(HealthComponent, TeamComponent):
+            if ally_team.team_id == team.team_id:
+                total_allies_hp += ally_health.currentHealth
+                total_allies_max_hp += ally_health.maxHealth
+
+
             
         return GameState(
+            # Core state
             current_position=(pos.x, pos.y),
             current_heading=pos.direction,
             current_hp=health.currentHealth,
             maximum_hp=health.maxHealth,
-            closest_foe_dist=closest_foe_dist,
+            player_gold=player_gold,
             team_id=team.team_id,
+            # Hostile unit info
+            closest_foe_dist=closest_foe_dist,
             closest_foe_bearing=closest_foe_bearing,
             closest_foe_team_id=closest_foe_team_id,
-            player_gold=player_gold,
             nearby_foes_count=nearby_foes_count,
+            # Ally info
             closest_ally_dist=closest_ally_dist,
             closest_ally_bearing=closest_ally_bearing,
             nearby_allies_count=nearby_allies_count,
+            total_allies_hp=total_allies_hp,
+            total_allies_max_hp=total_allies_max_hp,
+            # Island and strategic point info
             closest_island_dist=closest_island_dist,
             closest_island_bearing=closest_island_bearing,
             is_on_island=is_on_island,
+            island_groups=self._get_island_groups(),
+            # Mine and status info
             closest_mine_dist=closest_mine_dist,
             closest_mine_bearing=closest_mine_bearing,
             is_stuck=is_stuck,
+            # Architect-specific ability info
             architect_ability_available=ability_available,
             architect_ability_cooldown=ability_cooldown,
-            # Pass island group info to the state
-            island_groups=self._get_island_groups(),
         )
 
     def _execute_action(
@@ -642,18 +659,18 @@ class ArchitectAIProcessor(esper.Processor):
     
     def _build_defense_tower(self, entity: int):
         """Instructs the AI to build a defense tower at its current location."""
-        if self.grid is None:
+        if self.map_grid is None:
             return
         pos = esper.component_for_entity(entity, PositionComponent)
         team = esper.component_for_entity(entity, TeamComponent)
-        createDefenseTower(self.grid, pos, team)
+        createDefenseTower(self.map_grid, pos, team)
         logger.info(f"Architect AI (Entity {entity}) is building a defense tower.")
 
     def _build_heal_tower(self, entity: int):
         """Instructs the AI to build a heal tower at its current location."""
-        if self.grid is None:
+        if self.map_grid is None:
             return
         pos = esper.component_for_entity(entity, PositionComponent)
         team = esper.component_for_entity(entity, TeamComponent)
-        createHealTower(self.grid, pos, team)
+        createHealTower(self.map_grid, pos, team)
         logger.info(f"Architect AI (Entity {entity}) is building a heal tower.")

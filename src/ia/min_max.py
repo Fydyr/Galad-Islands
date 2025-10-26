@@ -5,6 +5,10 @@ import copy
 from typing import Tuple, Optional, List
 from dataclasses import dataclass
 import logging
+from src.settings.settings import TILE_SIZE
+
+DISTANCE_FROM_ISLAND = TILE_SIZE * 0.5  # Ideal distance from island edge for positioning
+DISTANCE_ON_ISLAND_THRESHOLD = 20.0  # Distance threshold to consider being "on" an island
 
 # --- AI Sensory Input ---
 @dataclass
@@ -27,6 +31,10 @@ class GameState:
     closest_ally_dist: Optional[float]
     closest_ally_bearing: Optional[float]
     nearby_allies_count: int
+    
+    # Global allied health information
+    total_allies_hp: float
+    total_allies_max_hp: float
 
     # Island and strategic point information
     closest_island_dist: Optional[float]
@@ -99,7 +107,17 @@ class ArchitectMinimax:
         if state.is_stuck:
             return DecisionAction.GET_UNSTUCK
 
-        current_actions = self.possible_actions
+        # --- Dynamically filter possible actions based on the current state ---
+        current_actions = self.possible_actions.copy()
+
+        # If on an island, the AI should consider building or doing nothing, not navigating to another one.
+        if state.is_on_island:
+            current_actions = [
+                DecisionAction.BUILD_DEFENSE_TOWER,
+                DecisionAction.BUILD_HEAL_TOWER,
+                DecisionAction.DO_NOTHING,
+                DecisionAction.CHOOSE_ANOTHER_ISLAND, # Keep as an escape option
+            ]
 
         best_score = -np.inf
         best_action = DecisionAction.DO_NOTHING
@@ -143,14 +161,32 @@ class ArchitectMinimax:
         """
         score = 0.0
 
-        # Being on an island is extremely bad. The AI should prioritize getting off it.
+        # --- Island Scoring for an Architect ---
+        # Being on an island is the primary goal for an Architect, especially if it has gold.
         if state.is_on_island:
-            score -= 2000
-        # Being close to an island is good for positioning.
+            score += 500
+            if state.player_gold >= self.TOWER_COST_THRESHOLD:
+                score += 300  # Extra points for being able to build.
+            # Add a small penalty if there are no enemies nearby, to encourage moving if idle.
+            if state.nearby_foes_count == 0:
+                score -= 50
         elif state.closest_island_dist is not None:
-            # Reward for being close, but the reward diminishes sharply as it gets very close to avoid getting stuck.
-            score += max(0, 500 - state.closest_island_dist) * 0.5
+            # High score for being close to an island. The closer, the better.
+            # The penalty for being far is significant.
+            score -= state.closest_island_dist * 0.5
 
+        # Being able to build is good.
+        if state.player_gold >= self.TOWER_COST_THRESHOLD and state.is_on_island:
+            # Bonus for being in a position to build a defense tower when enemies are near
+            if state.nearby_foes_count > 0:
+                score += 150
+
+        # --- Healing Tower Evaluation ---
+        # Bonus for being in a position to build a heal tower when allies are globally damaged.
+        if state.total_allies_max_hp > 0:
+            allied_health_ratio = state.total_allies_hp / state.total_allies_max_hp
+            if allied_health_ratio < 0.6 and state.player_gold >= self.TOWER_COST_THRESHOLD and state.is_on_island:
+                score += 180 # Strong incentive to build a heal tower
         return score
 
     def _get_next_state(self, current_state: GameState, action: str) -> GameState:
@@ -160,6 +196,15 @@ class ArchitectMinimax:
         """
         next_state = copy.deepcopy(current_state)
         move_dist = self.SIM_SPEED * self.SIM_TIME_STEP
+
+        # --- Simulate Action Effects ---
+        if action == DecisionAction.BUILD_DEFENSE_TOWER or action == DecisionAction.BUILD_HEAL_TOWER:
+            if next_state.is_on_island and next_state.player_gold >= self.TOWER_COST_THRESHOLD:
+                next_state.player_gold -= self.TOWER_COST_THRESHOLD
+                # Building is a good outcome, so we can return the state early with a high score implicitly.
+            # If it can't build, this action is invalid, so no change.
+            return next_state
+
 
         # --- Simulate Movement ---
         bearing = 0
@@ -182,7 +227,9 @@ class ArchitectMinimax:
             if next_state.closest_island_dist is not None:
                 # We moved directly towards the island
                 next_state.closest_island_dist -= move_dist
-                next_state.is_on_island = next_state.closest_island_dist < 50.0
+                next_state.is_on_island = next_state.closest_island_dist < DISTANCE_ON_ISLAND_THRESHOLD
+            if next_state.is_on_island:
+                print("IS ON ISLAND")
 
         # --- Simulate Action Effects ---
         if action == "OPPONENT_ADVANCE":  # Special case for opponent simulation
