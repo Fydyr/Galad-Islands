@@ -7,20 +7,19 @@ import logging
 import random
 from typing import Optional, Tuple
 
-# Assuming new components for the Architect unit exist
-from src.ia.architectAIComponent import ArchitectAIComponent
-from src.components.special.speArchitectComponent import SpeArchitect
-
 # Core components
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.playerComponent import PlayerComponent
-from src.components.core.baseComponent import BaseComponent # Import BaseComponent
+from src.components.core.baseComponent import BaseComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
+from src.components.special.speArchitectComponent import SpeArchitect
+from src.functions.buildingCreator import createDefenseTower, createHealTower
 
 # AI and pathfinding
+from src.ia.architectAIComponent import ArchitectAIComponent
 from src.ia.min_max import ArchitectMinimax, GameState, DecisionAction
 from src.ia.pathfinding import SimplePathfinder
 from src.settings.settings import TILE_SIZE
@@ -265,6 +264,14 @@ class ArchitectAIProcessor(esper.Processor):
                 # Here, we just trigger the component's activation state.
                 architect_comp.activate([], 0) # Pass empty list, actual affected units found by processor
             return # No movement for this action
+
+        elif action == DecisionAction.BUILD_DEFENSE_TOWER:
+            self._build_defense_tower(entity)
+            self._clear_path(entity)
+
+        elif action == DecisionAction.BUILD_HEAL_TOWER:
+            self._build_heal_tower(entity)
+            self._clear_path(entity)
 
         elif action == DecisionAction.DO_NOTHING:
             vel.currentSpeed = 0
@@ -593,11 +600,11 @@ class ArchitectAIProcessor(esper.Processor):
 
     def _get_angle_to_target(self, pos: PositionComponent, target_pos: Tuple[float, float]) -> float:
         """Calculates the angle from current position to a target."""
-        dx = target_pos[0] - pos.x
-        dy = target_pos[1] - pos.y
-        # Invert dy for arctan2 because Pygame's Y-axis is inverted (0 is at the top).
-        # Standard math functions assume Y increases upwards.
-        return (np.arctan2(-dy, dx) * 180 / np.pi + 360) % 360
+        # The movement processor SUBTRACTS cos/sin. To move TOWARDS the target,
+        # we must calculate the angle as if moving FROM the target to the entity.
+        dx = pos.x - target_pos[0]
+        dy = pos.y - target_pos[1]
+        return (np.arctan2(dy, dx) * 180 / np.pi + 360) % 360
 
     def _turn_and_move(self, pos: PositionComponent, vel: VelocityComponent, target_angle: float, speed: float):
         """Turns the entity towards a target angle and sets its speed."""
@@ -632,3 +639,21 @@ class ArchitectAIProcessor(esper.Processor):
         
         distance_moved = np.hypot(end_pos[0] - start_pos[0], end_pos[1] - start_pos[1])
         return distance_moved < TILE_SIZE * 0.5 # If moved less than half a tile in 3s
+    
+    def _build_defense_tower(self, entity: int):
+        """Instructs the AI to build a defense tower at its current location."""
+        if self.grid is None:
+            return
+        pos = esper.component_for_entity(entity, PositionComponent)
+        team = esper.component_for_entity(entity, TeamComponent)
+        createDefenseTower(self.grid, pos, team)
+        logger.info(f"Architect AI (Entity {entity}) is building a defense tower.")
+
+    def _build_heal_tower(self, entity: int):
+        """Instructs the AI to build a heal tower at its current location."""
+        if self.grid is None:
+            return
+        pos = esper.component_for_entity(entity, PositionComponent)
+        team = esper.component_for_entity(entity, TeamComponent)
+        createHealTower(self.grid, pos, team)
+        logger.info(f"Architect AI (Entity {entity}) is building a heal tower.")

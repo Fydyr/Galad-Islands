@@ -55,6 +55,8 @@ class DecisionAction:
     GET_UNSTUCK = "get_unstuck"
     MOVE_RANDOMLY = "move_randomly"
     DO_NOTHING = "do_nothing"
+    BUILD_DEFENSE_TOWER = "build_defense_tower"
+    BUILD_HEAL_TOWER = "build_heal_tower"
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +81,8 @@ class ArchitectMinimax:
         self.possible_actions = [
             DecisionAction.NAVIGATE_TO_ISLAND,
             DecisionAction.CHOOSE_ANOTHER_ISLAND,
+            DecisionAction.BUILD_DEFENSE_TOWER,
+            DecisionAction.BUILD_HEAL_TOWER,
         ]
 
     def decide(self, state: GameState) -> str:
