@@ -40,6 +40,7 @@ class GameState:
     closest_island_dist: Optional[float]
     closest_island_bearing: Optional[float]
     is_on_island: bool
+    is_tower_on_current_island: bool # New flag
     island_groups: List[List[Tuple[float, float]]] # Added to know about island clusters
 
     # Mine information
@@ -50,6 +51,7 @@ class GameState:
     # Architect-specific ability information
     architect_ability_available: bool
     architect_ability_cooldown: float
+    build_cooldown_active: bool # New flag for build cooldown
 
 
 # --- AI Action Definitions ---
@@ -110,14 +112,23 @@ class ArchitectMinimax:
         # --- Dynamically filter possible actions based on the current state ---
         current_actions = self.possible_actions.copy()
 
-        # If on an island, the AI should consider building or doing nothing, not navigating to another one.
-        if state.is_on_island:
-            current_actions = [
+        # The AI can build if it's on an island or very close to one.
+        can_reach_island_to_build = (state.is_on_island or (state.closest_island_dist is not None and state.closest_island_dist < TILE_SIZE * 4))
+
+        if can_reach_island_to_build:
+            # Only consider building if the cooldown is not active
+            current_actions = [] if state.build_cooldown_active else [
                 DecisionAction.BUILD_DEFENSE_TOWER,
                 DecisionAction.BUILD_HEAL_TOWER,
                 DecisionAction.DO_NOTHING,
-                DecisionAction.CHOOSE_ANOTHER_ISLAND, # Keep as an escape option
             ]
+            # The AI should consider leaving if:
+            # 1. It doesn't have enough gold.
+            # 2. A tower is already on the island it's on/near.
+            # We only check for existing towers if the AI is actually on the island.
+            is_obstructed = state.is_on_island and state.is_tower_on_current_island
+            if state.player_gold < self.TOWER_COST_THRESHOLD or is_obstructed:
+                current_actions.append(DecisionAction.CHOOSE_ANOTHER_ISLAND)
 
         best_score = -np.inf
         best_action = DecisionAction.DO_NOTHING
@@ -161,32 +172,34 @@ class ArchitectMinimax:
         """
         score = 0.0
 
-        # --- Island Scoring for an Architect ---
-        # Being on an island is the primary goal for an Architect, especially if it has gold.
-        if state.is_on_island:
-            score += 500
-            if state.player_gold >= self.TOWER_COST_THRESHOLD:
-                score += 300  # Extra points for being able to build.
-            # Add a small penalty if there are no enemies nearby, to encourage moving if idle.
-            if state.nearby_foes_count == 0:
-                score -= 50
-        elif state.closest_island_dist is not None:
-            # High score for being close to an island. The closer, the better.
-            # The penalty for being far is significant.
-            score -= state.closest_island_dist * 0.5
+        # --- Island Scoring: Architect needs to be NEAR an island, not ON it. ---
+        # An ideal distance is about 1-2 tiles away to build.
+        IDEAL_BUILD_DISTANCE = TILE_SIZE * 2
+        
+        if state.closest_island_dist is not None:
+            if state.is_on_island:
+                # Heavy penalty for being on an island, as it's an obstacle.
+                score -= 700
+            else:
+                # Reward being close to the ideal build distance.
+                # The score is highest at IDEAL_BUILD_DISTANCE and decreases as it moves away.
+                distance_error = abs(state.closest_island_dist - IDEAL_BUILD_DISTANCE)
+                score += 500 - distance_error * 0.8 # Strong incentive to be at the right range
 
         # Being able to build is good.
-        if state.player_gold >= self.TOWER_COST_THRESHOLD and state.is_on_island:
+        # The Architect must be near an island, not on it, to build.
+        can_build = state.player_gold >= self.TOWER_COST_THRESHOLD and not state.is_on_island and state.closest_island_dist < TILE_SIZE * 4
+        if can_build:
             # Bonus for being in a position to build a defense tower when enemies are near
             if state.nearby_foes_count > 0:
                 score += 150
 
         # --- Healing Tower Evaluation ---
         # Bonus for being in a position to build a heal tower when allies are globally damaged.
-        if state.total_allies_max_hp > 0:
+        if can_build and state.total_allies_max_hp > 0:
             allied_health_ratio = state.total_allies_hp / state.total_allies_max_hp
-            if allied_health_ratio < 0.6 and state.player_gold >= self.TOWER_COST_THRESHOLD and state.is_on_island:
-                score += 180 # Strong incentive to build a heal tower
+            if allied_health_ratio < 0.6:
+                score += 180  # Strong incentive to build a heal tower
         return score
 
     def _get_next_state(self, current_state: GameState, action: str) -> GameState:
@@ -199,10 +212,13 @@ class ArchitectMinimax:
 
         # --- Simulate Action Effects ---
         if action == DecisionAction.BUILD_DEFENSE_TOWER or action == DecisionAction.BUILD_HEAL_TOWER:
-            if next_state.is_on_island and next_state.player_gold >= self.TOWER_COST_THRESHOLD:
+            # The AI can build if it's on or near an island.
+            can_build = (next_state.is_on_island or (next_state.closest_island_dist is not None and next_state.closest_island_dist < TILE_SIZE * 4))
+            if can_build and next_state.player_gold >= self.TOWER_COST_THRESHOLD:
                 next_state.player_gold -= self.TOWER_COST_THRESHOLD
-                # Building is a good outcome, so we can return the state early with a high score implicitly.
-            # If it can't build, this action is invalid, so no change.
+                # After building, the AI is no longer on the island in the simulation,
+                # as it will immediately choose a new one.
+                next_state.is_on_island = False
             return next_state
 
 

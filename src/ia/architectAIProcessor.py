@@ -16,6 +16,7 @@ from src.components.core.playerComponent import PlayerComponent
 from src.components.core.baseComponent import BaseComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.components.special.speArchitectComponent import SpeArchitect
+from src.components.core.towerComponent import TowerComponent
 from src.functions.buildingCreator import createDefenseTower, createHealTower
 
 # AI and pathfinding
@@ -91,12 +92,16 @@ class ArchitectAIProcessor(esper.Processor):
             if esper.has_component(entity, PlayerSelectedComponent):
                 continue
 
+            # Update build cooldown timer
+            if ai_comp.build_cooldown_remaining > 0:
+                ai_comp.build_cooldown_remaining = (ai_comp.build_cooldown_remaining - self.dt) if (ai_comp.build_cooldown_remaining - self.dt) > 0 else 0
+
             if ai_comp.vetoTimeRemaining > 0:
                 ai_comp.vetoTimeRemaining = (ai_comp.vetoTimeRemaining - self.dt) if (ai_comp.vetoTimeRemaining - self.dt) > 0 else 0
                 continue
 
             # 1. Extract current game state
-            state = self._extract_game_state(entity, pos, health, team)
+            state = self._extract_game_state(entity, pos, health, team, ai_comp)
             if state is None:
                 continue
 
@@ -110,10 +115,10 @@ class ArchitectAIProcessor(esper.Processor):
             ai_comp.setVetoMax()
 
             # 3. Execute the chosen action
-            self._execute_action(entity, action, pos, vel, spe_arch, state)
+            self._execute_action(entity, action, pos, vel, spe_arch, state, ai_comp)
 
     def _extract_game_state(
-        self, entity: int, pos: PositionComponent, health: HealthComponent, team: TeamComponent
+        self, entity: int, pos: PositionComponent, health: HealthComponent, team: TeamComponent, ai_comp: ArchitectAIComponent
     ) -> Optional[GameState]:
         """Extracts and caches game state information for the AI."""
         # For simplicity, we're not using a time-based cache here, but it could be added.
@@ -143,6 +148,15 @@ class ArchitectAIProcessor(esper.Processor):
 
         # Find closest island
         closest_island_dist, closest_island_bearing, is_on_island = self._find_closest_island(pos)
+
+        # Check if a tower is already on the current island
+        is_tower_on_current_island = False
+        if is_on_island:
+            for _, (tower_pos, _) in esper.get_components(PositionComponent, TowerComponent):
+                dist_sq = (tower_pos.x - pos.x)**2 + (tower_pos.y - pos.y)**2
+                if dist_sq < (self.ISLAND_PROXIMITY_THRESHOLD * 1.5)**2: # Use a slightly larger radius for detection
+                    is_tower_on_current_island = True
+                    break
 
         # Find closest mine
         closest_mine_dist, closest_mine_bearing = self._find_closest_mine(pos)
@@ -193,6 +207,7 @@ class ArchitectAIProcessor(esper.Processor):
             closest_island_dist=closest_island_dist,
             closest_island_bearing=closest_island_bearing,
             is_on_island=is_on_island,
+            is_tower_on_current_island=is_tower_on_current_island,
             island_groups=self._get_island_groups(),
             # Mine and status info
             closest_mine_dist=closest_mine_dist,
@@ -201,10 +216,11 @@ class ArchitectAIProcessor(esper.Processor):
             # Architect-specific ability info
             architect_ability_available=ability_available,
             architect_ability_cooldown=ability_cooldown,
+            build_cooldown_active=ai_comp.build_cooldown_remaining > 0,
         )
 
     def _execute_action(
-        self, entity: int, action: str, pos: PositionComponent, vel: VelocityComponent, spe_arch: SpeArchitect, state: GameState
+        self, entity: int, action: str, pos: PositionComponent, vel: VelocityComponent, spe_arch: SpeArchitect, state: GameState, ai_comp: ArchitectAIComponent
     ):
         """Executes the action chosen by the decision tree."""
         target_pos = None
@@ -253,9 +269,10 @@ class ArchitectAIProcessor(esper.Processor):
                 self._navigate_to_target(entity, pos, vel, target_pos)
 
         elif action == DecisionAction.CHOOSE_ANOTHER_ISLAND:
-            # Find a random island from a different group.
-            target_pos = self._find_island_in_different_group(
-                (pos.x, pos.y)
+            # Find an island that is at least 6 tiles away.
+            target_pos = self._find_distant_island(
+                (pos.x, pos.y),
+                min_dist=TILE_SIZE * 6
             )
             
 
@@ -284,11 +301,15 @@ class ArchitectAIProcessor(esper.Processor):
 
         elif action == DecisionAction.BUILD_DEFENSE_TOWER:
             self._build_defense_tower(entity)
+            ai_comp.start_build_cooldown()
             self._clear_path(entity)
+            target_pos = self._find_island_in_different_group((pos.x, pos.y))
 
         elif action == DecisionAction.BUILD_HEAL_TOWER:
             self._build_heal_tower(entity)
+            ai_comp.start_build_cooldown()
             self._clear_path(entity)
+            target_pos = self._find_island_in_different_group((pos.x, pos.y))
 
         elif action == DecisionAction.DO_NOTHING:
             vel.currentSpeed = 0
@@ -429,21 +450,35 @@ class ArchitectAIProcessor(esper.Processor):
 
     def _find_closest_island(self, pos: PositionComponent):
         """Finds the closest island from a pre-computed cache."""
-        if self._island_cache is None and self.map_grid is not None:
-            self._island_cache = []
+        # This logic now needs to be dynamic to account for newly built towers.
+        # We can't rely on a simple, one-time cache.
+        
+        occupied_island_centers = []
+        for _, (tower_pos, _) in esper.get_components(PositionComponent, TowerComponent):
+            occupied_island_centers.append((tower_pos.x, tower_pos.y))
+
+        available_islands = []
+        if self.map_grid is not None:
             for y, row in enumerate(self.map_grid):
                 for x, tile_val in enumerate(row):
                     tile_type = TileType(tile_val)
-                    # A buildable island is a valid target.
                     if tile_type.is_island_buildable():
-                        self._island_cache.append(((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE))
+                        island_center_x, island_center_y = (x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2)
+                        is_occupied = False
+                        for tower_x, tower_y in occupied_island_centers:
+                            # Check if a tower is on this island tile
+                            if abs(tower_x - island_center_x) < TILE_SIZE and abs(tower_y - island_center_y) < TILE_SIZE:
+                                is_occupied = True
+                                break
+                        if not is_occupied:
+                            available_islands.append((island_center_x, island_center_y))
         
-        if not self._island_cache:
+        if not available_islands:
             return None, None, False
 
         closest_dist_sq = float('inf')
         closest_pos = None
-        for island_pos in self._island_cache:
+        for island_pos in available_islands:
             dist_sq = (island_pos[0] - pos.x)**2 + (island_pos[1] - pos.y)**2
             if dist_sq < closest_dist_sq:
                 closest_dist_sq = dist_sq
@@ -457,11 +492,36 @@ class ArchitectAIProcessor(esper.Processor):
         
         return dist, bearing, is_on
 
+    def _find_island_cluster_recursive(self, x: int, y: int, visited: set, current_group: list, width: int, height: int):
+        """
+        Recursively finds all connected island tiles for a cluster using DFS.
+        """
+        # Base case: check bounds and if already visited
+        if not (0 <= y < height and 0 <= x < width) or (y, x) in visited:
+            return
+
+        tile_type = TileType(self.map_grid[y][x])
+        if not tile_type.is_island_buildable():
+            return
+
+        # Process current tile
+        visited.add((y, x))
+        current_group.append((x * TILE_SIZE, y * TILE_SIZE))
+
+        # Recursive step: check all 8 neighbors
+        for dy in range(-1, 2):
+            for dx in range(-1, 2):
+                if dx == 0 and dy == 0:
+                    continue
+                self._find_island_cluster_recursive(x + dx, y + dy, visited, current_group, width, height)
+
     def _get_island_groups(self) -> list:
         """
         Finds and caches groups of connected islands.
         An island group is a list of island positions that are adjacent.
         """
+        # This function is called when the AI needs the data. The `if` statement
+        # ensures the expensive clustering logic runs only once.
         if self._island_groups is None and self.map_grid is not None:
             self._island_groups = []
             visited = set()
@@ -469,36 +529,9 @@ class ArchitectAIProcessor(esper.Processor):
 
             for y in range(height):
                 for x in range(width):
-                    if (y, x) in visited:
-                        continue
-
-                    tile_val = self.map_grid[y][x]
-                    tile_type = TileType(tile_val)
-                    # A buildable island is a valid target for grouping.
-                    if tile_type.is_island_buildable():
-                        # Start a new group search (BFS)
+                    if (y, x) not in visited and TileType(self.map_grid[y][x]).is_island_buildable():
                         new_group = []
-                        q = [(y, x)]
-                        visited.add((y, x))
-
-                        while q:
-                            cy, cx = q.pop(0)
-                            # Add world coordinates to the group
-                            new_group.append(((cx + 0.5) * TILE_SIZE, (cy + 0.5) * TILE_SIZE))
-
-                            # Check 8 neighbors
-                            for dy in range(-1, 2):
-                                for dx in range(-1, 2):
-                                    if dx == 0 and dy == 0:
-                                        continue
-                                    ny, nx = cy + dy, cx + dx
-
-                                    if 0 <= ny < height and 0 <= nx < width and (ny, nx) not in visited:
-                                        neighbor_tile_type = TileType(self.map_grid[ny][nx])
-                                        if neighbor_tile_type.is_island_buildable():
-                                            visited.add((ny, nx))
-                                            q.append((ny, nx))
-                        
+                        self._find_island_cluster_recursive(x, y, visited, new_group, width, height)
                         if new_group:
                             self._island_groups.append(new_group)
         
@@ -514,12 +547,8 @@ class ArchitectAIProcessor(esper.Processor):
                     # as they are handled by pathfinding costs differently.
                     # This check assumes mines are not supposed to be on islands.
                     # If they can be, this logic might need adjustment.
-                    is_on_island = False
-                    if TileType(self.map_grid[y][x]).is_island():
-                        is_on_island = True
-
                     if tile_val == TileType.MINE.value:
-                        self._mine_cache.append(((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE))
+                        self._mine_cache.append((x * TILE_SIZE, y * TILE_SIZE))
 
         if not self._mine_cache:
             return float('inf'), 0
@@ -554,11 +583,10 @@ class ArchitectAIProcessor(esper.Processor):
 
         current_island_group = None
         for group in island_groups:
-            for island_pos in group:
-                if np.hypot(island_pos[0] - closest_island_pos[0], island_pos[1] - closest_island_pos[1]) < 1.0:
-                    current_island_group = group
-                    break
-            if current_island_group:
+            # Check if the closest island position is part of this group.
+            # Using 'any' with a generator expression is efficient.
+            if any(np.isclose(island_pos[0], closest_island_pos[0]) and np.isclose(island_pos[1], closest_island_pos[1]) for island_pos in group):
+                current_island_group = group
                 break
 
         # 2. Find all other groups
@@ -570,6 +598,29 @@ class ArchitectAIProcessor(esper.Processor):
         # 3. Pick a random island from a random "other" group
         random_other_group = random.choice(other_groups)
         return random.choice(random_other_group)
+
+    def _find_distant_island(self, current_pos: Tuple[float, float], min_dist: float) -> Optional[Tuple[float, float]]:
+        """Finds a random island that is at least min_dist away."""
+        if self._island_cache is None:
+            self._find_closest_island(PositionComponent(current_pos[0], current_pos[1])) # Populate cache
+
+        if not self._island_cache:
+            return None
+
+        # Filter islands that are far enough away
+        distant_islands = [
+            island_pos for island_pos in self._island_cache
+            if np.hypot(island_pos[0] - current_pos[0], island_pos[1] - current_pos[1]) > min_dist
+        ]
+
+        if not distant_islands:
+            # If no islands meet the minimum distance, find the one that is farthest away.
+            if not self._island_cache:
+                return None
+            return max(self._island_cache, key=lambda p: np.hypot(p[0] - current_pos[0], p[1] - current_pos[1]))
+
+        # Pick a random one from the filtered list
+        return random.choice(distant_islands)
 
     def _find_random_island(self, current_island_pos: Optional[Tuple[float, float]] = None) -> Optional[Tuple[float, float]]:
         """Finds a random island, avoiding the current one if provided."""

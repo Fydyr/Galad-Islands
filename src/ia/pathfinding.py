@@ -160,8 +160,8 @@ class SimplePathfinder:
 
     def _gridToWorld(self, pos: Tuple[int, int]) -> Tuple[float, float]:
         """Convert grid coordinates to world coordinates (center of tile)."""
-        world_x = (pos[0] + 0.5) * self.tile_size
-        world_y = (pos[1] + 0.5) * self.tile_size
+        world_x = pos[0] * self.tile_size
+        world_y = pos[1] * self.tile_size
         return (world_x, world_y)
 
     def _isValidGrid(self, pos: Tuple[int, int]) -> bool:

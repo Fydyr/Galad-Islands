@@ -1,6 +1,7 @@
 import esper
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.teamComponent import TeamComponent
+from src.components.core.towerComponent import TowerComponent
 from src.settings.settings import TILE_SIZE, MAP_HEIGHT, MAP_WIDTH
 from src.factory.buildingFactory import create_defense_tower, create_heal_tower
 from src.constants.map_tiles import TileType
@@ -50,8 +51,23 @@ def checkCubeLand(grid, x, y, radius):
                 # Min Manhattan distance from start to any cell in the block
                 min_dist = min(abs(pr - row) + abs(pc - col) for pr, pc in positions)
                 
+                # Check if there is already a tower too close to this candidate block
+                is_too_close = False
+                # Center of the candidate 2x2 block
+                candidate_center_x, candidate_center_y = c + 1, r + 1
+                for _, (tower_pos, _) in esper.get_components(PositionComponent, TowerComponent):
+                    tower_grid_x = int(tower_pos.x // TILE_SIZE)
+                    tower_grid_y = int(tower_pos.y // TILE_SIZE)
+                    
+                    # Calculate squared Euclidean distance in grid coordinates
+                    dist_sq = (candidate_center_x - tower_grid_x)**2 + (candidate_center_y - tower_grid_y)**2
+                    if dist_sq < 4:  # distance < 2 tiles
+                        is_too_close = True
+                        break
+                
                 if min_dist <= radius:
-                    candidates.append((min_dist, r, c))
+                    if not is_too_close:
+                        candidates.append((min_dist, r, c))
     
     if not candidates:
         return None
@@ -63,7 +79,7 @@ def checkCubeLand(grid, x, y, radius):
 
 
 def createDefenseTower(grid, pos: PositionComponent, team: TeamComponent):
-    radius = 4
+    radius = 3
     land_pos_grid = checkCubeLand(grid, pos.x, pos.y, radius)
     if land_pos_grid is not None:
         # Place tower in the middle of the 2x2 block
@@ -72,7 +88,7 @@ def createDefenseTower(grid, pos: PositionComponent, team: TeamComponent):
         create_defense_tower(world_x, world_y, team.team_id)
 
 def createHealTower(grid, pos: PositionComponent, team: TeamComponent):
-    radius = 4
+    radius = 3
     land_pos_grid = checkCubeLand(grid, pos.x, pos.y, radius)
     if land_pos_grid is not None:
         # Place tower in the middle of the 2x2 block
