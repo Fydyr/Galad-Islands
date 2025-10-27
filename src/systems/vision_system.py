@@ -15,6 +15,7 @@ from src.components.core.positionComponent import PositionComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.visionComponent import VisionComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 from src.functions.resource_path import get_resource_path
 from src.managers.sprite_manager import sprite_manager, SpriteID
 
@@ -117,6 +118,30 @@ class VisionSystem:
                     self._add_visible_tiles_from_unit(pos.x, pos.y, vision.range)
 
         # Ajouter les zones actuellement visibles aux zones découvertes
+        # Avant d'update explored, vérifier si des tuiles de base ennemie deviennent visibles
+        newly_visible = set(self.visible_tiles[self.current_team]) - set(self.explored_tiles.get(self.current_team, set()))
+        
+        # Déterminer la base ennemie en fonction de l'équipe actuelle
+        if self.current_team == 1:
+            enemy_base_tiles = set((x, y) for x in range(MAP_WIDTH - 4, MAP_WIDTH) for y in range(MAP_HEIGHT - 4, MAP_HEIGHT))
+            enemy_team_id = 2
+            enemy_base_pos = ((MAP_WIDTH - 3.0) * TILE_SIZE, (MAP_HEIGHT - 2.8) * TILE_SIZE)
+        else: # self.current_team == 2
+            enemy_base_tiles = set((x, y) for x in range(1, 1 + 4) for y in range(1, 1 + 4))
+            enemy_team_id = 1
+            enemy_base_pos = (3.0 * TILE_SIZE, 3.0 * TILE_SIZE)
+
+        # Ne vérifier la découverte que si la base n'est pas déjà connue
+        if not enemy_base_registry.is_enemy_base_known(self.current_team):
+            for (tx, ty) in newly_visible:
+                if (tx, ty) in enemy_base_tiles:
+                    try:
+                        enemy_base_registry.declare_enemy_base(self.current_team, enemy_team_id, enemy_base_pos[0], enemy_base_pos[1])
+                        # Une fois la base trouvée, inutile de continuer la boucle pour cette frame
+                        break
+                    except Exception:
+                        pass
+
         self.explored_tiles[self.current_team].update(self.visible_tiles[self.current_team])
         
         # Marquer cette équipe comme "sale" (dirty) car la visibilité a changé
@@ -200,13 +225,14 @@ class VisionSystem:
             return True
         return False
 
-    def create_fog_surface(self, camera) -> Optional[pygame.Surface]:
+    def create_fog_surface(self, camera, team_id: int) -> Optional[pygame.Surface]:
         """
         Crée une surface unique pour le brouillard de guerre, optimisée pour le rendu.
 
         Args:
             camera: Instance de la caméra pour les calculs de viewport
-
+            team_id: L'ID de l'équipe dont on veut afficher la perspective.
+        
         Returns:
             pygame.Surface | None: Une surface contenant le brouillard de guerre à afficher
                                    par-dessus le monde, ou None si non applicable.
@@ -233,10 +259,10 @@ class VisionSystem:
 
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
-                if not self.is_tile_visible(x, y):
+                if not self.is_tile_visible(x, y, team_id):
                     screen_x, screen_y = camera.world_to_screen(x * TILE_SIZE, y * TILE_SIZE)
                     
-                    if not self.is_tile_explored(x, y):
+                    if not self.is_tile_explored(x, y, team_id):
                         # Zone non explorée : dessiner un nuage
                         cloud_subsurface = self._get_cloud_subsurface(x, y, tile_size)
                         if cloud_subsurface:

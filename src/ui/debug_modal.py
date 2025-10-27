@@ -28,7 +28,8 @@ from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
 from src.components.events.banditsComponent import Bandits
 import esper
 from src.processeurs.events.banditsProcessor import BanditsProcessor
-
+from src.systems.vision_system import vision_system
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 
 class DebugModal:
     """Modal debug séparé pour les actions de développement."""
@@ -441,13 +442,26 @@ class DebugModal:
             current_team = self.game_engine.action_bar.current_camp
         
         # Toggle unlimited vision for this team
-        from src.systems.vision_system import vision_system
         current_state = vision_system.unlimited_vision.get(current_team, False)
         new_state = not current_state
         
         vision_system.set_unlimited_vision(current_team, new_state)
         
         status_text = 'enabled' if new_state else 'disabled'
+        # If unlimited vision is enabled, mark the enemy base as known for this team
+        if new_state:
+            try:
+                enemy_team = 2 if current_team == 1 else 1
+                if enemy_team == 2:
+                    bx = (MAP_WIDTH - 3.0) * TILE_SIZE
+                    by = (MAP_HEIGHT - 2.8) * TILE_SIZE
+                else:
+                    bx = 3.0 * TILE_SIZE
+                    by = 3.0 * TILE_SIZE
+                enemy_base_registry.declare_enemy_base(current_team, enemy_team, bx, by)
+                print(f"[DEV] Unlimited vision: declared enemy base known for team {current_team} (enemy {enemy_team}) at {(bx,by)}")
+            except Exception as e:
+                print(f"[DEV] Failed to declare enemy base known: {e}")
         self._show_feedback('success', t('debug.feedback.unlimited_vision', default=f'Unlimited vision {status_text}'))
     
     def _find_sea_position(self):

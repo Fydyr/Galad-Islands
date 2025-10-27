@@ -78,6 +78,7 @@ plugins:
                   - Capacités spéciales: dev/02-systeme/modules/special-capacity-system.md
                   - Gestionnaire de sprites: dev/02-systeme/modules/sprite-manager.md
                   - Système de vision: dev/02-systeme/modules/vision-system.md
+                  - Système d'IA: dev/02-systeme/modules/ai-system.md
                 - Optimisations de rendu: dev/02-systeme/rendering_optimizations.md
               - 3. Installation:
                 - Exigences matérielles: dev/03-installation/requirements.md
@@ -134,6 +135,7 @@ plugins:
                   - Special Abilities: dev/02-systeme/modules/special-capacity-system.md
                   - Sprite Manager: dev/02-systeme/modules/sprite-manager.md
                   - Vision System: dev/02-systeme/modules/vision-system.md
+                  - AI System: dev/02-systeme/modules/ai-system.md
                   - Rendering Optimizations: dev/02-systeme/rendering_optimizations.md
               - 3. Installation:
                 - Hardware Requirements: dev/03-installation/requirements.md

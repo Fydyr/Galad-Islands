@@ -2,10 +2,10 @@
 
 ## v0.7.1 (2025-10-13)
 
-### Fix
+### 🐞 Fix
 
-- changement de la manière d'obtenir le numéro de version pour fixer le "vunknown" dans les versions compilés
-- corriger la description du composant de base
+- Changement de la manière d'obtenir le numéro de version pour corriger le "vunknown" dans les versions compilées
+- Correction de la description du composant de base
 
 ## v0.7.0 (2025-10-12)
 

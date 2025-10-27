@@ -3,6 +3,7 @@ from math import cos, sin, radians
 from src.components.core.velocityComponent import VelocityComponent as Velocity
 from src.components.core.positionComponent import PositionComponent as Position
 from src.components.special.isVinedComponent import isVinedComponent as isVined
+from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.projectileComponent import ProjectileComponent
 from src.components.events.banditsComponent import Bandits
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
@@ -25,7 +26,7 @@ class MovementProcessor(esper.Processor):
         # (basée sur une taille moyenne de sprite)
         self.boundary_margin = 32  # pixels
 
-    def process(self):
+    def process(self, **kwargs):
         for ent, (vel, pos) in esper.get_components(Velocity, Position):
             # Vérifier si c'est un bandit (ils traversent les îles)
             is_bandit = esper.has_component(ent, Bandits)
@@ -38,6 +39,12 @@ class MovementProcessor(esper.Processor):
                     effective_speed = vel.currentSpeed
                 else:
                     effective_speed = vel.currentSpeed * vel.terrain_modifier
+
+                # Appliquer le boost de vitesse du Kamikaze si actif
+                if esper.has_component(ent, SpeKamikazeComponent):
+                    kamikaze_comp = esper.component_for_entity(ent, SpeKamikazeComponent)
+                    if kamikaze_comp.is_active:
+                        effective_speed *= kamikaze_comp.speed_multiplier
             
             # Ne bouger que si la vitesse effective != 0
             if effective_speed != 0 and not esper.has_component(ent, isVined):
@@ -45,8 +52,6 @@ class MovementProcessor(esper.Processor):
                 direction_rad = radians(pos.direction)
                 new_x = pos.x - effective_speed * cos(direction_rad)
                 new_y = pos.y - effective_speed * sin(direction_rad)
-                
-                # Vérifier si c'est un projectile
                 is_projectile = esper.has_component(ent, ProjectileComponent)
                 
                 if is_projectile:

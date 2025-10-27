@@ -41,8 +41,28 @@ jobs:
             --add-data "assets${SEP}assets" \
           # Build config tool
           pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
-            --add-data "assets/locales${SEP}assets/locales" \
-            --add-data "src${SEP}src"
+                      --add-data "assets/locales${SEP}assets/locales" \
+                      --add-data "src${SEP}src" \
+                      --exclude-module esper \
+                      --exclude-module llvmlite \
+                      --exclude-module numba \
+                      --exclude-module numpy \
+                      --exclude-module Pillow \
+                      --exclude-module sklearn \
+                      --exclude-module joblib
+
+      - name: Detect if tag commit is in 'unstable' branch
+        shell: bash
+        id: check
+        run: |
+          # fetch remote branches and check if the commit ($GITHUB_SHA) is contained in unstable
+          git fetch --no-tags --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          if git branch -r --contains $GITHUB_SHA | grep -q "origin/unstable"; then
+            echo "is_unstable=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_unstable=false" >> $GITHUB_OUTPUT
+          fi
+
 
       - name: Detect if tag commit is in 'unstable' branch
         shell: bash
@@ -64,6 +84,8 @@ jobs:
           copy dist\galad-config-tool.exe galad-islands-windows\
           xcopy /E /I assets galad-islands-windows\assets
           copy RELEASE_README.md galad-islands-windows\README.md
+          mkdir galad-islands-windows\models
+          copy src\models\base_ai_unified_final.pkl galad-islands-windows\models\
           Compress-Archive -Path galad-islands-windows\* -DestinationPath galad-islands-windows.zip
         shell: pwsh
 
@@ -75,6 +97,8 @@ jobs:
           cp dist/galad-config-tool galad-islands-${{ runner.os }}/
           cp -r assets galad-islands-${{ runner.os }}/
           cp RELEASE_README.md galad-islands-${{ runner.os }}/README.md
+          mkdir -p galad-islands-${{ runner.os }}/models
+          cp src/models/base_ai_unified_final.pkl galad-islands-${{ runner.os }}/models/
           chmod +x galad-islands-${{ runner.os }}/galad-islands
           chmod +x galad-islands-${{ runner.os }}/galad-config-tool
           zip -r galad-islands-${{ runner.os }}.zip galad-islands-${{ runner.os }}

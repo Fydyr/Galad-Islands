@@ -80,8 +80,10 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
     if avoid_bases:
         # Éviter les bases (zone 4x4 avec marge de sécurité)
         for bx, by in [(1, 1), (MAP_WIDTH-5, MAP_HEIGHT-5)]:
-            for dy in range(-2, 6):
-                for dx in range(-2, 6):
+            # Augmentation de la marge de sécurité de 2 à 3 tuiles
+            # La boucle va maintenant de -3 à 6 (4+3), soit une zone de 10x10
+            for dy in range(-3, 7):
+                for dx in range(-3, 7):
                     nx, ny = bx+dx, by+dy
                     for bdy in range(size):
                         for bdx in range(size):

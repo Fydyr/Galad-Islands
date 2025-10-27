@@ -25,6 +25,7 @@ version_files = [
 update_changelog_on_bump = true
 bump_message = "chore: bump version $current_version → $new_version"
 
+
 # Types de commits à inclure dans le changelog (pour les utilisateurs)
 changelog_incremental = true
 changelog_start_rev = "v0.1.0"

@@ -12,20 +12,31 @@ from pathlib import Path
 import json
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+import os
+import sys
 
-# Project root and config paths
-ROOT = Path(__file__).resolve().parents[1]
-CONFIG_PATH = ROOT / "galad_config.json"
-RES_PATH = ROOT / "galad_resolutions.json"
+# Project config paths 
+if os.path.exists(Path(sys.argv[0]).resolve().parent / "galad_config.json"): # when running as compiled app
+    CONFIG_PATH = Path(sys.argv[0]).resolve().parent / "galad_config.json"
+    RES_PATH = Path(sys.argv[0]).resolve().parent / "galad_resolutions.json"
+else:  # when running as script from repo root
+    ROOT = Path(__file__).resolve().parents[1]
+    CONFIG_PATH = ROOT / "galad_config.json"
+    RES_PATH = ROOT / "galad_resolutions.json"
+
 
 # Import helpers from src (use repo root on sys.path when running normally)
-import sys
-sys.path.insert(0, str(ROOT))
-from src.settings.settings import config_manager, get_available_resolutions, apply_resolution, set_window_mode, set_audio_volume, set_camera_sensitivity, reset_to_defaults
-from src.settings.localization import get_available_languages, get_current_language, set_language, t
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.settings.settings import (
+    config_manager, get_available_resolutions, apply_resolution,
+    set_window_mode, set_audio_volume, set_camera_sensitivity, reset_to_defaults
+)
+from src.settings.localization import (
+    get_available_languages, get_current_language, set_language, t
+)
 from src.settings.resolutions import load_custom_resolutions
+from src.constants.key_bindings import KEY_BINDING_GROUPS
 from src.settings import controls
-from src.functions.optionsWindow import KEY_BINDING_GROUPS
 import pygame # justte pour que ça se lance
 
 
@@ -45,8 +56,8 @@ def load_config():
                     "A new file will be created automatically on first save."
                 )
                 messagebox.showwarning("Fichier de configuration manquant / Missing configuration file", fr + "\n\n" + en)
-            except:
-                pass  # Si Tkinter n'est pas encore initialisé
+            except Exception as e:
+                print(f"Warning popup failed: {e}")  # Log si Tkinter n'est pas initialisé
     except Exception as e:
         try:
             fr = (f"Erreur lors du chargement de la configuration :\n{str(e)}\n\n"
@@ -54,8 +65,8 @@ def load_config():
             en = (f"Error loading configuration: {str(e)}\n\n"
                   "Using defaults.")
             messagebox.showerror("Erreur de configuration / Configuration error", fr + "\n\n" + en)
-        except:
-            pass  # Si Tkinter n'est pas encore initialisé
+        except Exception as e:
+            print(f"Error popup failed: {e}")  # Log si Tkinter n'est pas initialisé
     return {}
 
 
@@ -282,20 +293,6 @@ class GaladConfigApp(tk.Tk):
                 current = config_manager.get_key_bindings().get(action)
                 if current:
                     combo.set(current[0] if isinstance(current, list) else current)
-        except Exception:
-            pass
-
-        # Also update key bindings text area if present
-        try:
-            if hasattr(self, 'kb_text'):
-                kb = config_manager.get_key_bindings()
-                txt = []
-                for k, v in kb.items():
-                    txt.append(f"{k}: {', '.join(v)}")
-                self.kb_text.configure(state='normal')
-                self.kb_text.delete('1.0', tk.END)
-                self.kb_text.insert(tk.END, "\n".join(txt))
-                self.kb_text.configure(state='disabled')
         except Exception:
             pass
 
