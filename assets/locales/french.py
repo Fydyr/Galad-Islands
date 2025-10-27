@@ -372,4 +372,10 @@ TRANSLATIONS = {
     "debug.ai_state": "IA rapide: {count} unités | États: {states}",
     "debug.ai_state.empty": "IA rapide: aucune unité active",
     "debug.help_modal_title": "Aide",
+    
+    # Sélection d'équipe
+    "team_selection.title": "Choix de l'équipe",
+    "team_selection.message": "Sélectionnez votre camp de départ :",
+    "team_selection.team1": "Team 1 (Alliés)",
+    "team_selection.team2": "Team 2 (Ennemis)",
 }

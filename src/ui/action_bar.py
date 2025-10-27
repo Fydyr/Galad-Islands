@@ -477,13 +477,18 @@ class ActionBar:
             self.global_button_rects.append(rect)
 
         # Bouton de changement de camp (en haut à droite de la barre)
-        camp_button_size = max(30, min(40, button_size // 1.5))
-        self.camp_button_rect = pygame.Rect(
-            self.screen_width - camp_button_size - 5,
-            start_y - camp_button_size - 5,
-            camp_button_size,
-            camp_button_size
-        )
+        # Affiché uniquement en mode dev_mode
+        dev_mode = config_manager.get('dev_mode', False)
+        if dev_mode:
+            camp_button_size = max(30, min(40, button_size // 1.5))
+            self.camp_button_rect = pygame.Rect(
+                self.screen_width - camp_button_size - 5,
+                start_y - camp_button_size - 5,
+                camp_button_size,
+                camp_button_size
+            )
+        else:
+            self.camp_button_rect = None
     
     def _create_unit_callback(self, unit_type: ActionType):
         """Crée une fonction de callback pour la création d'unité (placeholder)."""

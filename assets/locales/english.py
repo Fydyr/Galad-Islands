@@ -395,4 +395,10 @@ TRANSLATIONS = {
     "debug.ai_state": "Rapid AI: {count} units | States: {states}",
     "debug.ai_state.empty": "Rapid AI: no active unit",
     "debug.help_modal_title": "Help",
+    
+    # Team selection
+    "team_selection.title": "Choose your team",
+    "team_selection.message": "Select your starting side:",
+    "team_selection.team1": "Team 1 (Allies)",
+    "team_selection.team2": "Team 2 (Enemies)",
 }
