@@ -283,15 +283,176 @@ Example:
 - **Phase 2**: Tuning (danger thresholds, anchor distance, objective weights)
 - **Phase 3**: Advanced (prediction horizon, micro-positions, load-balance)
 
+### Marauder AI
+
+**File**: `src/ia/ia_barhamus.py`
+
+#### Architecture and Components
+
+##### Main Components
+
+1. **DecisionTreeClassifier**: Decision tree model to predict actions
+2. **StandardScaler**: Input data normalization
+3. **NearestNeighbors**: Intelligent pathfinding based on similar positions
+
+##### State Vector (15 dimensions)
+
+The AI analyzes the situation through a 15-dimensional vector:
+
+1. **Position (2D)**: Normalized X,Y coordinates
+2. **Health (1D)**: Current/max health ratio
+3. **Enemies (3D)**: Number, distance to closest, force
+4. **Obstacles (3D)**: Islands, mines, walls
+5. **Tactics (3D)**: Tactical advantage, safe zone, shield status
+6. **Internal State (3D)**: Cooldown, survival time, current strategy
+
+##### Available Actions (8 types)
+
+0. **Aggressive Approach**: Charges towards the closest enemy
+1. **Attack**: Engages in direct combat
+2. **Patrol**: Actively searches for enemies
+3. **Avoidance**: Circumvents dangerous obstacles
+4. **Shield**: Activates defensive protection
+5. **Defensive Position**: Places itself in a strategic position
+6. **Retreat**: Flees to a safe zone
+7. **Ambush**: Positions itself for a surprise attack
+
+#### Learning System
+
+##### Experience Collection
+
+The AI records each decision with:
+
+- State before action (15D vector)
+- Chosen action (0-7)
+- Obtained reward (-10 to +10)
+- Resulting state
+
+##### Reward Calculation
+
+**Positive Rewards:**
+
+- High health: +5
+- Successful attack: +3
+- Prolonged survival: +2
+- Tactical position: +1
+
+**Penalties:**
+
+- Damage taken: -2 per point
+- Failed attack: -1
+- Dangerous position: -3
+
+##### Model Training
+
+The model retrains automatically:
+
+- Every 20 experiences
+- When performance drops
+- At the beginning of each game
+
+#### Adaptive Strategies
+
+The AI follows 4 main strategies that evolve based on performance:
+
+1. **Balanced**: Balance between attack and defense
+2. **Aggressive**: Priority to offense
+3. **Defensive**: Priority to survival
+4. **Tactical**: Uses environment and ambushes
+
+#### Important Files
+
+- `src/ia/ia_barhamus.py`: Main implementation
+- `tests/test_ia_ml.py`: Unit tests
+- `models/`: Saved models (created automatically)
+
+#### Performance
+
+Tests show:
+
+- ✅ No compilation errors
+- ✅ 15D state analysis functional
+- ✅ Action prediction operational
+- ✅ Active learning system
+- ✅ Scikit-learn components initialized
+
+##### Technical Notes
+
+- Requires scikit-learn, numpy
+- Automatic model saving
+- Compatible with existing ECS architecture
+- Maintains compatibility with legacy methods
+
+#### 🧹 Marauder Models Cleaning
+
+##### Quick Usage
+
+###### List all Marauder models
+
+```bash
+python clean_models.py --marauder --list
+```
+
+###### Keep the 5 most recent (recommended)
+
+```bash
+python clean_models.py --marauder --keep 5
+```
+
+###### Delete ALL Marauder models
+
+```bash
+python clean_models.py --marauder --all
+```
+
+###### Delete Marauder models older than 7 days
+
+```bash
+python clean_models.py --marauder --older-than 7
+```
+
+##### Usage Examples
+
+###### I want to test Marauder AI with fresh learning
+
+```bash
+python clean_models.py --marauder --all
+```
+
+Marauder AI will start learning from scratch.
+
+###### I have many Marauder models and want to clean up
+
+```bash
+python clean_models.py --marauder --keep 10
+```
+
+Keeps the 10 most recent models, deletes the others.
+
+##### Recommended Frequency
+
+- **Daily**: `python clean_models.py --marauder --keep 5`
+- **Weekly**: `python clean_models.py --marauder --older-than 7`
+- **Before testing**: `python clean_models.py --marauder --all`
+
+##### Important Notes
+
+✅ `barhamus_ai_*.pkl` files are **NOT** versioned in Git  
+✅ You can delete them safely - AI will recreate them automatically  
+✅ Each Marauder creates its own file, hence the rapid accumulation  
+✅ Deleting files resets Marauder AI learning
+
 ### Other AIs (coming soon)
 
 AI logic could be added for other units, for example:
 
 - **Druids**: Automatically heal the most wounded allies nearby.
 - **Leviathans**: Use area attacks against groups of enemies.
-- **Marauders**: Prioritize targets based on their threat and strategic value.
 - **Architects**: Build defensive structures based on detected threats.
+
 ---
+
+*This documentation will be updated as new AIs are implemented.*
 
 
 *This documentation will be updated as new AIs are implemented.*
