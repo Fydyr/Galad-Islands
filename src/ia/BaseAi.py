@@ -66,8 +66,9 @@ class BaseAi(esper.Processor):
         self.last_decision_time = time.time()
         self.enabled = True
         self.model = None
+        self.active_player_team_id = 1  # Par défaut allié
+        self.self_play_mode = False
         self.load_model()
-        
         # Activer les logs de l'IA si le mode développeur est activé
         self.debug_mode = config_manager.get('dev_mode', False)
 
@@ -86,19 +87,24 @@ class BaseAi(esper.Processor):
             print("❌ Modèle IA non trouvé. L'IA de la base sera inactive.")
             self.model = None
 
-    def process(self, dt: float = 0.016, active_player_team_id: int = 1):
+    def process(self, dt: float = 0.016, active_player_team_id=None):
         """Exécute la logique de l'IA de la base à chaque frame."""
         if not getattr(self, 'enabled', True):
             return
 
-        # En mode joueur, l'IA de l'équipe contrôlée est désactivée.
-        if self.default_team_id == active_player_team_id:
-            return
+        # Utiliser l’attribut si le paramètre n’est pas passé
+        if active_player_team_id is None:
+            active_player_team_id = getattr(self, 'active_player_team_id', 1)
+
+        # En mode IA vs IA, ne jamais désactiver l’IA
+        if not getattr(self, 'self_play_mode', False):
+            if self.default_team_id == active_player_team_id:
+                return
 
         self.last_action_time += dt
         if self.last_action_time < self.action_cooldown:
             return
-        
+
         game_state = self._get_current_game_state(self.default_team_id)
         if game_state is None:
             return

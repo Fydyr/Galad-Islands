@@ -10,7 +10,8 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from src import version
+from src.settings.resolutions import get_all_resolutions as _get_all
+from src.version import __version__
 
 
 # =============================================================================
@@ -301,7 +302,6 @@ def get_available_resolutions() -> List[Tuple[int, int, str]]:
     """
     try:
         # Import local helper to avoid circular import at module import time
-        from src.settings.resolutions import get_all_resolutions as _get_all
 
         combined = []
         for (w, h) in _get_all():
@@ -376,22 +376,14 @@ def set_disable_shadows(disabled: bool) -> bool:
     return config_manager.save_config()
 
 
-# =============================================================================
-# GESTION DES VERSIONS
-# =============================================================================
-
 def get_project_version() -> str:
     """
-    Read the project version from the version module.
-
-    Returns:
-        The version string, or "unknown" if not found.
+    Retourne la version actuelle du projet depuis le fichier version.py.
     """
     try:
-        return version.version
-    except ImportError:
+        return __version__
+    except Exception:
         return "unknown"
-
 
 
 def is_dev_mode_enabled() -> bool:
@@ -401,7 +393,10 @@ def is_dev_mode_enabled() -> bool:
     Returns:
         True if dev mode is enabled, False otherwise.
     """
-    return config_manager.get('dev_mode', False)
+    try:
+        return config_manager.get('dev_mode', False)
+    except Exception:
+        return False
 
 
 # =============================================================================

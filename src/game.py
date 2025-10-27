@@ -1,12 +1,9 @@
-# Importations standard
-
-from src.processeurs.KnownBaseProcessor import enemy_base_registry
-from typing import Dict, List, Optional, Tuple
 import os
 import platform
 import traceback
-
+import logging
 import pygame
+from typing import Dict, List, Optional, Tuple
 
 # Importations des modules internes
 import esper as es
@@ -17,7 +14,6 @@ from src.settings.localization import t
 from src.settings.docs_manager import get_help_path
 from src.settings import controls
 from src.constants.team import Team
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +28,8 @@ from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProc
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
+from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 from src.ia.KamikazeAi import KamikazeAiProcessor
 from src.ia.BaseAi import BaseAi
 
@@ -46,15 +44,15 @@ from src.components.core.teamComponent import TeamComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
 from src.components.core.visionComponent import VisionComponent
-from src.components.special.speKamikazeComponent import SpeKamikazeComponent
+
 
 # Importations des capacités spéciales
-
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.special.speDruidComponent import SpeDruid
 from src.components.special.speArchitectComponent import SpeArchitect
+from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
 
 # import event
@@ -64,7 +62,6 @@ from src.managers.island_resource_manager import IslandResourceManager
 from src.processeurs.stormProcessor import StormProcessor
 from src.processeurs.combatRewardProcessor import CombatRewardProcessor
 from src.managers.display import get_display_manager
-
 
 # Importations des factories et fonctions utilitaires
 from src.factory.unitFactory import UnitFactory
@@ -180,10 +177,6 @@ class EventHandler:
                 self.game_engine._give_dev_gold(500)
             return
         elif controls.matches_action(controls.ACTION_SYSTEM_SHOP, event):
-            # Désactiver le raccourci boutique en mode IA vs IA
-            if self.game_engine.self_play_mode:
-                return
-
             self._open_shop()
         elif controls.matches_action(controls.ACTION_CAMERA_FOLLOW_TOGGLE, event):
             self.game_engine.toggle_camera_follow_mode()
@@ -221,9 +214,6 @@ class EventHandler:
         elif event.button == 1:  # Clic gauche : sélection
             self.game_engine.handle_mouse_selection(event.pos)
         elif event.button == 3:  # Clic droit : tir principal
-            # En mode IA vs IA, bloquer l'action d'attaque
-            if self.game_engine.self_play_mode:
-                return
             self.game_engine.trigger_selected_attack()
                 
     def _handle_mousemotion(self, event):
@@ -253,9 +243,6 @@ class EventHandler:
 
     def _open_shop(self):
         """Ouvre la boutique via l'ActionBar."""
-        # Désactiver la boutique en mode IA vs IA
-        if getattr(self.game_engine, 'self_play_mode', False):
-            return
         if self.game_engine.action_bar is not None:
             self.game_engine.action_bar._open_shop()
 
@@ -338,13 +325,21 @@ class GameRenderer:
             game_map.afficher_grille(window, grid, images, camera)
             
     def _render_fog_of_war(self, window, camera):
-        """Rend le brouillard de guerre basé sur la visibilité de l'équipe actuelle."""
+        """Rend le brouillard de guerre avec nuages et brouillard léger."""
         current_team = self.game_engine.action_bar.current_camp
+
+        # Mettre à jour la visibilité pour l'équipe actuelle
+        vision_system.update_visibility(current_team)
+
         # Créer la surface du brouillard de guerre pour la vue actuelle
         # Cette méthode est déjà optimisée pour ne dessiner que ce qui est visible à l'écran.
         fog_surface = vision_system.create_fog_surface(camera, current_team)
+
+        # Afficher la surface du brouillard en une seule opération de blit
         if fog_surface:
             window.blit(fog_surface, (0, 0))
+
+
 
     def _render_vision_circles(self, window, camera):
         """Rend les cercles blancs représentant la portée de vision des unités."""
@@ -467,12 +462,7 @@ class GameRenderer:
         # Clé de cache optimisée : utiliser zoom discret + rotation arrondie
         rotation_key = round(pos.direction / 15) * 15  # Arrondir la rotation à 15 degrés près
         cache_key = (sprite.image_path, discrete_zoom, sprite.width, sprite.height, rotation_key)
-
-        # Ajustement de la rotation pour les Kamikazes si leur sprite est orienté différemment
-        rotation_offset = 0
-        if es.has_component(entity, SpeKamikazeComponent):
-            rotation_offset = 0 # Le sprite est déjà orienté horizontalement, aucune rotation n'est nécessaire.
-        cache_key = (sprite.image_path, discrete_zoom, sprite.width, sprite.height, rotation_key, rotation_offset) # rotation_offset sera 0
+        
         if not hasattr(self, '_sprite_cache'):
             self._sprite_cache = {}
             self._cache_access_order = []
@@ -491,8 +481,11 @@ class GameRenderer:
                 else:
                     scaled_image = pygame.transform.scale(image, (display_width, display_height))
                 
-                # Appliquer la rotation combinée (direction + offset) et mettre en cache
-                final_image = pygame.transform.rotate(scaled_image, -(rotation_key + rotation_offset))
+                # Appliquer la rotation arrondie et mettre en cache
+                if rotation_key != 0:
+                    final_image = pygame.transform.rotate(scaled_image, -rotation_key)
+                else:
+                    final_image = scaled_image
                 
                 self._sprite_cache[cache_key] = final_image
                 self._cache_access_order.append(cache_key)
@@ -503,10 +496,10 @@ class GameRenderer:
             if cache_key in self._cache_access_order:
                 self._cache_access_order.remove(cache_key)
             self._cache_access_order.append(cache_key)
-
+            
         final_image = self._sprite_cache[cache_key]
-        display_width = final_image.get_width() # Recalculer après rotation
-        display_height = final_image.get_height() # Recalculer après rotation
+        display_width = final_image.get_width()
+        display_height = final_image.get_height()
 
         screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
         
@@ -733,13 +726,14 @@ class GameRenderer:
 class GameEngine:
     """Classe principale gérant toute la logique du jeu."""
     
-    def __init__(self, window=None, bg_original=None, select_sound=None):
+    def __init__(self, window=None, bg_original=None, select_sound=None, self_play_mode=False):
         """Initialise le moteur de jeu.
         
         Args:
             window: Surface pygame existante (optionnel)
             bg_original: Image de fond pour les modales (optionnel)
             select_sound: Son de sélection pour les modales (optionnel)
+            self_play_mode: Active le mode IA vs IA (optionnel)
         """
         self.window = window
         self.bg_original = bg_original
@@ -768,7 +762,10 @@ class GameEngine:
         self.player_controls = None
         self.capacities_processor = None
         self.lifetime_processor = None
-
+        self.ally_base_ai = BaseAi(team_id=Team.ALLY)
+        self.enemy_base_ai = BaseAi(team_id=Team.ENEMY)
+        self.kamikaze_ai_processor = KamikazeAiProcessor()
+        self.ai_leviathan_processor = None
         # Gestion de la sélection des unités
         self.selected_unit_id = None
         self.camera_follow_enabled = False
@@ -795,11 +792,24 @@ class GameEngine:
         self.winning_team = None
         self.game_over_message = ""
         self.game_over_timer = 0.0
-        
-        # Mode spécial: self-play (IA vs IA). Quand True, les contrôles joueurs sont désactivés
+
+        # Mode IA vs IA
+        self.self_play_mode = self_play_mode
+
+    def enable_self_play(self):
+        """Active le mode IA vs IA et désactive le contrôle joueur."""
+        self.self_play_mode = True
+        # Activer les deux IA de base
+        if hasattr(self, 'ally_base_ai'):
+            self.ally_base_ai.enabled = True
+        if hasattr(self, 'enemy_base_ai'):
+            self.enemy_base_ai.enabled = True
+
+    def disable_self_play(self):
+        """Désactive le mode IA vs IA et restaure le contrôle joueur."""
         self.self_play_mode = False
-        
-        # tempest manager
+        # Rétablir activation normale des IA via _update_base_ai_activation lors du prochain tick
+        self._update_base_ai_activation(self.selection_team_filter)
         
     def initialize(self):
         """Initialise tous les composants du jeu."""
@@ -869,10 +879,10 @@ class GameEngine:
         
         # Initialiser la carte
         self._initialize_game_map()
-        
+
         # Initialiser ECS
         self._initialize_ecs()
-        
+
         # Créer les entités de base
         self._create_initial_entities()
         
@@ -904,6 +914,9 @@ class GameEngine:
         if self.storm_processor is not None and self.grid is not None:
             self.storm_processor.initializeFromGrid(self.grid)
 
+        # Note: AI processor map grid is initialized after _initialize_ecs() is called
+        # because the processor is recreated in that method
+
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
         # Nettoyer toutes les entités existantes
@@ -928,78 +941,20 @@ class GameEngine:
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
         self.tower_processor = TowerProcessor()
-        # IA de la base alliée et ennemie
-        self.ally_base_ai = BaseAi(team_id=1)
-        self.enemy_base_ai = BaseAi(team_id=2)
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
-        # IA des unités individuelles (Kamikaze, etc.)
-        self.kamikaze_ai_processor = KamikazeAiProcessor(world_map=self.grid)
-        # Known base registry (processor central pour propagation découverte bases)
-        # Activer le debug du registry uniquement si le mode dev est activé dans les settings
-        enemy_base_registry.set_debug(settings.is_dev_mode_enabled())
-        self.enemy_base_registry = enemy_base_registry
-
-        es.add_processor(self.capacities_processor, priority=1)
+        # IA Kamikaze
+        if self.kamikaze_ai_processor is not None and self.grid is not None:
+            self.kamikaze_ai_processor.map_grid = self.grid
+        es.add_processor(self.kamikaze_ai_processor, priority=6)
+        # IA de base alliée et ennemie
+        es.add_processor(self.ally_base_ai, priority=7)
+        es.add_processor(self.enemy_base_ai, priority=8)
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
         es.add_processor(self.tower_processor, priority=5)
-        es.add_processor(self.enemy_base_registry, priority=5)
-        # L'IA des unités décide avant l'IA de la base
-        es.add_processor(self.kamikaze_ai_processor, priority=6)
-        es.add_processor(self.ally_base_ai, priority=7)
-        es.add_processor(self.enemy_base_ai, priority=8)
         es.add_processor(self.lifetime_processor, priority=10)
-        
-    def _update_base_ai_activation(self, active_team):
-        """Active ou désactive les IA de base selon la faction jouée."""
-        # Défensive : vérifier que les processeurs existent
-        ally_ai = getattr(self, 'ally_base_ai', None)
-        enemy_ai = getattr(self, 'enemy_base_ai', None)
-
-        # Si on est en mode self-play, activer les deux IA et désactiver le contrôle joueur
-        if getattr(self, 'self_play_mode', False):
-            # Forcer l'activation des deux IA à chaque tick
-            if ally_ai is not None:
-                ally_ai.enabled = True
-            if enemy_ai is not None:
-                enemy_ai.enabled = True
-            # Désactiver les contrôles joueurs
-            if self.player_controls is not None:
-                self.player_controls.enabled = False
-            # S'assurer que la sélection d'unité est désactivée (aucune unité sélectionnée)
-            self._clear_current_selection()
-            return
-
-        # Si le joueur contrôle les alliés, désactive l'IA alliée et active l'IA ennemie
-        if active_team == Team.ALLY:
-            if ally_ai is not None:
-                ally_ai.enabled = False
-            if enemy_ai is not None:
-                enemy_ai.enabled = True
-        # Si le joueur contrôle les ennemis, désactive l'IA ennemie et active l'IA alliée
-        elif active_team == Team.ENEMY:
-            if ally_ai is not None:
-                ally_ai.enabled = True
-            if enemy_ai is not None:
-                enemy_ai.enabled = False
-        else:
-            if ally_ai is not None:
-                ally_ai.enabled = True
-            if enemy_ai is not None:
-                enemy_ai.enabled = True
-
-        # Si on vient de sortir du mode self-play, s'assurer que les deux IA sont réactivées
-        if not getattr(self, 'self_play_mode', False):
-            if ally_ai is not None and enemy_ai is not None:
-                if not ally_ai.enabled and not enemy_ai.enabled:
-                    ally_ai.enabled = True
-                    enemy_ai.enabled = True
-        
-        # S'assurer que les contrôles joueurs sont réactivés si on n'est pas en self-play
-        if not getattr(self, 'self_play_mode', False) and self.player_controls is not None:
-            self.player_controls.enabled = True
         
         # Configurer les handlers d'événements
         es.set_handler('attack_event', create_projectile)
@@ -1010,6 +965,7 @@ class GameEngine:
             es.set_handler('flying_chest_collision', self.flying_chest_processor.handle_collision)
         if self.island_resource_manager is not None:
             es.set_handler('island_resource_collision', self.island_resource_manager.handle_collision)
+        
         
     def _create_initial_entities(self):
         """Crée les entités initiales du jeu."""
@@ -1034,12 +990,11 @@ class GameEngine:
         # Créer les unités
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
         player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
+        if player_unit is not None:
+            if not getattr(self, 'self_play_mode', False):
+                self._set_selected_entity(player_unit)
 
-        # En mode Joueur vs IA, sélectionner une unité par défaut. Pas en mode IA vs IA.
-        if not self.self_play_mode and player_unit is not None:
-            self._set_selected_entity(player_unit)
-
-        # Créer une unité ennemie équivalente
+        # Créer un druide ennemi à une position équivalente à celle du druid allié
         enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(
             is_enemy=True, jitter=TILE_SIZE * 0.1)  # Même jitter que l'allié
         enemy_druid = UnitFactory(
@@ -1051,43 +1006,36 @@ class GameEngine:
         # Initialiser les variables d'optimisation adaptative
         self._frame_times = []
         self._adaptive_quality = 1.0
-
-    def enable_self_play(self):
-        """Active le mode self-play : IA vs IA et désactive le contrôle joueur."""
-        self.self_play_mode = True
-        
-        # S'assurer qu'aucune unité n'est sélectionnée
-        self._clear_current_selection()
-
-        # Activer les deux IA
-        if getattr(self, 'ally_base_ai', None) is not None:
-            self.ally_base_ai.enabled = True
-        if getattr(self, 'enemy_base_ai', None) is not None:
-            self.enemy_base_ai.enabled = True
-
-        # Signaler à l'ActionBar (si présente)
-        try:
-            if getattr(self, 'action_bar', None) is not None:
-                self.action_bar.self_play_mode = True
-        except Exception:
-            pass
-
-    def disable_self_play(self):
-        """Désactive le mode self-play et restaure le contrôle joueur."""
-        self.self_play_mode = False
-        # Rétablir activation normale des IA via _update_base_ai_activation lors du prochain tick
-
-        try:
-            if getattr(self, 'action_bar', None) is not None:
-                self.action_bar.self_play_mode = False
-        except Exception:
-            pass
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
         # La caméra est déjà configurée dans init_game_map()
         # Ne pas la recentrer automatiquement
         pass
+    
+    def _update_base_ai_activation(self, active_team):
+        """Active ou désactive les IA de base selon la faction jouée."""
+        ally_ai = getattr(self, 'ally_base_ai', None)
+        enemy_ai = getattr(self, 'enemy_base_ai', None)
+        # Mode IA vs IA : activer les deux IA
+        if getattr(self, 'self_play_mode', False):
+            if ally_ai:
+                ally_ai.enabled = True
+            if enemy_ai:
+                enemy_ai.enabled = True
+            return
+        # Joueur contrôle les alliés
+        if active_team == Team.ALLY:
+            if ally_ai:
+                ally_ai.enabled = False
+            if enemy_ai:
+                enemy_ai.enabled = True
+        # Joueur contrôle les ennemis
+        elif active_team == Team.ENEMY:
+            if ally_ai:
+                ally_ai.enabled = True
+            if enemy_ai:
+                enemy_ai.enabled = False
 
     def toggle_camera_follow_mode(self) -> None:
         """Bascule entre une caméra libre et le suivi de l'unité sélectionnée."""
@@ -1107,6 +1055,7 @@ class GameEngine:
     def _handle_action_bar_camp_change(self, team: int) -> None:
         """Callback déclenchée par l'ActionBar lors d'un changement de camp."""
         self.set_selection_team(team, notify=True)
+        self._update_base_ai_activation(team)
 
     def set_selection_team(self, team: int, notify: bool = False) -> None:
         """Définit la faction active utilisée pour la sélection."""
@@ -1199,6 +1148,8 @@ class GameEngine:
         return True
 
     def handle_mouse_selection(self, mouse_pos: Tuple[int, int]) -> None:
+        if getattr(self, 'self_play_mode', False):
+            return
         """Gère la sélection via un clic gauche."""
         # Si on est en mode placement de tour, tenter de placer une tour
         if self.tower_placement_mode:
@@ -1252,6 +1203,8 @@ class GameEngine:
         return member
 
     def select_next_unit(self):
+        if getattr(self, 'self_play_mode', False):
+            return
         """Sélectionne l'unité alliée suivante."""
         units = self._get_player_units()
         if not units:
@@ -1267,6 +1220,8 @@ class GameEngine:
         self._set_selected_entity(units[next_index])
 
     def select_previous_unit(self):
+        if getattr(self, 'self_play_mode', False):
+            return
         """Sélectionne l'unité alliée précédente."""
         units = self._get_player_units()
         if not units:
@@ -1283,6 +1238,8 @@ class GameEngine:
 
 
     def trigger_selected_attack(self):
+        if getattr(self, 'self_play_mode', False):
+            return
         """Déclenche l'attaque principale de l'unité sélectionnée, avec gestion de la seconde salve de Draupnir."""
         if self.selected_unit_id is None:
             return
@@ -1326,6 +1283,8 @@ class GameEngine:
             # Le cooldown reste inchangé (déjà appliqué)
 
     def trigger_selected_special_ability(self):
+        if getattr(self, 'self_play_mode', False):
+            return
         """Déclenche la capacité spéciale de l'unité sélectionnée selon sa classe."""
         if self.selected_unit_id is None:
             return
@@ -1738,39 +1697,27 @@ class GameEngine:
         # Traiter le TowerProcessor (avec dt)
         if self.tower_processor is not None:
             self.tower_processor.process(dt)
-        
+
         # Traiter le StormProcessor (avec dt)
         if self.storm_processor is not None:
             self.storm_processor.process(dt)
-        
-        # Traiter la logique ECS (sans dt pour les autres processeurs)
-        # Passer les informations nécessaires aux processeurs qui en ont besoin
-        active_team = self.action_bar.current_camp if self.action_bar else Team.ALLY
-        self._update_base_ai_activation(active_team)
-        
-        # En mode self-play, on s'assure que le paramètre `active_player_team_id` n'interfère pas avec les IA.
-        # On passe une valeur neutre (0) pour que les IA ne se désactivent pas mutuellement.
-        active_player_id_for_ai = 0 if self.self_play_mode else active_team
 
-        es.process(
-            dt=dt,
-            active_player_team_id=active_player_id_for_ai
-        )
+
+        # Mettre à jour l’équipe active et le mode IA vs IA pour les IA de base avant chaque tick ECS
+        if hasattr(self, 'ally_base_ai'):
+            self.ally_base_ai.active_player_team_id = self.selection_team_filter
+            self.ally_base_ai.self_play_mode = getattr(self, 'self_play_mode', False)
+        if hasattr(self, 'enemy_base_ai'):
+            self.enemy_base_ai.active_player_team_id = self.selection_team_filter
+            self.enemy_base_ai.self_play_mode = getattr(self, 'self_play_mode', False)
+
+        # Traiter la logique ECS (sans dt pour les autres processeurs)
+        es.process()
 
         if self.flying_chest_processor is not None:
             self.flying_chest_processor.process(dt)
         if self.island_resource_manager is not None:
             self.island_resource_manager.update(dt)
-            
-        # Mettre à jour la visibilité pour le brouillard de guerre
-        # En mode self-play, on met à jour pour les deux équipes pour que les IA aient une vision correcte.
-        if self.self_play_mode:
-            vision_system.update_visibility(Team.ALLY)
-            vision_system.update_visibility(Team.ENEMY)
-        else:
-            # En mode joueur, on ne met à jour que pour l'équipe active.
-            current_team = self.action_bar.current_camp if self.action_bar else Team.ALLY
-            vision_system.update_visibility(current_team)
             
         # Les tempêtes sont gérées par storm_processor (processeur ECS)
 
@@ -1967,6 +1914,7 @@ class GameEngine:
                 player_comp.stored_gold = max(0, amount)
                 return
 
+
 def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
     """Point d'entrée principal du jeu (compatibilité avec l'API existante).
     
@@ -1976,8 +1924,7 @@ def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
         select_sound: Son de sélection pour les modales (optionnel)
         mode: "player_vs_ai" ou "ai_vs_ai"
     """
-    engine = GameEngine(window, bg_original, select_sound)
+    engine = GameEngine(window, bg_original, select_sound, self_play_mode=(mode == "ai_vs_ai"))
     if mode == "ai_vs_ai":
         engine.enable_self_play()
-        
     engine.run()

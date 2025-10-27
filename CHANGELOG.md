@@ -1,5 +1,12 @@
 # 🧾 Changelog
 
+## v0.7.1 (2025-10-13)
+
+### 🐞 Fix
+
+- Changement de la manière d'obtenir le numéro de version pour corriger le "vunknown" dans les versions compilées
+- Correction de la description du composant de base
+
 ## v0.7.0 (2025-10-12)
 
 ### ✨ Feat

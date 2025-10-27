@@ -39,7 +39,7 @@ BASE_VISION_RANGE = 8.0
 # Portées de vision par type d'unité (en unités de grille)
 UNIT_VISION_SCOUT = 6.0
 UNIT_VISION_MARAUDEUR = 5.0
-UNIT_VISION_LEVIATHAN = 4.0
+UNIT_VISION_LEVIATHAN = 5.0  # Augmenté de 4.0 à 5.0 pour meilleure visibilité
 UNIT_VISION_DRUID = 5.0
 UNIT_VISION_ARCHITECT = 4.0
 UNIT_VISION_KAMIKAZE = UNIT_VISION_SCOUT  # Même vision qu'un Scout
@@ -132,6 +132,15 @@ SHOP_FONT_SIZE_SUBTITLE = 26
 SHOP_FONT_SIZE_NORMAL = 20
 SHOP_FONT_SIZE_SMALL = 16
 SHOP_FONT_SIZE_TINY = 14
+
+# Constantes de la boutique - Prix des unités
+UNIT_COST_SCOUT = 10
+UNIT_COST_MARAUDEUR = 20
+UNIT_COST_LEVIATHAN = 40
+UNIT_COST_DRUID = 30
+UNIT_COST_ARCHITECT = 30
+UNIT_COST_ATTACK_TOWER = 150
+UNIT_COST_HEAL_TOWER = 120
 
 # Seuils de couleur pour les barres de vie
 HEALTH_HIGH_THRESHOLD = 0.6  # Vert si > 60%
@@ -230,7 +239,7 @@ BASE_ATTACK_COOLDOWN = 3.0  # Cooldown entre tirs de base (secondes)
 # Cooldowns d'attaque des unités (en secondes)
 UNIT_COOLDOWN_SCOUT = 2
 UNIT_COOLDOWN_MARAUDEUR = 4
-UNIT_COOLDOWN_LEVIATHAN = 8
+UNIT_COOLDOWN_LEVIATHAN = 60  # 1 seconde (60 frames à 60 FPS)
 UNIT_COOLDOWN_DRUID = 4
 UNIT_COOLDOWN_KAMIKAZE = 0.5 # Cooldown très court, car il meurt après l'attaque
 UNIT_COOLDOWN_ARCHITECT = 4
@@ -324,6 +333,6 @@ CLOUD_SPEED_REDUCTION = 100  # 100% pour debug print
 # Portées de vision par type d'unité (en unités de grille)
 UNIT_VISION_SCOUT = 6.0
 UNIT_VISION_MARAUDEUR = 5.0
-UNIT_VISION_LEVIATHAN = 4.0
+UNIT_VISION_LEVIATHAN = 5.0  # Augmenté de 4.0 à 5.0 pour meilleure visibilité
 UNIT_VISION_DRUID = 5.0
 UNIT_VISION_ARCHITECT = 4.0

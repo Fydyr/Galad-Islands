@@ -1,6 +1,6 @@
 [project]
 name = "galad-islands"
-version = "0.7.0"
+version = "0.7.1"
 description = "Jeu Galad Islands"
 authors = [
     { name="Alluin Edouard", email="edouard.alluin@etu.univ-littoral.fr" },
@@ -20,7 +20,7 @@ version_provider = "pep621"
 tag_format = "v$version"
 version_files = [
     "pyproject.toml:version",
-    "src/__version__.py"
+    "src/version.py"
 ]
 update_changelog_on_bump = true
 bump_message = "chore: bump version $current_version → $new_version"

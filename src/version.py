@@ -1,3 +1,5 @@
-"""Version information for Galad Islands."""
-
-version = "0.7.0"
+# -*- coding: utf-8 -*-
+"""
+Contient la version du projet, mise à jour automatiquement par commitizen.
+"""
+__version__ = "0.7.1"

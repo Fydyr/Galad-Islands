@@ -1,7 +1,5 @@
 # Main menu in Pygame
 
-# Main menu in Pygame
-
 import pygame
 import sys
 import os

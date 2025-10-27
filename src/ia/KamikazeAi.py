@@ -134,7 +134,7 @@ class KamikazeAiProcessor(esper.Processor):
         return []
 
     # --------------------------- processeur principal ---------------------------
-    def process(self, dt: float, **kwargs):
+    def process(self, dt: float = 0.016, **kwargs):
         # La logique de cooldown a été retirée pour rendre l'IA plus réactive.
         for ent, (ai_comp, pos, vel, team) in esper.get_components(KamikazeAiComponent, PositionComponent, VelocityComponent, TeamComponent):
             if getattr(ai_comp, 'unit_type', None) == UnitType.KAMIKAZE:

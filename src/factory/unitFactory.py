@@ -45,14 +45,24 @@ from src.components.core.classeComponent import ClasseComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
+from src.components.ai.aiLeviathanComponent import AILeviathanComponent
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.core.visionComponent import VisionComponent
 from src.settings.localization import t
 
 
-def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
-    """Instancie une entité Esper correspondant au type d'unité fourni."""
+def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: bool = None):
+    """
+    Instancie une entité Esper correspondant au type d'unité fourni.
+
+    Args:
+        unit: Type d'unité à créer
+        enemy: Si True, créé une unité ennemie (team 2), sinon alliée (team 1)
+        pos: Position initiale de l'unité
+        enable_ai: Si True/False, force l'activation/désactivation de l'IA.
+                   Si None (défaut), l'IA est activée uniquement pour les ennemis.
+    """
     entity = None
     match(unit):
         case UnitType.SCOUT:
@@ -106,6 +116,14 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpeLeviathan())
             es.add_component(entity, VisionComponent(UNIT_VISION_LEVIATHAN))
+
+            # Ajouter le composant IA pour les Léviathans
+            # Par défaut, IA activée pour tous les léviathans (alliés et ennemis)
+            # Peut être désactivée avec enable_ai=False
+            should_enable_ai = True if enable_ai is None else enable_ai
+            if should_enable_ai:
+                es.add_component(entity, AILeviathanComponent(enabled=True))
+
             sprite_id = SpriteID.ALLY_LEVIATHAN if not enemy else SpriteID.ENEMY_LEVIATHAN
             size = sprite_manager.get_default_size(sprite_id)
             if size:

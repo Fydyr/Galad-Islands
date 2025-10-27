@@ -102,6 +102,7 @@ class SpriteManager:
     def __init__(self):
         self._sprites_registry: Dict[SpriteID, SpriteData] = {}
         self._loaded_images: Dict[SpriteID, pygame.Surface] = {}
+        self.image_loading_enabled = True  # Permet de désactiver le chargement d'images
         self._initialize_sprite_registry()
     
     def _initialize_sprite_registry(self):
@@ -199,6 +200,10 @@ class SpriteManager:
     
     def load_sprite(self, sprite_id: SpriteID) -> Optional[pygame.Surface]:
         """Load and cache a sprite image."""
+        # Ne pas charger si le chargement d'images est désactivé
+        if not self.image_loading_enabled:
+            return None
+
         # Return cached image if already loaded
         if sprite_id in self._loaded_images:
             return self._loaded_images[sprite_id]
@@ -244,13 +249,15 @@ class SpriteManager:
                 image_path=sprite_data.file_path,
                 width=float(final_width),
                 height=float(final_height),
-                image=image_surface
+                image=image_surface,
+                image_loading_enabled=self.image_loading_enabled
             )
         # Fallback: return component with only path so it can try to load itself
         return SpriteComponent(
             image_path=sprite_data.file_path,
             width=float(final_width),
-            height=float(final_height)
+            height=float(final_height),
+            image_loading_enabled=self.image_loading_enabled
         )
     
     def preload_sprites(self, sprite_ids: list[SpriteID]):
