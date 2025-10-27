@@ -2,124 +2,75 @@
 
 ## v0.8.0 (2025-10-27)
 
-### Feat
+### 🤖 Ajout des IA
 
-- ajout esquive des mines
-- **ai**: ajout du tir latéral
-- ajout du model d'ia el plus récent
-- ajout d'un modèle d'ia ne fonctionnant pas réellement
-- ajout de modèles d'ia (qui sont malheureusement obsolète)
-- **ai**: ajout d'information sur le print lors de l'entrainement de l'ia
-- add model ai for leviathan (100 games simulated)
-- add test reward for ai leviathan
-- add training ai
-- add ai leviathan
-- added  better health game_state retrieval, and better tower building strategies
-- Architect can place towers
-- AI now moves correctly to island
-- add more options to AI
-- basic AI (not fully implemented)
-- added training to AI model
-- move ia to src, and modify pathfinding and decisionTree for better architect reasoning.
-- removed old ai and added new pathfinding methods
-- test new AI
-- AI pathfinding training
-- upgraded AI (without much success)
-- Integration of AI ingame
-- basic architect AI
-- modify doc
-- final ia with doc
-- enhance entity cleanup by filtering out dead or non-existent controllers
-- maybe last version of ai, detail : - add base position bonus to danger map for improved flee state navigation - 0 speed when AI attack to avoid no sence mouvement - delete "harass" (no max number AI attack)
-- enhance danger map with enemy base danger zone calculations
-- implement dynamic shooting range and improve attack prioritization for AI units
-- save
-- update pathfinding settings and rendering for improved AI navigation
-- add more debug
-- goto normalisé
-- ajout des waypoint dans le debug
-- division pour l'ia des cases (tiles) en 4 pour une meilleurs précision du pathfinding
-- mise en place de debug pour une meilleurs compréhension
-- quelques comporrtement bizarre mais légère avancé
-- tir continu
-- save
-- v1
-- décision pré code
-- configuration.md, requirements.md, druidAiController.py, init.py, positioningBehavior.py, vineBehavior.py, actionEvaluator.py, stateScorer.py, astarNavigator.py,  gameStateAnalyzer.py,
-- add automatic model cleanup script and update .gitignore
-- ajouter nouvelle fonctionnalité
-- ajouter nouvelle fonctionnalité
-- Add Barhamus AI class for Maraudeur unit with shield mechanics
-- Change starting unit from Scout to Maraudeur
-- Implement Barhamus AI with targeting and mana shield mechanics
+Cette version marque une avancée majeure dans le développement des intelligences artificielles du jeu. Plusieurs modèles d’IA ont été intégrés, chacun apportant des comportements et des stratégies variées pour enrichir l’expérience de jeu. L’accent a été mis sur l’amélioration du pathfinding, la prise de décision, et l’ajout de fonctionnalités spécifiques à certaines unités. Les IA bénéficient désormais de capacités telles que l’esquive des mines, le tir latéral, et des stratégies de placement de tours plus efficaces. De nombreux tests et ajustements ont permis d’optimiser leur comportement, rendant les parties plus dynamiques et imprévisibles.
 
-### Fix
+Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’adapter à de nombreuses situations de jeu.
 
-- ajouter des dépendances manquantes dans le README
-- ajouter la vérification du rayon de vision pour le tir des unités
-- rétablissement du processeur IA Léviathan au moteur de jeu
-- change player unit type from ARCHITECT to SCOUT
-- update action execution to include SpeArchitect component
-- mise à jour de la vitesse de l'ia pour le déplacement (trop lente avant)
-- utilisation de la capacité spécial
-- **ai**: L'ia va sur la base ennemie et tire dessus ainsi que sur les ennemies
-- **ai**: mise à jour de l'arbre de décision
-- **ai**: mise à jour du pathfinding pour éviter les obstacles
-- **ai**: Retrait du système d'apprentissage par Q-Learning et changement par un arbre de décision
-- mise à jour des informations sortie sur le terminal lors de l'arrêt de l'entrainement de l'ia
-- mise à jour de l'entrainement de l'ia pour qu'elle apprend plus vite
-- **ai**: correction pour le mouvement de l'ia
-- mise à jour des rewards et du sysyème pour aller vers la base adverse
-- changement de modèle d'ia car non fonctionnel
-- mise à jour du model d'ia
-- mise à jour sur les rewards
-- **ai**: mise à jour des rewards
-- mise à jour du reward pour les event + forcer vers la base ennemie
-- l'ia ne fonctionnais pas fonctionner pour les alliés + amélioration sur l'entrainement pour entrainer l'ia allié
-- mise à jour de l'entrainement de l'ia
-- ajout de pathfinding via le A* + ajout de l'ia pour l'unité allié
-- modification du fichier de model (recommencer de 0 le model d'ia)
-- update ai leviathan model
-- update epsilon for ai
-- chemin fixé
-- **ai**: train ai leviathan
-- training ai
-- quand on relançais l'entrainement il recommençais de zéro au lieu de reprendre là où il en était et effaçais donc entièrement l'ia
-- AI now choosing different islands to build on
-- angle of the AI to chosen path and start of building placing
-- change ai path
-- Added processors to training
-- regression of non working ai training
-- empêcher le tir des unités sur les mines et les alliés
-- ajout du contrôle IA pour les unités Scout dans l'équipe allié et mise à jour des processeurs IA
-- ajout et modifications des commentaires
-- suppression du dossier sklearn (inutile et encombrant), réparation des explosions de sprites.
-- amélioration de l'IA, elle suit son coéquipier quand il est blessé sans prendre de collisions et en évitant les mines
-- directions de l'IA
-- astarNavigator.py, gameStateAnalyzer.py
-- update requirements.txt to include scikit-learn version
-- update Barhamus AI model files to latest versions
-- update Barhamus AI model files to latest versions
-- update Barhamus AI import to new module
+### ✨ Feat
 
-### Refactor
+- **IA** : Intégration de plusieurs modèles d'IA pour enrichir l'expérience de jeu avec des comportements et stratégies variés.
+- **IA** : Amélioration du pathfinding, de la prise de décision et ajout de capacités spécifiques (esquive des mines, tir latéral, placement de tours).
+- **IA** : Ajout du tir latéral pour les unités.
+- **IA** : Intégration de l'IA pour le Léviathan (modèle entraîné sur 100 parties).
+- **IA** : L'Architecte peut désormais placer des tours et se déplace correctement vers les îles.
+- **IA** : Amélioration de la récupération de l'état de santé et des stratégies de construction de tours.
+- **IA** : Intégration de l'IA en jeu avec des méthodes de pathfinding améliorées.
+- **IA** : Amélioration de la navigation avec une division des tuiles pour une meilleure précision du pathfinding et ajout de waypoints de débogage.
+- **IA** : Implémentation du tir continu pour les unités IA.
+- **IA** : Amélioration de la navigation en état de fuite (`FleeState`) grâce à un bonus de position de base sur la carte de danger.
+- **IA** : Amélioration de la carte de danger avec le calcul des zones de danger de la base ennemie.
+- **IA** : Implémentation d'une portée de tir dynamique et amélioration de la priorisation des attaques.
+- **IA** : Ajout de la classe `Barhamus AI` pour l'unité Maraudeur avec gestion du bouclier de mana.
+- **IA** : Changement de l'unité de départ de Scout à Maraudeur.
+- **IA** : Ajout d'informations de débogage lors de l'entraînement.
+- **IA** : Nettoyage amélioré des entités en filtrant les contrôleurs morts ou non existants.
+- **IA** : Ajout d'un script de nettoyage automatique des modèles et mise à jour du `.gitignore`.
+- **IA** : Ajout de nouvelles fonctionnalités et options.
+- **IA** : Suppression du concept de "harcèlement" pour permettre un nombre illimité d'attaquants IA.
+- **IA** : Vitesse des unités IA mise à 0 lors de l'attaque pour éviter les mouvements incohérents.
+- **IA** : Mise à jour des paramètres de pathfinding et du rendu pour une meilleure navigation.
+- **IA** : Ajout de nombreux modèles d'IA, y compris des versions de test et obsolètes pour itération.
+- **IA** : Déplacement des fichiers d'IA vers `src` et modification du pathfinding pour un meilleur raisonnement de l'Architecte.
+- **IA** : Ajout de la documentation finale pour l'IA.
 
-- déplacement de fichier
-- correction du nom de l'image de la tour de défense ennemi
-- remove unused translation for Q-Learning Architect
-- simplification de fonction & optimisation
-- mise à jour des fonctions en camelCase
-- mise à jour des commentaires
-- rename file
-- removed all previous AI attemps
-- removed SKLearn and added simple min-max
-- nettoyage des fichiers de rendu
-- renommage du processeur du Druid (anciennment un nom générique)
-- delete of join_druid bcs too similar with follow_druid delete preshot bcs too ambitious
+### 🐞 Fix
 
-### Perf
+- **Dépendances** : Ajout des dépendances manquantes dans le `README.md`.
+- **Unités** : Ajout de la vérification du rayon de vision pour le tir des unités.
+- **IA** : Rétablissement du processeur IA du Léviathan dans le moteur de jeu.
+- **Joueur** : Changement du type d'unité du joueur d'ARCHITECTE à ÉCLAIREUR.
+- **Architecte** : Mise à jour de l'exécution des actions pour inclure le composant `SpeArchitect`.
+- **IA** : Augmentation de la vitesse de déplacement des unités IA.
+- **IA** : Activation de l'utilisation des capacités spéciales.
+- **IA** : L'IA cible et attaque désormais la base ennemie ainsi que les unités sur son chemin.
+- **IA** : Mise à jour de l'arbre de décision et du pathfinding pour éviter les obstacles.
+- **IA** : Remplacement du Q-Learning par un arbre de décision.
+- **IA** : Correction des mouvements et amélioration de l'apprentissage (récompenses, ciblage de base).
+- **IA** : Correction du processus d'entraînement qui redémarrait de zéro au lieu de reprendre.
+- **IA** : L'IA choisit désormais différentes îles pour construire.
+- **IA** : Correction de l'angle de l'IA par rapport au chemin choisi.
+- **Unités** : Empêchement du tir des unités sur les mines et les alliés.
+- **IA** : Ajout du contrôle IA pour les unités Scout de l'équipe alliée.
+- **IA** : Amélioration du suivi des coéquipiers blessés en évitant les collisions et les mines.
+- **Dépendances** : Mise à jour de `requirements.txt` pour inclure la version de `scikit-learn`.
+- **IA** : Mise à jour des imports et des fichiers du modèle `Barhamus AI`.
+- **Général** : Ajout et modification de commentaires pour une meilleure compréhension.
+- **Général** : Suppression du dossier `sklearn` (inutile et encombrant).
+- **Général** : Réparation des explosions de sprites.
 
-- **ai**: optimisation de l'entrainement de l'ia
+### 🧹 Refactor
+
+- **Structure** : Déplacement de fichiers et renommage du processeur du Druide.
+- **Assets** : Correction du nom de l'image de la tour de défense ennemie.
+- **Code** : Suppression de la traduction inutilisée pour l'Architecte Q-Learning.
+- **Code** : Simplification de fonctions, optimisation et mise à jour des commentaires.
+- **Code** : Mise à jour des noms de fonctions en `camelCase`.
+- **IA** : Suppression de toutes les tentatives d'IA précédentes.
+- **IA** : Remplacement de `SKLearn` par un simple `min-max`.
+- **IA** : Suppression de l'état `join_druid` (trop similaire à `follow_druid`) et de l'état `preshot` (trop ambitieux).
+- **Rendu** : Nettoyage des fichiers de rendu.
 
 ## v0.7.1 (2025-10-13)
 
