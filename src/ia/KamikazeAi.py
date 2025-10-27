@@ -25,6 +25,8 @@ from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.core.steeringComponent import SteeringComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.components.events.flyChestComponent import FlyingChestComponent
+from src.components.core.towerComponent import TowerComponent
+from src.components.core.baseComponent import BaseComponent
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
 import math
 import numpy as np
@@ -627,6 +629,13 @@ class KamikazeAiProcessor(esper.Processor):
             if getattr(team, 'team_id', None) == 0 and not esper.has_component(ent, FlyingChestComponent):
                 if math.hypot(pos.x - my_pos.x, pos.y - my_pos.y) < radius:
                     obstacles.append(pos)
+        # ajouter les tours comme obstacles, sauf les bases
+        for ent, (pos, tower) in esper.get_components(PositionComponent, TowerComponent):
+            # On ignore les entités qui sont des bases
+            if esper.has_component(ent, BaseComponent):
+                continue
+            if math.hypot(pos.x - my_pos.x, pos.y - my_pos.y) < radius * 1.2:  # distance légèrement augmentée
+                obstacles.append(pos)
         return obstacles
 
     def get_nearby_allies(self, my_pos: PositionComponent, my_ent: int, radius: float, my_team_id: int) -> List[Tuple[int, PositionComponent, VelocityComponent]]:
