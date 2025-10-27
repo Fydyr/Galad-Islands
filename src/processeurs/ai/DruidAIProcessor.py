@@ -48,28 +48,30 @@ from src.factory.unitType import get_unit_metadata
 DRUID_HEAL_AMOUNT = get_unit_metadata(UnitType.DRUID).ally.stats.get("soin", 20) #
 
 
-class AIControlProcessor(esper.Processor):
+class DruidAIProcessor(esper.Processor):
 
-    def __init__(self, grid: Grid):
+    def __init__(self, grid: Grid, world):
         self.grid = grid
+        self.world = world
         self.pathfinding_service = a_star_pathfinding
         self.minimax_service = run_minimax
         self.debug_timer = 0.0
+        self.last_dt = 0.0
 
-    def process(self, dt: float):
+    def process(self):
+        dt = self.last_dt
         self.debug_timer -= dt
         debug_this_frame = False
         if self.debug_timer <= 0:
             self.debug_timer = 2.0
             debug_this_frame = True
 
-        for ent, (ai, pos, team, vel, health) in esper.get_components(
-                AIControlledComponent,
-                PositionComponent,
-                TeamComponent,
-                VelocityComponent,
-                HealthComponent):
-
+        for ent, (ai, pos, team, vel, health) in self.world.get_components(
+            AIControlledComponent,
+            PositionComponent,
+            TeamComponent,
+            VelocityComponent,
+            HealthComponent):
             # Gestion du Mouvement
             if ai.current_path:
                 # code mouvement
@@ -101,8 +103,7 @@ class AIControlProcessor(esper.Processor):
                 pos.direction = angle
                 vel.currentSpeed = vel.maxUpSpeed
 
-
-            ai.think_cooldown_current -= dt
+            ai.think_cooldown_current -= self.last_dt
             # --- 2. GESTION DE LA DÉCISION (PÉRIODIQUEMENT) ---
             if ai.think_cooldown_current <= 0 and ai.current_action is None:
                 # print(f"[AI DEBUG 3] L'entité {ent} commence à RÉFLÉCHIR.") Moins de spam
@@ -115,7 +116,7 @@ class AIControlProcessor(esper.Processor):
                     continue
 
                 if debug_this_frame: # Afficher l'état seulement toutes les 2s
-                     print(f"[AI DEBUG 4] Entité {ent} voit: {len(game_state['allies'])} alliés, {len(game_state['enemies'])} ennemis. Cooldown Special: {game_state['druid']['spec_cooldown']:.2f}")
+                    print(f"[AI DEBUG 4] Entité {ent} voit: {len(game_state['allies'])} alliés, {len(game_state['enemies'])} ennemis. Cooldown Special: {game_state['druid']['spec_cooldown']:.2f}")
 
                 best_action, best_score = self.minimax_service(
                     game_state,
@@ -138,8 +139,8 @@ class AIControlProcessor(esper.Processor):
         try:
             spe_druid = esper.component_for_entity(druid_entity, SpeDruid)
             radius = esper.component_for_entity(druid_entity, RadiusComponent)
-        except esper.ComponentNotFound:
-             # print(f"Erreur IA: Entité {druid_entity} n'est pas un Druide complet.") Moins de spam
+        except KeyError:
+            # print(f"Erreur IA: Entité {druid_entity} n'est pas un Druide complet.") Moins de spam
             return None
 
         # --- DEBUG COOLDOWN ---
@@ -189,7 +190,7 @@ class AIControlProcessor(esper.Processor):
                     try:
                         vine_comp = esper.component_for_entity(ent, isVinedComponent)
                         vine_duration = vine_comp.remaining_time
-                    except esper.ComponentNotFound:
+                    except KeyError:
                         pass
                 entity_data["vine_duration"] = vine_duration
                 game_state["enemies"].append(entity_data)
@@ -221,7 +222,7 @@ class AIControlProcessor(esper.Processor):
                     spe_druid.launch_projectile(druid_entity)
                     print(f"[AI ACTION] Druid {druid_entity} LANCE LIERRE sur {target_id}") # Confirmation
                 else:
-                     print(f"[AI WARNING] Druid {druid_entity} voulait lancer lierre mais cooldown pas prêt in extremis!")
+                    print(f"[AI WARNING] Druid {druid_entity} voulait lancer lierre mais cooldown pas prêt in extremis!")
                 # --- FIN VÉRIFICATION ---
                 ai.current_action = None
 
@@ -254,8 +255,7 @@ class AIControlProcessor(esper.Processor):
                 vel.currentSpeed = 0
                 ai.current_path = []
                 ai.current_action = None
-
-        except (esper.ComponentNotFound, esper.DeadEntityError):
+        except KeyError:
             # print(f"[AI DEBUG 9] Action {action} ANNULÉE (cible morte ?)") Moins de spam
             ai.current_action = None
             ai.current_path = []
