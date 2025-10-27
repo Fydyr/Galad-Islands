@@ -23,7 +23,10 @@ from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProc
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.processeurs.eventProcessor import EventProcessor
 # IA - Import du nouveau processeur
-from src.processeurs.ai.aiControlProcessor import AIControlProcessor
+from processeurs.ai.DruidAIProcessor import DruidAIProcessor
+from src.processeurs.towerProcessor import TowerProcessor
+from src.ia_troupe_rapide.processors.rapid_ai_processor import RapidTroopAIProcessor
+
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -35,6 +38,7 @@ from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
+
 
 # Importations des capacités spéciales
 from src.components.special.speScoutComponent import SpeScout
@@ -712,21 +716,23 @@ class GameEngine:
         self.event_processor = EventProcessor(15, 5, 10, 25)
         
         # IA - Initialisation du processeur IA avec la grille
-        self.druid_ai_processor = AIControlProcessor(self.grid)
+        self.druid_ai_processor = DruidAIProcessor(self.grid, es)
         
         # Tower processor (gère tours de défense/soin)
-        from src.processeurs.towerProcessor import TowerProcessor
         self.tower_processor = TowerProcessor()
-        self.rapid_ai_processor = ensure_ai_processors(es, self.grid)
+        self.rapid_ai_processor_ally = RapidTroopAIProcessor(self.grid)
+        self.rapid_ai_processor_enemy = RapidTroopAIProcessor(self.grid)
 
         # AJOUT DES PROCESSEURS DANS L'ORDRE
-        #es.add_processor(self.druid_ai_processor, priority=1) 
-        es.add_processor(self.collision_processor, priority=2)
-        es.add_processor(self.movement_processor, priority=3)
-        es.add_processor(self.player_controls, priority=4)
+        es.add_processor(self.druid_ai_processor, priority=1)
+        es.add_processor(self.rapid_ai_processor_ally, priority=2)
+        es.add_processor(self.rapid_ai_processor_enemy, priority=3)
+        es.add_processor(self.collision_processor, priority=4)
+        es.add_processor(self.movement_processor, priority=5)
+        es.add_processor(self.player_controls, priority=6)
         #es.add_processor(self.tower_processor, priority=5)
         #es.add_processor(self.lifetime_processor, priority=10)
-        
+
         # Configurer les handlers d'événements
         es.set_handler('attack_event', create_projectile)
         es.set_handler('special_vine_event', create_projectile)
@@ -756,28 +762,17 @@ class GameEngine:
         # Initialiser le gestionnaire de bases
         BaseComponent.initialize_bases()
         
-        # Créer les unités
+        # Créer un Scout allié
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
-        player_unit = UnitFactory(UnitType.MARAUDEUR, False, PositionComponent(spawn_x, spawn_y))
-        if player_unit is not None:
-            # L'IA sera automatiquement attachée par le gestionnaire
-            print(f"Maraudeur allié créé: {player_unit}")
-            # Ne pas sélectionner l'unité pour laisser l'IA agir librement
-            # self._set_selected_entity(player_unit)
+        player_scout = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
+        if player_scout is not None:
+            print(f"Scout allié créé: {player_scout}")
 
-        # Créer des ennemis pour tester l'IA
-        enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(
-            is_enemy=True, jitter=TILE_SIZE * 0.1)  # Même jitter que l'allié
-        
         # Créer un Scout ennemi
-        enemy_scout = UnitFactory(
-            UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
-        
-        # Créer un Maraudeur ennemi avec IA automatique
-        enemy_maraudeur = UnitFactory(
-            UnitType.MARAUDEUR, True, PositionComponent(enemy_spawn_x + 100, enemy_spawn_y + 50))
-        if enemy_maraudeur is not None:
-            print(f"Maraudeur ennemi créé: {enemy_maraudeur} (IA sera auto-attachée)")
+        enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(is_enemy=True, jitter=TILE_SIZE * 0.1)
+        enemy_scout = UnitFactory(UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
+        if enemy_scout is not None:
+            print(f"Scout ennemi créé: {enemy_scout}")
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
@@ -1406,7 +1401,7 @@ class GameEngine:
             # Assurer que la grille est à jour (au cas où elle changerait, peu probable)
             if hasattr(self, 'grid') and self.grid is not None:
                 self.druid_ai_processor.grid = self.grid
-            self.druid_ai_processor.process(dt) # <-- MODIFIÉ
+            self.druid_ai_processor.last_dt = dt
         
         # Traiter les capacités spéciales d'abord (avec dt)
         if self.capacities_processor is not None:

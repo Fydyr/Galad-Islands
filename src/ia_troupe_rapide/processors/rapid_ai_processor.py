@@ -134,8 +134,7 @@ class RapidTroopAIProcessor(esper.Processor):
             VelocityComponent,
             RadiusComponent,
         ):
-            if team.team_id != Team.ENEMY:
-                continue
+
             if classe.unit_type != UnitType.SCOUT:
                 continue
             yield entity, (team, classe, scout, health, position, velocity, radius)
