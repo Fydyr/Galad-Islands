@@ -6,18 +6,6 @@ i18n:
 
 # Guide de contribution
 
-## Table des matières
-
-1. [Conventions de commit](#conventions-de-commit)
-2. [Workflow de contribution](#workflow-de-contribution)
-3. [Standards de code](#standards-de-code)
-4. [Processus de revue](#processus-de-revue)
-5. [Contact](#contact)
-
----
-
-# Guide de contribution
-
 ## Conventions de commit
 
 Le projet utilise la spécification [Conventional Commits 1.0.0](https://www.conventionalcommits.org/) pour garantir un historique de commits lisible et exploitable par des outils automatisés.
