@@ -15,9 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
 	sys.path.insert(0, str(ROOT))
 
-from src.ia_troupe_rapide.services.context import UnitContext
-from src.ia_troupe_rapide.services.goals import GoalEvaluator
-from src.ia_troupe_rapide.services.prediction import PredictedEntity
+from src.ia.ia_scout.services.context import UnitContext
+from src.ia.ia_scout.services.goals import GoalEvaluator
+from src.ia.ia_scout.services.prediction import PredictedEntity
 from src.components.core.positionComponent import PositionComponent
 from src.components.events.flyChestComponent import FlyingChestComponent
 from src.components.core.healthComponent import HealthComponent

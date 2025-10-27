@@ -4,7 +4,7 @@ Test simple de l'IA Barhamus avec machine learning
 """
 
 import numpy as np
-from src.ia.ia_barhamus2 import BarhamusAI
+from ia.ia_barhamus import BarhamusAI
 
 # Classes simulées pour le test
 class MockHealth:

@@ -8,7 +8,7 @@ from typing import Callable, Optional, Protocol, TYPE_CHECKING
 from .state import State
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
-    from src.ia_troupe_rapide.services.context import UnitContext
+    from src.ia.ia_scout.services.context import UnitContext
 
 
 class TransitionCondition(Protocol):

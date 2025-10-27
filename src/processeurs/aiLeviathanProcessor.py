@@ -20,8 +20,8 @@ from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.components.core.baseComponent import BaseComponent
 from src.components.core.visionComponent import VisionComponent
-from src.ai.leviathan.decision_tree import LeviathanDecisionTree, GameState, DecisionAction
-from src.ai.leviathan.pathfinding import Pathfinder
+from src.ia.leviathan.decision_tree import LeviathanDecisionTree, GameState, DecisionAction
+from src.ia.leviathan.pathfinding import Pathfinder
 from src.settings.settings import TILE_SIZE
 from src.constants.map_tiles import TileType
 

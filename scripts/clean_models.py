@@ -6,11 +6,13 @@ Ce script permet de :
 - Supprimer tous les fichiers PKL (réinitialisation complète)
 - Garder seulement les N fichiers les plus récents
 - Supprimer les fichiers plus anciens qu'un certain nombre de jours
+- Nettoyer spécifiquement les modèles des Maraudeurs (--marauder)
 
 Usage:
     python clean_models.py --all              # Supprimer tous les fichiers PKL
     python clean_models.py --keep 10          # Garder les 10 plus récents
     python clean_models.py --older-than 7     # Supprimer ceux > 7 jours
+    python clean_models.py --marauder --all   # Supprimer tous les modèles Maraudeur
 """
 
 import os
@@ -19,20 +21,20 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 
-def get_pkl_files(models_dir="models"):
-    """Récupère tous les fichiers .pkl dans le dossier models"""
+def get_pkl_files(models_dir="models", pattern="*.pkl"):
+    """Récupère tous les fichiers .pkl dans le dossier models selon le pattern"""
     models_path = Path(models_dir)
     if not models_path.exists():
         print(f"❌ Le dossier '{models_dir}' n'existe pas.")
         return []
     
-    pkl_files = list(models_path.glob("*.pkl"))
+    pkl_files = list(models_path.glob(pattern))
     return pkl_files
 
 
-def delete_all_pkl(models_dir="models"):
-    """Supprime tous les fichiers PKL"""
-    pkl_files = get_pkl_files(models_dir)
+def delete_all_pkl(models_dir="models", pattern="*.pkl"):
+    """Supprime tous les fichiers PKL selon le pattern"""
+    pkl_files = get_pkl_files(models_dir, pattern)
     
     if not pkl_files:
         print("✅ Aucun fichier PKL à supprimer.")
@@ -49,9 +51,9 @@ def delete_all_pkl(models_dir="models"):
     print(f"\n✅ {len(pkl_files)} fichiers PKL supprimés avec succès !")
 
 
-def keep_recent_pkl(n_keep, models_dir="models"):
-    """Garde seulement les N fichiers les plus récents"""
-    pkl_files = get_pkl_files(models_dir)
+def keep_recent_pkl(n_keep, models_dir="models", pattern="*.pkl"):
+    """Garde seulement les N fichiers les plus récents selon le pattern"""
+    pkl_files = get_pkl_files(models_dir, pattern)
     
     if not pkl_files:
         print("✅ Aucun fichier PKL trouvé.")
@@ -83,9 +85,9 @@ def keep_recent_pkl(n_keep, models_dir="models"):
     print(f"\n✅ Nettoyage terminé ! {len(files_to_delete)} fichiers supprimés, {len(files_to_keep)} conservés.")
 
 
-def delete_older_than(days, models_dir="models"):
-    """Supprime les fichiers plus anciens que N jours"""
-    pkl_files = get_pkl_files(models_dir)
+def delete_older_than(days, models_dir="models", pattern="*.pkl"):
+    """Supprime les fichiers plus anciens que N jours selon le pattern"""
+    pkl_files = get_pkl_files(models_dir, pattern)
     
     if not pkl_files:
         print("✅ Aucun fichier PKL trouvé.")
@@ -116,9 +118,9 @@ def delete_older_than(days, models_dir="models"):
     print(f"\n✅ {len(files_to_delete)} fichiers supprimés, {remaining} conservés.")
 
 
-def list_pkl_files(models_dir="models"):
-    """Liste tous les fichiers PKL avec leurs informations"""
-    pkl_files = get_pkl_files(models_dir)
+def list_pkl_files(models_dir="models", pattern="*.pkl"):
+    """Liste tous les fichiers PKL avec leurs informations selon le pattern"""
+    pkl_files = get_pkl_files(models_dir, pattern)
     
     if not pkl_files:
         print("✅ Aucun fichier PKL trouvé.")
@@ -192,6 +194,12 @@ def main():
     )
     
     parser.add_argument(
+        "--marauder",
+        action="store_true",
+        help="Ne nettoyer que les modèles des Maraudeurs (barhamus_ai_*.pkl)"
+    )
+    
+    parser.add_argument(
         "--models-dir",
         type=str,
         default="models",
@@ -200,35 +208,40 @@ def main():
     
     args = parser.parse_args()
     
+    # Déterminer le pattern selon l'option --marauder
+    pattern = "barhamus_ai_*.pkl" if args.marauder else "*.pkl"
+    
     # Si aucune option, afficher la liste par défaut
     if not any([args.all, args.keep, args.older_than, args.list]):
-        print("🔍 Aucune action spécifiée. Liste des fichiers PKL:\n")
-        list_pkl_files(args.models_dir)
+        target = "Maraudeur" if args.marauder else "tous les"
+        print(f"🔍 Aucune action spécifiée. Liste des fichiers PKL {target}:\n")
+        list_pkl_files(args.models_dir, pattern)
         print("\nUtilise --help pour voir toutes les options disponibles.")
         return
     
     # Lister les fichiers
     if args.list:
-        list_pkl_files(args.models_dir)
+        list_pkl_files(args.models_dir, pattern)
         return
     
     # Supprimer tous les fichiers
     if args.all:
-        confirm = input("⚠️  Supprimer TOUS les fichiers PKL ? (oui/non): ")
+        target = "MARAUDEUR" if args.marauder else "tous les fichiers PKL"
+        confirm = input(f"⚠️  Supprimer {target} ? (oui/non): ")
         if confirm.lower() in ['oui', 'o', 'yes', 'y']:
-            delete_all_pkl(args.models_dir)
+            delete_all_pkl(args.models_dir, pattern)
         else:
             print("❌ Annulé.")
         return
     
     # Garder seulement N fichiers
     if args.keep:
-        keep_recent_pkl(args.keep, args.models_dir)
+        keep_recent_pkl(args.keep, args.models_dir, pattern)
         return
     
     # Supprimer les fichiers anciens
     if args.older_than:
-        delete_older_than(args.older_than, args.models_dir)
+        delete_older_than(args.older_than, args.models_dir, pattern)
         return
 
 

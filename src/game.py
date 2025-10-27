@@ -36,7 +36,7 @@ from src.ia.KamikazeAi import KamikazeAiProcessor
 from src.ia.BaseAi import BaseAi
 from processeurs.ai.DruidAIProcessor import DruidAIProcessor
 from src.processeurs.towerProcessor import TowerProcessor
-from src.ia_troupe_rapide.processors.rapid_ai_processor import RapidTroopAIProcessor
+from src.ia.ia_scout.processors.rapid_ai_processor import RapidTroopAIProcessor
 
 
 # Importations des composants
@@ -84,13 +84,13 @@ from src.components.core.towerComponent import TowerComponent
 from src.components.globals.mapComponent import is_tile_island
 
 # Importations IA
-from src.ia.ia_barhamus2 import BarhamusAI
+from ia.ia_barhamus import BarhamusAI
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.notification_system import get_notification_system
-from src.ia_troupe_rapide import ensure_ai_processors
+from src.ia.ia_scout import ensure_ai_processors
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
 

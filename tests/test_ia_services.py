@@ -21,11 +21,11 @@ from src.settings.settings import TILE_SIZE
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
-from src.ia_troupe_rapide.services.danger_map import DangerMapService
-from src.ia_troupe_rapide.services.pathfinding import PathfindingService
-from src.ia_troupe_rapide.services.prediction import PredictionService
-from src.ia_troupe_rapide.services.context import AIContextManager, UnitContext
-from src.ia_troupe_rapide.states.flee import FleeState
+from src.ia.ia_scout.services.danger_map import DangerMapService
+from src.ia.ia_scout.services.pathfinding import PathfindingService
+from src.ia.ia_scout.services.prediction import PredictionService
+from src.ia.ia_scout.services.context import AIContextManager, UnitContext
+from src.ia.ia_scout.states.flee import FleeState
 
 
 def _empty_get_components(*_: object, **__: object) -> List[Tuple[int, Tuple]]:
