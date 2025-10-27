@@ -2,15 +2,21 @@ name: Deploy Documentation
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, unstable ]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
   pull_request:
-    branches: [ main ]
+    branches: [ main, unstable ]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
+  workflow_dispatch:
+    inputs:
+      build_clear:
+        description: 'Effectuer un build clear ?'
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
@@ -18,7 +24,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/unstable'
     
     steps:
     - uses: actions/checkout@v4
@@ -29,11 +35,14 @@ jobs:
         python-version: '3.11'
         
     - name: Install dependencies
-      run: |
-        pip install mkdocs mkdocs-material
+      run: pip install -r requirements-dev.txt
         
     - name: Deploy to GitHub Pages
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        mkdocs gh-deploy --force
+        if [[ "${{ github.event.inputs.build_clear }}" == "true" ]]; then
+          mkdocs gh-deploy --force --clean
+        else
+          mkdocs gh-deploy --force
+        fi

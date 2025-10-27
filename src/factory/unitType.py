@@ -4,6 +4,14 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Dict, Iterable, Mapping, Optional, Tuple
 
+from src.constants.gameplay import (
+    UNIT_HEALTH_SCOUT, UNIT_ATTACK_SCOUT,
+    UNIT_HEALTH_MARAUDEUR, UNIT_ATTACK_MARAUDEUR,
+    UNIT_HEALTH_LEVIATHAN, UNIT_ATTACK_LEVIATHAN,
+    UNIT_HEALTH_DRUID, UNIT_ATTACK_DRUID,
+    UNIT_HEALTH_ARCHITECT, UNIT_ATTACK_ARCHITECT,
+    UNIT_HEALTH_KAMIKAZE, UNIT_ATTACK_KAMIKAZE)
+
 UnitKey = str
 
 
@@ -34,6 +42,7 @@ class UnitType:
     LEVIATHAN: UnitKey = "LEVIATHAN"
     DRUID: UnitKey = "DRUID"
     ARCHITECT: UnitKey = "ARCHITECT"
+    KAMIKAZE: UnitKey = "KAMIKAZE"
     ATTACK_TOWER: UnitKey = "ATTACK_TOWER"
     HEAL_TOWER: UnitKey = "HEAL_TOWER"
 
@@ -43,6 +52,7 @@ class UnitType:
         LEVIATHAN,
         DRUID,
         ARCHITECT,
+        KAMIKAZE,
     )
 
     BUILDINGS: Tuple[UnitKey, ...] = (
@@ -61,9 +71,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="units.zasper",
             description_key="shop.zasper_desc",
             stats=MappingProxyType({
-                "cout_gold": 10,
-                "armure_max": 60,
-                "degats_min": 10,
+                "armure_max": UNIT_HEALTH_SCOUT,
+                "degats_min": UNIT_ATTACK_SCOUT,
                 "degats_max": 15,
             }),
         ),
@@ -72,9 +81,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="enemy_shop.scout",
             description_key="enemy_shop.scout_desc",
             stats=MappingProxyType({
-                "cout_gold": 12,
-                "armure_max": 50,
-                "degats_min": 12,
+                "armure_max": UNIT_HEALTH_SCOUT,
+                "degats_min": UNIT_ATTACK_SCOUT,
                 "degats_max": 18,
             }),
         ),
@@ -86,9 +94,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="units.barhamus",
             description_key="shop.barhamus_desc",
             stats=MappingProxyType({
-                "cout_gold": 20,
-                "armure_max": 130,
-                "degats_min_salve": 20,
+                "armure_max": UNIT_HEALTH_MARAUDEUR,
+                "degats_min_salve": UNIT_ATTACK_MARAUDEUR,
                 "degats_max_salve": 30,
             }),
         ),
@@ -97,9 +104,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="enemy_shop.warrior",
             description_key="enemy_shop.warrior_desc",
             stats=MappingProxyType({
-                "cout_gold": 25,
-                "armure_max": 120,
-                "degats_min_salve": 25,
+                "armure_max": UNIT_HEALTH_MARAUDEUR,
+                "degats_min_salve": UNIT_ATTACK_MARAUDEUR,
                 "degats_max_salve": 35,
             }),
         ),
@@ -111,9 +117,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="units.draupnir",
             description_key="shop.draupnir_desc",
             stats=MappingProxyType({
-                "cout_gold": 40,
-                "armure_max": 300,
-                "degats_min_salve": 40,
+                "armure_max": UNIT_HEALTH_LEVIATHAN,
+                "degats_min_salve": UNIT_ATTACK_LEVIATHAN,
                 "degats_max_salve": 60,
             }),
         ),
@@ -122,9 +127,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="enemy_shop.brute",
             description_key="enemy_shop.brute_desc",
             stats=MappingProxyType({
-                "cout_gold": 45,
-                "armure_max": 280,
-                "degats_min_salve": 45,
+                "armure_max": UNIT_HEALTH_LEVIATHAN,
+                "degats_min_salve": UNIT_ATTACK_LEVIATHAN,
                 "degats_max_salve": 65,
             }),
         ),
@@ -136,9 +140,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="units.druid",
             description_key="shop.druid_desc",
             stats=MappingProxyType({
-                "cout_gold": 30,
-                "armure_max": 100,
-                "soin": 20,
+                "armure_max": UNIT_HEALTH_DRUID,
+                "soin": UNIT_ATTACK_DRUID,
             }),
         ),
         enemy=FactionUnitConfig(
@@ -146,9 +149,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="enemy_shop.shaman",
             description_key="enemy_shop.shaman_desc",
             stats=MappingProxyType({
-                "cout_gold": 35,
-                "armure_max": 90,
-                "soin": 25,
+                "armure_max": UNIT_HEALTH_DRUID,
+                "soin": UNIT_ATTACK_DRUID,
             }),
         ),
     ),
@@ -159,9 +161,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="units.architect",
             description_key="shop.architect_desc",
             stats=MappingProxyType({
-                "cout_gold": 30,
-                "armure_max": 100,
-                "degats": 0,
+                "armure_max": UNIT_HEALTH_ARCHITECT,
+                "degats": UNIT_ATTACK_ARCHITECT,
             }),
         ),
         enemy=FactionUnitConfig(
@@ -169,12 +170,35 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="enemy_shop.engineer",
             description_key="enemy_shop.engineer_desc",
             stats=MappingProxyType({
-                "cout_gold": 32,
-                "armure_max": 95,
-                "degats": 5,
+                "armure_max": UNIT_HEALTH_ARCHITECT,
+                "degats": UNIT_ATTACK_ARCHITECT,
             }),
         ),
     ),
+    UnitType.KAMIKAZE: UnitMetadata(
+        order=6,
+        ally=FactionUnitConfig(
+            shop_id="kamikaze",
+            name_key="units.kamikaze",
+            description_key="shop.kamikaze_desc",
+            stats=MappingProxyType({
+                "armure_max": UNIT_HEALTH_KAMIKAZE,
+                "degats_min": UNIT_ATTACK_KAMIKAZE,
+                "degats_max": UNIT_ATTACK_KAMIKAZE,
+            }),
+        ),
+        enemy=FactionUnitConfig(
+            shop_id="enemy_kamikaze",
+            name_key="enemy_shop.kamikaze",
+            description_key="enemy_shop.kamikaze_desc",
+            stats=MappingProxyType({
+                "armure_max": UNIT_HEALTH_KAMIKAZE,
+                "degats_min": UNIT_ATTACK_KAMIKAZE,
+                "degats_max": UNIT_ATTACK_KAMIKAZE,
+            }),
+        ),
+    ),
+
     UnitType.ATTACK_TOWER: UnitMetadata(
         order=101,
         ally=FactionUnitConfig(
@@ -182,7 +206,6 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="shop.defense_tower",
             description_key="shop.defense_tower_desc",
             stats=MappingProxyType({
-                "cout_gold": 25,
                 "armure_max": 70,
                 "radius_action": 8,
             }),
@@ -192,12 +215,13 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="enemy_shop.attack_tower",
             description_key="enemy_shop.attack_tower_desc",
             stats=MappingProxyType({
-                "cout_gold": 30,
                 "armure_max": 80,
                 "radius_action": 9,
             }),
         ),
     ),
+    
+    # c'est quoi cette partie ? ça sert encore ?
     UnitType.HEAL_TOWER: UnitMetadata(
         order=102,
         ally=FactionUnitConfig(
@@ -205,7 +229,6 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="shop.heal_tower",
             description_key="shop.heal_tower_desc",
             stats=MappingProxyType({
-                "cout_gold": 20,
                 "armure_max": 70,
                 "radius_action": 5,
             }),
@@ -215,7 +238,6 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="enemy_shop.heal_tower",
             description_key="enemy_shop.heal_tower_desc",
             stats=MappingProxyType({
-                "cout_gold": 25,
                 "armure_max": 75,
                 "radius_action": 6,
             }),

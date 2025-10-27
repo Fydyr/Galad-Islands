@@ -99,5 +99,5 @@ Une fois installé, le système fonctionne automatiquement :
 ## 📖 Documentation
 
 Pour plus de détails, consultez :
-- [Guide de gestion des versions](../docs/dev/version-management.md)
-- [Guide de contribution](../docs/dev/contributing.md)
+- [Guide de gestion des versions](../docs/dev/06-maintenance/versioning.md)
+- [Guide de contribution](../docs/dev/07-annexes/contributing.md)

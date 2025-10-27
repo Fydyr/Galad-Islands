@@ -27,6 +27,8 @@ ACTION_UNIT_ATTACK_MODE = "unit_attack_mode"
 ACTION_UNIT_SPECIAL = "unit_special"
 ACTION_UNIT_PREVIOUS = "unit_previous"
 ACTION_UNIT_NEXT = "unit_next"
+ACTION_BUILD_DEFENSE_TOWER = "build_defense_tower"
+ACTION_BUILD_HEAL_TOWER = "build_heal_tower"
 
 ACTION_CAMERA_MOVE_LEFT = "camera_move_left"
 ACTION_CAMERA_MOVE_RIGHT = "camera_move_right"

@@ -1,87 +1,521 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/HOOKS_UNIVERSAL/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/support/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/support/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/support/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/dev/architecture/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/01-introduction/overview/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/01-introduction/overview/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/01-introduction/overview/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/dev/configuration/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/architecture/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/architecture/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/dev/contributing/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/tower-system-implementation/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/tower-system-implementation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/tower-system-implementation/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/dev/overview/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/api/game-engine/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/api/game-engine/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/api/game-engine/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/dev/api/game-engine/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/api/ui-system/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/api/ui-system/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/api/ui-system/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/dev/api/ui-system/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/api/unit-system/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/api/unit-system/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/api/unit-system/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/dev/api/unit-system/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/components/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/components/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/components/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/dev/modules/components/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/managers/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/managers/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/managers/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/dev/modules/managers/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/processors/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/processors/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/processors/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/dev/modules/processors/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/special-capacity-system/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/special-capacity-system/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/special-capacity-system/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/user/action-bar/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/sprite-manager/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/sprite-manager/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/sprite-manager/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/user/buildings/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/vision-system/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/vision-system/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/vision-system/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/user/controls/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/03-installation/requirements/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/03-installation/requirements/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/03-installation/requirements/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/user/credits/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/04-configuration/configuration/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/04-configuration/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/configuration/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/user/faq/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/04-configuration/debug-mode/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/04-configuration/debug-mode/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/debug-mode/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/user/getting-started/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/04-configuration/galad-config-tool-technical/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/04-configuration/galad-config-tool-technical/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/galad-config-tool-technical/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/user/shop/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/04-configuration/localization/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/04-configuration/localization/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/localization/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/user/strategy/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/05-exploitation/deployment/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/05-exploitation/deployment/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/05-exploitation/deployment/"/>
     </url>
     <url>
-         <loc>https://fydyr.github.io/Galad-Islands/user/units/</loc>
-         <lastmod>2025-09-30</lastmod>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/05-exploitation/operations/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/05-exploitation/operations/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/05-exploitation/operations/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/05-exploitation/systeme/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/05-exploitation/systeme/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/05-exploitation/systeme/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/06-maintenance/maintenance/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/06-maintenance/maintenance/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/06-maintenance/maintenance/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/06-maintenance/versioning/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/06-maintenance/versioning/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/06-maintenance/versioning/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/dev/07-annexes/contributing/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/07-annexes/contributing/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/07-annexes/contributing/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/basics/getting-started/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/basics/getting-started/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/basics/getting-started/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/basics/installation/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/basics/installation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/basics/installation/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/basics/introduction/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/basics/introduction/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/basics/introduction/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/economy/buildings/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/economy/buildings/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/economy/buildings/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/economy/shop/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/economy/shop/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/economy/shop/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/gameplay/action-bar/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/gameplay/action-bar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/gameplay/action-bar/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/gameplay/controls/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/gameplay/controls/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/gameplay/controls/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/gameplay/gameplay/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/gameplay/gameplay/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/gameplay/gameplay/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/help/credits/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/help/credits/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/help/credits/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/help/faq/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/help/faq/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/help/faq/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/tools/galad-config-tool/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/tools/galad-config-tool/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/tools/galad-config-tool/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/user/units/units/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/units/units/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/units/units/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/support/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/support/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/support/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/01-introduction/overview/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/01-introduction/overview/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/01-introduction/overview/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/architecture/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/architecture/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/tower-system-implementation/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/tower-system-implementation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/tower-system-implementation/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/api/game-engine/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/api/game-engine/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/api/game-engine/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/api/ui-system/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/api/ui-system/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/api/ui-system/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/api/unit-system/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/api/unit-system/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/api/unit-system/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/components/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/components/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/components/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/managers/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/managers/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/managers/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/processors/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/processors/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/processors/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/special-capacity-system/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/special-capacity-system/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/special-capacity-system/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/sprite-manager/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/sprite-manager/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/sprite-manager/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/vision-system/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/modules/vision-system/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/02-systeme/modules/vision-system/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/03-installation/requirements/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/03-installation/requirements/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/03-installation/requirements/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/configuration/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/04-configuration/configuration/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/debug-mode/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/debug-mode/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/04-configuration/debug-mode/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/galad-config-tool-technical/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/galad-config-tool-technical/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/04-configuration/galad-config-tool-technical/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/localization/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/04-configuration/localization/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/04-configuration/localization/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/05-exploitation/deployment/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/05-exploitation/deployment/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/05-exploitation/deployment/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/05-exploitation/operations/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/05-exploitation/operations/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/05-exploitation/operations/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/05-exploitation/systeme/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/05-exploitation/systeme/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/05-exploitation/systeme/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/06-maintenance/maintenance/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/06-maintenance/maintenance/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/06-maintenance/maintenance/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/06-maintenance/versioning/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/06-maintenance/versioning/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/06-maintenance/versioning/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/dev/07-annexes/contributing/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/dev/07-annexes/contributing/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/dev/07-annexes/contributing/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/basics/getting-started/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/basics/getting-started/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/basics/getting-started/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/basics/installation/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/basics/installation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/basics/installation/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/basics/introduction/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/basics/introduction/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/basics/introduction/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/economy/buildings/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/economy/buildings/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/economy/buildings/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/economy/shop/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/economy/shop/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/economy/shop/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/gameplay/action-bar/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/gameplay/action-bar/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/gameplay/action-bar/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/gameplay/controls/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/gameplay/controls/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/gameplay/controls/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/gameplay/gameplay/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/gameplay/gameplay/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/gameplay/gameplay/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/help/credits/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/help/credits/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/help/credits/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/help/faq/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/help/faq/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/help/faq/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/tools/galad-config-tool/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/tools/galad-config-tool/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/tools/galad-config-tool/"/>
+    </url>
+    <url>
+        <loc>https://fydyr.github.io/Galad-Islands/en/user/units/units/</loc>
+        <lastmod>2025-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://fydyr.github.io/Galad-Islands/en/user/units/units/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://fydyr.github.io/Galad-Islands/user/units/units/"/>
     </url>
 </urlset>

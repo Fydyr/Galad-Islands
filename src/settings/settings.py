@@ -6,8 +6,12 @@ Centralise la gestion des paramètres utilisateur et des constantes de jeu.
 import json
 import math
 import os
+import sys
 from copy import deepcopy
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from src.settings.resolutions import get_all_resolutions as _get_all
+from src.version import __version__
 
 
 # =============================================================================
@@ -24,6 +28,9 @@ DEFAULT_CONFIG = {
     "volume_music": 0.5,
     "volume_effects": 0.7,
     "vsync": True,
+    "performance_mode": "auto",  # "auto", "high", "medium", "low"
+    "disable_particles": False,
+    "disable_shadows": False,
     "show_fps": False,
     "dev_mode": False,  # Mode développement pour les actions debug
     "language": "fr",
@@ -40,27 +47,22 @@ DEFAULT_CONFIG = {
         "unit_special": ["e"],
         "unit_previous": ["1"],
         "unit_next": ["2"],
+        "build_defense_tower": ["f"],
+        "build_heal_tower": ["g"],
         "camera_move_left": ["left"],
         "camera_move_right": ["right"],
         "camera_move_up": ["up"],
         "camera_move_down": ["down"],
-    "camera_fast_modifier": ["ctrl"],
-    "camera_follow_toggle": ["c"],
+        "camera_fast_modifier": ["ctrl"],
+        "camera_follow_toggle": ["c"],
         "selection_select_all": ["ctrl+a"],
         "selection_cycle_team": ["t"],
         "system_pause": ["escape"],
         "system_help": ["f1"],
-        "system_debug": ["f3"]
+        "system_debug": ["f3"],
+        "system_shop": ["b"]
     }
 }
-
-for _slot in range(1, 10):
-    DEFAULT_CONFIG["key_bindings"].setdefault(
-        f"selection_group_assign_{_slot}", [f"ctrl+shift+{_slot}"]
-    )
-    DEFAULT_CONFIG["key_bindings"].setdefault(
-        f"selection_group_select_{_slot}", [f"ctrl+{_slot}"]
-    )
 
 AVAILABLE_RESOLUTIONS = [
     (800, 600, "800x600"),
@@ -96,7 +98,9 @@ class ConfigManager:
                                 self.config[key] = value
                 print(f"Configuration chargée depuis {self.path}")
             else:
-                print("Fichier de configuration non trouvé, utilisation des valeurs par défaut")
+                # Créer un fichier de config avec les valeurs par défaut
+                self.save_config()
+                print(f"Fichier de configuration non trouvé, création de {self.path} avec les valeurs par défaut")
         except Exception as e:
             print(f"Erreur lors du chargement de la configuration: {e}")
             print("Utilisation des valeurs par défaut")
@@ -163,6 +167,31 @@ class ConfigManager:
         """Met à jour le multiplicateur de vitesse pour le déplacement rapide de la caméra."""
         self.config["camera_fast_multiplier"] = max(1.0, float(multiplier))
 
+    def get_performance_mode(self) -> str:
+        """Retourne le mode de performance actuel."""
+        return str(self.config.get("performance_mode", "auto"))
+
+    def set_performance_mode(self, mode: str) -> None:
+        """Définit le mode de performance."""
+        if mode in ["auto", "high", "medium", "low"]:
+            self.config["performance_mode"] = mode
+
+    def get_disable_particles(self) -> bool:
+        """Retourne si les particules sont désactivées."""
+        return bool(self.config.get("disable_particles", False))
+
+    def set_disable_particles(self, disabled: bool) -> None:
+        """Active/désactive les particules."""
+        self.config["disable_particles"] = bool(disabled)
+
+    def get_disable_shadows(self) -> bool:
+        """Retourne si les ombres sont désactivées."""
+        return bool(self.config.get("disable_shadows", False))
+
+    def set_disable_shadows(self, disabled: bool) -> None:
+        """Active/désactive les ombres."""
+        self.config["disable_shadows"] = bool(disabled)
+
     def get_key_bindings(self) -> Dict[str, List[str]]:
         """Retourne une copie des associations de touches personnalisées."""
         key_bindings = self.config.get("key_bindings", {})
@@ -196,20 +225,20 @@ config_manager = ConfigManager()
 
 # Paramètres d'affichage
 GAME_TITLE = "Galad Islands"
-FPS = 30
+FPS = 60
 
 # Dimensions de la carte de jeu
-MAP_WIDTH = 30   # nombre de cases en largeur
-MAP_HEIGHT = 30  # nombre de cases en hauteur
+MAP_WIDTH = 45   # nombre de cases en largeur
+MAP_HEIGHT = 45  # nombre de cases en hauteur
 
 # Paramètres de génération de la carte
-MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.02)        # 2% de mines
-GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03)  # 3% d'îles
+MINE_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.008)        # 0.8% de mines
+GENERIC_ISLAND_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.008)  # 0.8% d'îles
 CLOUD_RATE = math.ceil(MAP_WIDTH * MAP_HEIGHT * 0.03)       # 3% de nuages
 
 # Paramètres de contrôle de la caméra
 CAMERA_SPEED = 200  # pixels par seconde
-ZOOM_MIN = 0.5
+ZOOM_MIN = 0.25
 ZOOM_MAX = 2.5
 ZOOM_SPEED = 0.1
 
@@ -273,7 +302,6 @@ def get_available_resolutions() -> List[Tuple[int, int, str]]:
     """
     try:
         # Import local helper to avoid circular import at module import time
-        from src.settings.resolutions import get_all_resolutions as _get_all
 
         combined = []
         for (w, h) in _get_all():
@@ -319,6 +347,56 @@ def reset_to_defaults() -> bool:
     """Réinitialise tous les paramètres aux valeurs par défaut et sauvegarde."""
     config_manager.reset_to_defaults()
     return config_manager.save_config()
+
+def get_performance_mode() -> str:
+    """Retourne le mode de performance actuel."""
+    return config_manager.get_performance_mode()
+
+def set_performance_mode(mode: str) -> bool:
+    """Définit le mode de performance et sauvegarde."""
+    config_manager.set_performance_mode(mode)
+    return config_manager.save_config()
+
+def get_disable_particles() -> bool:
+    """Retourne si les particules sont désactivées."""
+    return config_manager.get_disable_particles()
+
+def set_disable_particles(disabled: bool) -> bool:
+    """Active/désactive les particules et sauvegarde."""
+    config_manager.set_disable_particles(disabled)
+    return config_manager.save_config()
+
+def get_disable_shadows() -> bool:
+    """Retourne si les ombres sont désactivées."""
+    return config_manager.get_disable_shadows()
+
+def set_disable_shadows(disabled: bool) -> bool:
+    """Active/désactive les ombres et sauvegarde."""
+    config_manager.set_disable_shadows(disabled)
+    return config_manager.save_config()
+
+
+def get_project_version() -> str:
+    """
+    Retourne la version actuelle du projet depuis le fichier version.py.
+    """
+    try:
+        return __version__
+    except Exception:
+        return "unknown"
+
+
+def is_dev_mode_enabled() -> bool:
+    """
+    Check if dev mode is enabled in the configuration.
+
+    Returns:
+        True if dev mode is enabled, False otherwise.
+    """
+    try:
+        return config_manager.get('dev_mode', False)
+    except Exception:
+        return False
 
 
 # =============================================================================

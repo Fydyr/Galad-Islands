@@ -20,6 +20,7 @@ wheels/
 
 # Environnements virtuels
 venv/
+.venv/
 
 # IDE et éditeurs
 .vscode/
@@ -40,6 +41,8 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
+*.prof
+*.prof
 
 # Documentation générée
 docs/_build/
@@ -55,6 +58,7 @@ config_local.py
 .env
 .env.local
 ./venv/
+./venv/
 
 # Fichiers système
 .DS_Store
@@ -67,6 +71,8 @@ saves/
 profiles/
 galad_config.json
 galad_resolutions.json
+galad_config.json
+galad_resolutions.json
 
 # Instructions de développement
 .github/instructions/
@@ -75,3 +81,9 @@ GameDesign.md
 
 # documentation hook
 HOOKS_UNIVERSAL.md
+
+# Fichiers générés par le build de Pyinstaller
+*.spec
+
+# Fichiers générés par l'IA
+*.npz

@@ -1,13 +1,13 @@
 [project]
 name = "galad-islands"
-version = "0.5.0"
+version = "0.7.1"
 description = "Jeu Galad Islands"
 authors = [
     { name="Alluin Edouard", email="edouard.alluin@etu.univ-littoral.fr" },
     { name="Behani Julien", email="julien.behani@etu.univ-littoral.fr" },
     { name="Cailliau Ethann", email="ethann.cailliau@etu.univ-littoral.fr" },
     { name="Damman Alexandre", email="alexandre.damman@etu.univ-littoral.fr" },
-    { name="Fournier Enzo", email="enzo.fournier@etu.univ-littoral.fr" },
+    { name="Fournier Enzo", email="enzo.fournier000@etu.univ-littoral.fr" },
     { name="Lambert Romain", email="romain.lambert@etu.univ-littoral.fr" }
 ]
 
@@ -18,8 +18,13 @@ authors = [
 name = "cz_conventional_commits" 
 version_provider = "pep621"
 tag_format = "v$version"
+version_files = [
+    "pyproject.toml:version",
+    "src/version.py"
+]
 update_changelog_on_bump = true
 bump_message = "chore: bump version $current_version → $new_version"
+
 
 # Types de commits à inclure dans le changelog (pour les utilisateurs)
 changelog_incremental = true
@@ -61,3 +66,45 @@ use_shortcuts = true
 [build-system]
 requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config --cov=src --cov-report=html:htmlcov --cov-report=term-missing"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: tests unitaires rapides",
+    "integration: tests d'intégration",
+    "performance: tests de performance",
+    "slow: tests lents à exécuter"
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning"
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "setup.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod"
+]

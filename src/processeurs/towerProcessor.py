@@ -20,7 +20,7 @@ class TowerProcessor(esper.Processor):
     def __init__(self):
         super().__init__()
 
-    def process(self, dt: float = 0.016):
+    def process(self, dt: float = 0.016, **kwargs):
         # Process all towers with the unified component
         for ent, (tower, pos, team) in esper.get_components(TowerComponent, PositionComponent, TeamComponent):
             tower.update_cooldown(dt)
@@ -39,13 +39,14 @@ class TowerProcessor(esper.Processor):
                 if t2.team_id == 0:
                     continue
                 
-                # NE PAS cibler les bases (elles ont BaseComponent)
-                if esper.has_component(e2, BaseComponent):
-                    continue
-                
-                # NE PAS cibler d'autres tours
-                if esper.has_component(e2, TowerComponent):
-                    continue
+                # Si la tour ne peut pas attaquer les bâtiments, on ignore les bases et les autres tours
+                if not tower.can_attack_buildings:
+                    # NE PAS cibler les bases (elles ont BaseComponent)
+                    if esper.has_component(e2, BaseComponent):
+                        continue
+                    # NE PAS cibler d'autres tours
+                    if esper.has_component(e2, TowerComponent):
+                        continue
                     
                 # Defense towers attack enemies (team différente)
                 if tower.is_defense_tower():
@@ -73,7 +74,7 @@ class TowerProcessor(esper.Processor):
             if target_entity is not None and target_pos is not None and tower.can_attack():
                 if tower.is_defense_tower() and tower.damage is not None:
                     # Créer un projectile vers la cible (comme le Scout)
-                    self._create_tower_projectile(pos, target_pos, team.team_id, tower.damage)
+                    self._create_tower_projectile(ent, pos, target_pos, team.team_id, tower.damage)
                 elif tower.is_heal_tower() and tower.heal_amount is not None:
                     # Soin direct instantané
                     target_health = esper.component_for_entity(target_entity, HealthComponent)
@@ -81,7 +82,7 @@ class TowerProcessor(esper.Processor):
                 
                 tower.trigger_action()
 
-    def _create_tower_projectile(self, tower_pos: PositionComponent, target_pos: PositionComponent, team_id: int, damage: int):
+    def _create_tower_projectile(self, tower_entity: int, tower_pos: PositionComponent, target_pos: PositionComponent, team_id: int, damage: int):
         """Crée un projectile de tour vers une cible."""
         # Calculer l'angle vers la cible
         # Le movementProcessor SOUSTRAIT cos/sin, donc pour aller VERS la cible,
@@ -124,7 +125,7 @@ class TowerProcessor(esper.Processor):
         esper.add_component(projectile, LifetimeComponent(duration=1.2))
         
         # Identifier comme projectile
-        esper.add_component(projectile, ProjectileComponent("tower_bullet"))
+        esper.add_component(projectile, ProjectileComponent("tower_bullet", tower_entity))
         
         # Sprite (boule bleue pour allié, rouge pour ennemi)
         if team_id == 1:  # Allié
