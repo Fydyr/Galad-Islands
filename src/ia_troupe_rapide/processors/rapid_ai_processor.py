@@ -17,6 +17,8 @@ from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.teamComponent import TeamComponent
+from src.constants.gameplay import UNIT_VISION_SCOUT
+from src.settings.settings import TILE_SIZE
 from src.factory.unitType import UnitType
 from src.constants.team import Team
 from src.constants.map_tiles import TileType
@@ -682,7 +684,7 @@ class RapidUnitController:
             self.context_manager.time,
         )
         ctx.share_channel["global_danger"] = self.coordination.broadcast_danger()
-        self._try_continuous_shoot(ctx)
+        self._try_continuous_shoot(self.context)
 
     def _try_continuous_shoot(self, context: UnitContext) -> None:
         """Fait tirer l'unité en continu sauf sur les mines."""
@@ -717,6 +719,19 @@ class RapidUnitController:
                     pass
             elif objective.target_position:
                 projectile_target = objective.target_position
+
+        # Vérification du radius de vision avec la constante gameplay
+        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
+        if projectile_target is not None:
+            try:
+                pos = esper.component_for_entity(context.entity_id, PositionComponent)
+                dx = pos.x - projectile_target[0]
+                dy = pos.y - projectile_target[1]
+                distance = math.hypot(dx, dy)
+                if vision_radius > 0.0 and distance > vision_radius:
+                    return  # Cible hors du champ de vision
+            except KeyError:
+                pass
 
 
 
