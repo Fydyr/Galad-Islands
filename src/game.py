@@ -339,6 +339,10 @@ class GameRenderer:
             
     def _render_fog_of_war(self, window, camera):
         """Rend le brouillard de guerre avec nuages et brouillard léger."""
+        # Désactiver le brouillard de guerre en mode IA vs IA (affichage uniquement)
+        if getattr(self.game_engine, 'self_play_mode', False):
+            return
+
         current_team = self.game_engine.action_bar.current_camp
 
         # Mettre à jour la visibilité pour l'équipe actuelle
@@ -425,12 +429,17 @@ class GameRenderer:
             return
             
         current_team = self.game_engine.action_bar.current_camp
-            
+
         for ent, (pos, sprite) in es.get_components(PositionComponent, SpriteComponent):
-            # Vérifier si l'entité appartient à l'équipe actuelle ou est visible
+            # En mode IA vs IA, on affiche tout
+            if getattr(self.game_engine, 'self_play_mode', False):
+                renderable_sprite = self._render_single_sprite(window, camera, ent, pos, sprite)
+                if renderable_sprite:
+                    self._sprite_render_group.add(renderable_sprite)
+                continue
+
+            # ...logique normale...
             should_render = False
-            
-            # Les entités de l'équipe actuelle sont toujours visibles
             if es.has_component(ent, TeamComponent):
                 team_comp = es.component_for_entity(ent, TeamComponent)
                 if team_comp.team_id == current_team:
@@ -450,14 +459,10 @@ class GameRenderer:
                 grid_y = int(pos.y / TILE_SIZE)
                 if vision_system.is_tile_visible(grid_x, grid_y, current_team):
                     should_render = True
-            
             if should_render:
-                # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
-                # Au lieu de dessiner directement, on prépare le sprite et on l'ajoute au groupe
                 renderable_sprite = self._render_single_sprite(window, camera, ent, pos, sprite)
                 if renderable_sprite:
                     self._sprite_render_group.add(renderable_sprite)
-                # --- FIN OPTIMISATION ---
         
         # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
         # Dessiner tous les sprites du groupe en une seule fois.
