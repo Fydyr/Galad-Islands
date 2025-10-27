@@ -80,7 +80,7 @@ class ArchitectAIProcessor(esper.Processor):
         self.dt = dt
 
         # Iterate over all entities that have the Architect AI component.
-        for entity, (ai_comp, _, pos, vel, health, team) in esper.get_components(
+        for entity, (ai_comp, spe_arch, pos, vel, health, team) in esper.get_components(
             ArchitectAIComponent,
             SpeArchitect,
             PositionComponent,
@@ -115,7 +115,7 @@ class ArchitectAIProcessor(esper.Processor):
             ai_comp.setVetoMax()
 
             # 3. ACT: Execute the chosen action.
-            self._execute_action(entity, action, pos, vel, state, ai_comp)
+            self._execute_action(entity, action, pos, vel, spe_arch, state, ai_comp)
 
     def _extract_game_state(
         self, entity: int, pos: PositionComponent, health: HealthComponent, team: TeamComponent, ai_comp: ArchitectAIComponent
