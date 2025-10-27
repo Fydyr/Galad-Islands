@@ -1,4 +1,4 @@
-"""Composant de base et gestionnaire de bases intégré."""
+"""Composant de la base et gestionnaire des bases intégré."""
 
 import random
 from dataclasses import dataclass as component
@@ -12,10 +12,15 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.spriteComponent import SpriteComponent
 from src.components.core.teamComponent import TeamComponent
-from src.components.core.recentHitsComponent import RecentHitsComponent
+from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
+from src.components.core.visionComponent import VisionComponent
+from src.components.core.towerComponent import TowerComponent, TowerType
 from src.settings.localization import t
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
+
+# Import de la constante depuis gameplay.py
+from src.constants.gameplay import BASE_VISION_RANGE
 
 @component
 class BaseComponent:
@@ -81,17 +86,32 @@ class BaseComponent:
         ))
         esper.add_component(cls._ally_base_entity, TeamComponent(team_id=1))
         esper.add_component(cls._ally_base_entity, HealthComponent(
-            currentHealth=1000,
-            maxHealth=1000
+            currentHealth=2500,
+            maxHealth=2500
         ))
         esper.add_component(cls._ally_base_entity, AttackComponent(hitPoints=50))  # Base inflige des dégâts au contact
         esper.add_component(cls._ally_base_entity, CanCollideComponent())  # Les bases peuvent être touchées
-        esper.add_component(cls._ally_base_entity, RecentHitsComponent(cooldown_duration=1.0))  # Éviter dégâts continus
         esper.add_component(cls._ally_base_entity, ClasseComponent(
             unit_type="ALLY_BASE",
             shop_id="ally_base", 
             display_name=t("base.ally_name"),
             is_enemy=False
+        ))
+        esper.add_component(cls._ally_base_entity, VisionComponent(
+            BASE_VISION_RANGE  # Portée de vision des bases
+        ))
+        # Ajout du TowerComponent pour que la base attaque comme une tour
+        esper.add_component(cls._ally_base_entity, TowerComponent(
+            tower_type=TowerType.DEFENSE,
+            range=BASE_VISION_RANGE * TILE_SIZE,  # La portée de la tour est la portée de vision
+            damage=25, # Dégâts de la base
+            attack_speed=1.0 / 3.0, # 1 tir toutes les 3 secondes
+            can_attack_buildings=False # La base n'attaque pas les autres bâtiments
+        ))
+        # Ajout d'un RadiusComponent pour la cohérence du système (collisions, capacités)
+        esper.add_component(cls._ally_base_entity, RadiusComponent(
+            radius=BASE_VISION_RANGE * TILE_SIZE,
+            hit_cooldown_duration=1.0 / (1.0 / 3.0)  # Cooldown de collision égal au cooldown d'attaque
         ))
         
         # Calculer la taille de hitbox basée sur la taille réelle du sprite (391x350)
@@ -122,17 +142,32 @@ class BaseComponent:
         ))
         esper.add_component(cls._enemy_base_entity, TeamComponent(team_id=2))  # Team ennemie
         esper.add_component(cls._enemy_base_entity, HealthComponent(
-            currentHealth=1000,
-            maxHealth=1000
+            currentHealth=2500,
+            maxHealth=2500
         ))
         esper.add_component(cls._enemy_base_entity, AttackComponent(hitPoints=50))  # Base inflige des dégâts au contact
         esper.add_component(cls._enemy_base_entity, CanCollideComponent())  # Les bases peuvent être touchées
-        esper.add_component(cls._enemy_base_entity, RecentHitsComponent(cooldown_duration=1.0))  # Éviter dégâts continus
         esper.add_component(cls._enemy_base_entity, ClasseComponent(
             unit_type="ENEMY_BASE",
             shop_id="enemy_base",
             display_name=t("base.enemy_name"), 
             is_enemy=True
+        ))
+        esper.add_component(cls._enemy_base_entity, VisionComponent(
+            BASE_VISION_RANGE  # Portée de vision des bases
+        ))
+        # Ajout du TowerComponent pour que la base ennemie attaque comme une tour
+        esper.add_component(cls._enemy_base_entity, TowerComponent(
+            tower_type=TowerType.DEFENSE,
+            range=BASE_VISION_RANGE * TILE_SIZE,
+            damage=25,
+            attack_speed=1.0 / 3.0,
+            can_attack_buildings=False
+        ))
+        # Ajout d'un RadiusComponent pour la cohérence du système
+        esper.add_component(cls._enemy_base_entity, RadiusComponent(
+            radius=BASE_VISION_RANGE * TILE_SIZE,
+            hit_cooldown_duration=1.0 / (1.0 / 3.0)
         ))
         
         # Calculer la taille de hitbox basée sur la taille réelle du sprite (477x394)
@@ -238,4 +273,4 @@ class BaseComponent:
             base_component = esper.component_for_entity(base_entity, BaseComponent)
             return base_component.troopList.copy()  # Copie pour éviter les modifications externes
         
-        return [] 
+        return []

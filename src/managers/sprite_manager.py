@@ -35,6 +35,7 @@ class SpriteID(Enum):
     ENEMY_LEVIATHAN = "enemy_leviathan"
     ENEMY_DRUID = "enemy_druid"
     ENEMY_ARCHITECT = "enemy_architect"
+    ENEMY_KAMIKAZE = "enemy_kamikaze"
     ENEMY_ZASPER = "enemy_zasper"
     ENEMY_BARHAMUS = "enemy_barhamus"
     ENEMY_DRAUPNIR = "enemy_draupnir"
@@ -112,7 +113,8 @@ class SpriteManager:
             SpriteData(SpriteID.ALLY_LEVIATHAN, "assets/sprites/units/ally/Leviathan.png", 160, 200, "Léviathan allié"),
             SpriteData(SpriteID.ALLY_DRUID, "assets/sprites/units/ally/Druid.png", 130, 150, "Druide allié"),
             SpriteData(SpriteID.ALLY_ARCHITECT, "assets/sprites/units/ally/Architect.png", 130, 150, "Architecte allié"),
-            SpriteData(SpriteID.ALLY_KAMIKAZE, "assets/sprites/units/ally/Kamikaze.png", 100, 120, "Kamikaze allié"),
+            SpriteData(SpriteID.ALLY_KAMIKAZE,
+                       "assets/sprites/units/ally/Kamikaze.png", 160, 130, "Kamikaze allié"),
             SpriteData(SpriteID.ALLY_ZASPER, "assets/sprites/units/ally/Zasper.png", 120, 140, "Zasper allié"),
             SpriteData(SpriteID.ALLY_BARHAMUS, "assets/sprites/units/ally/Barhamus.png", 140, 160, "Barhamus allié"),
             SpriteData(SpriteID.ALLY_DRAUPNIR, "assets/sprites/units/ally/Draupnir.png", 150, 170, "Draupnir allié"),
@@ -123,6 +125,7 @@ class SpriteManager:
             SpriteData(SpriteID.ENEMY_LEVIATHAN, "assets/sprites/units/enemy/Leviathan.png", 160, 200, "Léviathan ennemi"),
             SpriteData(SpriteID.ENEMY_DRUID, "assets/sprites/units/enemy/Druid.png", 130, 150, "Druide ennemi"),
             SpriteData(SpriteID.ENEMY_ARCHITECT, "assets/sprites/units/enemy/Architect.png", 130, 150, "Architecte ennemi"),
+            SpriteData(SpriteID.ENEMY_KAMIKAZE, "assets/sprites/units/enemy/Kamikaze.png", 160, 130, "Kamikaze ennemi"),
             SpriteData(SpriteID.ENEMY_ZASPER, "assets/sprites/units/enemy/Zasper.png", 120, 140, "Zasper ennemi"),
             SpriteData(SpriteID.ENEMY_BARHAMUS, "assets/sprites/units/enemy/Barhamus.png", 140, 160, "Barhamus ennemi"),
             SpriteData(SpriteID.ENEMY_DRAUPNIR, "assets/sprites/units/enemy/Draupnir.png", 150, 170, "Draupnir ennemi"),
@@ -173,7 +176,7 @@ class SpriteManager:
             SpriteData(SpriteID.TERRAIN_ALLY_ISLAND, "assets/sprites/terrain/ally_island.png", 256, 256, "Île alliée"),
             SpriteData(SpriteID.TERRAIN_ENEMY_ISLAND, "assets/sprites/terrain/enemy_island.png", 256, 256, "Île ennemie"),
             SpriteData(SpriteID.TERRAIN_MINE, "assets/sprites/terrain/mine.png", 64, 64, "Mine"),
-            SpriteData(SpriteID.TERRAIN_CLOUD, "assets/sprites/terrain/cloud.png", 64, 64, "Nuage"),
+            SpriteData(SpriteID.TERRAIN_CLOUD,"assets/sprites/terrain/cloud.png", 64, 64, "Nuage"),
         ]
         
         # Register all sprites

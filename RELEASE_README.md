@@ -46,22 +46,7 @@ Si l'outil de config ne fonctionne pas :
 - Les fichiers de config sont créés automatiquement si manquants
 - Messages d'erreur affichés directement dans l'interface
 
-## 📚 Documentation
-
-### 👤 Pour les utilisateurs
-- **Guide complet** : `docs/user/galad-config-tool.md` - Utilisation détaillée du tool
-- **Guide rapide** : `tools/QUICKSTART.md` - Démarrage en 4 étapes  
-- **Interface intuitive** : Messages d'aide intégrés dans l'outil
-
-### 🛠️ Pour les développeurs  
-- **Documentation technique** : `docs/dev/galad-config-tool-technical.md` - Architecture et code
-- **API documentation** : https://fydyr.github.io/Galad-Islands/
-- **Code source** : Organisation modulaire dans `src/`
-
-### 📋 Organisation
-- **Index général** : `tools/DOCUMENTATION.md` - Vue d'ensemble
-- **Utilisateurs** → Consulter `docs/user/galad-config-tool.md`
-- **Développeurs** → Consulter `docs/dev/galad-config-tool-technical.md`
+- **Guide pour l'utilisateur** : `docs/user/galad-config-tool.md` - Utilisation détaillée du tool
 
 ## 🌐 Support
 

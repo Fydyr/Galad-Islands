@@ -3,7 +3,9 @@ from math import cos, sin, radians
 from src.components.core.velocityComponent import VelocityComponent as Velocity
 from src.components.core.positionComponent import PositionComponent as Position
 from src.components.special.isVinedComponent import isVinedComponent as isVined
+from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.projectileComponent import ProjectileComponent
+from src.components.events.banditsComponent import Bandits
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 
 class MovementProcessor(esper.Processor):
@@ -24,12 +26,25 @@ class MovementProcessor(esper.Processor):
         # (basée sur une taille moyenne de sprite)
         self.boundary_margin = 32  # pixels
 
-    def process(self):
+    def process(self, **kwargs):
         for ent, (vel, pos) in esper.get_components(Velocity, Position):
+            # Vérifier si c'est un bandit (ils traversent les îles)
+            is_bandit = esper.has_component(ent, Bandits)
+            
             # Calculer la vitesse effective d'abord
             effective_speed = 0
             if vel.currentSpeed != 0:
-                effective_speed = vel.currentSpeed * vel.terrain_modifier
+                if is_bandit:
+                    # Les bandits ignorent les modificateurs de terrain (traversent les îles)
+                    effective_speed = vel.currentSpeed
+                else:
+                    effective_speed = vel.currentSpeed * vel.terrain_modifier
+
+                # Appliquer le boost de vitesse du Kamikaze si actif
+                if esper.has_component(ent, SpeKamikazeComponent):
+                    kamikaze_comp = esper.component_for_entity(ent, SpeKamikazeComponent)
+                    if kamikaze_comp.is_active:
+                        effective_speed *= kamikaze_comp.speed_multiplier
             
             # Ne bouger que si la vitesse effective != 0
             if effective_speed != 0 and not esper.has_component(ent, isVined):
@@ -37,8 +52,6 @@ class MovementProcessor(esper.Processor):
                 direction_rad = radians(pos.direction)
                 new_x = pos.x - effective_speed * cos(direction_rad)
                 new_y = pos.y - effective_speed * sin(direction_rad)
-                
-                # Vérifier si c'est un projectile
                 is_projectile = esper.has_component(ent, ProjectileComponent)
                 
                 if is_projectile:
@@ -52,17 +65,23 @@ class MovementProcessor(esper.Processor):
                         pos.y = new_y
                 else:
                     # Pour les troupes : contraindre la position et arrêter si nécessaire
-                    constrained_x, constrained_y = self._constrain_position(new_x, new_y)
-                    
-                    # Si la position a été contrainte par les limites de la carte, arrêter le mouvement
-                    if constrained_x != new_x or constrained_y != new_y:
-                        vel.currentSpeed = 0.0
-                        # Réinitialiser le modificateur de terrain si arrêté par les limites
-                        vel.terrain_modifier = 1.0
-                    
-                    # Appliquer la position contrainte
-                    pos.x = constrained_x
-                    pos.y = constrained_y
+                    # Les bandits ne sont pas contraints par les limites de terrain
+                    if is_bandit:
+                        # Les bandits peuvent aller n'importe où sur la carte
+                        pos.x = new_x
+                        pos.y = new_y
+                    else:
+                        constrained_x, constrained_y = self._constrain_position(new_x, new_y)
+                        
+                        # Si la position a été contrainte par les limites de la carte, arrêter le mouvement
+                        if constrained_x != new_x or constrained_y != new_y:
+                            vel.currentSpeed = 0.0
+                            # Réinitialiser le modificateur de terrain si arrêté par les limites
+                            vel.terrain_modifier = 1.0
+                        
+                        # Appliquer la position contrainte
+                        pos.x = constrained_x
+                        pos.y = constrained_y
             # Si effective_speed est 0, le vaisseau ne bouge pas
 
     def _is_out_of_bounds(self, x: float, y: float) -> bool:

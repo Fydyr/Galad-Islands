@@ -5,6 +5,7 @@ Gestionnaire de localisation pour Galad Islands
 
 import importlib
 from src.settings.settings import config_manager
+import pygame
 
 
 class LocalizationManager:
@@ -39,10 +40,11 @@ class LocalizationManager:
             translation_module = importlib.import_module(module_name)
             self._translations = translation_module.TRANSLATIONS
             
-            print(f"✅ Traductions chargées pour la langue: {self._current_language}")
+            # Use ASCII-only logging to avoid encoding issues in frozen binaries
+            print(f"[OK] Translations loaded for language: {self._current_language}")
             
         except ImportError as e:
-            print(f"⚠️ Erreur lors du chargement des traductions: {e}")
+            print(f"[WARN] Error loading translations: {e}")
             # Fallback vers le français
             if self._current_language != "fr":
                 self._current_language = "fr"
@@ -57,6 +59,13 @@ class LocalizationManager:
             config_manager.save_config()
             # Recharger les traductions
             self._load_translations()
+            # Poster un événement pygame pour notifier les UI que la langue a changé
+            try:
+                event = pygame.event.Event(pygame.USEREVENT, {"subtype": "language_changed", "lang": language_code})
+                pygame.event.post(event)
+            except Exception:
+                # Si pygame n'est pas initialisé, on ignore
+                pass
             return True
         return False
     

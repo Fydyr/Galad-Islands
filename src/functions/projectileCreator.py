@@ -38,20 +38,32 @@ def create_projectile(entity, type: str = "bullet"):
             if esper.has_component(entity, RadiusComponent):
                 radius = esper.component_for_entity(entity, RadiusComponent)
                 base_angle = pos.direction
-                side_angle = getattr(radius, "angle", 45)  # Valeur par défaut : 45°
 
-                # Tir avant
-                angles.append(base_angle)
-
-                # Si tir latéral activé, ajoute gauche et droite
-                if getattr(radius, "can_shoot_from_side", False):
-                    angles.append(base_angle - side_angle)
-                    angles.append(base_angle + side_angle)
+                if radius.lateral_shooting:
+                    # Center the side bullets on -90° and +90° from base_angle (direction)
+                    # Tighten the spread: use a smaller angle offset (e.g., 10° between each bullet)
+                    side_center_angles = [base_angle - 90, base_angle + 90]
+                    spread = 10  # degrees between each bullet
+                    for center_angle in side_center_angles:
+                        num_side = radius.bullets_side
+                        # Distribute bullets symmetrically around the center angle
+                        for i in range(num_side):
+                            offset = (i - (num_side - 1) / 2) * spread
+                            angles.append((center_angle + offset))
+                else:
+                    for i in range(radius.bullets_front):
+                        # Distribute bullets evenly around the base_angle
+                        spread = 10  # degrees between each bullet, adjust as needed
+                        offset = (i - (radius.bullets_front - 1) / 2) * spread
+                        angles.append((base_angle + offset))
+                        
             else:
                 angles = [pos.direction]
 
             # Normaliser les angles dans [0, 360)
             angles = [a % 360 for a in angles]
+
+            print(angles)
 
         # Mode Leviathan: tir omnidirectionnel (toutes les directions autour de l'entité)
         elif type == "leviathan":
@@ -95,7 +107,7 @@ def create_projectile(entity, type: str = "bullet"):
                 ))
 
                 # Identifier cette entité comme un projectile
-                esper.add_component(bullet_entity, ProjectileComponent("bullet"))
+                esper.add_component(bullet_entity, ProjectileComponent("bullet", entity))
 
                 # Choisir le sprite selon la team (ennemi -> fireball)
                 if team_id == Team.ENEMY:
@@ -116,7 +128,7 @@ def create_projectile(entity, type: str = "bullet"):
                 esper.add_component(bullet_entity, VineComponent(int(DRUID_IMMOBILIZATION_DURATION)))
 
                 # Identifier cette entité comme un projectile
-                esper.add_component(bullet_entity, ProjectileComponent("vine"))
+                esper.add_component(bullet_entity, ProjectileComponent("vine", entity))
                 
 
                 # Utiliser le SpriteManager pour les projectiles (balle)
