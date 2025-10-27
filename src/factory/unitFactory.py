@@ -42,6 +42,7 @@ from src.components.core.classeComponent import ClasseComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
+from src.components.ai.aiControlledComponent import AIControlledComponent
 from src.settings.localization import t
 
 
@@ -127,6 +128,8 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent):
                 cooldown=0.0,
                 cooldown_duration=SPECIAL_ABILITY_COOLDOWN,
             ))
+
+            es.add_component(entity, AIControlledComponent())
 
         case UnitType.ARCHITECT:
             entity = es.create_entity()
