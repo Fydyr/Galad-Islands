@@ -369,5 +369,7 @@ TRANSLATIONS = {
     "debug.tile_size": "Taille tuile: {size}px",
     "debug.resolution": "Résolution: {width}x{height}",
     "debug.fps": "FPS: {fps:.1f}",
+    "debug.ai_state": "IA rapide: {count} unités | États: {states}",
+    "debug.ai_state.empty": "IA rapide: aucune unité active",
     "debug.help_modal_title": "Aide",
 }

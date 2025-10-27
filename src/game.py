@@ -3,6 +3,7 @@ import platform
 import traceback
 import logging
 import pygame
+from collections import Counter
 from typing import Dict, List, Optional, Tuple
 
 # Importations des modules internes
@@ -33,6 +34,10 @@ from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
 from src.ia.KamikazeAi import KamikazeAiProcessor
 from src.ia.BaseAi import BaseAi
+from processeurs.ai.DruidAIProcessor import DruidAIProcessor
+from src.processeurs.towerProcessor import TowerProcessor
+from src.ia_troupe_rapide.processors.rapid_ai_processor import RapidTroopAIProcessor
+
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -56,6 +61,9 @@ from src.components.special.speArchitectComponent import SpeArchitect
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
 
+# IA - Import du nouveau composant
+from src.components.ai.aiControlledComponent import AIControlledComponent
+
 # import event
 from src.components.events.banditsComponent import Bandits
 from src.processeurs.flyingChestProcessor import FlyingChestProcessor
@@ -75,10 +83,14 @@ from src.components.core.baseComponent import BaseComponent
 from src.components.core.towerComponent import TowerComponent
 from src.components.globals.mapComponent import is_tile_island
 
+# Importations IA
+from src.ia.ia_barhamus2 import BarhamusAI
+
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.notification_system import get_notification_system
+from src.ia_troupe_rapide import ensure_ai_processors
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
 
@@ -305,7 +317,7 @@ class GameRenderer:
         self._render_ui(window, action_bar)
         
         if show_debug:
-            self._render_debug_info(window, camera, dt)
+            self._render_debug_info(window, camera, dt, self.game_engine)
             
         if self.game_engine.exit_modal.is_active():
             self.game_engine.exit_modal.render(window)
@@ -658,7 +670,7 @@ class GameRenderer:
         if self.game_engine.notification_system is not None:
             self.game_engine.notification_system.render(window)
             
-    def _render_debug_info(self, window, camera, dt):
+    def _render_debug_info(self, window, camera, dt, game_engine):
         """Rend les informations de debug."""
         if camera is None:
             return
@@ -671,11 +683,75 @@ class GameRenderer:
             t("debug.resolution", width=window.get_width(), height=window.get_height()),
             t("debug.fps", fps=1/dt if dt > 0 else 0)
         ]
+
+        ai_debug_line = self._build_ai_state_line()
+        if ai_debug_line:
+            debug_info.append(ai_debug_line)
         
         for i, info in enumerate(debug_info):
             text_surface = font.render(info, True, (255, 255, 255))
             window.blit(text_surface, (10, 10 + i * 30))
-    
+        
+        # Afficher les zones infranchissables pour l'IA en rouge
+        if hasattr(game_engine, 'rapid_ai_processor') and game_engine.rapid_ai_processor:
+            processor = game_engine.rapid_ai_processor
+            pathfinding = getattr(processor, "pathfinding", None)
+            sub_tile_factor = getattr(pathfinding, "sub_tile_factor", 1) or 1
+            unwalkable_areas = processor.get_unwalkable_areas()
+            for x, y in unwalkable_areas:
+                # Convertir les coordonnées monde en coordonnées écran
+                screen_x, screen_y = camera.world_to_screen(x, y)
+                
+                # Dessiner un contour rouge ajusté à la taille des sous-tuiles IA
+                tile_screen_size = (TILE_SIZE / sub_tile_factor) * camera.zoom * 2
+                pygame.draw.rect(window, (255, 0, 0), 
+                               (screen_x - tile_screen_size/2, screen_y - tile_screen_size/2, 
+                                tile_screen_size, tile_screen_size), 2)
+            
+            # Afficher le dernier chemin calculé en jaune
+            last_path = processor.get_last_path()
+            if last_path and len(last_path) > 1:
+                # Convertir toutes les positions du chemin en coordonnées écran
+                screen_points = []
+                for x, y in last_path:
+                    screen_x, screen_y = camera.world_to_screen(x, y)
+                    screen_points.append((screen_x, screen_y))
+                
+                # Dessiner des lignes jaunes entre les points du chemin
+                if len(screen_points) > 1:
+                    pygame.draw.lines(window, (255, 255, 0), False, screen_points, 3)
+                
+                # Dessiner des points jaunes aux waypoints
+                for screen_x, screen_y in screen_points:
+                    pygame.draw.circle(window, (255, 255, 0), (int(screen_x), int(screen_y)), 4)
+
+    def _build_ai_state_line(self) -> Optional[str]:
+        """Construit la ligne affichant l'état synthétique de l'IA rapide."""
+
+        processor = getattr(self.game_engine, "rapid_ai_processor", None)
+        if processor is None:
+            return None
+
+        controllers = getattr(processor, "controllers", None)
+        if not controllers:
+            return t("debug.ai_state.empty")
+
+        # Filtrer les contrôleurs dont l'entité n'existe plus ou est morte
+        state_counts = Counter(
+            controller.state_machine.current_state.name
+            for entity_id, controller in controllers.items()
+            if getattr(controller, "state_machine", None) is not None
+            and es.entity_exists(entity_id)
+        )
+
+        if not state_counts:
+            return t("debug.ai_state.empty")
+
+        total_units = sum(state_counts.values())
+        # Limiter l'affichage aux états principaux pour garder le HUD lisible
+        summary = ", ".join(f"{state}:{count}" for state, count in state_counts.most_common(3))
+        return t("debug.ai_state", count=total_units, states=summary)
+
     def _render_game_over_message(self, window):
         """Rend le message de fin de partie au centre de l'écran."""
         if not self.game_engine.game_over_message:
@@ -754,6 +830,9 @@ class GameEngine:
         self.island_resource_manager = IslandResourceManager()
         self.storm_processor = StormProcessor()
         self.combat_reward_processor = CombatRewardProcessor()
+        
+        # Gestionnaire d'IA pour tous les Maraudeurs
+        self.maraudeur_ais = {}  # entity_id -> BarhamusAI
         self.player = None
         self.notification_system = get_notification_system()
         
@@ -764,7 +843,9 @@ class GameEngine:
         self.capacities_processor = None
         self.lifetime_processor = None
         self.architect_ai_processor = None
-
+        self.druid_ai_processor = None # <-- AJOUTÉ
+        self.tower_processor = None # <-- AJOUTÉ
+        
         self.ally_base_ai = BaseAi(team_id=Team.ALLY)
         self.enemy_base_ai = BaseAi(team_id=Team.ENEMY)
         self.kamikaze_ai_processor = KamikazeAiProcessor()
@@ -929,6 +1010,10 @@ class GameEngine:
         # Nettoyer tous les processeurs existants
         es._processors.clear()
 
+        # Forcer la recréation du processeur IA rapide lors d'une nouvelle partie
+        if hasattr(es, "_rapid_troop_ai_processor"):
+            delattr(es, "_rapid_troop_ai_processor")
+
         # Réinitialiser les gestionnaires globaux dépendant du monde
         BaseComponent.reset()
         
@@ -943,6 +1028,10 @@ class GameEngine:
         self.lifetime_processor = LifetimeProcessor()
         self.architect_ai_processor = ArchitectAIProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
+        
+        # IA - Initialisation du processeur IA avec la grille
+        self.druid_ai_processor = DruidAIProcessor(self.grid, es)
+        
         # Tower processor (gère tours de défense/soin)
         self.tower_processor = TowerProcessor()
         # Storm processor (gère les tempêtes)
@@ -956,13 +1045,20 @@ class GameEngine:
         es.add_processor(self.kamikaze_ai_processor, priority=6)
         # IA de base alliée et ennemie
         es.add_processor(self.ally_base_ai, priority=7)
-        es.add_processor(self.enemy_base_ai, priority=8)
-        es.add_processor(self.collision_processor, priority=2)
-        es.add_processor(self.movement_processor, priority=3)
-        es.add_processor(self.player_controls, priority=4)
-        es.add_processor(self.tower_processor, priority=5)
-        es.add_processor(self.lifetime_processor, priority=10)
-        
+        es.add_processor(self.enemy_base_ai, priority=8)        
+        self.rapid_ai_processor_ally = RapidTroopAIProcessor(self.grid)
+        self.rapid_ai_processor_enemy = RapidTroopAIProcessor(self.grid)
+
+        # AJOUT DES PROCESSEURS DANS L'ORDRE
+        es.add_processor(self.druid_ai_processor, priority=1)
+        es.add_processor(self.rapid_ai_processor_ally, priority=2)
+        es.add_processor(self.rapid_ai_processor_enemy, priority=3)
+        es.add_processor(self.collision_processor, priority=4)
+        es.add_processor(self.movement_processor, priority=5)
+        es.add_processor(self.player_controls, priority=6)
+        #es.add_processor(self.tower_processor, priority=5)
+        #es.add_processor(self.lifetime_processor, priority=10)
+
         # Configurer les handlers d'événements
         es.set_handler('attack_event', create_projectile)
         es.set_handler('special_vine_event', create_projectile)
@@ -980,12 +1076,12 @@ class GameEngine:
         # Créer les PlayerComponent pour CHAQUE équipe (alliés ET ennemis)
         # Équipe Alliée (team_id = 1)
         ally_player = es.create_entity()
-        es.add_component(ally_player, PlayerComponent(stored_gold=100))
+        es.add_component(ally_player, PlayerComponent(stored_gold=1000))
         es.add_component(ally_player, TeamComponent(Team.ALLY))
         
         # Équipe Ennemie (team_id = 2)
         enemy_player = es.create_entity()
-        es.add_component(enemy_player, PlayerComponent(stored_gold=100))
+        es.add_component(enemy_player, PlayerComponent(stored_gold=1000))
         es.add_component(enemy_player, TeamComponent(Team.ENEMY))
         
         # Garder une référence au joueur allié par défaut
@@ -994,18 +1090,26 @@ class GameEngine:
         # Initialiser le gestionnaire de bases
         BaseComponent.initialize_bases()
         
-        # Créer les unités
+        # Créer un Scout allié
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
         player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
             if not getattr(self, 'self_play_mode', False):
                 self._set_selected_entity(player_unit)
 
-        # Créer un druide ennemi à une position équivalente à celle du druid allié
-        enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(
-            is_enemy=True, jitter=TILE_SIZE * 0.1)  # Même jitter que l'allié
-        enemy_druid = UnitFactory(
-            UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
+    
+        # Créer un Scout ennemi
+        enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(is_enemy=True, jitter=TILE_SIZE * 0.1)
+        enemy_scout = UnitFactory(UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
+        if enemy_scout is not None:
+            print(f"Scout ennemi créé: {enemy_scout}")
+        
+        # Initialiser la visibilité pour l'équipe actuelle
+        vision_system.update_visibility(Team.ALLY)
+        
+        # Initialiser les variables d'optimisation adaptative
+        self._frame_times = []
+        self._adaptive_quality = 1.0
         
         # Initialiser la visibilité pour l'équipe actuelle
         vision_system.update_visibility(Team.ALLY)
@@ -1692,6 +1796,13 @@ class GameEngine:
         # Mettre à jour le système de notification
         if self.notification_system is not None:
             self.notification_system.update(dt)
+
+        # IA - Mise à jour du processeur IA (qui a besoin de dt)
+        if self.druid_ai_processor is not None:
+            # Assurer que la grille est à jour (au cas où elle changerait, peu probable)
+            if hasattr(self, 'grid') and self.grid is not None:
+                self.druid_ai_processor.grid = self.grid
+            self.druid_ai_processor.last_dt = dt
         
         # Traiter les capacités spéciales d'abord (avec dt)
         if self.capacities_processor is not None:
@@ -1704,6 +1815,9 @@ class GameEngine:
         # Traiter les événements d'abord (avec dt)
         if self.architect_ai_processor is not None:
             self.architect_ai_processor.process(self.grid)
+
+        if self.lifetime_processor is not None:
+            self.lifetime_processor.process(dt)
 
         # Traiter le TowerProcessor (avec dt)
         if self.tower_processor is not None:
@@ -1724,6 +1838,9 @@ class GameEngine:
 
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
+        
+        # Mettre à jour toutes les IA de Maraudeurs
+        self._update_all_maraudeur_ais(es, dt)
 
         if self.flying_chest_processor is not None:
             self.flying_chest_processor.process(dt)
@@ -1924,6 +2041,55 @@ class GameEngine:
             if team_comp.team_id == team_id:
                 player_comp.stored_gold = max(0, amount)
                 return
+
+    def _update_all_maraudeur_ais(self, es, dt):
+        """Met à jour toutes les IA de Maraudeurs et gère leur création/suppression automatique"""
+        # Vérifier tous les Maraudeurs existants
+        all_maraudeurs = set()
+        
+        for entity, spe_maraudeur in es.get_component(SpeMaraudeur):
+            all_maraudeurs.add(entity)
+            
+            # Si ce Maraudeur n'a pas encore d'IA, la créer
+            if entity not in self.maraudeur_ais:
+                self.maraudeur_ais[entity] = BarhamusAI(entity)
+                team_comp = es.component_for_entity(entity, TeamComponent)
+                team_name = "allié" if team_comp.team_id == 1 else "ennemi"
+                print(f"🤖 IA créée pour Maraudeur {team_name} {entity}")
+        
+        # Supprimer les IA des Maraudeurs qui n'existent plus
+        entities_to_remove = []
+        for entity_id in self.maraudeur_ais.keys():
+            if entity_id not in all_maraudeurs:
+                entities_to_remove.append(entity_id)
+        
+        for entity_id in entities_to_remove:
+            del self.maraudeur_ais[entity_id]
+            print(f"🗑️ IA supprimée pour Maraudeur {entity_id} (unité détruite)")
+        
+        # Mettre à jour toutes les IA actives
+        for entity_id, ai in self.maraudeur_ais.items():
+            try:
+                # Passer la grille à l'IA pour l'évitement d'obstacles
+                if hasattr(self, 'grid'):
+                    ai.grid = self.grid
+                
+                # Mettre à jour l'IA
+                ai.update(es, dt)
+                
+            except Exception as e:
+                print(f"❌ Erreur IA Maraudeur {entity_id}: {e}")
+        
+        # Statistiques d'IA
+        if len(self.maraudeur_ais) > 0 and hasattr(self, '_ai_stats_timer'):
+            self._ai_stats_timer -= dt
+            if self._ai_stats_timer <= 0:
+                allies = sum(1 for eid in self.maraudeur_ais if es.has_component(eid, TeamComponent) and es.component_for_entity(eid, TeamComponent).team_id == 1)
+                enemies = len(self.maraudeur_ais) - allies
+                print(f"📊 IA actives: {allies} alliés + {enemies} ennemis = {len(self.maraudeur_ais)} total")
+                self._ai_stats_timer = 10.0  # Stats toutes les 10 secondes
+        elif not hasattr(self, '_ai_stats_timer'):
+            self._ai_stats_timer = 10.0
 
 def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
     """Point d'entrée principal du jeu (compatibilité avec l'API existante).

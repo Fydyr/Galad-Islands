@@ -21,8 +21,6 @@ from src.settings.docs_manager import get_help_path, get_credits_path, get_scena
 from src.functions.resource_path import get_resource_path
 from src.settings.settings import get_project_version, is_dev_mode_enabled
 
-
-
 class MainMenu:
     """Main menu class."""
 
@@ -334,7 +332,7 @@ class MainMenu:
 
                 # Check for volume changes
                 self.volume_watcher.check_for_changes()
-
+                
                 # Apply display changes
                 if self.display_manager.dirty:
                     self.surface = self.display_manager.apply_changes()
