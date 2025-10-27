@@ -1,5 +1,19 @@
 # 🧾 Changelog
 
+## v0.9.0 (2025-10-27)
+
+### Feat
+
+- désactiver le brouillard de guerre en mode IA vs IA pour voir tout la carte
+
+### Fix
+
+- correction du chemin d'importation pour DruidAIProcessor
+
+### Refactor
+
+- début du refactoring et nettoyage des IA
+
 ## v0.8.0 (2025-10-27)
 
 ### 🤖 Ajout des IA
