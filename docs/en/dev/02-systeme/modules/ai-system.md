@@ -44,17 +44,17 @@ The state-action vector is composed of the following 9 features:
 
 The training is performed by the `train_unified_base_ai.py` script. It combines several data sources to create a robust model:
 
-1.  **Strategic Scenarios (`generate_scenario_examples`)**
+1. **Strategic Scenarios (`generate_scenario_examples`)**
     - Game examples are generated from manually defined key scenarios (e.g., "Priority Defense," "Exploration Needed," "Finishing Blow").
     - Each scenario associates a game state with an expected action and a high reward. Incorrect actions receive a penalty.
     - Certain scenarios like exploration and defense are over-represented to reinforce these behaviors.
 
-2.  **Self-Play (`simulate_self_play_game`)**
+2. **Self-Play (`simulate_self_play_game`)**
     - Full games are simulated between two instances of the AI.
     - Each decision made and the reward obtained are recorded as an experience.
     - This allows the AI to discover emergent strategies in a realistic game context.
 
-3.  **Victory Objective (`generate_victory_scenario`)**
+3. **Victory Objective (`generate_victory_scenario`)**
     - Similar to self-play, but with a very large reward bonus for the AI that wins the game (by destroying the enemy base).
     - This reinforces the ultimate goal of victory and encourages the AI to make decisions that lead to it.
 
@@ -89,35 +89,37 @@ To create or refine a new version of the Base AI, the process involves modifying
 
 **Key Steps:**
 
-1.  **Define Desired Behaviors (the "Teacher")**
-    *   The `decide_action_for_training` function within the `train_unified_base_ai.py` script acts as a "teacher" for the Machine Learning model. This is where you define the ideal decision rules for the AI in various game states.
-    *   If you want the AI to learn new behaviors or change its priorities (e.g., prioritize a new unit type, or a different defense strategy), you must first implement these rules in this method.
-    *   The Machine Learning model will then learn to imitate and generalize these rules through simulations.
+1. **Define Desired Behaviors (the "Teacher")**
+    - The `decide_action_for_training` function within the `train_unified_base_ai.py` script acts as a "teacher" for the Machine Learning model. This is where you define the ideal decision rules for the AI in various game states.
+    - If you want the AI to learn new behaviors or change its priorities (e.g., prioritize a new unit type, or a different defense strategy), you must first implement these rules in this method.
+    - The Machine Learning model will then learn to imitate and generalize these rules through simulations.
 
-2.  **Adjust Strategic Scenarios (`generate_scenario_examples`)**
-    *   In `train_unified_base_ai.py`, the `generate_scenario_examples` function creates game examples based on key situations.
-    *   If you introduce new units or significant game mechanics, it is crucial to add relevant scenarios here to guide the AI towards the correct decisions in these contexts.
-    *   You can adjust `repeat` and `reward_val` to overweight certain behaviors deemed more important.
+2. **Adjust Strategic Scenarios (`generate_scenario_examples`)**
+    - In `train_unified_base_ai.py`, the `generate_scenario_examples` function creates game examples based on key situations.
+    - If you introduce new units or significant game mechanics, it is crucial to add relevant scenarios here to guide the AI towards the correct decisions in these contexts.
+    - You can adjust `repeat` and `reward_val` to overweight certain behaviors deemed more important.
 
-3.  **Run Unified Training (`train_unified_base_ai.py`)**
-    *   The `train_unified_base_ai.py` script orchestrates the entire training process:
-        *   Generation of examples from strategic scenarios.
-        *   Simulation of full games through self-play (`simulate_self_play_game`).
-        *   Simulation of games with a reinforced victory objective (`generate_victory_scenario`).
-    *   Run the script with the desired parameters (number of scenarios, self-play games, etc.):
+3. **Run Unified Training (`train_unified_base_ai.py`)**
+    - The `train_unified_base_ai.py` script orchestrates the entire training process:
+        - Generation of examples from strategic scenarios.
+        - Simulation of full games through self-play (`simulate_self_play_game`).
+        - Simulation of games with a reinforced victory objective (`generate_victory_scenario`).
+    - Run the script with the desired parameters (number of scenarios, self-play games, etc.):
+
         ```bash
         python train_unified_base_ai.py --n_scenarios 2000 --n_selfplay 1000 --n_victory 500 --n_iterations 5
         ```
-    *   The script will save the trained model as `src/models/base_ai_unified_final.pkl`.
 
-4.  **Verify AI Behavior (`demo_base_ai.py`)**
-    *   Use the `demo_base_ai.py` script to test the new model in a series of predefined scenarios.
-    *   Ensure that the AI makes the expected decisions and that its behavior aligns with your strategic expectations.
-    *   If the behavior is not satisfactory, return to step 1 or 2 to refine the rules and training scenarios.
+    - The script will save the trained model as `src/models/base_ai_unified_final.pkl`.
 
-5.  **Integrate the New Model into the Game**
-    *   Once satisfied with the model, ensure that the `BaseAi.load_model()` method in `src/ia/BaseAi.py` is configured to load the `base_ai_unified_final.pkl` file. This is the default behavior if this file exists.
-    *   The in-game `BaseAi` class no longer contains the training logic; it only loads and uses the model.
+4. **Verify AI Behavior (`demo_base_ai.py`)**
+    - Use the `demo_base_ai.py` script to test the new model in a series of predefined scenarios.
+    - Ensure that the AI makes the expected decisions and that its behavior aligns with your strategic expectations.
+    - If the behavior is not satisfactory, return to step 1 or 2 to refine the rules and training scenarios.
+
+5. **Integrate the New Model into the Game**
+    - Once satisfied with the model, ensure that the `BaseAi.load_model()` method in `src/ia/BaseAi.py` is configured to load the `base_ai_unified_final.pkl` file. This is the default behavior if this file exists.
+    - The in-game `BaseAi` class no longer contains the training logic; it only loads and uses the model.
 
 This iterative process allows for progressively refining the base's intelligence to make it a more sophisticated and reactive opponent.
 
@@ -134,8 +136,10 @@ In addition to the Base AI, some units have their own autonomous behavior logic,
 Unlike the Base AI, the Kamikaze AI does not use a Machine Learning model. It is a **hybrid procedural AI** that combines classic algorithms to achieve intelligent and reactive navigation behavior.
 
 This processor manages the behavior of Kamikaze units:
+
 - **Target Acquisition**: If the enemy base is not yet discovered (`KnownBaseProcessor`), the Kamikaze explores random points in the enemy's territory. Once the base is found, it prioritizes nearby heavy enemy units. If none are found, it targets the enemy base.
 - **Long-Term Navigation (A* Pathfinding)**: It calculates an optimal path to its target using the A* algorithm. To prevent the unit from "sticking" to obstacles, the pathfinding is performed on an "inflated map" (`inflated_world_map`) where islands are artificially expanded.
+
     ```python
     # Excerpt from KamikazeAiProcessor.py
     
@@ -149,6 +153,7 @@ This processor manages the behavior of Kamikaze units:
     ```
 
 - **Short-Term Navigation (Local Avoidance)**: This is the core of the AI's reactivity. At every moment, it detects immediate dangers (projectiles, mines) and combines its path direction with an "avoidance vector" to smoothly steer around them.
+
     ```python
     # Excerpt from KamikazeAiProcessor.py
 
@@ -166,6 +171,7 @@ This processor manages the behavior of Kamikaze units:
     ```
 
 - **Dynamic Recalculation**: If its path becomes obstructed by a new danger (like a mine), it is capable of recalculating an entirely new route.
+
     ```python
     # Excerpt from KamikazeAiProcessor.py
     all_dangers = threats + obstacles
@@ -177,12 +183,115 @@ This processor manages the behavior of Kamikaze units:
 - **Action**: Once in range of its final target, the unit self-destructs.
 - **Strategic Boost**: The AI saves its boost and specifically activates it when approaching the enemy base to maximize its chances of reaching the target.
 
-### Other AIs (to be added)
+### Scout AI (`RapidTroopAIProcessor`)
+
+The Scout AI (enemy Scouts) relies on a finite state machine (FSM) and a priority system to choose the most relevant action at any given moment. It uses rules and scores for each objective (no machine learning).
+
+**Decision Cycle:**
+
+1. Context update (health, position, danger)
+2. Objective evaluation (chest, druid, attack, base, survival)
+3. Selection of the priority objective
+4. State change if necessary (`Idle`, `GoTo`, `Flee`, `Attack`, etc.)
+5. Execution of the action (movement, shooting, fleeing...)
+
+**Main Objectives:**
+
+- Collect flying chests (gain gold to buy allies)
+- Survive as long as possible
+- Tactically attack from a safe distance with continuous fire
+- If a Druid is present and health is good, harass the base from a safe distance
+
+#### System Architecture
+
+Main components:
+
+- `RapidTroopAIProcessor`: main loop, controller management, events, debug overlay
+- `RapidUnitController`: decisions and execution for a unit, context update, FSM, coordination, continuous fire
+- `GoalEvaluator`: sequential evaluation by priorities, coordination management
+- Auxiliary services: `DangerMapService`, `PathfindingService`, `PredictionService`, `CoordinationService`, `AIContextManager`, `IAEventBus`
+
+#### Objective Evaluation (`GoalEvaluator`)
+
+Objectives by priority:
+
+- `goto_chest` (100): visible + unassigned chests
+- `follow_druid` (90): health < 95% + druid present
+- `attack` (80): stationary enemy units
+- `follow_die` (70): enemy < 60 HP + assigned role
+- `attack_base` (60): enemy base + health > 35%
+- `survive` (10): fallback
+
+Sequential logic: maximum priority: chests → druid → harassment → execution → base attack → survival
+
+#### Finite State Machine (FSM)
+
+States: `Idle`, `GoTo`, `Flee`, `Attack`, `FollowDruid`, `FollowToDie`
+
+Global and local transitions according to priority and conditions (danger, health, navigation, etc.)
+
+#### Detailed States
+
+- **IdleState**: drift towards safe zone, awaits transitions, cancels navigation if inactive
+- **FleeState**: movement towards safest_point, hysteresis, cooldown, forbidden if health > 50%
+- **GoToState**: A* navigation to target, replan, waypoint tolerance
+- **AttackState**: anchor system, valid positions around target, continuous fire
+- **FollowToDieState**: aggressive pursuit, ignores danger, continuous fire
+- **FollowDruid**: approaches druid, secure orbit, Idle transition if health restored
+
+#### Danger System
+
+- Dynamic sources: projectiles, storms, bandits, allied units
+- Static sources: mines, islands, map edges
+
+#### Weighted Pathfinding (A*)
+
+- Tile costs, optimizations (sub-tile factor, blocked margin, recompute distance, waypoint radius)
+
+#### Combat Logic
+
+- Continuous fire (`_try_continuous_shoot`) every tick, automatic orientation, reset cooldown
+- `AttackState`: anchor computation, optimal distance, random position, adjustment
+
+#### Inter-Unit Coordination
+
+- Exclusive roles (chests, harassment, follow-to-die)
+- Coordination services, event bus, prediction
+
+#### External JSON Configuration
+
+Example:
+
+```json
+{
+    "danger": {"safe_threshold": 0.45, "flee_threshold": 0.7},
+    "weights": {"survive": 4.0, "chest": 3.0, "attack": 1.6}
+}
+```
+
+#### Critical Thresholds
+
+- Health, time, distances (see details in `Decisions.md`)
+
+#### Key Files and Structure
+
+- `src/ia_troupe_rapide/`: `config.py`, `processors/rapid_ai_processor.py`, `services/*`, `states/*`, `fsm/machine.py`, `integration.py`
+
+#### Current Optimization Points
+
+- **Phase 1**: Stabilization (continuous fire, persistent navigation, rotating role coordination)
+- **Phase 2**: Tuning (danger thresholds, anchor distance, objective weights)
+- **Phase 3**: Advanced (prediction horizon, micro-positions, load-balance)
+
+### Other AIs (coming soon)
 
 AI logic could be added for other units, for example:
-- **Druids**: Automatically heal the most wounded allies nearby.
-- **Scouts**: Autonomously explore unknown areas of the map.
 
+- **Druids**: Automatically heal the most wounded allies nearby.
+- **Leviathans**: Use area attacks against groups of enemies.
+- **Marauders**: Prioritize targets based on their threat and strategic value.
+- **Architects**: Build defensive structures based on detected threats.
 ---
+
 
 *This documentation will be updated as new AIs are implemented.*
