@@ -132,7 +132,6 @@ TRANSLATIONS = {
     "units.draupnir": "Draupnir (Heavy Leviathan)",
     "units.druid": "Druid",
     "units.architect": "Architect",
-    "units.q_architect": "Q-Learning Architect", # New unit type
     "units.kamikaze": "Kamikaze",
     
     # Game interface  
