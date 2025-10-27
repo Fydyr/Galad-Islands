@@ -1,5 +1,126 @@
 # 🧾 Changelog
 
+## v0.8.0 (2025-10-27)
+
+### Feat
+
+- ajout esquive des mines
+- **ai**: ajout du tir latéral
+- ajout du model d'ia el plus récent
+- ajout d'un modèle d'ia ne fonctionnant pas réellement
+- ajout de modèles d'ia (qui sont malheureusement obsolète)
+- **ai**: ajout d'information sur le print lors de l'entrainement de l'ia
+- add model ai for leviathan (100 games simulated)
+- add test reward for ai leviathan
+- add training ai
+- add ai leviathan
+- added  better health game_state retrieval, and better tower building strategies
+- Architect can place towers
+- AI now moves correctly to island
+- add more options to AI
+- basic AI (not fully implemented)
+- added training to AI model
+- move ia to src, and modify pathfinding and decisionTree for better architect reasoning.
+- removed old ai and added new pathfinding methods
+- test new AI
+- AI pathfinding training
+- upgraded AI (without much success)
+- Integration of AI ingame
+- basic architect AI
+- modify doc
+- final ia with doc
+- enhance entity cleanup by filtering out dead or non-existent controllers
+- maybe last version of ai, detail : - add base position bonus to danger map for improved flee state navigation - 0 speed when AI attack to avoid no sence mouvement - delete "harass" (no max number AI attack)
+- enhance danger map with enemy base danger zone calculations
+- implement dynamic shooting range and improve attack prioritization for AI units
+- save
+- update pathfinding settings and rendering for improved AI navigation
+- add more debug
+- goto normalisé
+- ajout des waypoint dans le debug
+- division pour l'ia des cases (tiles) en 4 pour une meilleurs précision du pathfinding
+- mise en place de debug pour une meilleurs compréhension
+- quelques comporrtement bizarre mais légère avancé
+- tir continu
+- save
+- v1
+- décision pré code
+- configuration.md, requirements.md, druidAiController.py, init.py, positioningBehavior.py, vineBehavior.py, actionEvaluator.py, stateScorer.py, astarNavigator.py,  gameStateAnalyzer.py,
+- add automatic model cleanup script and update .gitignore
+- ajouter nouvelle fonctionnalité
+- ajouter nouvelle fonctionnalité
+- Add Barhamus AI class for Maraudeur unit with shield mechanics
+- Change starting unit from Scout to Maraudeur
+- Implement Barhamus AI with targeting and mana shield mechanics
+
+### Fix
+
+- ajouter des dépendances manquantes dans le README
+- ajouter la vérification du rayon de vision pour le tir des unités
+- rétablissement du processeur IA Léviathan au moteur de jeu
+- change player unit type from ARCHITECT to SCOUT
+- update action execution to include SpeArchitect component
+- mise à jour de la vitesse de l'ia pour le déplacement (trop lente avant)
+- utilisation de la capacité spécial
+- **ai**: L'ia va sur la base ennemie et tire dessus ainsi que sur les ennemies
+- **ai**: mise à jour de l'arbre de décision
+- **ai**: mise à jour du pathfinding pour éviter les obstacles
+- **ai**: Retrait du système d'apprentissage par Q-Learning et changement par un arbre de décision
+- mise à jour des informations sortie sur le terminal lors de l'arrêt de l'entrainement de l'ia
+- mise à jour de l'entrainement de l'ia pour qu'elle apprend plus vite
+- **ai**: correction pour le mouvement de l'ia
+- mise à jour des rewards et du sysyème pour aller vers la base adverse
+- changement de modèle d'ia car non fonctionnel
+- mise à jour du model d'ia
+- mise à jour sur les rewards
+- **ai**: mise à jour des rewards
+- mise à jour du reward pour les event + forcer vers la base ennemie
+- l'ia ne fonctionnais pas fonctionner pour les alliés + amélioration sur l'entrainement pour entrainer l'ia allié
+- mise à jour de l'entrainement de l'ia
+- ajout de pathfinding via le A* + ajout de l'ia pour l'unité allié
+- modification du fichier de model (recommencer de 0 le model d'ia)
+- update ai leviathan model
+- update epsilon for ai
+- chemin fixé
+- **ai**: train ai leviathan
+- training ai
+- quand on relançais l'entrainement il recommençais de zéro au lieu de reprendre là où il en était et effaçais donc entièrement l'ia
+- AI now choosing different islands to build on
+- angle of the AI to chosen path and start of building placing
+- change ai path
+- Added processors to training
+- regression of non working ai training
+- empêcher le tir des unités sur les mines et les alliés
+- ajout du contrôle IA pour les unités Scout dans l'équipe allié et mise à jour des processeurs IA
+- ajout et modifications des commentaires
+- suppression du dossier sklearn (inutile et encombrant), réparation des explosions de sprites.
+- amélioration de l'IA, elle suit son coéquipier quand il est blessé sans prendre de collisions et en évitant les mines
+- directions de l'IA
+- astarNavigator.py, gameStateAnalyzer.py
+- update requirements.txt to include scikit-learn version
+- update Barhamus AI model files to latest versions
+- update Barhamus AI model files to latest versions
+- update Barhamus AI import to new module
+
+### Refactor
+
+- déplacement de fichier
+- correction du nom de l'image de la tour de défense ennemi
+- remove unused translation for Q-Learning Architect
+- simplification de fonction & optimisation
+- mise à jour des fonctions en camelCase
+- mise à jour des commentaires
+- rename file
+- removed all previous AI attemps
+- removed SKLearn and added simple min-max
+- nettoyage des fichiers de rendu
+- renommage du processeur du Druid (anciennment un nom générique)
+- delete of join_druid bcs too similar with follow_druid delete preshot bcs too ambitious
+
+### Perf
+
+- **ai**: optimisation de l'entrainement de l'ia
+
 ## v0.7.1 (2025-10-13)
 
 ### 🐞 Fix
