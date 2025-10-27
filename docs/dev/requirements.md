@@ -4,8 +4,8 @@
 
 ### Prérequis minimum
 - **Python 3.9+** 
-- **2 GB RAM** minimum (4 GB recommandés)
-- **200 MO d'espace disque**
+- **4 GB RAM** minimum (8 GB recommandés)
+- **2 GB d'espace disque**
 
 ### Installation rapide
 
@@ -17,6 +17,7 @@ sudo apt install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
 
 #### Windows
 - Installer Python 3.9+ depuis python.org
+- Visual C++ Redistributable 2019+
 
 #### macOS
 ```bash
@@ -67,7 +68,6 @@ sphinx>=4.1.0
 
 
 # Vérifier que tout fonctionne
-```
 python -c "import pygame, esper; print('✅ Setup OK')"
 ```
 

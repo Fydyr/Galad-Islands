@@ -161,7 +161,7 @@ UNIT_HEALTH_ARCHITECT = 130  # Était 75, mise à jour depuis factory
 UNIT_SPEED_SCOUT = 5.0
 UNIT_SPEED_MARAUDEUR = 3.5
 UNIT_SPEED_LEVIATHAN = 2.0
-UNIT_SPEED_DRUID = 2.5
+UNIT_SPEED_DRUID = 3.5
 UNIT_SPEED_ARCHITECT = 3.5
 
 # Vitesses de recul des unités (par type)

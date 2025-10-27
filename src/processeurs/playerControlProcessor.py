@@ -74,8 +74,10 @@ class PlayerControlProcessor(esper.Processor):
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
                     base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
-            if controls.is_action_active(controls.ACTION_UNIT_ATTACK, keys, modifiers_state):
-                if radius.cooldown <= 0: # On vérifie le cooldown au moment du tir
+            if radius.cooldown > 0:
+                radius.cooldown -= 0.1  # Réduction du cooldown
+            else:
+                if controls.is_action_active(controls.ACTION_UNIT_ATTACK, keys, modifiers_state):
                     esper.dispatch_event("attack_event", entity, "bullet")
                     radius.cooldown = radius.bullet_cooldown
             # Changement du mode d'attaque avec Tab

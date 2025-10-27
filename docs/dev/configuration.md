@@ -11,7 +11,6 @@ Cela permet d'empêcher tout problème d'incompatibilité.
 <br/>*'myenv' est le nom du fichier contenant l'environnement virtuel.<br/>(venv) est maintenant afficher dans l'invité de commande*
 
 Pour activer le venv, il existe plusieurs moyens en fonction de l'invité de commande utilisé.<br/>
-
 - Windows (Command Prompt)
 ```myenv\Scripts\activate.bat```
 

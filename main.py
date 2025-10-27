@@ -290,7 +290,7 @@ class MainMenu:
 
                 # Check for volume changes
                 self.volume_watcher.check_for_changes()
-                
+
                 # Apply display changes
                 if self.display_manager.dirty:
                     self.surface = self.display_manager.apply_changes()
