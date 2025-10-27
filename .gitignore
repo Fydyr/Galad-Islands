@@ -57,6 +57,7 @@ config_local.py
 .env
 .env.local
 ./venv/
+./venv/
 
 # Fichiers système
 .DS_Store
@@ -67,6 +68,8 @@ desktop.ini
 saves/
 *.save
 profiles/
+galad_config.json
+galad_resolutions.json
 galad_config.json
 galad_resolutions.json
 

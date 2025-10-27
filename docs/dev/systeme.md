@@ -1,0 +1,97 @@
+# Paramètres système critiques - Galad Islands
+
+Ces paramètres définissent les contraintes minimales et optimales du moteur de jeu basé sur **Pygame**.  
+Ils garantissent un fonctionnement stable, une réactivité correcte et une expérience fluide.
+
+| Paramètre | Description | Valeur par défaut | Impact critique |
+|-----------|-------------|-------------------|-----------------|
+| **Résolution d'affichage** | Dimensions de la fenêtre de jeu (largeur × hauteur en pixels). | `1168 × 629` | Affecte directement la charge GPU/CPU et la lisibilité de l'interface. |
+| **Framerate cible** | Nombre d'images par seconde visé. | `30 FPS` | Détermine la fluidité du gameplay et la consommation CPU. |
+| **Taille de la carte** | Dimensions logiques du monde (en cases). | `30 × 30 cases` | Impact mémoire (900 cases = tileset, collisions, pathfinding). |
+| **Taille des tuiles** | Dimension d'une tuile de carte en pixels (calculée dynamiquement). | `16-64 px` (adaptatif) | Impact sur les performances de rendu et la mémoire texture. |
+| **VSync** | Synchronisation verticale. | `true` | Limite le framerate à la fréquence du moniteur, réduit le tearing et la consommation CPU/GPU. |
+| **Système audio** | Fréquence d'échantillonnage et gestion des canaux. | Pygame défaut | Influence la qualité sonore et l'utilisation mémoire. |
+| **Vitesse caméra** | Déplacement de la caméra en pixels par seconde. | `200 px/s` | Détermine la réactivité du scrolling et charge les calculs de rendu. |
+| **Zoom** | Plage de zoom disponible. | `0.5 - 2.5` (step: `0.1`) | Impact direct sur le nombre d'entités à rendre et la charge GPU. |
+
+---
+
+## Contraintes d'affichage adaptatif
+
+Le moteur calcule automatiquement la taille optimale des tuiles pour garantir une visibilité minimale et des performances stables:
+
+| Contrainte | Valeur | Impact système |
+|------------|--------|----------------|
+| **Cases visibles min (largeur)** | `15` | Garantit lisibilité et limite le nombre d'objets rendus simultanément. |
+| **Cases visibles min (hauteur)** | `10` | Idem verticalement. Ratio optimal pour écrans 16:9. |
+| **Taille tuile min** | `16 px` | Limite inférieure pour éviter illisibilité et aliasing excessif. |
+| **Taille tuile max** | `64 px` | Limite supérieure pour contrôler l'usage mémoire texture et taille des sprites. |
+
+
+---
+
+## Génération procédurale de la carte
+
+Ces taux contrôlent la densité d'entités et impactent les performances (collisions, pathfinding, IA):
+
+| Élément | Taux | Nombre d'instances (30×30) | Impact système |
+|---------|------|----------------------------|----------------|
+| **Mines** | 2% | `18` | Collisions statiques, zone de danger. |
+| **Îles génériques** | 3% | `27` | Obstacles de navigation, calculs de pathfinding. |
+| **Nuages** | 3% | `27` | Éléments visuels, faible impact (pas de collision). |
+
+**Total entités statiques**: ~72 objets sur 900 cases (8%)
+
+---
+
+## Résolutions supportées
+
+Le moteur supporte nativement ces résolutions sans recalcul coûteux:
+
+| Résolution | Dimensions | Tile size calculée | Ratio |
+|------------|------------|-------------------|-------|
+| 800×600 | 800 × 600 | 40 px | 4:3 |
+| 1024×768 | 1024 × 768 | 62 px | 4:3 |
+| 1280×720 | 1280 × 720 | 62 px | 16:9 |
+| 1366×768 | 1366 × 768 | 62 px | ~16:9 |
+| **1920×1080** | 1920 × 1080 | 64 px (max) | 16:9 |
+| 2560×1440 | 2560 × 1440 | 64 px (max) | 16:9 |
+
+Les résolutions ≥1920×1080 atteignent la limite max de 64px par tuile, optimisant ainsi l'usage GPU.
+
+---
+
+
+### Caractéristiques techniques
+- **Encodage**: UTF-8 (support multilingue)
+- **Validation**: Plages min/max appliquées au chargement
+- **Fallback**: Valeurs par défaut si fichier corrompu/absent
+- **Fusion**: Merge intelligent avec defaults pour éviter perte de config
+
+---
+
+## Plages de valeurs autorisées
+
+Ces limites préviennent les configurations instables:
+
+| Paramètre | Min | Max | Unité |
+|-----------|-----|-----|-------|
+| **screen_width** | 200 | 10000 | pixels |
+| **screen_height** | 200 | 10000 | pixels |
+| **volume_*** | 0.0 | 1.0 | ratio |
+| **camera_sensitivity** | 0.1 | 5.0 | multiplicateur |
+| **camera_fast_multiplier** | 1.0 | ∞ | multiplicateur |
+
+---
+
+## Notes d'optimisation
+
+1. **Framerate 30 FPS** : Choix délibéré pour équilibrer fluidité et consommation CPU sur hardware modeste.
+
+2. **Tile size adaptatif** : Évite le sur-rendu en haute résolution et maintient la lisibilité en basse résolution.
+
+3. **VSync par défaut** : Réduit la charge inutile en limitant le framerate à la capacité du moniteur (généralement 60Hz).
+
+4. **Carte 30×30** : Taille modeste (900 cases) pour garantir des performances stables sur le pathfinding et les collisions.
+
+5. **Densité d'objets 8%** : Équilibre entre richesse visuelle et performance des algorithmes spatiaux.

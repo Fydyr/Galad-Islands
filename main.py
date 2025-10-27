@@ -1,5 +1,7 @@
 # Main menu in Pygame
 
+# Main menu in Pygame
+
 import pygame
 import sys
 import os
@@ -384,6 +386,8 @@ def main_menu(win=None):
 
 # Program entry point
 if __name__ == "__main__":
+
+    # Launch menu
 
     # Launch menu
     main_menu()
