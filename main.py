@@ -18,8 +18,6 @@ from src.settings.localization import t
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 from src.functions.resource_path import get_resource_path
 
-
-
 class MainMenu:
     """Main menu class."""
 

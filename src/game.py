@@ -1,4 +1,5 @@
 # Importations standard
+from collections import Counter
 from typing import Dict, List, Optional, Tuple
 
 import pygame
@@ -67,6 +68,7 @@ from src.ia.ia_barhamus2 import BarhamusAI
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.exit_modal import ExitConfirmationModal
 from src.ui.notification_system import get_notification_system
+from src.ia_troupe_rapide import ensure_ai_processors
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
 
@@ -250,7 +252,7 @@ class GameRenderer:
         self._render_ui(window, action_bar)
         
         if show_debug:
-            self._render_debug_info(window, camera, dt)
+            self._render_debug_info(window, camera, dt, self.game_engine)
             
         if self.game_engine.exit_modal.is_active():
             self.game_engine.exit_modal.render(window)
@@ -414,7 +416,7 @@ class GameRenderer:
         if self.game_engine.notification_system is not None:
             self.game_engine.notification_system.render(window)
             
-    def _render_debug_info(self, window, camera, dt):
+    def _render_debug_info(self, window, camera, dt, game_engine):
         """Rend les informations de debug."""
         if camera is None:
             return
@@ -427,11 +429,75 @@ class GameRenderer:
             t("debug.resolution", width=window.get_width(), height=window.get_height()),
             t("debug.fps", fps=1/dt if dt > 0 else 0)
         ]
+
+        ai_debug_line = self._build_ai_state_line()
+        if ai_debug_line:
+            debug_info.append(ai_debug_line)
         
         for i, info in enumerate(debug_info):
             text_surface = font.render(info, True, (255, 255, 255))
             window.blit(text_surface, (10, 10 + i * 30))
-    
+        
+        # Afficher les zones infranchissables pour l'IA en rouge
+        if hasattr(game_engine, 'rapid_ai_processor') and game_engine.rapid_ai_processor:
+            processor = game_engine.rapid_ai_processor
+            pathfinding = getattr(processor, "pathfinding", None)
+            sub_tile_factor = getattr(pathfinding, "sub_tile_factor", 1) or 1
+            unwalkable_areas = processor.get_unwalkable_areas()
+            for x, y in unwalkable_areas:
+                # Convertir les coordonnées monde en coordonnées écran
+                screen_x, screen_y = camera.world_to_screen(x, y)
+                
+                # Dessiner un contour rouge ajusté à la taille des sous-tuiles IA
+                tile_screen_size = (TILE_SIZE / sub_tile_factor) * camera.zoom * 2
+                pygame.draw.rect(window, (255, 0, 0), 
+                               (screen_x - tile_screen_size/2, screen_y - tile_screen_size/2, 
+                                tile_screen_size, tile_screen_size), 2)
+            
+            # Afficher le dernier chemin calculé en jaune
+            last_path = processor.get_last_path()
+            if last_path and len(last_path) > 1:
+                # Convertir toutes les positions du chemin en coordonnées écran
+                screen_points = []
+                for x, y in last_path:
+                    screen_x, screen_y = camera.world_to_screen(x, y)
+                    screen_points.append((screen_x, screen_y))
+                
+                # Dessiner des lignes jaunes entre les points du chemin
+                if len(screen_points) > 1:
+                    pygame.draw.lines(window, (255, 255, 0), False, screen_points, 3)
+                
+                # Dessiner des points jaunes aux waypoints
+                for screen_x, screen_y in screen_points:
+                    pygame.draw.circle(window, (255, 255, 0), (int(screen_x), int(screen_y)), 4)
+
+    def _build_ai_state_line(self) -> Optional[str]:
+        """Construit la ligne affichant l'état synthétique de l'IA rapide."""
+
+        processor = getattr(self.game_engine, "rapid_ai_processor", None)
+        if processor is None:
+            return None
+
+        controllers = getattr(processor, "controllers", None)
+        if not controllers:
+            return t("debug.ai_state.empty")
+
+        # Filtrer les contrôleurs dont l'entité n'existe plus ou est morte
+        state_counts = Counter(
+            controller.state_machine.current_state.name
+            for entity_id, controller in controllers.items()
+            if getattr(controller, "state_machine", None) is not None
+            and es.entity_exists(entity_id)
+        )
+
+        if not state_counts:
+            return t("debug.ai_state.empty")
+
+        total_units = sum(state_counts.values())
+        # Limiter l'affichage aux états principaux pour garder le HUD lisible
+        summary = ", ".join(f"{state}:{count}" for state, count in state_counts.most_common(3))
+        return t("debug.ai_state", count=total_units, states=summary)
+
     def _render_game_over_message(self, window):
         """Rend le message de fin de partie au centre de l'écran."""
         if not self.game_engine.game_over_message:
@@ -627,6 +693,10 @@ class GameEngine:
         es._processors.clear()
         StormManager().clearAllStorms()
 
+        # Forcer la recréation du processeur IA rapide lors d'une nouvelle partie
+        if hasattr(es, "_rapid_troop_ai_processor"):
+            delattr(es, "_rapid_troop_ai_processor")
+
         # Réinitialiser les gestionnaires globaux dépendant du monde
         BaseComponent.reset()
         
@@ -647,6 +717,7 @@ class GameEngine:
         # Tower processor (gère tours de défense/soin)
         from src.processeurs.towerProcessor import TowerProcessor
         self.tower_processor = TowerProcessor()
+        self.rapid_ai_processor = ensure_ai_processors(es, self.grid)
 
         # AJOUT DES PROCESSEURS DANS L'ORDRE
         #es.add_processor(self.druid_ai_processor, priority=1) 
