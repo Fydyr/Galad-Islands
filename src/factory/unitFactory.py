@@ -49,6 +49,7 @@ from src.components.ai.aiLeviathanComponent import AILeviathanComponent
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.core.visionComponent import VisionComponent
+from src.ia.architectAIComponent import ArchitectAIComponent
 from src.settings.localization import t
 
 
@@ -164,6 +165,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             es.add_component(entity, TeamComponent(1 if not enemy else 2))
             es.add_component(entity, AttackComponent(UNIT_ATTACK_ARCHITECT))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_ARCHITECT, UNIT_HEALTH_ARCHITECT))
+            es.add_component(entity, ArchitectAIComponent(0.02))
             es.add_component(entity, CanCollideComponent())
             sprite_id = SpriteID.ALLY_ARCHITECT if not enemy else SpriteID.ENEMY_ARCHITECT
             size = sprite_manager.get_default_size(sprite_id)

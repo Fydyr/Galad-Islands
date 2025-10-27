@@ -198,6 +198,7 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             }),
         ),
     ),
+
     UnitType.ATTACK_TOWER: UnitMetadata(
         order=101,
         ally=FactionUnitConfig(

@@ -26,6 +26,7 @@ from src.processeurs.collisionProcessor import CollisionProcessor
 from src.processeurs.playerControlProcessor import PlayerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
+from src.ia.architectAIProcessor import ArchitectAIProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
 from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
@@ -762,6 +763,8 @@ class GameEngine:
         self.player_controls = None
         self.capacities_processor = None
         self.lifetime_processor = None
+        self.architect_ai_processor = None
+
         self.ally_base_ai = BaseAi(team_id=Team.ALLY)
         self.enemy_base_ai = BaseAi(team_id=Team.ENEMY)
         self.kamikaze_ai_processor = KamikazeAiProcessor()
@@ -938,11 +941,15 @@ class GameEngine:
         self.player_controls = PlayerControlProcessor(self.grid)
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
+        self.architect_ai_processor = ArchitectAIProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Tower processor (gère tours de défense/soin)
         self.tower_processor = TowerProcessor()
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
+        # IA Léviathan
+        self.ai_leviathan_processor = AILeviathanProcessor()
+        es.add_processor(self.ai_leviathan_processor, priority=9)
         # IA Kamikaze
         if self.kamikaze_ai_processor is not None and self.grid is not None:
             self.kamikaze_ai_processor.map_grid = self.grid
@@ -1694,6 +1701,10 @@ class GameEngine:
         if self.event_processor is not None:
             self.event_processor.process(dt, self.grid)
         
+        # Traiter les événements d'abord (avec dt)
+        if self.architect_ai_processor is not None:
+            self.architect_ai_processor.process(self.grid)
+
         # Traiter le TowerProcessor (avec dt)
         if self.tower_processor is not None:
             self.tower_processor.process(dt)
@@ -1913,7 +1924,6 @@ class GameEngine:
             if team_comp.team_id == team_id:
                 player_comp.stored_gold = max(0, amount)
                 return
-
 
 def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
     """Point d'entrée principal du jeu (compatibilité avec l'API existante).

@@ -265,10 +265,11 @@ TRANSLATIONS = {
     # Unit descriptions in shop
     "shop.zasper_desc": "Fast and versatile scout",
     "shop.barhamus_desc": "Robust warrior with shield",
-    "shop.draupnir_desc": "Heavy destructive leviathan", 
+    "shop.draupnir_desc": "Heavy destructive leviathan",
     "shop.druid_desc": "Healer and magic support",
     "shop.kamikaze_desc": "Fast and explosive unit",
     "shop.architect_desc": "Defense builder",
+    "shop.q_architect_desc": "Architect learning with Q-learning", # New unit description
     
     # Building descriptions
     "shop.defense_tower": "Defense Tower",
@@ -333,6 +334,7 @@ TRANSLATIONS = {
     "enemy_shop.shaman": "Enemy Shaman",
     "enemy_shop.shaman_desc": "Healer and evil support",
     "enemy_shop.engineer": "Enemy Engineer",
+    "enemy_shop.q_engineer": "Enemy Q-Engineer", # New unit type
     "enemy_shop.engineer_desc": "Trap constructor",
     "enemy_shop.kamikaze": "Enemy Kamikaze",
     "enemy_shop.kamikaze_desc": "Fast and aggressive unit",
