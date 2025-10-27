@@ -30,6 +30,15 @@ from src.settings.localization import (
 )
 from src.settings import controls
 from src.managers.display import get_display_manager
+from src.constants.key_bindings import (
+    BASIC_BINDINGS,
+    CAMERA_BINDINGS,
+    SELECTION_BINDINGS,
+    SYSTEM_BINDINGS,
+    KEY_BINDING_GROUPS,
+    SPECIAL_KEY_TOKENS,
+    MODIFIER_NAMES,
+)
 
 # Charger l'utilitaire de résolutions personnalisées en niveau module
 try:
@@ -78,67 +87,6 @@ class UIConstants:
     INPUT_WIDTH = 80
     INPUT_HEIGHT = 25
     SLIDER_HEIGHT = 20
-
-
-# =============================================================================
-# MÉTADONNÉES DES RACCOURCIS CLAVIER
-# =============================================================================
-
-BASIC_BINDINGS: List[Tuple[str, str]] = [
-    (controls.ACTION_UNIT_MOVE_FORWARD, "options.binding.unit_move_forward"),
-    (controls.ACTION_UNIT_MOVE_BACKWARD, "options.binding.unit_move_backward"),
-    (controls.ACTION_UNIT_TURN_LEFT, "options.binding.unit_turn_left"),
-    (controls.ACTION_UNIT_TURN_RIGHT, "options.binding.unit_turn_right"),
-    (controls.ACTION_UNIT_STOP, "options.binding.unit_stop"),
-    (controls.ACTION_UNIT_ATTACK, "options.binding.unit_attack"),
-    (controls.ACTION_UNIT_ATTACK_MODE, "options.binding.unit_attack_mode"),
-    (controls.ACTION_UNIT_SPECIAL, "options.binding.unit_special"),
-    (controls.ACTION_UNIT_PREVIOUS, "options.binding.unit_previous"),
-    (controls.ACTION_UNIT_NEXT, "options.binding.unit_next"),
-]
-
-CAMERA_BINDINGS: List[Tuple[str, str]] = [
-    (controls.ACTION_CAMERA_MOVE_LEFT, "options.binding.camera_move_left"),
-    (controls.ACTION_CAMERA_MOVE_RIGHT, "options.binding.camera_move_right"),
-    (controls.ACTION_CAMERA_MOVE_UP, "options.binding.camera_move_up"),
-    (controls.ACTION_CAMERA_MOVE_DOWN, "options.binding.camera_move_down"),
-    (controls.ACTION_CAMERA_FAST_MODIFIER, "options.binding.camera_fast_modifier"),
-    (controls.ACTION_CAMERA_FOLLOW_TOGGLE, "options.binding.camera_follow_toggle"),
-]
-
-SELECTION_BINDINGS: List[Tuple[str, str]] = [
-    (controls.ACTION_SELECTION_SELECT_ALL, "options.binding.selection_select_all"),
-    (controls.ACTION_SELECTION_CYCLE_TEAM, "options.binding.selection_cycle_team"),
-]
-
-SYSTEM_BINDINGS: List[Tuple[str, str]] = [
-    (controls.ACTION_SYSTEM_PAUSE, "options.binding.system_pause"),
-    (controls.ACTION_SYSTEM_HELP, "options.binding.system_help"),
-    (controls.ACTION_SYSTEM_DEBUG, "options.binding.system_debug"),
-    (controls.ACTION_SYSTEM_SHOP, "options.binding.system_shop"),
-]
-
-KEY_BINDING_GROUPS: List[Tuple[str, List[Tuple[str, str]]]] = [
-    ("options.binding_group.unit", BASIC_BINDINGS),
-    ("options.binding_group.camera", CAMERA_BINDINGS),
-    ("options.binding_group.selection", SELECTION_BINDINGS),
-    ("options.binding_group.system", SYSTEM_BINDINGS),
-]
-
-MODIFIER_NAMES: Tuple[Tuple[int, str], ...] = (
-    (pygame.KMOD_CTRL, "ctrl"),
-    (pygame.KMOD_SHIFT, "shift"),
-    (pygame.KMOD_ALT, "alt"),
-)
-
-SPECIAL_KEY_TOKENS: Dict[int, str] = {
-    pygame.K_LCTRL: "lctrl",
-    pygame.K_RCTRL: "rctrl",
-    pygame.K_LSHIFT: "lshift",
-    pygame.K_RSHIFT: "rshift",
-    pygame.K_LALT: "lalt",
-    pygame.K_RALT: "ralt",
-}
 
 
 # =============================================================================

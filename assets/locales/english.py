@@ -16,6 +16,12 @@ TRANSLATIONS = {
     "game_over.victory": "VICTORY! \nYou destroyed the enemy base!",
     "game_over.defeat": "DEFEAT \nYour base has been destroyed...",
     "game_over.debug_message": "[GAME OVER] Team {team_id} base destroyed!",
+
+    # Game Mode Selection
+    "gamemode.select_mode_title": "Game Mode",
+    "gamemode.select_mode_message": "Select a game mode",
+    "gamemode.player_vs_ai": "Player vs AI",
+    "gamemode.ai_vs_ai": "AI vs AI (Spectator)",
     
     # Base names
     "base.ally_name": "Allied Base",
@@ -34,16 +40,45 @@ TRANSLATIONS = {
     "options.master_volume": "Master Volume",
     "options.music_volume": "Music Volume",
     "options.effects_volume": "Effects Volume", 
-    "options.controls": "Controls",
     "options.language": "Language",
+    "options.performance": "Performance",
+    "options.performance_section": "Performance",
+    "options.performance_mode_label": "Performance mode:",
+    "options.performance_modes.auto": "Automatic",
+    "options.performance_modes.high": "High",
+    "options.performance_modes.medium": "Medium",
+    "options.performance_modes.low": "Low",
+    "options.disable_particles": "Disable particles",
+    "options.disable_shadows": "Disable shadows",
     "options.close": "Close",
     "options.windowed": "Windowed",
     "options.fullscreen": "Fullscreen",
+    "options.language_section": "Language",
+    "options.window_modes.windowed": "Windowed",
+    "options.window_modes.fullscreen": "Fullscreen",
+    "options.performance_auto": "Automatic",
+    "options.performance_high": "High",
+    "options.performance_medium": "Medium",
+    "options.performance_low": "Low",
+    "options.performance_mode": "Performance mode",
+    "options.volume_music_label": "Music volume: {volume}%",
+    "options.camera_sensitivity": "Camera sensitivity: {sensitivity}",
+    "options.information_section": "Information",
+    "options.info_changes_immediate": "Changes are applied immediately.",
+    "options.info_window_mode": "Window mode can be changed at any time.",
+    "options.info_custom_resolution": "Custom resolutions are saved automatically.",
+    "options.info_resize_window": "You can resize the window by dragging its edges.",
+    "options.info_resolution_warning": "Warning: too high resolution may affect performance.",
+    "options.custom_resolution_format": "{width}x{height} (custom)",
+    "options.button_default": "Default",
+    "options.button_close": "Close",
+    "options.resolution_applied": "Resolution applied: {width}x{height}",
     "options.binding.instructions": "Click a shortcut to change it.",
     "options.binding_group.unit": "Unit commands",
     "options.binding_group.camera": "Camera",
     "options.binding_group.selection": "Selection",
     "options.binding_group.system": "System",
+    "options.binding_group.control_groups": "Controls",
     "options.binding_group.control_groups": "Controls",
     "options.binding.unit_move_forward": "Move forward",
     "options.binding.unit_move_backward": "Move backward",
@@ -98,6 +133,7 @@ TRANSLATIONS = {
     "units.druid": "Druid",
     "units.architect": "Architect",
     "units.q_architect": "Q-Learning Architect", # New unit type
+    "units.kamikaze": "Kamikaze",
     
     # Game interface  
     "game.instructions": "Arrows: Move | Mouse Wheel: Zoom | F3: Debug | Esc: Quit",
@@ -115,6 +151,13 @@ TRANSLATIONS = {
     "game.menu.settings": "Settings",
     "game.menu.quit": "Quit",
     
+    # In-game menu (pause/menu during play)
+    "game.menu.title": "Game Menu",
+    "game.menu.message": "Choose an action:",
+    "game.menu.stay": "Resume",
+    "game.menu.settings": "Settings",
+    "game.menu.quit": "Quit",
+    
     # Debug modal
     "debug.modal.title": "Debug Menu",
     "debug.modal.message": "Select a debug action:",
@@ -124,8 +167,12 @@ TRANSLATIONS = {
     "debug.modal.spawn_kraken": "Spawn Kraken",
     "debug.modal.spawn_island_resources": "Spawn Island Resources",
     "debug.modal.spawn_bandits": "Spawn Bandits",
+    "debug.modal.spawn_bandits": "Spawn Bandits",
     "debug.modal.clear_events": "Clear Events",
     "debug.modal.reveal_map": "Reveal Map",
+    "debug.modal.unlimited_vision": "Unlimited Vision",
+    "debug.modal.reveal_map": "Reveal Map",
+    "debug.modal.unlimited_vision": "Unlimited Vision",
     "debug.modal.close": "Close",
     
     # Tooltips for tower placement
@@ -141,6 +188,12 @@ TRANSLATIONS = {
     "debug.feedback.events_cleared": "Events cleared successfully",
     "debug.feedback.no_valid_position": "No valid position found",
   "debug.feedback.bandits_spawned": "Bandits spawned successfully",
+    "debug.feedback.bandits_failed": "Failed to spawn bandits",
+    "debug.feedback.bandits_unavailable": "Bandits system not available",
+    "debug.feedback.unlimited_vision": "Unlimited vision {status}",
+    "debug.feedback.bandits_failed": "Failed to spawn bandits",
+    "debug.feedback.bandits_unavailable": "Bandits system not available",
+    "debug.feedback.unlimited_vision": "Unlimited vision {status}",
     "placement.must_be_on_island": "Towers must be placed on an island",
     "placement.tower_already_here": "A tower is already present at this location",
     
@@ -215,6 +268,7 @@ TRANSLATIONS = {
     "shop.barhamus_desc": "Robust warrior with shield",
     "shop.draupnir_desc": "Heavy destructive leviathan",
     "shop.druid_desc": "Healer and magic support",
+    "shop.kamikaze_desc": "Fast and explosive unit",
     "shop.architect_desc": "Defense builder",
     "shop.q_architect_desc": "Architect learning with Q-learning", # New unit description
     
@@ -247,6 +301,7 @@ TRANSLATIONS = {
     "tooltip.special_ability": "Unit's special ability\nHotkey: R",
     "tooltip.attack_mode": "Attack mode\nHotkey: A",
     "tooltip.shop": "Open shop\nHotkey: B", 
+    "placement.must_be_on_island": "Buildings must be placed on island tiles!",
     "placement.must_be_on_island": "Buildings must be placed on island tiles!",
     
     # Feedback messages
@@ -282,6 +337,8 @@ TRANSLATIONS = {
     "enemy_shop.engineer": "Enemy Engineer",
     "enemy_shop.q_engineer": "Enemy Q-Engineer", # New unit type
     "enemy_shop.engineer_desc": "Trap constructor",
+    "enemy_shop.kamikaze": "Enemy Kamikaze",
+    "enemy_shop.kamikaze_desc": "Fast and aggressive unit",
     "enemy_shop.attack_tower": "Defense Tower",
     "enemy_shop.attack_tower_desc": "Formidable offensive tower",
     "enemy_shop.heal_tower": "Regeneration Tower",
@@ -304,7 +361,7 @@ TRANSLATIONS = {
     "options.information_section": "Information",
     "options.button_default": "Default",
     "options.button_close": "Close",
-  "options.info_changes_immediate": "• Most changes apply immediately. Window mode and resolution apply after returning to the main menu.",
+    "options.info_changes_immediate": "• Most changes apply immediately. Window mode and resolution apply after returning to the main menu.",
     "options.info_window_mode": "• Windowed/fullscreen mode takes effect when closing the menu",
     "options.info_custom_resolution": "• Custom resolutions are saved automatically",
     "options.info_resize_window": "• Resizing the window saves the new resolution",

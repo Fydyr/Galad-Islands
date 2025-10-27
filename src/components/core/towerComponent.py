@@ -1,6 +1,6 @@
 from dataclasses import dataclass as component
 from enum import Enum
-from typing import Optional
+from typing import Optional, Set
 
 class TowerType(Enum):
     DEFENSE = "defense"
@@ -10,12 +10,13 @@ class TowerType(Enum):
 class TowerComponent:
     def __init__(self, tower_type: TowerType, range: float = 100.0, 
                  damage: Optional[int] = None, heal_amount: Optional[int] = None,
-                 attack_speed: float = 1.0):
+                 attack_speed: float = 1.0, can_attack_buildings: bool = False):
         self.tower_type: TowerType = tower_type
         self.range: float = range
         self.attack_speed: float = attack_speed  # actions per second
         self._cooldown: float = 0.0  # internal timer
         self.target_entity: Optional[int] = None  # ID de l'entité actuellement ciblée
+        self.can_attack_buildings: bool = can_attack_buildings # Les bases ne ciblent pas les bâtiments
         
         # Specific attributes based on tower type
         if tower_type == TowerType.DEFENSE:

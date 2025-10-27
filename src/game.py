@@ -1,10 +1,9 @@
-# Importations standard
-from typing import Dict, List, Optional, Tuple
 import os
 import platform
 import traceback
-
+import logging
 import pygame
+from typing import Dict, List, Optional, Tuple
 
 # Importations des modules internes
 import esper as es
@@ -15,7 +14,6 @@ from src.settings.localization import t
 from src.settings.docs_manager import get_help_path
 from src.settings import controls
 from src.constants.team import Team
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +29,10 @@ from src.processeurs.lifetimeProcessor import LifetimeProcessor
 from src.ia.architectAIProcessor import ArchitectAIProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
+from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
+from src.ia.KamikazeAi import KamikazeAiProcessor
+from src.ia.BaseAi import BaseAi
 
 # Importations des composants
 from src.components.core.positionComponent import PositionComponent
@@ -44,21 +46,23 @@ from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
 from src.components.core.visionComponent import VisionComponent
 
-# Importations des capacités spéciales
 
+# Importations des capacités spéciales
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.special.speDruidComponent import SpeDruid
 from src.components.special.speArchitectComponent import SpeArchitect
+from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
 
 # import event
-from src.managers.flying_chest_manager import FlyingChestManager
+from src.components.events.banditsComponent import Bandits
+from src.processeurs.flyingChestProcessor import FlyingChestProcessor
 from src.managers.island_resource_manager import IslandResourceManager
 from src.processeurs.stormProcessor import StormProcessor
+from src.processeurs.combatRewardProcessor import CombatRewardProcessor
 from src.managers.display import get_display_manager
-
 
 # Importations des factories et fonctions utilitaires
 from src.factory.unitFactory import UnitFactory
@@ -73,7 +77,6 @@ from src.components.globals.mapComponent import is_tile_island
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
-from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.notification_system import get_notification_system
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
@@ -331,7 +334,7 @@ class GameRenderer:
 
         # Créer la surface du brouillard de guerre pour la vue actuelle
         # Cette méthode est déjà optimisée pour ne dessiner que ce qui est visible à l'écran.
-        fog_surface = vision_system.create_fog_surface(camera)
+        fog_surface = vision_system.create_fog_surface(camera, current_team)
 
         # Afficher la surface du brouillard en une seule opération de blit
         if fog_surface:
@@ -420,6 +423,9 @@ class GameRenderer:
                 team_comp = es.component_for_entity(ent, TeamComponent)
                 if team_comp.team_id == current_team:
                     should_render = True
+                elif es.has_component(ent, Bandits):
+                    # Exception spéciale pour les bandits qui peuvent être en dehors de la carte
+                    should_render = True  # Les bandits sont toujours visibles
                 else:
                     # Vérifier si l'unité adverse est dans une tuile visible
                     grid_x = int(pos.x / TILE_SIZE)
@@ -497,7 +503,7 @@ class GameRenderer:
         display_height = final_image.get_height()
 
         screen_x, screen_y = camera.world_to_screen(pos.x, pos.y)
-
+        
         # --- DEBUT OPTIMISATION: SPRITE BATCHING ---
         # Créer un objet pygame.sprite.Sprite pour le rendu groupé
         render_sprite = pygame.sprite.Sprite()
@@ -583,8 +589,14 @@ class GameRenderer:
         elif sprite.image is not None:
             return sprite.image
         elif sprite.image_path:
-            return pygame.image.load(sprite.image_path).convert_alpha()
+            try:
+                img = pygame.image.load(sprite.image_path).convert_alpha()
+                return img
+            except Exception as e:
+                print(f"[DEBUG] Failed to load image from {sprite.image_path}: {e}")
+                return None
         else:
+            print(f"[DEBUG] No image data available for sprite")
             return None
 
     def _draw_selection_highlight(self, window, screen_x, screen_y, display_width, display_height):
@@ -715,13 +727,14 @@ class GameRenderer:
 class GameEngine:
     """Classe principale gérant toute la logique du jeu."""
     
-    def __init__(self, window=None, bg_original=None, select_sound=None):
+    def __init__(self, window=None, bg_original=None, select_sound=None, self_play_mode=False):
         """Initialise le moteur de jeu.
         
         Args:
             window: Surface pygame existante (optionnel)
             bg_original: Image de fond pour les modales (optionnel)
             select_sound: Son de sélection pour les modales (optionnel)
+            self_play_mode: Active le mode IA vs IA (optionnel)
         """
         self.window = window
         self.bg_original = bg_original
@@ -737,9 +750,10 @@ class GameEngine:
         self.images = None
         self.camera = None
         self.camera_positions = {}  # Stockage des positions de caméra par équipe
-        self.flying_chest_manager = FlyingChestManager()
+        self.flying_chest_processor = FlyingChestProcessor()
         self.island_resource_manager = IslandResourceManager()
         self.storm_processor = StormProcessor()
+        self.combat_reward_processor = CombatRewardProcessor()
         self.player = None
         self.notification_system = get_notification_system()
         
@@ -751,6 +765,10 @@ class GameEngine:
         self.lifetime_processor = None
         self.architect_ai_processor = None
 
+        self.ally_base_ai = BaseAi(team_id=Team.ALLY)
+        self.enemy_base_ai = BaseAi(team_id=Team.ENEMY)
+        self.kamikaze_ai_processor = KamikazeAiProcessor()
+        self.ai_leviathan_processor = None
         # Gestion de la sélection des unités
         self.selected_unit_id = None
         self.camera_follow_enabled = False
@@ -777,8 +795,24 @@ class GameEngine:
         self.winning_team = None
         self.game_over_message = ""
         self.game_over_timer = 0.0
-        
-        # tempest manager
+
+        # Mode IA vs IA
+        self.self_play_mode = self_play_mode
+
+    def enable_self_play(self):
+        """Active le mode IA vs IA et désactive le contrôle joueur."""
+        self.self_play_mode = True
+        # Activer les deux IA de base
+        if hasattr(self, 'ally_base_ai'):
+            self.ally_base_ai.enabled = True
+        if hasattr(self, 'enemy_base_ai'):
+            self.enemy_base_ai.enabled = True
+
+    def disable_self_play(self):
+        """Désactive le mode IA vs IA et restaure le contrôle joueur."""
+        self.self_play_mode = False
+        # Rétablir activation normale des IA via _update_base_ai_activation lors du prochain tick
+        self._update_base_ai_activation(self.selection_team_filter)
         
     def initialize(self):
         """Initialise tous les composants du jeu."""
@@ -848,10 +882,10 @@ class GameEngine:
         
         # Initialiser la carte
         self._initialize_game_map()
-        
+
         # Initialiser ECS
         self._initialize_ecs()
-        
+
         # Créer les entités de base
         self._create_initial_entities()
         
@@ -871,9 +905,9 @@ class GameEngine:
         self.images = game_state["images"]
         self.camera = game_state["camera"]
         
-        # Initialize flying chest manager
-        if self.flying_chest_manager is not None and self.grid is not None:
-            self.flying_chest_manager.initialize_from_grid(self.grid)
+        # Initialize flying chest processor
+        if self.flying_chest_processor is not None and self.grid is not None:
+            self.flying_chest_processor.initialize_from_grid(self.grid)
 
         # Initialize island resource manager
         if self.island_resource_manager is not None and self.grid is not None:
@@ -882,6 +916,9 @@ class GameEngine:
         # Initialize storm manager
         if self.storm_processor is not None and self.grid is not None:
             self.storm_processor.initializeFromGrid(self.grid)
+
+        # Note: AI processor map grid is initialized after _initialize_ecs() is called
+        # because the processor is recreated in that method
 
     def _initialize_ecs(self):
         """Initialise le système ECS (Entity-Component-System)."""
@@ -910,7 +947,13 @@ class GameEngine:
         self.tower_processor = TowerProcessor()
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
-
+        # IA Kamikaze
+        if self.kamikaze_ai_processor is not None and self.grid is not None:
+            self.kamikaze_ai_processor.map_grid = self.grid
+        es.add_processor(self.kamikaze_ai_processor, priority=6)
+        # IA de base alliée et ennemie
+        es.add_processor(self.ally_base_ai, priority=7)
+        es.add_processor(self.enemy_base_ai, priority=8)
         es.add_processor(self.collision_processor, priority=2)
         es.add_processor(self.movement_processor, priority=3)
         es.add_processor(self.player_controls, priority=4)
@@ -922,10 +965,11 @@ class GameEngine:
         es.set_handler('special_vine_event', create_projectile)
         es.set_handler('entities_hit', entitiesHit)
         es.set_handler('game_over', self._handle_game_over)
-        if self.flying_chest_manager is not None:
-            es.set_handler('flying_chest_collision', self.flying_chest_manager.handle_collision)
+        if self.flying_chest_processor is not None:
+            es.set_handler('flying_chest_collision', self.flying_chest_processor.handle_collision)
         if self.island_resource_manager is not None:
             es.set_handler('island_resource_collision', self.island_resource_manager.handle_collision)
+        
         
     def _create_initial_entities(self):
         """Crée les entités initiales du jeu."""
@@ -951,7 +995,8 @@ class GameEngine:
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
         player_unit = UnitFactory(UnitType.ARCHITECT, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
-            self._set_selected_entity(player_unit)
+            if not getattr(self, 'self_play_mode', False):
+                self._set_selected_entity(player_unit)
 
         # Créer un druide ennemi à une position équivalente à celle du druid allié
         enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(
@@ -962,37 +1007,39 @@ class GameEngine:
         # Initialiser la visibilité pour l'équipe actuelle
         vision_system.update_visibility(Team.ALLY)
         
+        # Initialiser les variables d'optimisation adaptative
+        self._frame_times = []
+        self._adaptive_quality = 1.0
+        
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
         # La caméra est déjà configurée dans init_game_map()
         # Ne pas la recentrer automatiquement
         pass
-
-    def _give_dev_gold(self, amount: int = 500) -> None:
-        """Ajoute de l'or au joueur de la team active (outil de développement).
-        Méthode exposée sur GameEngine pour être appelée par l'EventHandler.
-        Cette fonction doit être appelée uniquement en mode debug/dev.
-        """
-        try:
-            # Obtenir la team active depuis l'action_bar (source de vérité)
-            active_team = Team.ALLY  # Par défaut alliés
-            if hasattr(self, 'action_bar') and self.action_bar is not None:
-                active_team = self.action_bar.current_camp
-            
-            # Chercher le PlayerComponent de la team active
-            for ent, (pcomp, tcomp) in es.get_components(PlayerComponent, TeamComponent):
-                if tcomp.team_id == active_team:
-                    old_gold = pcomp.get_gold()
-                    pcomp.add_gold(amount)
-                    team_name = "Alliés" if active_team == Team.ALLY else "Ennemis"
-                    print(f"[DEV GOLD] {team_name} (team {active_team}): {old_gold} → {pcomp.get_gold()} (+{amount})")
-                    return
-            
-            # Si on arrive ici, aucun PlayerComponent trouvé (ne devrait jamais arriver)
-            print(f"[DEV GOLD] ❌ ERREUR: Aucun PlayerComponent trouvé pour team_id={active_team}")
-        except Exception as e:
-            print(f"[DEV GOLD] ❌ Exception: {e}")
-            traceback.print_exc()
+    
+    def _update_base_ai_activation(self, active_team):
+        """Active ou désactive les IA de base selon la faction jouée."""
+        ally_ai = getattr(self, 'ally_base_ai', None)
+        enemy_ai = getattr(self, 'enemy_base_ai', None)
+        # Mode IA vs IA : activer les deux IA
+        if getattr(self, 'self_play_mode', False):
+            if ally_ai:
+                ally_ai.enabled = True
+            if enemy_ai:
+                enemy_ai.enabled = True
+            return
+        # Joueur contrôle les alliés
+        if active_team == Team.ALLY:
+            if ally_ai:
+                ally_ai.enabled = False
+            if enemy_ai:
+                enemy_ai.enabled = True
+        # Joueur contrôle les ennemis
+        elif active_team == Team.ENEMY:
+            if ally_ai:
+                ally_ai.enabled = True
+            if enemy_ai:
+                enemy_ai.enabled = False
 
     def toggle_camera_follow_mode(self) -> None:
         """Bascule entre une caméra libre et le suivi de l'unité sélectionnée."""
@@ -1012,6 +1059,7 @@ class GameEngine:
     def _handle_action_bar_camp_change(self, team: int) -> None:
         """Callback déclenchée par l'ActionBar lors d'un changement de camp."""
         self.set_selection_team(team, notify=True)
+        self._update_base_ai_activation(team)
 
     def set_selection_team(self, team: int, notify: bool = False) -> None:
         """Définit la faction active utilisée pour la sélection."""
@@ -1104,6 +1152,8 @@ class GameEngine:
         return True
 
     def handle_mouse_selection(self, mouse_pos: Tuple[int, int]) -> None:
+        if getattr(self, 'self_play_mode', False):
+            return
         """Gère la sélection via un clic gauche."""
         # Si on est en mode placement de tour, tenter de placer une tour
         if self.tower_placement_mode:
@@ -1157,6 +1207,8 @@ class GameEngine:
         return member
 
     def select_next_unit(self):
+        if getattr(self, 'self_play_mode', False):
+            return
         """Sélectionne l'unité alliée suivante."""
         units = self._get_player_units()
         if not units:
@@ -1172,6 +1224,8 @@ class GameEngine:
         self._set_selected_entity(units[next_index])
 
     def select_previous_unit(self):
+        if getattr(self, 'self_play_mode', False):
+            return
         """Sélectionne l'unité alliée précédente."""
         units = self._get_player_units()
         if not units:
@@ -1188,6 +1242,8 @@ class GameEngine:
 
 
     def trigger_selected_attack(self):
+        if getattr(self, 'self_play_mode', False):
+            return
         """Déclenche l'attaque principale de l'unité sélectionnée, avec gestion de la seconde salve de Draupnir."""
         if self.selected_unit_id is None:
             return
@@ -1231,6 +1287,8 @@ class GameEngine:
             # Le cooldown reste inchangé (déjà appliqué)
 
     def trigger_selected_special_ability(self):
+        if getattr(self, 'self_play_mode', False):
+            return
         """Déclenche la capacité spéciale de l'unité sélectionnée selon sa classe."""
         if self.selected_unit_id is None:
             return
@@ -1647,16 +1705,25 @@ class GameEngine:
         # Traiter le TowerProcessor (avec dt)
         if self.tower_processor is not None:
             self.tower_processor.process(dt)
-        
+
         # Traiter le StormProcessor (avec dt)
         if self.storm_processor is not None:
             self.storm_processor.process(dt)
-        
+
+
+        # Mettre à jour l’équipe active et le mode IA vs IA pour les IA de base avant chaque tick ECS
+        if hasattr(self, 'ally_base_ai'):
+            self.ally_base_ai.active_player_team_id = self.selection_team_filter
+            self.ally_base_ai.self_play_mode = getattr(self, 'self_play_mode', False)
+        if hasattr(self, 'enemy_base_ai'):
+            self.enemy_base_ai.active_player_team_id = self.selection_team_filter
+            self.enemy_base_ai.self_play_mode = getattr(self, 'self_play_mode', False)
+
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
 
-        if self.flying_chest_manager is not None:
-            self.flying_chest_manager.update(dt)
+        if self.flying_chest_processor is not None:
+            self.flying_chest_processor.process(dt)
         if self.island_resource_manager is not None:
             self.island_resource_manager.update(dt)
             
@@ -1665,7 +1732,7 @@ class GameEngine:
         # Synchroniser les informations affichées avec l'état courant
         self._refresh_selected_unit_info()
         
-        # Les coffres volants sont gérés par flying_chest_manager.update(dt) plus haut
+        # Les coffres volants sont gérés par flying_chest_processor.process(dt) plus haut
         
     def _render_game(self, dt):
         """Effectue le rendu du jeu."""
@@ -1856,13 +1923,16 @@ class GameEngine:
                 return
 
 
-def game(window=None, bg_original=None, select_sound=None):
+def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
     """Point d'entrée principal du jeu (compatibilité avec l'API existante).
     
     Args:
         window: Surface pygame existante (optionnel)
         bg_original: Image de fond pour les modales (optionnel)  
         select_sound: Son de sélection pour les modales (optionnel)
+        mode: "player_vs_ai" ou "ai_vs_ai"
     """
-    engine = GameEngine(window, bg_original, select_sound)
+    engine = GameEngine(window, bg_original, select_sound, self_play_mode=(mode == "ai_vs_ai"))
+    if mode == "ai_vs_ai":
+        engine.enable_self_play()
     engine.run()

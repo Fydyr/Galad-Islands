@@ -11,7 +11,8 @@ from src.components.core.playerComponent import PlayerComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.team_enum import Team as TeamEnum
 from src.processeurs.stormProcessor import StormProcessor
-from src.managers.flying_chest_manager import FlyingChestManager
+from src.processeurs.flyingChestProcessor import FlyingChestProcessor
+from src.processeurs.events.banditsProcessor import BanditsProcessor
 from src.managers.island_resource_manager import IslandResourceManager
 from src.components.events.krakenComponent import KrakenComponent
 from src.components.properties.eventsComponent import EventsComponent
@@ -27,7 +28,8 @@ from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
 from src.components.events.banditsComponent import Bandits
 import esper
 from src.processeurs.events.banditsProcessor import BanditsProcessor
-
+from src.systems.vision_system import vision_system
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 
 class DebugModal:
     """Modal debug séparé pour les actions de développement."""
@@ -53,6 +55,7 @@ class DebugModal:
             ("spawn_island_resources", "debug.modal.spawn_island_resources"),
             ("clear_events", "debug.modal.clear_events"),
             ("reveal_map", "debug.modal.reveal_map"),
+            ("unlimited_vision", "debug.modal.unlimited_vision"),
             ("close", "debug.modal.close"),
         ]
         self.modal = GenericModal(
@@ -102,6 +105,8 @@ class DebugModal:
             self._handle_spawn_bandits()
         elif action == "reveal_map":
             self._handle_reveal_map()
+        elif action == "unlimited_vision":
+            self._handle_unlimited_vision()
         elif action == "close":
             self.close()
     
@@ -196,8 +201,8 @@ class DebugModal:
             return
         
         # Get flying chest manager and force spawn chests
-        if hasattr(self.game_engine, 'flying_chest_manager') and hasattr(self.game_engine, 'grid'):
-            chest_manager = self.game_engine.flying_chest_manager
+        if hasattr(self.game_engine, 'flying_chest_processor') and hasattr(self.game_engine, 'grid'):
+            chest_manager = self.game_engine.flying_chest_processor
             chest_manager.initialize_from_grid(self.game_engine.grid)
             
             # Force spawn multiple chests (2-4)
@@ -360,23 +365,26 @@ class DebugModal:
             self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
             return
 
-        # Try to spawn bandits via existing bandits manager if present
-        spawned = None
-        if hasattr(self.game_engine, 'bandits_manager') and self.game_engine.bandits_manager is not None:
-            mgr = self.game_engine.bandits_manager
-            if hasattr(mgr, 'spawn_bandits_wave') and hasattr(self.game_engine, 'grid'):
-                try:
-                    # pass the current grid and a reasonable default number of boats
-                    spawned = mgr.spawn_bandits_wave(self.game_engine.grid, 3)
+        # Try to spawn bandits via BanditsProcessor
+        if hasattr(self.game_engine, 'grid'):
+            print(f"[DEBUG] Grid available: {self.game_engine.grid is not None}")
+            try:
+                # Spawn bandits directly using BanditsProcessor
+                created_entities = BanditsProcessor.spawn_bandits_wave(self.game_engine.grid, 3)
+                print(f"[DEBUG] Created entities: {created_entities}")
+                if created_entities:
+                    spawned = len(created_entities)
                     print(f"[DEV] {spawned} bandits spawned")
                     self._show_feedback('success', t('debug.feedback.bandits_spawned', default=f'{spawned} bandits spawned'))
-                except Exception as e:
-                    print(f"[DEV] Error spawning bandits: {e}")
+                else:
+                    print("[DEV] No bandits created")
                     self._show_feedback('warning', t('debug.feedback.bandits_failed', default='Failed to spawn bandits'))
-            else:
-                self._show_feedback('warning', t('debug.feedback.bandits_unavailable', default='Bandits manager not available'))
+            except Exception as e:
+                print(f"[DEV] Error spawning bandits: {e}")
+                self._show_feedback('warning', t('debug.feedback.bandits_failed', default='Failed to spawn bandits'))
         else:
-            self._show_feedback('warning', t('debug.feedback.bandits_unavailable', default='Bandits manager not available'))
+            print("[DEBUG] No grid attribute on game_engine")
+            self._show_feedback('warning', t('debug.feedback.bandits_unavailable', default='Grid not available'))
 
     def _handle_reveal_map(self):
         """Handle the reveal map action."""
@@ -412,6 +420,49 @@ class DebugModal:
         
         print(f"[DEV] Map revealed for team {current_team}")
         self._show_feedback('success', t('debug.feedback.map_revealed', default='Map revealed'))
+    
+    def _handle_unlimited_vision(self):
+        """Handle the unlimited vision action."""
+        # Check if game engine is available
+        if not self.game_engine:
+            self._show_feedback('warning', t('shop.cannot_purchase'))
+            return
+        
+        # Check authorization via debug flag or config
+        dev_mode = config_manager.get('dev_mode', False)
+        
+        is_debug = getattr(self.game_engine, 'show_debug', False)
+        if not (dev_mode or is_debug):
+            self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
+            return
+        
+        # Get current team from action bar
+        current_team = 1  # Default to allies
+        if hasattr(self.game_engine, 'action_bar') and self.game_engine.action_bar is not None:
+            current_team = self.game_engine.action_bar.current_camp
+        
+        # Toggle unlimited vision for this team
+        current_state = vision_system.unlimited_vision.get(current_team, False)
+        new_state = not current_state
+        
+        vision_system.set_unlimited_vision(current_team, new_state)
+        
+        status_text = 'enabled' if new_state else 'disabled'
+        # If unlimited vision is enabled, mark the enemy base as known for this team
+        if new_state:
+            try:
+                enemy_team = 2 if current_team == 1 else 1
+                if enemy_team == 2:
+                    bx = (MAP_WIDTH - 3.0) * TILE_SIZE
+                    by = (MAP_HEIGHT - 2.8) * TILE_SIZE
+                else:
+                    bx = 3.0 * TILE_SIZE
+                    by = 3.0 * TILE_SIZE
+                enemy_base_registry.declare_enemy_base(current_team, enemy_team, bx, by)
+                print(f"[DEV] Unlimited vision: declared enemy base known for team {current_team} (enemy {enemy_team}) at {(bx,by)}")
+            except Exception as e:
+                print(f"[DEV] Failed to declare enemy base known: {e}")
+        self._show_feedback('success', t('debug.feedback.unlimited_vision', default=f'Unlimited vision {status_text}'))
     
     def _find_sea_position(self):
         """Find a random sea position for spawning events."""

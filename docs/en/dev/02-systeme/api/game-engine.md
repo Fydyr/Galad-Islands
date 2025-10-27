@@ -47,7 +47,7 @@ class GameEngine:
 | `camera_follow_enabled` | `bool` | Automatic camera following |
 | `control_groups` | `dict` | Control groups (1-9) |
 | `selection_team_filter` | `Team` | Team filter for selection |
-| `flying_chest_manager` | `FlyingChestManager` | Flying chests manager |
+| `flying_chest_processor` | `FlyingChestProcessor` | Flying chests processor |
 | `island_resource_manager` | `IslandResourceManager` | Island resources manager |
 | `stormManager` | `StormManager` | Storms manager |
 | `notification_system` | `NotificationSystem` | Notification system |
@@ -223,7 +223,7 @@ def _initialize_ecs(self) -> None:
 # Configuration of event handlers
 es.set_handler('attack_event', create_projectile)
 es.set_handler('entities_hit', entitiesHit)
-es.set_handler('flying_chest_collision', self.flying_chest_manager.handle_collision)
+es.set_handler('flying_chest_collision', self.flying_chest_processor.handle_collision)
 ```
 
 ## Main Loop
@@ -252,9 +252,9 @@ def run(self) -> None:
 
 The game engine integrates several specialized managers to handle complex game mechanics.
 
-### FlyingChestManager
+### FlyingChestProcessor
 
-**File:** `src/managers/flying_chest_manager.py`
+**File:** `src/processeurs/flyingChestProcessor.py`
 
 **Responsibility:** Manages the spawning, behavior, and collection of flying chests over water.
 
@@ -311,9 +311,9 @@ The game engine integrates several specialized managers to handle complex game m
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │            Specialized Managers                   │    │
-│  │  - FlyingChestManager                              │    │
+│  │  - FlyingChestProcessor                            │    │
 │  │  - IslandResourceManager                           │    │
-│  │  - StormManager                                    │    │
+│  │  - StormProcessor                                  │    │
 │  │  - NotificationSystem                              │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │

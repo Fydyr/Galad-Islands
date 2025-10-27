@@ -15,6 +15,7 @@ from src.components.core.positionComponent import PositionComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.visionComponent import VisionComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 from src.functions.resource_path import get_resource_path
 from src.managers.sprite_manager import sprite_manager, SpriteID
 
@@ -28,6 +29,7 @@ class VisionSystem:
         self.current_team = 1  # Équipe actuelle (1 = alliés, 2 = ennemis)
         self.cloud_image = sprite_manager.load_sprite(SpriteID.TERRAIN_CLOUD)
         self._dirty_teams: Set[int] = set()
+        self.unlimited_vision: dict[int, bool] = {}  # Vision illimitée par équipe
         self._load_cloud_image()
 
     def _load_cloud_image(self):
@@ -92,18 +94,54 @@ class VisionSystem:
             self.visible_tiles[self.current_team] = set()
         if self.current_team not in self.explored_tiles:
             self.explored_tiles[self.current_team] = set()
+        if self.current_team not in self.unlimited_vision:
+            self.unlimited_vision[self.current_team] = False
 
         self.visible_tiles[self.current_team].clear()
 
-        # Parcourir toutes les unités de l'équipe actuelle avec vision
-        for entity, (pos, team, vision) in es.get_components(
-            PositionComponent, TeamComponent, VisionComponent
-        ):
-            if team.team_id == self.current_team:
-                # Calculer les tuiles visibles depuis cette unité
-                self._add_visible_tiles_from_unit(pos.x, pos.y, vision.range)
+        # Vérifier si la vision illimitée est activée pour cette équipe
+        if self.unlimited_vision.get(self.current_team, False):
+            # Vision illimitée : révéler toute la carte
+            all_tiles = set()
+            for x in range(MAP_WIDTH):
+                for y in range(MAP_HEIGHT):
+                    all_tiles.add((x, y))
+            self.visible_tiles[self.current_team] = all_tiles.copy()
+        else:
+            # Vision normale : calculer depuis les unités
+            # Parcourir toutes les unités de l'équipe actuelle avec vision
+            for entity, (pos, team, vision) in es.get_components(
+                PositionComponent, TeamComponent, VisionComponent
+            ):
+                if team.team_id == self.current_team:
+                    # Calculer les tuiles visibles depuis cette unité
+                    self._add_visible_tiles_from_unit(pos.x, pos.y, vision.range)
 
         # Ajouter les zones actuellement visibles aux zones découvertes
+        # Avant d'update explored, vérifier si des tuiles de base ennemie deviennent visibles
+        newly_visible = set(self.visible_tiles[self.current_team]) - set(self.explored_tiles.get(self.current_team, set()))
+        
+        # Déterminer la base ennemie en fonction de l'équipe actuelle
+        if self.current_team == 1:
+            enemy_base_tiles = set((x, y) for x in range(MAP_WIDTH - 4, MAP_WIDTH) for y in range(MAP_HEIGHT - 4, MAP_HEIGHT))
+            enemy_team_id = 2
+            enemy_base_pos = ((MAP_WIDTH - 3.0) * TILE_SIZE, (MAP_HEIGHT - 2.8) * TILE_SIZE)
+        else: # self.current_team == 2
+            enemy_base_tiles = set((x, y) for x in range(1, 1 + 4) for y in range(1, 1 + 4))
+            enemy_team_id = 1
+            enemy_base_pos = (3.0 * TILE_SIZE, 3.0 * TILE_SIZE)
+
+        # Ne vérifier la découverte que si la base n'est pas déjà connue
+        if not enemy_base_registry.is_enemy_base_known(self.current_team):
+            for (tx, ty) in newly_visible:
+                if (tx, ty) in enemy_base_tiles:
+                    try:
+                        enemy_base_registry.declare_enemy_base(self.current_team, enemy_team_id, enemy_base_pos[0], enemy_base_pos[1])
+                        # Une fois la base trouvée, inutile de continuer la boucle pour cette frame
+                        break
+                    except Exception:
+                        pass
+
         self.explored_tiles[self.current_team].update(self.visible_tiles[self.current_team])
         
         # Marquer cette équipe comme "sale" (dirty) car la visibilité a changé
@@ -187,13 +225,14 @@ class VisionSystem:
             return True
         return False
 
-    def create_fog_surface(self, camera) -> Optional[pygame.Surface]:
+    def create_fog_surface(self, camera, team_id: int) -> Optional[pygame.Surface]:
         """
         Crée une surface unique pour le brouillard de guerre, optimisée pour le rendu.
 
         Args:
             camera: Instance de la caméra pour les calculs de viewport
-
+            team_id: L'ID de l'équipe dont on veut afficher la perspective.
+        
         Returns:
             pygame.Surface | None: Une surface contenant le brouillard de guerre à afficher
                                    par-dessus le monde, ou None si non applicable.
@@ -220,10 +259,10 @@ class VisionSystem:
 
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
-                if not self.is_tile_visible(x, y):
+                if not self.is_tile_visible(x, y, team_id):
                     screen_x, screen_y = camera.world_to_screen(x * TILE_SIZE, y * TILE_SIZE)
                     
-                    if not self.is_tile_explored(x, y):
+                    if not self.is_tile_explored(x, y, team_id):
                         # Zone non explorée : dessiner un nuage
                         cloud_subsurface = self._get_cloud_subsurface(x, y, tile_size)
                         if cloud_subsurface:
@@ -239,7 +278,50 @@ class VisionSystem:
         self.visible_tiles.clear()
         self.explored_tiles.clear()
         self._dirty_teams.clear()
+        self.unlimited_vision.clear()  # Réinitialiser la vision illimitée
         self.current_team = 1
+
+
+    def set_unlimited_vision(self, team: int, enabled: bool):
+        """
+        Active ou désactive la vision illimitée pour une équipe.
+        
+        Args:
+            team (int): L'équipe pour laquelle activer/désactiver la vision
+            enabled (bool): True pour activer, False pour désactiver
+        """
+        self.unlimited_vision[team] = enabled
+        if enabled:
+            # Révéler immédiatement toute la carte quand activé
+            self.reveal_all_map(team)
+        else:
+            # Forcer un recalcul de la visibilité normale
+            self._dirty_teams.add(team)
+        print(f"[DEV VISION] Vision illimitée {'activée' if enabled else 'désactivée'} pour l'équipe {team}")
+
+    def reveal_all_map(self, team: int):
+        """
+        Révèle toute la carte pour une équipe (cheat de développement).
+        
+        Args:
+            team (int): Équipe pour laquelle révéler la carte
+        """
+        # Initialiser les ensembles pour cette équipe si nécessaire
+        if team not in self.visible_tiles:
+            self.visible_tiles[team] = set()
+        if team not in self.explored_tiles:
+            self.explored_tiles[team] = set()
+
+        # Marquer toutes les tuiles comme visibles et explorées
+        all_tiles = set()
+        for x in range(MAP_WIDTH):
+            for y in range(MAP_HEIGHT):
+                all_tiles.add((x, y))
+        
+        self.visible_tiles[team] = all_tiles.copy()
+        self.explored_tiles[team] = all_tiles.copy()
+        
+        print(f"[DEV VISION] Toute la carte révélée pour l'équipe {team}")
 
 
 # Instance globale du système de vision

@@ -6,8 +6,12 @@ Centralise la gestion des paramètres utilisateur et des constantes de jeu.
 import json
 import math
 import os
+import sys
 from copy import deepcopy
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from src.settings.resolutions import get_all_resolutions as _get_all
+from src.version import __version__
 
 
 # =============================================================================
@@ -298,7 +302,6 @@ def get_available_resolutions() -> List[Tuple[int, int, str]]:
     """
     try:
         # Import local helper to avoid circular import at module import time
-        from src.settings.resolutions import get_all_resolutions as _get_all
 
         combined = []
         for (w, h) in _get_all():
@@ -371,6 +374,29 @@ def set_disable_shadows(disabled: bool) -> bool:
     """Active/désactive les ombres et sauvegarde."""
     config_manager.set_disable_shadows(disabled)
     return config_manager.save_config()
+
+
+def get_project_version() -> str:
+    """
+    Retourne la version actuelle du projet depuis le fichier version.py.
+    """
+    try:
+        return __version__
+    except Exception:
+        return "unknown"
+
+
+def is_dev_mode_enabled() -> bool:
+    """
+    Check if dev mode is enabled in the configuration.
+
+    Returns:
+        True if dev mode is enabled, False otherwise.
+    """
+    try:
+        return config_manager.get('dev_mode', False)
+    except Exception:
+        return False
 
 
 # =============================================================================

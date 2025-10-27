@@ -162,7 +162,7 @@ Le modal de debug offre maintenant plusieurs actions pour faciliter le développ
 
    ```python
    def _handle_spawn_chest(self):
-       chest_manager = self.game_engine.flying_chest_manager
+       chest_manager = self.game_engine.flying_chest_processor
        num_chests = random.randint(2, 4)
        for _ in range(num_chests):
            position = chest_manager._choose_spawn_position()

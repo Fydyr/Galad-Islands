@@ -1,5 +1,44 @@
 # 🧾 Changelog
 
+## v0.7.1 (2025-10-13)
+
+### 🐞 Fix
+
+- Changement de la manière d'obtenir le numéro de version pour corriger le "vunknown" dans les versions compilées
+- Correction de la description du composant de base
+
+## v0.7.0 (2025-10-12)
+
+### ✨ Feat
+
+- Ajout du système de récompenses de combat
+- Améliorations de performance et système de caméra
+- Taille de la map doublée et ajustement de la sensibilité de la caméra avec Ctrl
+- Ajout du numéro de version et d'indicateurs de mode développeur
+- Ajout de la construction de tours pour l'Architecte
+- Ajout du système de vision et du brouillard de guerre avec gestion de la visibilité des unités
+
+### 🐞 Fix
+
+- Les nuages réapparaissent désormais sur la carte, les ressources apparaissent sur les bords des îles, et la fenêtre debug tient sur l'écran
+- Correction du tir multiple sur les côtés et l'avant
+- Fin de l'inflation des prix des unités dans la faction ennemie
+- Le brouillard de guerre est réinitialisé quand on relance une partie et le bouton continuer du menu quitter fonctionne correctement
+
+### 🧹 Refactor
+
+- Amélioration de la lisibilité et de la structure du code des bandits
+- Ajout des fonctionnalités bandits et triche de vision illimitée en mode debug
+- Externalisation des récompenses de combat à part de la gestion de la vie
+- Renommage de FlyingChestManager en FlyingChestProcessor et mise à jour des références dans le code et la documentation
+- Remplacement de StormManager par StormProcessor dans le code et la documentation
+- Fusion de RecentHitsComponent dans RadiusComponent
+- Deuxième phase d'optimisation du jeu notamment le brouillard de guerre et le rendu des sprites et ajout d'un profiler pour analyser les performances du jeu
+- Optimisation des collisions avec un hachage spatial et amélioration du rendu des frames
+- Correction de l'aide en jeu
+- Suppression des boosts globaux d'attaque et de défense dans le code et la documentation
+- Suppression des bindings inutilisés
+
 ## v0.6.0 (2025-10-06)
 
 ### ✨ Feat

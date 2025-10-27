@@ -34,7 +34,8 @@ from src.constants.gameplay import (
         SHOP_FONT_SIZE_SUBTITLE, SHOP_FONT_SIZE_NORMAL, SHOP_FONT_SIZE_SMALL,
         SHOP_FONT_SIZE_TINY,
         UNIT_COST_SCOUT, UNIT_COST_MARAUDEUR, UNIT_COST_LEVIATHAN,
-        UNIT_COST_DRUID, UNIT_COST_ARCHITECT, UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER
+        UNIT_COST_DRUID, UNIT_COST_ARCHITECT, UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER,
+        UNIT_COST_KAMIKAZE
     )
 
 
@@ -282,19 +283,20 @@ class UnifiedShop:
         # Les bâtiments ennemis ne sont pas disponibles dans la boutique
     
     def _get_unit_cost(self, unit_type: str) -> int:
-        """Retourne le coût d'une unité basé sur son type."""
-
-        
-        cost_mapping = {
-            UnitType.SCOUT: UNIT_COST_SCOUT,
-            UnitType.MARAUDEUR: UNIT_COST_MARAUDEUR,
-            UnitType.LEVIATHAN: UNIT_COST_LEVIATHAN,
-            UnitType.DRUID: UNIT_COST_DRUID,
-            UnitType.ARCHITECT: UNIT_COST_ARCHITECT,
-            UnitType.ATTACK_TOWER: UNIT_COST_ATTACK_TOWER,
-            UnitType.HEAL_TOWER: UNIT_COST_HEAL_TOWER,
-        }
-        return cost_mapping.get(unit_type, 0)
+        """Retourne le coût d'une unité basé sur son type, toujours depuis les constantes de gameplay."""
+        if unit_type == UnitType.SCOUT:
+            return UNIT_COST_SCOUT
+        elif unit_type == UnitType.MARAUDEUR:
+            return UNIT_COST_MARAUDEUR
+        elif unit_type == UnitType.LEVIATHAN:
+            return UNIT_COST_LEVIATHAN
+        elif unit_type == UnitType.DRUID:
+            return UNIT_COST_DRUID
+        elif unit_type == UnitType.ARCHITECT:
+            return UNIT_COST_ARCHITECT
+        elif unit_type == UnitType.KAMIKAZE:
+            return UNIT_COST_KAMIKAZE
+        return 0
 
     def _populate_unit_items(self, is_enemy: bool):
         """Ajoute les unités disponibles en se basant sur le catalogue de la factory."""
@@ -358,7 +360,8 @@ class UnifiedShop:
             "barhamus": SpriteID.ALLY_MARAUDEUR,
             "draupnir": SpriteID.ALLY_LEVIATHAN,
             "druid": SpriteID.ALLY_DRUID,
-            "architect": SpriteID.ALLY_ARCHITECT
+            "architect": SpriteID.ALLY_ARCHITECT,
+            "kamikaze": SpriteID.ALLY_KAMIKAZE
         }
         
         # Mapping des unités ennemies
@@ -367,7 +370,8 @@ class UnifiedShop:
             "enemy_warrior": SpriteID.ENEMY_MARAUDEUR,
             "enemy_brute": SpriteID.ENEMY_LEVIATHAN,
             "enemy_shaman": SpriteID.ENEMY_DRUID,
-            "enemy_engineer": SpriteID.ENEMY_ARCHITECT
+            "enemy_engineer": SpriteID.ENEMY_ARCHITECT,
+            "enemy_kamikaze": SpriteID.ENEMY_KAMIKAZE
         }
         
         if is_enemy or unit_id.startswith("enemy_"):

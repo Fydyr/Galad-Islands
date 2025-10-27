@@ -10,6 +10,8 @@ from src.managers.display import DisplayManager, LayoutManager, get_display_mana
 from src.managers.audio import AudioManager, VolumeWatcher
 from src.menu.state import MenuState
 from src.ui.ui_component import Button, ParticleSystem
+from src.ui.show_gamemode_selection_modal import show_gamemode_selection_modal
+from src.ui.generic_modal import GenericModal
 import src.settings.settings as settings
 from src.game import game
 from src.functions.afficherModale import afficher_modale
@@ -17,7 +19,7 @@ from src.functions.optionsWindow import show_options_window
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 from src.functions.resource_path import get_resource_path
-from src.utils.version_utils import get_project_version, is_dev_mode_enabled
+from src.settings.settings import get_project_version, is_dev_mode_enabled
 
 
 
@@ -151,7 +153,18 @@ class MainMenu:
 
     def _on_play(self):
         """Starts the game."""
-        game(self.surface, bg_original=self.bg_original, select_sound=self.audio_manager.get_select_sound())
+        # Affiche la modale et récupère le mode de jeu choisi (le "signal").
+        selected_mode = show_gamemode_selection_modal(
+            window=self.surface,
+            bg_image=self.bg_scaled,
+            select_sound=self.audio_manager.get_select_sound()
+        )
+
+        # Si un mode a été sélectionné, on lance le jeu.
+        if selected_mode in ["player_vs_ai", "ai_vs_ai"]:
+            # Lancer le jeu est une action bloquante.
+            # Le menu reprendra après la fin de la partie.
+            game(self.surface, bg_original=self.bg_original, select_sound=self.audio_manager.get_select_sound(), mode=selected_mode)
 
     def _on_options(self):
         """Shows the options window."""
@@ -371,6 +384,8 @@ def main_menu(win=None):
 
 # Program entry point
 if __name__ == "__main__":
+
+    # Launch menu
 
     # Launch menu
     main_menu()
