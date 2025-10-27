@@ -947,6 +947,9 @@ class GameEngine:
         self.tower_processor = TowerProcessor()
         # Storm processor (gère les tempêtes)
         self.storm_processor = StormProcessor()
+        # IA Léviathan
+        self.ai_leviathan_processor = AILeviathanProcessor()
+        es.add_processor(self.ai_leviathan_processor, priority=9)
         # IA Kamikaze
         if self.kamikaze_ai_processor is not None and self.grid is not None:
             self.kamikaze_ai_processor.map_grid = self.grid
