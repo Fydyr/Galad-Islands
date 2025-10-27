@@ -60,6 +60,9 @@ from src.functions.handleHealth import entitiesHit
 from src.functions.afficherModale import afficher_modale
 from src.components.core.baseComponent import BaseComponent
 
+# Importations IA
+from src.ia.ia_barhamus2 import BarhamusAI
+
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.exit_modal import ExitConfirmationModal
@@ -504,6 +507,9 @@ class GameEngine:
         self.flying_chest_manager = FlyingChestManager()
         self.island_resource_manager = IslandResourceManager()
         self.stormManager = StormManager()
+        
+        # Gestionnaire d'IA pour tous les Maraudeurs
+        self.maraudeur_ais = {}  # entity_id -> BarhamusAI
         self.player = None
         self.notification_system = get_notification_system()
         
@@ -665,12 +671,12 @@ class GameEngine:
         # Créer les PlayerComponent pour CHAQUE équipe (alliés ET ennemis)
         # Équipe Alliée (team_id = 1)
         ally_player = es.create_entity()
-        es.add_component(ally_player, PlayerComponent(stored_gold=100))
+        es.add_component(ally_player, PlayerComponent(stored_gold=1000))
         es.add_component(ally_player, TeamComponent(Team.ALLY))
         
         # Équipe Ennemie (team_id = 2)
         enemy_player = es.create_entity()
-        es.add_component(enemy_player, PlayerComponent(stored_gold=100))
+        es.add_component(enemy_player, PlayerComponent(stored_gold=1000))
         es.add_component(enemy_player, TeamComponent(Team.ENEMY))
         
         # Garder une référence au joueur allié par défaut
@@ -681,21 +687,26 @@ class GameEngine:
         
         # Créer les unités
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
-        player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
+        player_unit = UnitFactory(UnitType.MARAUDEUR, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
-            self._set_selected_entity(player_unit)
+            # L'IA sera automatiquement attachée par le gestionnaire
+            print(f"Maraudeur allié créé: {player_unit}")
+            # Ne pas sélectionner l'unité pour laisser l'IA agir librement
+            # self._set_selected_entity(player_unit)
 
-        # Créer un druide ennemi à une position équivalente à celle du druid allié
+        # Créer des ennemis pour tester l'IA
         enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(
-            is_enemy=True, jitter=TILE_SIZE * 0.1)
-
-        # créer un DRUID
-        enemy_druid = UnitFactory(
-            UnitType.DRUID, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
-
-        # Attache le composant IA à l'entité du druide ennemi
-        #if enemy_druid is not None:
-            #es.add_component(enemy_druid, AIControlledComponent())
+            is_enemy=True, jitter=TILE_SIZE * 0.1)  # Même jitter que l'allié
+        
+        # Créer un Scout ennemi
+        enemy_scout = UnitFactory(
+            UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
+        
+        # Créer un Maraudeur ennemi avec IA automatique
+        enemy_maraudeur = UnitFactory(
+            UnitType.MARAUDEUR, True, PositionComponent(enemy_spawn_x + 100, enemy_spawn_y + 50))
+        if enemy_maraudeur is not None:
+            print(f"Maraudeur ennemi créé: {enemy_maraudeur} (IA sera auto-attachée)")
         
     def _setup_camera(self):
         """Configure la position initiale de la caméra."""
@@ -1343,6 +1354,9 @@ class GameEngine:
         
         # Traiter la logique ECS (sans dt pour les autres processeurs)
         es.process()
+        
+        # Mettre à jour toutes les IA de Maraudeurs
+        self._update_all_maraudeur_ais(es, dt)
 
         if self.flying_chest_manager is not None:
             self.flying_chest_manager.update(dt)
@@ -1559,6 +1573,55 @@ class GameEngine:
             if team_comp.team_id == team_id:
                 player_comp.stored_gold = max(0, amount)
                 return
+
+    def _update_all_maraudeur_ais(self, es, dt):
+        """Met à jour toutes les IA de Maraudeurs et gère leur création/suppression automatique"""
+        # Vérifier tous les Maraudeurs existants
+        all_maraudeurs = set()
+        
+        for entity, spe_maraudeur in es.get_component(SpeMaraudeur):
+            all_maraudeurs.add(entity)
+            
+            # Si ce Maraudeur n'a pas encore d'IA, la créer
+            if entity not in self.maraudeur_ais:
+                self.maraudeur_ais[entity] = BarhamusAI(entity)
+                team_comp = es.component_for_entity(entity, TeamComponent)
+                team_name = "allié" if team_comp.team_id == 1 else "ennemi"
+                print(f"🤖 IA créée pour Maraudeur {team_name} {entity}")
+        
+        # Supprimer les IA des Maraudeurs qui n'existent plus
+        entities_to_remove = []
+        for entity_id in self.maraudeur_ais.keys():
+            if entity_id not in all_maraudeurs:
+                entities_to_remove.append(entity_id)
+        
+        for entity_id in entities_to_remove:
+            del self.maraudeur_ais[entity_id]
+            print(f"🗑️ IA supprimée pour Maraudeur {entity_id} (unité détruite)")
+        
+        # Mettre à jour toutes les IA actives
+        for entity_id, ai in self.maraudeur_ais.items():
+            try:
+                # Passer la grille à l'IA pour l'évitement d'obstacles
+                if hasattr(self, 'grid'):
+                    ai.grid = self.grid
+                
+                # Mettre à jour l'IA
+                ai.update(es, dt)
+                
+            except Exception as e:
+                print(f"❌ Erreur IA Maraudeur {entity_id}: {e}")
+        
+        # Statistiques d'IA
+        if len(self.maraudeur_ais) > 0 and hasattr(self, '_ai_stats_timer'):
+            self._ai_stats_timer -= dt
+            if self._ai_stats_timer <= 0:
+                allies = sum(1 for eid in self.maraudeur_ais if es.has_component(eid, TeamComponent) and es.component_for_entity(eid, TeamComponent).team_id == 1)
+                enemies = len(self.maraudeur_ais) - allies
+                print(f"📊 IA actives: {allies} alliés + {enemies} ennemis = {len(self.maraudeur_ais)} total")
+                self._ai_stats_timer = 10.0  # Stats toutes les 10 secondes
+        elif not hasattr(self, '_ai_stats_timer'):
+            self._ai_stats_timer = 10.0
 
 
 def game(window=None, bg_original=None, select_sound=None):

@@ -68,6 +68,10 @@ profiles/
 galad_config.json
 galad_resolutions.json
 
+# Fichiers de modèles d'IA (ne pas versionner)
+models/
+*.pkl
+
 # Instructions de développement
 .github/instructions/
 technicalGameDesign.md
