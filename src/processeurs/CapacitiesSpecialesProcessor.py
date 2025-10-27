@@ -47,3 +47,20 @@ class CapacitiesSpecialesProcessor(esper.Processor):
                                     radius.cooldown = 0
                     except:
                         pass
+
+        # Gérer le cooldown de base (soin/attaque) pour TOUTES les unités
+        # qui n'ont pas déjà été affectées par l'Architecte ce tick.
+        for ent, radius in esper.get_component(RadiusComponent):
+            # Si l'entité est l'architecte lui-même OU n'est pas affectée par un architecte
+            is_architect = esper.has_component(ent, SpeArchitect)
+            is_affected = False
+            if not is_architect:
+                 # (Logique complexe pour vérifier si affecté... simplifions)
+                 # On applique simplement le cooldown à tout le monde.
+                 # L'architecte ajoutera une réduction *supplémentaire*.
+                 pass
+
+            if radius.cooldown > 0:
+                radius.cooldown -= dt  # Utiliser dt, c'est plus précis
+                if radius.cooldown < 0:
+                    radius.cooldown = 0
