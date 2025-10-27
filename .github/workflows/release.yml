@@ -63,19 +63,6 @@ jobs:
             echo "is_unstable=false" >> $GITHUB_OUTPUT
           fi
 
-
-      - name: Detect if tag commit is in 'unstable' branch
-        shell: bash
-        id: check
-        run: |
-          # fetch remote branches and check if the commit ($GITHUB_SHA) is contained in unstable
-          git fetch --no-tags --prune origin '+refs/heads/*:refs/remotes/origin/*'
-          if git branch -r --contains $GITHUB_SHA | grep -q "origin/unstable"; then
-            echo "is_unstable=true" >> $GITHUB_OUTPUT
-          else
-            echo "is_unstable=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Archive build
         if: runner.os == 'Windows'
         run: |
