@@ -16,6 +16,7 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.radiusComponent import RadiusComponent
+from src.components.core.teamComponent import TeamComponent
 from src.factory.unitType import UnitType
 from src.constants.team import Team
 from src.constants.map_tiles import TileType
@@ -684,24 +685,26 @@ class RapidUnitController:
         self._try_continuous_shoot(ctx)
 
     def _try_continuous_shoot(self, context: UnitContext) -> None:
-        """Fait tirer l'unité en continu peu importe l'état."""
+        """Fait tirer l'unité en continu sauf sur les mines."""
         radius = context.radius_component
         if radius is None:
             return
         if radius.cooldown > 0:
             return
-        
+
         # Déterminer la cible de tir
         projectile_target = None
-        
+        target_entity = None
+
         # Priorité : cible actuelle si elle existe
         if context.target_entity is not None and esper.entity_exists(context.target_entity):
             try:
                 target_pos = esper.component_for_entity(context.target_entity, PositionComponent)
                 projectile_target = (target_pos.x, target_pos.y)
+                target_entity = context.target_entity
             except KeyError:
                 pass
-        
+
         # Sinon, utiliser l'objectif actuel
         if projectile_target is None and context.current_objective:
             objective = context.current_objective
@@ -709,11 +712,53 @@ class RapidUnitController:
                 try:
                     target_pos = esper.component_for_entity(objective.target_entity, PositionComponent)
                     projectile_target = (target_pos.x, target_pos.y)
+                    target_entity = objective.target_entity
                 except KeyError:
                     pass
             elif objective.target_position:
                 projectile_target = objective.target_position
-        
+
+
+
+        # Vérifier si la cible est une mine (entité de la team neutre)
+        is_mine = False
+        NEUTRAL_TEAM_ID = 0
+        if target_entity is not None:
+            try:
+                target_team = esper.component_for_entity(target_entity, TeamComponent)
+                if target_team.team_id == NEUTRAL_TEAM_ID:
+                    is_mine = True
+            except Exception:
+                pass
+
+        # Vérifier si la position de la cible est sur une mine (entité neutre proche)
+        if not is_mine and projectile_target is not None:
+            try:
+                for entity, team_comp in esper.get_component(TeamComponent):
+                    if team_comp.team_id == NEUTRAL_TEAM_ID:
+                        mine_pos = esper.component_for_entity(entity, PositionComponent)
+                        if math.hypot(mine_pos.x - projectile_target[0], mine_pos.y - projectile_target[1]) < 32.0:
+                            is_mine = True
+                            break
+            except Exception:
+                pass
+
+        # Vérifier si la cible est un allié
+        is_ally = False
+        if target_entity is not None:
+            try:
+
+                target_team = esper.component_for_entity(target_entity, TeamComponent)
+                my_team = esper.component_for_entity(context.entity_id, TeamComponent)
+                if target_team.team_id == my_team.team_id:
+                    is_ally = True
+            except Exception:
+                pass
+
+        # Si la cible est une mine ou un allié, ne pas tirer
+        if is_mine or is_ally:
+            return
+
         # Orienter vers la cible (ou garder la direction actuelle)
         if projectile_target is not None:
             try:
@@ -723,7 +768,7 @@ class RapidUnitController:
                 pos.direction = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
             except KeyError:
                 pass
-        
+
         # TIRER en continu
         esper.dispatch_event("attack_event", context.entity_id, "bullet")
         radius.cooldown = radius.bullet_cooldown
