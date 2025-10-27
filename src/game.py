@@ -993,7 +993,7 @@ class GameEngine:
         
         # Créer les unités
         spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
-        player_unit = UnitFactory(UnitType.ARCHITECT, False, PositionComponent(spawn_x, spawn_y))
+        player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
             if not getattr(self, 'self_play_mode', False):
                 self._set_selected_entity(player_unit)
@@ -1921,7 +1921,6 @@ class GameEngine:
             if team_comp.team_id == team_id:
                 player_comp.stored_gold = max(0, amount)
                 return
-
 
 def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
     """Point d'entrée principal du jeu (compatibilité avec l'API existante).
