@@ -10,6 +10,8 @@ from src.managers.display import DisplayManager, LayoutManager, get_display_mana
 from src.managers.audio import AudioManager, VolumeWatcher
 from src.menu.state import MenuState
 from src.ui.ui_component import Button, ParticleSystem
+from src.ui.show_gamemode_selection_modal import show_gamemode_selection_modal
+from src.ui.generic_modal import GenericModal
 import src.settings.settings as settings
 from src.game import game
 from src.functions.afficherModale import afficher_modale
@@ -17,6 +19,7 @@ from src.functions.optionsWindow import show_options_window
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 from src.functions.resource_path import get_resource_path
+from src.settings.settings import get_project_version, is_dev_mode_enabled
 
 class MainMenu:
     """Main menu class."""
@@ -148,7 +151,18 @@ class MainMenu:
 
     def _on_play(self):
         """Starts the game."""
-        game(self.surface, bg_original=self.bg_original, select_sound=self.audio_manager.get_select_sound())
+        # Affiche la modale et récupère le mode de jeu choisi (le "signal").
+        selected_mode = show_gamemode_selection_modal(
+            window=self.surface,
+            bg_image=self.bg_scaled,
+            select_sound=self.audio_manager.get_select_sound()
+        )
+
+        # Si un mode a été sélectionné, on lance le jeu.
+        if selected_mode in ["player_vs_ai", "ai_vs_ai"]:
+            # Lancer le jeu est une action bloquante.
+            # Le menu reprendra après la fin de la partie.
+            game(self.surface, bg_original=self.bg_original, select_sound=self.audio_manager.get_select_sound(), mode=selected_mode)
 
     def _on_options(self):
         """Shows the options window."""
@@ -243,6 +257,9 @@ class MainMenu:
         # Tip
         self._render_tip()
 
+        # Version and dev mode indicator
+        self._render_version_info()
+
         pygame.display.update()
 
     def _render_tip(self):
@@ -261,6 +278,33 @@ class MainMenu:
         tip_surf = self.tip_font.render(tip_text, True, (230, 230, 180))
         tip_rect = tip_surf.get_rect(center=(width // 2, tip_layout['y_position']))
         self.surface.blit(tip_surf, tip_rect)
+
+    def _render_version_info(self):
+        """Displays version and dev mode indicator in the bottom right corner."""
+        width, height = self.display_manager.get_size()
+
+        # Get version and dev mode status
+        version = get_project_version()
+        dev_mode = is_dev_mode_enabled()
+
+        # Version text
+        version_text = f"v{version}"
+        if dev_mode:
+            version_text += " [DEV MODE]"
+
+        # Use tip font for consistency
+        if self.tip_font:
+            # Shadow for version text
+            shadow_color = (40, 40, 40) if not dev_mode else (100, 0, 0)  # Dark red shadow for dev mode
+            shadow = self.tip_font.render(version_text, True, shadow_color)
+            shadow_rect = shadow.get_rect(bottomright=(width - 20, height - 20))
+            self.surface.blit(shadow, shadow_rect)
+
+            # Main version text
+            text_color = (230, 230, 180) if not dev_mode else (255, 100, 100)  # Light red for dev mode
+            version_surf = self.tip_font.render(version_text, True, text_color)
+            version_rect = version_surf.get_rect(bottomright=(width - 18, height - 18))
+            self.surface.blit(version_surf, version_rect)
 
     # ========== Main loop ==========
 
@@ -338,6 +382,8 @@ def main_menu(win=None):
 
 # Program entry point
 if __name__ == "__main__":
+
+    # Launch menu
 
     # Launch menu
     main_menu()

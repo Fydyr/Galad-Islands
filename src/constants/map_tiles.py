@@ -21,3 +21,7 @@ class TileType(IntEnum):
     def is_island(self) -> bool:
         """Détermine si la tuile correspond à une île exploitable."""
         return self in {TileType.GENERIC_ISLAND, TileType.ALLY_BASE, TileType.ENEMY_BASE}
+
+    def is_island_buildable(self) -> bool:
+        """Détermine si la tuile correspond à une île exploitable."""
+        return self in {TileType.GENERIC_ISLAND}

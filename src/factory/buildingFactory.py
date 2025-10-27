@@ -10,7 +10,7 @@ from src.components.core.defenseTowerComponent import DefenseTowerComponent
 from src.components.core.healTowerComponent import HealTowerComponent
 from src.components.core.towerComponent import TowerComponent, TowerType
 from src.components.core.canCollideComponent import CanCollideComponent
-from src.components.core.recentHitsComponent import RecentHitsComponent
+from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
 from src.settings.settings import TILE_SIZE
 from src.settings.localization import t
@@ -27,7 +27,7 @@ def create_defense_tower(x: float, y: float, team_id: int = 1):
     # Ajouter le TowerComponent unifié pour le TowerProcessor
     esper.add_component(entity, TowerComponent(tower_type=TowerType.DEFENSE, range=350.0, damage=25, attack_speed=1.0))
     esper.add_component(entity, CanCollideComponent())  # Permet aux tours d'être attaquées
-    esper.add_component(entity, RecentHitsComponent())  # Cooldown entre les hits (comme les bases)
+    esper.add_component(entity, RadiusComponent(hit_cooldown_duration=1.0))  # Cooldown entre les hits (comme les bases)
 
     # Utiliser le bon sprite selon la team
     sprite_id = SpriteID.ALLY_DEFENCE_TOWER if team_id == 1 else SpriteID.ENEMY_DEFENCE_TOWER
@@ -52,7 +52,7 @@ def create_heal_tower(x: float, y: float, team_id: int = 1):
     # Ajouter le TowerComponent unifié pour le TowerProcessor
     esper.add_component(entity, TowerComponent(tower_type=TowerType.HEAL, range=200.0, heal_amount=10, attack_speed=1.0))
     esper.add_component(entity, CanCollideComponent())  # Permet aux tours d'être attaquées
-    esper.add_component(entity, RecentHitsComponent())  # Cooldown entre les hits (comme les bases)
+    esper.add_component(entity, RadiusComponent(hit_cooldown_duration=1.0))  # Cooldown entre les hits (comme les bases)
 
     # Utiliser le bon sprite selon la team
     sprite_id = SpriteID.ALLY_HEAL_TOWER if team_id == 1 else SpriteID.ENEMY_HEAL_TOWER

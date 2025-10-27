@@ -4,12 +4,13 @@ from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.special.speDruidComponent import SpeDruid
 from src.components.special.speArchitectComponent import SpeArchitect
+from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.special.isVinedComponent import isVinedComponent
 from src.processeurs.ability.VineProcessor import VineProcessor
 from src.components.core.radiusComponent import RadiusComponent
 
 class CapacitiesSpecialesProcessor(esper.Processor):
-    def process(self, dt):
+    def process(self, dt, **kwargs):
         # Scout : manœuvre d'évasion (invincibilité)
         for ent, speScout in esper.get_component(SpeScout):
             speScout.update(dt)
@@ -25,6 +26,10 @@ class CapacitiesSpecialesProcessor(esper.Processor):
         # Druid : lierre volant (immobilisation)
         for ent, speDruid in esper.get_component(SpeDruid):
             speDruid.update(dt)
+
+        # Kamikaze : boost de vitesse
+        for ent, speKamikaze in esper.get_component(SpeKamikazeComponent):
+            speKamikaze.update(dt)
 
         for ent, isVined in esper.get_component(isVinedComponent):
             VineProcessor.update(dt, ent, isVined)
