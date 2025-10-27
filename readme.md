@@ -25,6 +25,10 @@ python setup_dev.py # ou python3 setup_dev.py -- Ce script crée un environnemen
 - [numba](https://numba.pydata.org/)
 - [llvmlite](https://llvmlite.readthedocs.io/)
 - [esper](https://esper.readthedocs.io/)
+- [Pillow](https://python-pillow.org/)
+- [tomli](https://tomli.readthedocs.io/)
+- [scikit-learn](https://scikit-learn.org/)
+- [joblib](https://joblib.readthedocs.io/)
 
 ### Development Dependencies
 
@@ -33,6 +37,11 @@ python setup_dev.py # ou python3 setup_dev.py -- Ce script crée un environnemen
 - [commitizen](https://commitizen-tools.github.io/commitizen/)
 - [mkdocs](https://www.mkdocs.org/)
 - [mkdocs-material](https://squidfunk.github.io/mkdocs-material/)
+- [pytest](https://docs.pytest.org/)
+- [pytest-cov](https://pytest-cov.readthedocs.io/)
+- [pytest-mock](https://pypi.org/project/pytest-mock/)
+- [psutil](https://psutil.readthedocs.io/)
+- 
 
 Make sure to list all libraries used in your `requirements.txt`.
 
