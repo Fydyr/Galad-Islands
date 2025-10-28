@@ -43,16 +43,16 @@ jobs:
       - name: Archive build
         if: runner.os == 'Windows'
         run: |
-          copy RELEASE_README.md dist\README.md
-          Compress-Archive -Path dist\* -DestinationPath galad-islands-windows.zip
+          copy RELEASE_README.md dist\galad-dist\README.md
+          Compress-Archive -Path dist\galad-dist\* -DestinationPath galad-islands-windows.zip
         shell: pwsh
 
       - name: Archive build (Linux/Mac)  
         if: runner.os != 'Windows'
         run: |
-          cp RELEASE_README.md dist/README.md
+          cp RELEASE_README.md dist/galad-dist/README.md
           cd dist
-          zip -r ../galad-islands-${{ runner.os }}.zip galad-islands
+          zip -r ../galad-islands-${{ runner.os }}.zip galad-dist
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
