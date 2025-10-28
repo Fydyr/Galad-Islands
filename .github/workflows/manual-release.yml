@@ -6,11 +6,10 @@ on:
       version:
         description: 'Numéro de version à publier (ex: 1.0.0)'
         required: true
-      prerelease:
-        description: 'Cocher pour publier en pré-release.'
+      branch:
+        description: 'Branch source de la release (ex: main ou unstable). Si unstable, la release sera marquée pre-release.'
         required: false
-        type: boolean
-        default: false
+        default: 'main'
 
 permissions:
   contents: write
@@ -40,30 +39,35 @@ jobs:
       - name: Build with PyInstaller
         shell: bash
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            pyinstaller build.spec
-          else
-            # Build main game
-            pyinstaller --onefile main.py --name galad-islands \
-              --add-data "assets:assets" \
-            # Build config tool
-            pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
-                        --add-data "assets/locales:assets/locales" \
-                        --add-data "src:src" \
-                        --exclude-module esper \
-                        --exclude-module llvmlite \
-                        --exclude-module numba \
-                        --exclude-module numpy \
-                        --exclude-module Pillow \
-                        --exclude-module sklearn \
-                        --exclude-module joblib
-          fi
+          # Détection du séparateur selon l'OS
+          if [ "$RUNNER_OS" = "Windows" ]; then SEP=';'; else SEP=':'; fi
+          # Build main game
+          pyinstaller --onefile main.py --name galad-islands \
+            --add-data "assets${SEP}assets" \
+            --add-data "models${SEP}base_ai_unified_final.pkl" \
+          # Build config tool
+          pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
+                      --add-data "assets/locales${SEP}assets/locales" \
+                      --add-data "src${SEP}src" \
+                      --exclude-module esper \
+                      --exclude-module llvmlite \
+                      --exclude-module numba \
+                      --exclude-module numpy \
+                      --exclude-module Pillow \
+                      --exclude-module sklearn \
+                      --exclude-module joblib
+
 
       - name: Archive build
         if: runner.os == 'Windows'
         run: |
-          copy RELEASE_README.md dist\galad-dist\README.md
-          Compress-Archive -Path dist\galad-dist\* -DestinationPath galad-islands-windows.zip
+          mkdir -p galad-islands-windows
+          copy dist\galad-islands.exe galad-islands-windows\
+          copy dist\galad-config-tool.exe galad-islands-windows\
+          copy RELEASE_README.md galad-islands-windows\README.md
+          mkdir galad-islands-windows\models
+            # Les assets et modèles sont inclus dans l'exécutable via --add-data, pas besoin de les copier
+          Compress-Archive -Path galad-islands-windows\* -DestinationPath galad-islands-windows.zip
         shell: pwsh
 
       - name: Archive build (Linux/Mac)  
@@ -72,10 +76,9 @@ jobs:
           mkdir -p galad-islands-${{ runner.os }}
           cp dist/galad-islands galad-islands-${{ runner.os }}/
           cp dist/galad-config-tool galad-islands-${{ runner.os }}/
-          cp -r assets galad-islands-${{ runner.os }}/
           cp RELEASE_README.md galad-islands-${{ runner.os }}/README.md
           mkdir -p galad-islands-${{ runner.os }}/models
-          cp src/models/base_ai_unified_final.pkl galad-islands-${{ runner.os }}/models/
+            # Les assets et modèles sont inclus dans l'exécutable via --add-data, pas besoin de les copier
           chmod +x galad-islands-${{ runner.os }}/galad-islands
           chmod +x galad-islands-${{ runner.os }}/galad-config-tool
           zip -r galad-islands-${{ runner.os }}.zip galad-islands-${{ runner.os }}
@@ -84,10 +87,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.event.inputs.version }}
-          prerelease: ${{ github.event.inputs.prerelease }}
-          name: "Galad Islands v${{ github.event.inputs.version }}${{ github.event.inputs.prerelease && ' (pre-release)' || '' }}"
+          # Mark prerelease when input branch is 'unstable'
+          prerelease: ${{ github.event.inputs.branch == 'unstable' }}
+          name: "Galad Islands v${{ github.event.inputs.version }}${{ github.event.inputs.branch == 'unstable' && ' (pre-release)' || '' }}"
           body: |
-            🎮 **Galad Islands - Version v${{ github.event.inputs.version }}${{ github.event.inputs.prerelease && ' (pre-release)' || '' }}** (Release manuelle)
+            🎮 **Galad Islands - Version v${{ github.event.inputs.version }}${{ github.event.inputs.branch == 'unstable' && ' (pre-release)' || '' }}** (Release manuelle)
             
             Téléchargez le jeu pour votre plateforme :
             - **Windows** : `galad-islands-windows.zip`
