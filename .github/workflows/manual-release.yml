@@ -40,9 +40,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            pyinstaller build.spec --add-binary /usr/lib/libpython3.13.so.1.0:.
+            pyinstaller build.spec
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            pyinstaller build.spec --add-binary /usr/local/Frameworks/Python.framework/Versions/3.13/lib/libpython3.13.dylib:.
+            pyinstaller build.spec
           else
             pyinstaller build.spec
           fi
