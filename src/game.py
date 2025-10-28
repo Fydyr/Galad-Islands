@@ -87,7 +87,7 @@ from src.components.core.towerComponent import TowerComponent
 from src.components.globals.mapComponent import is_tile_island
 
 # Importations IA
-from ia.ia_barhamus import BarhamusAI
+from src.ia.ia_barhamus import BarhamusAI
 
 # Importations UI
 from src.ui.action_bar import ActionBar, UnitInfo
