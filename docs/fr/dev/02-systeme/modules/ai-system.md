@@ -446,13 +446,207 @@ Garde les 10 modèles les plus récents, supprime les autres.
 ✅ Supprimer les fichiers réinitialise l'apprentissage de l'IA des Maraudeurs
 
 
+### IA du Léviathan (`AILeviathanProcessor`)
+
+**Fichier** : `src/processeurs/aiLeviathanProcessor.py`
+
+L'IA du Léviathan est un système d'intelligence artificielle avancé conçu pour contrôler de manière autonome les unités lourdes de type Léviathan. Elle combine un **arbre de décision hiérarchique** pour les décisions tactiques et le **pathfinding A*** pour la navigation stratégique.
+
+**Fichiers associés** :
+
+- `src/ia/leviathan/decision_tree.py` - Arbre de décision
+- `src/ia/leviathan/pathfinding.py` - Navigation A*
+- `src/components/ai/aiLeviathanComponent.py` - Composant ECS
+
+#### Architecture et Composants
+
+L'IA du Léviathan repose sur une architecture modulaire optimisée pour les performances :
+
+##### 1. Arbre de Décision Hiérarchique (`LeviathanDecisionTree`)
+
+L'arbre de décision implémente un **système de priorités** où les conditions les plus importantes court-circuitent les priorités inférieures. Cela garantit que les comportements critiques de sécurité (évitement d'obstacles) s'exécutent toujours avant les comportements tactiques (combat).
+
+**Priorités de décision** (de la plus haute à la plus basse) :
+
+1. **Évitement d'obstacles** (`AVOID_OBSTACLE`) - Prévient les collisions et les dégâts
+   - Îles (bloqueurs absolus, priorité maximale)
+   - Tempêtes (marge de sécurité : 200px)
+   - Bandits (marge de sécurité : 200px)
+   - Mines (marge de sécurité : 150px)
+
+2. **Engagement ennemi** (`ATTACK_ENEMY`) - Élimine les menaces à portée
+   - Portée maximale : 350px
+   - Engagement opportuniste des unités ennemies
+
+3. **Attaque de base** (`ATTACK_BASE`) - Atteint l'objectif stratégique
+   - Portée de bombardement : 400px
+   - Tir concentré avec toutes les armes avant
+
+4. **Navigation** (`MOVE_TO_BASE`) - Progression par défaut
+   - Déplacement vers la base ennemie via pathfinding A*
+
+##### 2. Pathfinding A* (`Pathfinder`)
+
+Le système de navigation utilise l'algorithme A* pour calculer des chemins optimaux tout en évitant les obstacles :
+
+- **Carte gonflée** : Les obstacles sont artificiellement élargis pour éviter que les unités ne "collent" aux îles
+- **Obstacles dynamiques** : Intègre les tempêtes, bandits, mines et unités ennemies dans le calcul de chemin
+- **Recalcul intelligent** : Limitation du taux de recalcul (3 secondes minimum) pour optimiser les performances
+- **Détection de waypoint** : Supprime les waypoints atteints automatiquement
+
+##### 3. Cache d'Entités
+
+Pour optimiser les performances, l'IA utilise un **système de cache** mis à jour périodiquement (toutes les 30 frames, ~0.5s à 60 FPS) :
+
+- Cache des positions ennemies par équipe
+- Cache des tempêtes avec leurs rayons
+- Cache des bandits avec leurs rayons
+- Détection optimisée des mines par balayage de grille en spirale
+
+#### Vecteur d'État (GameState)
+
+L'IA analyse la situation via un vecteur d'état complet contenant toutes les données de perception :
+
+| Catégorie | Données |
+|-----------|---------|
+| **Statut de l'unité** | Position (x, y), direction (degrés), santé actuelle/max |
+| **Évaluation des menaces** | Distance au plus proche ennemi, angle vers l'ennemi, nombre d'ennemis |
+| **Détection d'obstacles** | Île devant (booléen), distances aux tempêtes/bandits/mines |
+| **Objectif stratégique** | Position de la base ennemie, distance, angle |
+
+#### Actions Disponibles
+
+L'IA peut exécuter 5 actions tactiques différentes :
+
+##### ATTACK_ENEMY - Combat contre unités ennemies
+
+**Tactiques de combat** :
+
+- **Gestion dynamique de la distance** : Approche/recul selon la portée optimale
+  - Distance optimale : 280px (DPS idéal)
+  - Distance minimale : 150px (seuil de recul)
+  - Distance maximale : 350px (limite d'engagement)
+- **Système de ciblage** :
+  - Tolérance d'alignement : 50° pour les armes principales
+  - Tolérance élargie : 60° pour la capacité spéciale
+- **Tir latéral automatique** : Activation lorsque l'ennemi est sur le flanc (60-120°)
+- **Arrêt pour tirer** : L'unité s'arrête pour maximiser la précision
+- **Utilisation agressive de la capacité spéciale** : Activation automatique dès que disponible
+
+##### ATTACK_BASE - Siège de la base ennemie
+
+**Tactiques de siège** :
+
+- **Approche à la portée de siège optimale** : 320px (équilibre DPS/sécurité)
+- **Tir concentré** : Désactivation des canons latéraux pour un bombardement focalisé
+- **Utilisation très agressive de la capacité spéciale** : Pour maximiser les dégâts à la base
+- **Maintien de distance de sécurité** : Minimum 200px des défenses de la base
+- **Bombardement soutenu** : L'unité s'arrête complètement pour tirer
+
+##### AVOID_OBSTACLE - Évitement d'obstacles
+
+**Système d'évitement intelligent** :
+
+- **Balayage multi-directionnel** : Teste les angles de -120° à +120° par incréments de 30°
+- **Rotation progressive** : Maximum 45° par frame pour un mouvement fluide
+- **Préférence directionnelle** : Privilégie les directions vers la base ennemie
+- **Réduction de vitesse en virage** : Ralentit à 60-80% lors de virages serrés
+- **Manœuvre de secours** : Marche arrière et demi-tour si toutes les directions sont bloquées
+
+##### MOVE_TO_BASE - Navigation stratégique
+
+**Pathfinding A* avec évitement** :
+
+- **Calcul de chemin optimal** : Utilise A* sur une carte incluant tous les obstacles
+- **Navigation par waypoints** : Suit une série de points intermédiaires
+- **Rotation fixe** : Rotation de 10° par frame vers le waypoint cible
+- **Tolérance de waypoint** : Distance de 2 tuiles pour marquer un waypoint comme atteint
+- **Navigation directe en secours** : Si pas de chemin A* disponible, navigation directe avec évitement d'îles
+
+##### IDLE - État de veille
+
+Vitesse de mouvement mise à zéro, l'unité reste immobile.
+
+#### Optimisations de Performance
+
+L'IA du Léviathan intègre de nombreuses optimisations pour fonctionner efficacement :
+
+1. **Cache d'entités** : Mise à jour périodique (30 frames) au lieu de requêtes ECS constantes
+2. **Calculs de distance au carré** : Évite les racines carrées coûteuses quand possible
+3. **Détection d'îles par cône** : Teste seulement 3 points (centre, gauche, droite) au lieu d'un balayage complet
+4. **Détection de mines en spirale** : Sortie anticipée dès qu'une mine proche est trouvée
+5. **Limitation de recalcul A*** : Cooldown de 3 secondes entre recalculs de chemin
+6. **Cache de cellules bloquées du pathfinder** : Réutilise les données pré-calculées
+
+#### Statistiques et Métriques
+
+Le processeur collecte des statistiques d'utilisation :
+
+```python
+statistics = processor.getStatistics()
+# Retourne :
+# {
+#     'total_actions': 1523,
+#     'actions_by_type': {
+#         'attack_enemy': 456,
+#         'attack_base': 234,
+#         'avoid_obstacle': 189,
+#         'move_to_base': 644
+#     }
+# }
+```
+
+#### Configuration et Ajustement
+
+**Seuils de combat** (dans `LeviathanDecisionTree`) :
+
+- `ENEMY_ATTACK_DISTANCE = 350.0` : Portée maximale d'engagement ennemi
+- `BASE_ATTACK_DISTANCE = 400.0` : Portée maximale de bombardement de base
+
+**Seuils d'évitement** (dans `LeviathanDecisionTree`) :
+
+- `STORM_AVOID_DISTANCE = 200.0` : Marge de sécurité pour les tempêtes
+- `BANDIT_AVOID_DISTANCE = 200.0` : Marge de sécurité pour les bandits
+- `MINE_AVOID_DISTANCE = 150.0` : Marge de sécurité pour les mines
+
+**Cooldown d'action** (dans `AILeviathanComponent`) :
+
+- `action_cooldown = 0.15` : Temps entre les décisions (secondes)
+
+#### Intégration dans le Jeu
+
+Pour activer l'IA sur un Léviathan, il suffit d'ajouter le composant `AILeviathanComponent` à l'entité :
+
+```python
+from src.components.ai.aiLeviathanComponent import AILeviathanComponent
+
+# Lors de la création du Léviathan
+esper.add_component(entity, AILeviathanComponent(enabled=True))
+```
+
+Le processeur `AILeviathanProcessor` doit être ajouté à l'ECS avec accès à la grille de carte :
+
+```python
+from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
+
+leviathan_processor = AILeviathanProcessor()
+leviathan_processor.map_grid = world_map  # Nécessaire pour la détection d'obstacles
+esper.add_processor(leviathan_processor)
+```
+
+#### Points Clés de l'Implémentation
+
+- **Philosophie de conception** : Sécurité d'abord, combat agressif, orientation vers l'objectif
+- **Complexité algorithmique** : O(1) pour les décisions, O(n log n) pour le pathfinding A*
+- **Indépendance du framerate** : Tous les cooldowns et timings utilisent le temps réel (dt)
+- **Compatibilité ECS** : Utilise uniquement les événements et composants ECS, pas de références directes
+- **Désactivation pour contrôle joueur** : L'IA se désactive automatiquement si le composant `PlayerSelectedComponent` est présent
+
 ### Autres IA (à venir)
 
 Des logiques d'IA pourraient être ajoutées pour d'autres unités, par exemple :
 
 - **Druides** : Soigner automatiquement les alliés les plus blessés à proximité.
-- **Lévithans** : Utiliser des attaques de zone contre des groupes d'ennemis.
-- **Maraudeurs** : Prioriser les cibles en fonction de leur menace et de leur valeur stratégique.
 - **Architectes** : Construire des structures défensives en fonction des menaces détectées.
 
 ---
