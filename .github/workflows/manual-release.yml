@@ -45,11 +45,11 @@ jobs:
           else
             # Build main game
             pyinstaller --onefile main.py --name galad-islands \
-              --add-data "assets${SEP}assets" \
+              --add-data "assets:assets" \
             # Build config tool
             pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
-                        --add-data "assets/locales${SEP}assets/locales" \
-                        --add-data "src${SEP}src" \
+                        --add-data "assets/locales:assets/locales" \
+                        --add-data "src:src" \
                         --exclude-module esper \
                         --exclude-module llvmlite \
                         --exclude-module numba \
