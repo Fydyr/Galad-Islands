@@ -105,6 +105,8 @@ class RapidTroopAIProcessor(esper.Processor):
 
     # Internal helpers ----------------------------------------------------
     def _tick(self, dt: float) -> None:
+        import time
+        t0 = time.perf_counter()
         self.context_manager.tick(dt)
         self._cleanup_dead_entities()
         self._refresh_services(dt)
@@ -114,8 +116,13 @@ class RapidTroopAIProcessor(esper.Processor):
             self._debug_overlay.clear()
 
         for entity, components in self._iter_controlled_units():
+            t_entity0 = time.perf_counter()
             controller = self._ensure_controller(entity, components)
             controller.update(dt)
+            t_entity1 = time.perf_counter()
+            duration = (t_entity1 - t_entity0) * 1000.0
+            if duration > 10.0:
+                print(f"[PROFILING][SCOUT] Entity {entity} tick duration: {duration:.2f} ms")
             if collect_debug and controller.context is not None:
                 self._debug_overlay.append(
                     {
@@ -126,6 +133,10 @@ class RapidTroopAIProcessor(esper.Processor):
                         "state": hash(controller.state_machine.current_state.name) % 1_000_000,
                     }
                 )
+        t1 = time.perf_counter()
+        total_duration = (t1 - t0) * 1000.0
+        if total_duration > 30.0:
+            print(f"[PROFILING][SCOUT] Total tick duration: {total_duration:.2f} ms for {len(list(self._iter_controlled_units()))} entities")
 
     def _iter_controlled_units(self):
         for entity, (team, classe, scout, health, position, velocity, radius) in esper.get_components(
@@ -284,6 +295,10 @@ class RapidUnitController:
         self._persistent_nav_target: Optional[tuple[float, float]] = None
         self._persistent_nav_owner: Optional[str] = None
         self._persistent_nav_return: Optional[str] = None
+        # Timer pour limiter la fréquence de recalcul du pathfinding
+        self._last_path_request_time = -999.0
+        # Cache de chemin par destination (clé: (x, y), valeur: chemin)
+        self._path_cache = {}
 
     def _build_state_machine(self) -> StateMachine:
         idle = IdleState("Idle", self)
@@ -996,9 +1011,31 @@ class RapidUnitController:
     def request_path(self, target_position):
         if self.context is None or target_position is None:
             return
+        # Clé de cache arrondie pour éviter les recalculs sur des positions très proches
+        cache_key = (round(target_position[0], 1), round(target_position[1], 1))
+        # Si le chemin est déjà en cache et la position de départ n'a pas trop changé, réutiliser
+        if cache_key in self._path_cache:
+            cached_path = self._path_cache[cache_key]
+            # Vérifie que le chemin existe et que la destination finale est correcte
+            if cached_path and math.hypot(target_position[0] - cached_path[-1][0], target_position[1] - cached_path[-1][1]) < 8.0:
+                # Vérifie que le Scout est encore sur le chemin ou proche du début
+                if math.hypot(self.context.position[0] - cached_path[0][0], self.context.position[1] - cached_path[0][1]) < 32.0:
+                    self.context.set_path(cached_path)
+                    return
+        # Si le Scout a déjà un chemin en cours qui mène à la bonne destination, ne rien faire
+        if self.context.path:
+            last = self.context.path[-1]
+            if math.hypot(target_position[0] - last[0], target_position[1] - last[1]) < 8.0:
+                return
+        now = self.context_manager.time if hasattr(self.context_manager, "time") else time.time()
+        # Ne recalculer le chemin que si au moins 0.5s se sont écoulées
+        if now - self._last_path_request_time < 0.5:
+            return
+        self._last_path_request_time = now
         path = self.pathfinding.find_path(self.context.position, target_position)
         if path:
             self.context.set_path(path)
+            self._path_cache[cache_key] = path
         else:
             self.context.reset_path()
 
