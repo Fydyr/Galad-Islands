@@ -17,6 +17,7 @@ from src.settings import controls
 from src.constants.team import Team
 from src.ui.team_selection_modal import TeamSelectionModal
 from src.components.core.team_enum import Team as TeamEnum
+from src.ui.crash_window import show_crash_popup
 
 logger = logging.getLogger(__name__)
 
@@ -2107,35 +2108,37 @@ def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
         select_sound: Son de sélection pour les modales (optionnel)
         mode: "player_vs_ai" ou "ai_vs_ai"
     """
+    try:
+        selected_team = TeamEnum.ALLY
+        if mode == "player_vs_ai":
+            # Afficher la fenêtre de sélection d'équipe
+            surface = window or pygame.display.get_surface()
+            team_chosen = None
+            def on_team_selected(action_id):
+                nonlocal team_chosen
+                if action_id == "team1":
+                    team_chosen = TeamEnum.ALLY
+                elif action_id == "team2":
+                    team_chosen = TeamEnum.ENEMY
 
-    selected_team = TeamEnum.ALLY
-    if mode == "player_vs_ai":
-        # Afficher la fenêtre de sélection d'équipe
-        surface = window or pygame.display.get_surface()
-        team_chosen = None
-        def on_team_selected(action_id):
-            nonlocal team_chosen
-            if action_id == "team1":
-                team_chosen = TeamEnum.ALLY
-            elif action_id == "team2":
-                team_chosen = TeamEnum.ENEMY
+            modal = TeamSelectionModal(callback=on_team_selected)
+            modal.open(surface)
+            clock = pygame.time.Clock()
+            # Boucle bloquante jusqu'à sélection
+            while modal.is_active() and team_chosen is None:
+                for event in pygame.event.get():
+                    modal.handle_event(event)
+                modal.render(surface)
+                pygame.display.flip()
+                clock.tick(30)
+            if team_chosen is not None:
+                selected_team = team_chosen
 
-        modal = TeamSelectionModal(callback=on_team_selected)
-        modal.open(surface)
-        clock = pygame.time.Clock()
-        # Boucle bloquante jusqu'à sélection
-        while modal.is_active() and team_chosen is None:
-            for event in pygame.event.get():
-                modal.handle_event(event)
-            modal.render(surface)
-            pygame.display.flip()
-            clock.tick(30)
-        if team_chosen is not None:
-            selected_team = team_chosen
-
-    engine = GameEngine(window, bg_original, select_sound, self_play_mode=(mode == "ai_vs_ai"))
-    if mode == "ai_vs_ai":
-        engine.enable_self_play()
-    # Appliquer le choix d'équipe au moteur
-    engine.selection_team_filter = selected_team.value
-    engine.run()
+        engine = GameEngine(window, bg_original, select_sound, self_play_mode=(mode == "ai_vs_ai"))
+        if mode == "ai_vs_ai":
+            engine.enable_self_play()
+        # Appliquer le choix d'équipe au moteur
+        engine.selection_team_filter = selected_team.value
+        engine.run()
+    except Exception as e:
+        show_crash_popup(e)
