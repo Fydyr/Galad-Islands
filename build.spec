@@ -8,10 +8,6 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules, coll
 analysis = Analysis(
     ['main.py', 'tools/galad_config.py'], # Scripts d'entrée
     pathex=[os.getcwd()], # Chemin racine du projet
-    binaries=[
-        ('/usr/lib/libpython3.13.so.1.0', '.') if sys.platform.startswith('linux') else \
-        ('/usr/local/Frameworks/Python.framework/Versions/3.13/lib/libpython3.13.dylib', '.') if sys.platform == 'darwin' else []
-    ],
     datas=[
         ('assets', 'assets'),
         ('models/*.pkl', 'models')
