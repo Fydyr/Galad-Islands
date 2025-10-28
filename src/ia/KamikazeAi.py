@@ -321,36 +321,25 @@ class KamikazeAiProcessor(esper.Processor):
         # Éviter les obstacles statiques (îles, mines)
         # 'obstacles' est déjà calculé plus haut
         for obs_pos in obstacles:
-            # Vérifier si l'obstacle est devant et suffisamment proche
-            # Augmentation de la distance de détection pour mieux anticiper
-            if self.is_in_front(pos, obs_pos, distance_max=2.5 * TILE_SIZE, angle_cone=70): 
+            # Portée augmentée pour l’évitement des îles
+            if self.is_in_front(pos, obs_pos, distance_max=4.0 * TILE_SIZE, angle_cone=90):
                 vec_to_obs = np.array([obs_pos.x - pos.x, obs_pos.y - pos.y])
                 dist_to_obs = np.linalg.norm(vec_to_obs)
                 if dist_to_obs > 0:
-                    # --- NOUVELLE LOGIQUE D'ÉVITEMENT "GLISSANT" ---
-                    # On calcule un vecteur tangent à l'obstacle pour "glisser" le long.
-                    
-                    # Vecteur de l'unité vers l'obstacle
+                    # Steering plus franc : tangente amplifiée
                     to_obstacle = vec_to_obs / dist_to_obs
-                    
-                    # Calculer les deux vecteurs tangents (perpendiculaires au vecteur vers l'obstacle)
-                    tangent1 = np.array([-to_obstacle[1], to_obstacle[0]]) # Tangente "gauche"
-                    tangent2 = np.array([to_obstacle[1], -to_obstacle[0]]) # Tangente "droite"
-                    
-                    # Normaliser le vecteur de direction désiré pour la comparaison
+                    tangent1 = np.array([-to_obstacle[1], to_obstacle[0]])
+                    tangent2 = np.array([to_obstacle[1], -to_obstacle[0]])
                     if np.linalg.norm(desired_direction_vector) > 0:
                         normalized_desired = desired_direction_vector / np.linalg.norm(desired_direction_vector)
                     else:
                         normalized_desired = np.array([0.0, 0.0])
-
-                    # Choisir la tangente qui est la plus alignée avec la direction désirée
                     if np.dot(tangent1, normalized_desired) > np.dot(tangent2, normalized_desired):
-                        avoid_vec = tangent1
+                        avoid_vec = tangent1 * 1.5
                     else:
-                        avoid_vec = tangent2
-                    
-                    # Poids de l'évitement : plus fort quand on est proche
-                    weight = (1.0 - (dist_to_obs / (2.5 * TILE_SIZE))) ** 2 * 3.0 # Poids quadratique
+                        avoid_vec = tangent2 * 1.5
+                    # Poids d’évitement doublé pour les îles
+                    weight = (1.0 - (dist_to_obs / (4.0 * TILE_SIZE))) ** 2 * 6.0
                     avoidance_vector += avoid_vec * weight
                     total_avoidance_weight += weight
 
@@ -434,7 +423,7 @@ class KamikazeAiProcessor(esper.Processor):
         should_boost_near_base = False
         enemy_base_pos = self.find_enemy_base_position(team.team_id)
         # Vérifier si la cible actuelle est bien la base ennemie
-        if abs(target_pos.x - enemy_base_pos.x) < 1 and abs(target_pos.y - enemy_base_pos.y) < 1:
+        if target_pos is not None and abs(target_pos.x - enemy_base_pos.x) < 1 and abs(target_pos.y - enemy_base_pos.y) < 1:
             distance_to_base = math.hypot(pos.x - target_pos.x, pos.y - target_pos.y)
             # Si on est à moins de 8 tuiles de la base, on active le boost
             if distance_to_base < 8 * TILE_SIZE:
