@@ -442,17 +442,209 @@ Keeps the 10 most recent models, deletes the others.
 ✅ Each Marauder creates its own file, hence the rapid accumulation  
 ✅ Deleting files resets Marauder AI learning
 
+### Leviathan AI (`AILeviathanProcessor`)
+
+**File**: `src/processeurs/aiLeviathanProcessor.py`
+
+The Leviathan AI is an advanced artificial intelligence system designed to autonomously control heavy Leviathan-type units. It combines a **hierarchical decision tree** for tactical decisions and **A* pathfinding** for strategic navigation.
+
+**Associated files**:
+
+- `src/ia/leviathan/decision_tree.py` - Decision tree
+- `src/ia/leviathan/pathfinding.py` - A* navigation
+- `src/components/ai/aiLeviathanComponent.py` - ECS component
+
+#### Architecture and Components
+
+The Leviathan AI is built on a modular architecture optimized for performance:
+
+##### 1. Hierarchical Decision Tree (`LeviathanDecisionTree`)
+
+The decision tree implements a **priority system** where the most important conditions short-circuit lower priorities. This ensures that critical safety behaviors (obstacle avoidance) always execute before tactical behaviors (combat).
+
+**Decision Priorities** (highest to lowest):
+
+1. **Obstacle Avoidance** (`AVOID_OBSTACLE`) - Prevents collisions and damage
+   - Islands (absolute blockers, maximum priority)
+   - Storms (safety margin: 200px)
+   - Bandits (safety margin: 200px)
+   - Mines (safety margin: 150px)
+
+2. **Enemy Engagement** (`ATTACK_ENEMY`) - Eliminates threats in range
+   - Maximum range: 350px
+   - Opportunistic engagement of enemy units
+
+3. **Base Attack** (`ATTACK_BASE`) - Achieves strategic objective
+   - Bombardment range: 400px
+   - Concentrated fire with all forward weapons
+
+4. **Navigation** (`MOVE_TO_BASE`) - Default progression
+   - Movement towards enemy base via A* pathfinding
+
+##### 2. A* Pathfinding (`Pathfinder`)
+
+The navigation system uses the A* algorithm to calculate optimal paths while avoiding obstacles:
+
+- **Inflated map**: Obstacles are artificially enlarged to prevent units from "sticking" to islands
+- **Dynamic obstacles**: Integrates storms, bandits, mines, and enemy units into path calculation
+- **Smart recalculation**: Rate limiting for recalculation (3 seconds minimum) to optimize performance
+- **Waypoint detection**: Automatically removes reached waypoints
+
+##### 3. Entity Cache
+
+To optimize performance, the AI uses a **cache system** updated periodically (every 30 frames, ~0.5s at 60 FPS):
+
+- Cache of enemy positions by team
+- Cache of storms with their radii
+- Cache of bandits with their radii
+- Optimized mine detection via spiral grid scan
+
+#### State Vector (GameState)
+
+The AI analyzes the situation through a complete state vector containing all perception data:
+
+| Category | Data |
+|----------|------|
+| **Unit Status** | Position (x, y), direction (degrees), current/max health |
+| **Threat Assessment** | Distance to nearest enemy, angle to enemy, enemy count |
+| **Obstacle Detection** | Island ahead (boolean), distances to storms/bandits/mines |
+| **Strategic Objective** | Enemy base position, distance, angle |
+
+#### Available Actions
+
+The AI can execute 5 different tactical actions:
+
+##### ATTACK_ENEMY - Combat against enemy units
+
+**Combat Tactics**:
+
+- **Dynamic distance management**: Approach/retreat based on optimal range
+  - Optimal distance: 280px (ideal DPS)
+  - Minimum distance: 150px (retreat threshold)
+  - Maximum distance: 350px (engagement limit)
+- **Targeting system**:
+  - Alignment tolerance: 50° for main weapons
+  - Extended tolerance: 60° for special ability
+- **Automatic lateral fire**: Activated when enemy is on flank (60-120°)
+- **Stop-to-fire**: Unit stops to maximize accuracy
+- **Aggressive special ability usage**: Automatic activation when available
+
+##### ATTACK_BASE - Enemy base siege
+
+**Siege Tactics**:
+
+- **Approach to optimal siege range**: 320px (DPS/safety balance)
+- **Concentrated fire**: Lateral guns disabled for focused bombardment
+- **Very aggressive special ability usage**: To maximize base damage
+- **Safety distance maintenance**: Minimum 200px from base defenses
+- **Sustained bombardment**: Unit stops completely to fire
+
+##### AVOID_OBSTACLE - Obstacle avoidance
+
+**Smart Avoidance System**:
+
+- **Multi-directional scan**: Tests angles from -120° to +120° in 30° increments
+- **Progressive rotation**: Maximum 45° per frame for smooth movement
+- **Directional preference**: Favors directions toward enemy base
+- **Speed reduction in turns**: Slows to 60-80% during sharp turns
+- **Emergency maneuver**: Reverse and U-turn if all directions blocked
+
+##### MOVE_TO_BASE - Strategic navigation
+
+**A* Pathfinding with avoidance**:
+
+- **Optimal path calculation**: Uses A* on a map including all obstacles
+- **Waypoint navigation**: Follows a series of intermediate points
+- **Fixed rotation**: 10° rotation per frame toward target waypoint
+- **Waypoint tolerance**: 2-tile distance to mark waypoint as reached
+- **Direct navigation fallback**: If no A* path available, direct navigation with island avoidance
+
+##### IDLE - Standby state
+
+Movement speed set to zero, unit remains stationary.
+
+#### Performance Optimizations
+
+The Leviathan AI integrates numerous optimizations for efficient operation:
+
+1. **Entity cache**: Periodic update (30 frames) instead of constant ECS queries
+2. **Squared distance calculations**: Avoids costly square roots when possible
+3. **Cone-based island detection**: Tests only 3 points (center, left, right) instead of full sweep
+4. **Spiral mine detection**: Early exit as soon as a close mine is found
+5. **A* recalculation limiting**: 3-second cooldown between path recalculations
+6. **Pathfinder blocked cell cache**: Reuses pre-computed data
+
+#### Statistics and Metrics
+
+The processor collects usage statistics:
+
+```python
+statistics = processor.getStatistics()
+# Returns:
+# {
+#     'total_actions': 1523,
+#     'actions_by_type': {
+#         'attack_enemy': 456,
+#         'attack_base': 234,
+#         'avoid_obstacle': 189,
+#         'move_to_base': 644
+#     }
+# }
+```
+
+#### Configuration and Tuning
+
+**Combat Thresholds** (in `LeviathanDecisionTree`):
+
+- `ENEMY_ATTACK_DISTANCE = 350.0`: Maximum enemy engagement range
+- `BASE_ATTACK_DISTANCE = 400.0`: Maximum base bombardment range
+
+**Avoidance Thresholds** (in `LeviathanDecisionTree`):
+
+- `STORM_AVOID_DISTANCE = 200.0`: Safety margin for storms
+- `BANDIT_AVOID_DISTANCE = 200.0`: Safety margin for bandits
+- `MINE_AVOID_DISTANCE = 150.0`: Safety margin for mines
+
+**Action Cooldown** (in `AILeviathanComponent`):
+
+- `action_cooldown = 0.15`: Time between decisions (seconds)
+
+#### Game Integration
+
+To activate AI on a Leviathan, simply add the `AILeviathanComponent` component to the entity:
+
+```python
+from src.components.ai.aiLeviathanComponent import AILeviathanComponent
+
+# When creating the Leviathan
+esper.add_component(entity, AILeviathanComponent(enabled=True))
+```
+
+The `AILeviathanProcessor` processor must be added to the ECS with access to the map grid:
+
+```python
+from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
+
+leviathan_processor = AILeviathanProcessor()
+leviathan_processor.map_grid = world_map  # Required for obstacle detection
+esper.add_processor(leviathan_processor)
+```
+
+#### Key Implementation Points
+
+- **Design philosophy**: Safety first, aggressive combat, goal-oriented
+- **Algorithmic complexity**: O(1) for decisions, O(n log n) for A* pathfinding
+- **Framerate independence**: All cooldowns and timings use real time (dt)
+- **ECS compatibility**: Uses only ECS events and components, no direct references
+- **Player control deactivation**: AI automatically deactivates if `PlayerSelectedComponent` is present
+
 ### Other AIs (coming soon)
 
 AI logic could be added for other units, for example:
 
 - **Druids**: Automatically heal the most wounded allies nearby.
-- **Leviathans**: Use area attacks against groups of enemies.
 - **Architects**: Build defensive structures based on detected threats.
 
 ---
-
-*This documentation will be updated as new AIs are implemented.*
-
 
 *This documentation will be updated as new AIs are implemented.*
