@@ -50,6 +50,8 @@ class KamikazeAiProcessor(esper.Processor):
         self.inflated_world_map = self._create_inflated_map(world_map) if world_map else None
         self._kamikaze_paths = {}
         self._kamikaze_exploration_targets = {}
+        # Timer de recalcul de chemin par entité
+        self._last_path_request_time = {}
 
     def _create_inflated_map(self, original_map: List[List[int]]) -> List[List[int]]:
         """Crée une carte où les obstacles sont "gonflés" pour le pathfinding."""
@@ -214,11 +216,20 @@ class KamikazeAiProcessor(esper.Processor):
         current_target = path_info.get('target') if path_info else None
         path = path_info.get('path') if path_info else None
 
+        # Timer de recalcul de chemin (0.5s minimum entre deux recalculs)
+        now = pygame.time.get_ticks() / 1000.0
+        last_time = self._last_path_request_time.get(ent, -999.0)
+        # Sécurise l'accès à target_pos
+        target_coords = None
+        if target_pos is not None:
+            target_coords = (target_pos.x, target_pos.y)
         recalculate_path = (
             not path_info or
-            current_target != (target_pos.x, target_pos.y) or
+            current_target != target_coords or
             not path
         )
+        if recalculate_path and (now - last_time < 0.5):
+            recalculate_path = False
 
         # Condition supplémentaire : recalculer si une menace obstrue le chemin à venir
         # Augmentation de la portée de détection pour l'évitement local
@@ -237,11 +248,11 @@ class KamikazeAiProcessor(esper.Processor):
                 recalculate_path = True
 
 
-        if recalculate_path:
+        if recalculate_path and target_pos is not None:
             start_grid = (int(pos.x // TILE_SIZE), int(pos.y // TILE_SIZE))
             goal_grid = (int(target_pos.x // TILE_SIZE), int(target_pos.y // TILE_SIZE))
             path = self.astar(self.inflated_world_map, start_grid, goal_grid) # Utilise la carte gonflée
-            
+            self._last_path_request_time[ent] = now
             if path:
                 # Convertir le chemin de grille en coordonnées mondiales
                 world_path = [(gx * TILE_SIZE + TILE_SIZE / 2, gy * TILE_SIZE + TILE_SIZE / 2) for gx, gy in path]
@@ -255,6 +266,9 @@ class KamikazeAiProcessor(esper.Processor):
                 if ent not in self._kamikaze_paths:
                     self._kamikaze_paths[ent] = {}
                 self._kamikaze_paths[ent].update({'path': [], 'target': (target_pos.x, target_pos.y), 'waypoint_index': 0, 'target_entity_id': target_id})
+        elif recalculate_path:
+            # Si pas de target_pos, on ne fait rien
+            pass
 
 
         # Suivre le chemin (steering) pour obtenir la direction souhaitée
@@ -277,7 +291,10 @@ class KamikazeAiProcessor(esper.Processor):
                 desired_direction_angle = self.get_angle_to_target(pos, waypoint_pos)
         else:
             # Pas de chemin, comportement par défaut (foncer vers la cible)
-            desired_direction_angle = self.get_angle_to_target(pos, target_pos)
+            if target_pos is not None:
+                desired_direction_angle = self.get_angle_to_target(pos, target_pos)
+            else:
+                desired_direction_angle = pos.direction
 
         # Convertir l'angle souhaité en vecteur de direction
         desired_direction_vector = np.array([math.cos(math.radians(desired_direction_angle)), math.sin(math.radians(desired_direction_angle))])
