@@ -16,6 +16,20 @@ from src.components.core.teamComponent import TeamComponent
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
+from src.functions.resource_path import get_resource_path
+
+def get_app_data_path() -> str:
+    """
+    Retourne un chemin sûr pour stocker les données de l'application (modèles, sauvegardes).
+    Ex: C:/Users/Username/AppData/Roaming/GaladIslands sur Windows.
+    """
+    app_name = "GaladIslands"
+    if os.name == 'nt':  # Windows
+        path = os.path.join(os.environ['APPDATA'], app_name)
+    else:  # Linux, macOS
+        path = os.path.join(os.path.expanduser('~'), '.local', 'share', app_name)
+    os.makedirs(path, exist_ok=True)
+    return path
 
 class BarhamusAI:
     """IA pour la troupe Barhamus (Maraudeur Zeppelin) utilisant scikit-learn"""
@@ -25,6 +39,9 @@ class BarhamusAI:
         self.cooldown = 0.0
         self.shield_active = False
         self.grid = None
+
+        # Chemin pour les modèles dynamiques
+        self.models_dir = os.path.join(get_app_data_path(), "models")
         
         # Système d'apprentissage avec scikit-learn
         self.decision_tree = DecisionTreeClassifier(random_state=42, max_depth=8)
@@ -992,9 +1009,8 @@ class BarhamusAI:
     def _save_model(self):
         """Sauvegarde le modèle entraîné"""
         try:
-            model_dir = "models"
-            if not os.path.exists(model_dir):
-                os.makedirs(model_dir)
+            if not os.path.exists(self.models_dir):
+                os.makedirs(self.models_dir)
             
             model_data = {
                 'decision_tree': self.decision_tree,
@@ -1004,7 +1020,7 @@ class BarhamusAI:
                 'is_trained': self.is_trained
             }
             
-            with open(f"{model_dir}/barhamus_ai_{self.entity}.pkl", 'wb') as f:
+            with open(os.path.join(self.models_dir, f"barhamus_ai_{self.entity}.pkl"), 'wb') as f:
                 pickle.dump(model_data, f)
         except Exception as e:
             print(f"Erreur sauvegarde modèle: {e}")
@@ -1012,7 +1028,7 @@ class BarhamusAI:
     def _load_model(self):
         """Charge un modèle sauvegardé"""
         try:
-            model_path = f"models/barhamus_ai_{self.entity}.pkl"
+            model_path = os.path.join(self.models_dir, f"barhamus_ai_{self.entity}.pkl")
             if os.path.exists(model_path):
                 with open(model_path, 'rb') as f:
                     model_data = pickle.load(f)
