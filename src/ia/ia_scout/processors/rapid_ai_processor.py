@@ -26,6 +26,7 @@ from src.settings.settings import TILE_SIZE
 
 from ..config import get_settings
 from ..log import get_logger
+from src.settings.settings import config_manager
 from ..services import (
     AIContextManager,
     CoordinationService,
@@ -168,7 +169,8 @@ class RapidTroopAIProcessor(esper.Processor):
                 settings=self.settings,
             )
             self.controllers[entity_id] = controller
-            LOGGER.debug("[AI] Created controller for entity %s", entity_id)
+            if config_manager.get('dev_mode', False):
+                LOGGER.debug("[AI] Created controller for entity %s", entity_id)
         return controller
 
     def _refresh_services(self, dt: float) -> None:
@@ -211,7 +213,8 @@ class RapidTroopAIProcessor(esper.Processor):
         if controller and controller.context and controller.context.assigned_chest_id is not None:
             self.coordination.release_chest(controller.context.assigned_chest_id)
         self.context_manager.remove_context(entity_id)
-        LOGGER.debug("[AI] Removed controller for entity %s", entity_id)
+        if config_manager.get('dev_mode', False):
+            LOGGER.debug("[AI] Removed controller for entity %s", entity_id)
 
     def _push_env_events(self) -> None:
         # Publish chest events
@@ -425,14 +428,16 @@ class RapidUnitController:
 
     def start_navigation(self, context: UnitContext, target: Optional[tuple[float, float]], return_state: str) -> bool:
         if target is None:
-            LOGGER.info("[AI] %s start_navigation: target is None", self.entity_id)
+            if config_manager.get('dev_mode', False):
+                LOGGER.info("[AI] %s start_navigation: target is None", self.entity_id)
             return False
         current_target = context.share_channel.get("nav_target") or self._persistent_nav_target
         context.share_channel["nav_return"] = return_state
         self._persistent_nav_return = return_state
         if (self._persistent_nav_active or self.is_navigation_active(context)) and current_target is not None:
             if self._navigation_distance(current_target, target) <= self.navigation_tolerance * 0.25:
-                LOGGER.info("[AI] %s start_navigation: already navigating to same target", self.entity_id)
+                if config_manager.get('dev_mode', False):
+                    LOGGER.info("[AI] %s start_navigation: already navigating to same target", self.entity_id)
                 return False
         context.share_channel["nav_target"] = target
         self._persistent_nav_target = target
@@ -444,9 +449,10 @@ class RapidUnitController:
         if not self.navigation_target_matches(context, target, tolerance=self.navigation_tolerance * 0.25):
             context.reset_path()
         context.share_channel.pop("goto_last_replan", None)
-        LOGGER.info("[AI] %s start_navigation: navigation started to (%.1f,%.1f), nav_active=%s, nav_owner=%s", 
-                   self.entity_id, target[0], target[1], 
-                   context.share_channel.get("nav_active"), context.share_channel.get("nav_owner"))
+        if config_manager.get('dev_mode', False):
+            LOGGER.info("[AI] %s start_navigation: navigation started to (%.1f,%.1f), nav_active=%s, nav_owner=%s", 
+                       self.entity_id, target[0], target[1], 
+                       context.share_channel.get("nav_active"), context.share_channel.get("nav_owner"))
         return True
 
     def cancel_navigation(self, context: UnitContext) -> None:
@@ -588,9 +594,10 @@ class RapidUnitController:
         if (self._persistent_nav_active or self.is_navigation_active(context)) and return_state == "Attack":
             return False
         result = context.current_objective.type in {"attack", "attack_mobile", "attack_base"}
-        LOGGER.info("[AI] %s _has_attack_objective: returning %s (objective_type=%s, nav_active=%s, nav_return=%s)", 
-                    self.entity_id, result, context.current_objective.type, 
-                    self.is_navigation_active(context), return_state)
+        if config_manager.get('dev_mode', False):
+            LOGGER.info("[AI] %s _has_attack_objective: returning %s (objective_type=%s, nav_active=%s, nav_return=%s)", 
+                        self.entity_id, result, context.current_objective.type, 
+                        self.is_navigation_active(context), return_state)
         return result
 
     def _has_follow_to_die(self, dt: float, context: UnitContext) -> bool:
@@ -621,35 +628,42 @@ class RapidUnitController:
         """
         objective = context.current_objective
         if objective is None:
-            LOGGER.info("[AI] %s _attack_done: no objective, returning True", self.entity_id)
+            if config_manager.get('dev_mode', False):
+                LOGGER.info("[AI] %s _attack_done: no objective, returning True", self.entity_id)
             return True
         
         # Les coffres sont prioritaires - forcer la sortie de l'attaque
         if objective.type in {"goto_chest"}:
-            LOGGER.info("[AI] %s _attack_done: chest objective detected, returning True (priority switch)", self.entity_id)
+            if config_manager.get('dev_mode', False):
+                LOGGER.info("[AI] %s _attack_done: chest objective detected, returning True (priority switch)", self.entity_id)
             return True
         
         # Pour les objectifs de position fixe comme attack_base, l'attaque ne se termine jamais
         if objective.type in {"attack_base"}:
             result = False
-            LOGGER.info("[AI] %s _attack_done: attack_base objective, returning %s", self.entity_id, result)
+            if config_manager.get('dev_mode', False):
+                LOGGER.info("[AI] %s _attack_done: attack_base objective, returning %s", self.entity_id, result)
             return result
         
         # Pour les objectifs d'attaque: l'attaque se termine si l'entité cible n'existe plus
         if objective.type in {"attack", "attack_mobile"}:
             if objective.target_entity is None:
-                LOGGER.info("[AI] %s _attack_done: attack objective without target entity, returning True", self.entity_id)
+                if config_manager.get('dev_mode', False):
+                    LOGGER.info("[AI] %s _attack_done: attack objective without target entity, returning True", self.entity_id)
                 return True
             try:
                 esper.component_for_entity(objective.target_entity, PositionComponent)
-                LOGGER.info("[AI] %s _attack_done: attack target still exists, returning False", self.entity_id)
+                if config_manager.get('dev_mode', False):
+                    LOGGER.info("[AI] %s _attack_done: attack target still exists, returning False", self.entity_id)
                 return False
             except KeyError:
-                LOGGER.info("[AI] %s _attack_done: attack target no longer exists, returning True", self.entity_id)
+                if config_manager.get('dev_mode', False):
+                    LOGGER.info("[AI] %s _attack_done: attack target no longer exists, returning True", self.entity_id)
                 return True
         
         # Fallback pour types inconnus
-        LOGGER.info("[AI] %s _attack_done: unknown objective type=%s, returning True", self.entity_id, objective.type)
+        if config_manager.get('dev_mode', False):
+            LOGGER.info("[AI] %s _attack_done: unknown objective type=%s, returning True", self.entity_id, objective.type)
         return True
 
     def _near_druid(self, dt: float, context: UnitContext) -> bool:
@@ -713,38 +727,45 @@ class RapidUnitController:
         projectile_target = None
         target_entity = None
 
-        # Priorité : cible actuelle si elle existe
+        # Priorité : cible actuelle si elle existe et est un ennemi
         if context.target_entity is not None and esper.entity_exists(context.target_entity):
             try:
-                target_pos = esper.component_for_entity(context.target_entity, PositionComponent)
-                projectile_target = (target_pos.x, target_pos.y)
-                target_entity = context.target_entity
+                target_team = esper.component_for_entity(context.target_entity, TeamComponent)
+                my_team = esper.component_for_entity(context.entity_id, TeamComponent)
+                if target_team.team_id != my_team.team_id and target_team.team_id != 0:
+                    target_pos = esper.component_for_entity(context.target_entity, PositionComponent)
+                    projectile_target = (target_pos.x, target_pos.y)
+                    target_entity = context.target_entity
             except KeyError:
                 pass
 
-        # Sinon, utiliser l'objectif actuel
+        # Sinon, utiliser l'objectif actuel uniquement si c'est une entité ennemie
         if projectile_target is None and context.current_objective:
             objective = context.current_objective
             if objective.target_entity and esper.entity_exists(objective.target_entity):
                 try:
-                    target_pos = esper.component_for_entity(objective.target_entity, PositionComponent)
-                    projectile_target = (target_pos.x, target_pos.y)
-                    target_entity = objective.target_entity
+                    target_team = esper.component_for_entity(objective.target_entity, TeamComponent)
+                    my_team = esper.component_for_entity(context.entity_id, TeamComponent)
+                    if target_team.team_id != my_team.team_id and target_team.team_id != 0:
+                        target_pos = esper.component_for_entity(objective.target_entity, PositionComponent)
+                        projectile_target = (target_pos.x, target_pos.y)
+                        target_entity = objective.target_entity
                 except KeyError:
                     pass
-            elif objective.target_position:
-                projectile_target = objective.target_position
+            # On ignore objective.target_position si ce n'est pas une entité ennemie
 
-        # Vérification du radius de vision avec la constante gameplay
+        # Vérification du radius de tir et de vision
         vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
+        shooting_radius = self.get_shooting_range(context)
         if projectile_target is not None:
             try:
                 pos = esper.component_for_entity(context.entity_id, PositionComponent)
                 dx = pos.x - projectile_target[0]
                 dy = pos.y - projectile_target[1]
                 distance = math.hypot(dx, dy)
-                if vision_radius > 0.0 and distance > vision_radius:
-                    return  # Cible hors du champ de vision
+                # La cible doit être dans le radius de tir ET de vision
+                if (vision_radius > 0.0 and distance > vision_radius) or (shooting_radius > 0.0 and distance > shooting_radius):
+                    return  # Cible hors du champ de vision ou de tir
             except KeyError:
                 pass
 
@@ -788,6 +809,17 @@ class RapidUnitController:
         # Si la cible est une mine ou un allié, ne pas tirer
         if is_mine or is_ally:
             return
+        # Filtre supplémentaire : ne tirer que sur une entité ayant TeamComponent et team adverse
+        if target_entity is None:
+            return # Ne pas tirer si aucune entité n'est ciblée
+
+        try:
+            target_team = esper.component_for_entity(target_entity, TeamComponent)
+            my_team = esper.component_for_entity(context.entity_id, TeamComponent)
+            if target_team.team_id == my_team.team_id:
+                return  # Ne pas tirer sur sa propre équipe
+        except Exception:
+            return # Ne pas tirer si la cible n'a pas de composant d'équipe
 
         # Orienter vers la cible (ou garder la direction actuelle)
         if projectile_target is not None:
@@ -838,21 +870,35 @@ class RapidUnitController:
         if should_reconsider:
             previous_type = context.current_objective.type if context.current_objective else "aucun"
             previous_target = context.current_objective.target_entity if context.current_objective else None
-            objective, score = self.goal_evaluator.evaluate(
-                context,
-                self.danger_map,
-                self.prediction,
-                self.pathfinding,
-            )
+            # --- PRIORITÉ COFFRE VOLANT ---
+            chest_entity = None
+            from src.components.events.flyChestComponent import FlyingChestComponent
+            for entity, chest in esper.get_component(FlyingChestComponent):
+                if not chest.is_sinking and not chest.is_collected:
+                    chest_entity = entity
+                    break
+            if chest_entity is not None:
+                # Si un coffre volant est disponible, objectif prioritaire
+                pos_comp = esper.component_for_entity(chest_entity, PositionComponent)
+                objective = Objective("goto_chest", (pos_comp.x, pos_comp.y))
+                score = 100.0
+            else:
+                objective, score = self.goal_evaluator.evaluate(
+                    context,
+                    self.danger_map,
+                    self.prediction,
+                    self.pathfinding,
+                )
             if objective.type == "goto_chest" and objective.target_entity is not None:
                 owner = self.coordination.chest_owner(objective.target_entity)
                 if owner not in (None, self.entity_id):
-                    LOGGER.info(
-                        "[AI] %s coffre %s déjà pris par %s, bascule en survie",
-                        self.entity_id,
-                        objective.target_entity,
-                        owner,
-                    )
+                    if config_manager.get('dev_mode', False):
+                        LOGGER.info(
+                            "[AI] %s coffre %s déjà pris par %s, bascule en survie",
+                            self.entity_id,
+                            objective.target_entity,
+                            owner,
+                        )
                     objective = Objective("survive", context.position)
                     score = 0.0
                 else:
@@ -863,44 +909,46 @@ class RapidUnitController:
                         self.coordination.release_chest(context.assigned_chest_id)
                     self.coordination.assign_chest(self.entity_id, objective.target_entity, now)
                     context.assigned_chest_id = objective.target_entity
-                    LOGGER.info(
-                        "[AI] %s coffre %s assigné",
-                        self.entity_id,
-                        objective.target_entity,
-                    )
+                    if config_manager.get('dev_mode', False):
+                        LOGGER.info(
+                            "[AI] %s coffre %s assigné",
+                            self.entity_id,
+                            objective.target_entity,
+                        )
             elif context.assigned_chest_id is not None:
                 self.coordination.release_chest(context.assigned_chest_id)
-                LOGGER.info(
-                    "[AI] %s coffre %s libéré",
-                    self.entity_id,
-                    context.assigned_chest_id,
-                )
+                if config_manager.get('dev_mode', False):
+                    LOGGER.info(
+                        "[AI] %s coffre %s libéré",
+                        self.entity_id,
+                        context.assigned_chest_id,
+                    )
                 context.assigned_chest_id = None
-            
             # Vérifier si l'objectif attack_base est valide (pas d'unités ennemies près de la base)
             if objective.type == "attack_base" and objective.target_entity is not None:
                 base_block_until = context.share_channel.get("attack_base_block_until", 0.0)
                 base_protection_radius = 200.0
                 if self._is_base_protected(context, objective.target_entity, base_protection_radius):
                     if now >= base_block_until:
-                        LOGGER.info(
-                            "[AI] %s base protégée par des unités ennemies, autorisation d'attaque",
-                            self.entity_id,
-                        )
+                        if config_manager.get('dev_mode', False):
+                            LOGGER.info(
+                                "[AI] %s base protégée par des unités ennemies, autorisation d'attaque",
+                                self.entity_id,
+                            )
                     # Autoriser l'attaque même si protégée
                 else:
                     if base_block_until > 0.0 and base_block_until > now:
                         context.share_channel["attack_base_block_until"] = 0.0
-            
             new_signature = (objective.type, objective.target_entity)
             if new_signature != self._last_objective_signature:
-                LOGGER.info(
-                    "[AI] %s objectif %s → %s (score=%.2f)",
-                    self.entity_id,
-                    previous_type,
-                    objective.type,
-                    score,
-                )
+                if config_manager.get('dev_mode', False):
+                    LOGGER.info(
+                        "[AI] %s objectif %s → %s (score=%.2f)",
+                        self.entity_id,
+                        previous_type,
+                        objective.type,
+                        score,
+                    )
                 self._last_objective_signature = new_signature
             self.context_manager.assign_objective(context, objective, score)
             self.target_position = objective.target_position
@@ -923,13 +971,14 @@ class RapidUnitController:
         if (context.stuck_state_time > 5.0 and 
             current_state in ["Idle", "Attack", "Flee"] and 
             context.current_objective is not None):
-            LOGGER.info(
-                "[AI] %s coincée dans %s depuis %.1fs, abandon objectif %s",
-                self.entity_id,
-                current_state,
-                context.stuck_state_time,
-                context.current_objective.type,
-            )
+            if config_manager.get('dev_mode', False):
+                LOGGER.info(
+                    "[AI] %s coincée dans %s depuis %.1fs, abandon objectif %s",
+                    self.entity_id,
+                    current_state,
+                    context.stuck_state_time,
+                    context.current_objective.type,
+                )
             context.current_objective = None
             context.stuck_state_time = 0.0
             context.last_state_change = now
@@ -1038,5 +1087,3 @@ class RapidUnitController:
             self._path_cache[cache_key] = path
         else:
             self.context.reset_path()
-
-

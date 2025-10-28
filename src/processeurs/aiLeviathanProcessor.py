@@ -409,15 +409,19 @@ class AILeviathanProcessor(esper.Processor):
 
             # Primary Fire: Forward-facing weapons
             if in_attack_range and abs(angle_diff) < ALIGN_TOLERANCE_ATTACK:
+                # Vérifie que la cible n’est pas une mine (team neutre)
+                target_enemy_id = getattr(state, 'nearest_enemy_id', None)
+                is_mine = False
+                if target_enemy_id is not None and esper.has_component(target_enemy_id, TeamComponent):
+                    target_team = esper.component_for_entity(target_enemy_id, TeamComponent)
+                    if getattr(target_team, 'team_id', None) == 0:
+                        is_mine = True
                 # Special Ability: Aggressive usage for maximum DPS
-                # 15s cooldown means frequent opportunities in extended combat
                 should_use_special = spe_lev.can_activate()
-
-                if should_use_special:
+                if should_use_special and not is_mine:
                     spe_lev.activate()
-
                 # Main Weapons: Fire when cooldown ready
-                if radius.cooldown <= 0:
+                if radius.cooldown <= 0 and not is_mine:
                     esper.dispatch_event("attack_event", entity)
                     radius.cooldown = radius.bullet_cooldown
 
