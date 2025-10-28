@@ -952,6 +952,9 @@ class RapidUnitController:
                 self._last_objective_signature = new_signature
             self.context_manager.assign_objective(context, objective, score)
             self.target_position = objective.target_position
+            # Recalcule le chemin dès qu'un nouvel objectif est assigné
+            if objective.target_position is not None:
+                self.request_path(objective.target_position)
         if skip_attack_flag:
             context.share_channel.pop("skip_attack_base", None)
 
@@ -1081,7 +1084,10 @@ class RapidUnitController:
         if now - self._last_path_request_time < 0.5:
             return
         self._last_path_request_time = now
-        path = self.pathfinding.find_path(self.context.position, target_position)
+        # Conversion des coordonnées en entiers pour le pathfinding
+        start_pos = (int(round(self.context.position[0])), int(round(self.context.position[1])))
+        end_pos = (int(round(target_position[0])), int(round(target_position[1])))
+        path = self.pathfinding.find_path(start_pos, end_pos)
         if path:
             self.context.set_path(path)
             self._path_cache[cache_key] = path
