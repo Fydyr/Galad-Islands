@@ -145,12 +145,8 @@ class AILeviathanProcessor(esper.Processor):
         ):
             ai_entities_found += 1
 
-            # Skip disabled AI
-            if not ai_comp.enabled:
-                continue
-
-            # Skip player-controlled units
-            if esper.has_component(entity, PlayerSelectedComponent):
+            # Désactivation IA si unité sélectionnée par le joueur
+            if not ai_comp.enabled or esper.has_component(entity, PlayerSelectedComponent):
                 continue
 
             # Update Attack Cooldown: Frame-rate independent decrement

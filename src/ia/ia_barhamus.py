@@ -14,6 +14,7 @@ from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.attackComponent import AttackComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.teamComponent import TeamComponent
+from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
@@ -102,6 +103,11 @@ class BarhamusAI:
 
     def update(self, world, dt):
         """Mise à jour principale de l'IA avec apprentissage"""
+        # Désactiver l'IA si l'unité est sélectionnée par le joueur
+        if world.has_component(self.entity, PlayerSelectedComponent):
+            # Optionnel : log pour debug
+            # print(f"Barhamus {self.entity}: IA désactivée car unité sélectionnée.")
+            return
         try:
             # Récupérer les composants
             pos = world.component_for_entity(self.entity, PositionComponent)

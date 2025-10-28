@@ -17,6 +17,7 @@ from src.components.core.baseComponent import BaseComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.components.special.speArchitectComponent import SpeArchitect
 from src.components.core.towerComponent import TowerComponent
+from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.functions.buildingCreator import createDefenseTower, createHealTower
 
 # AI and pathfinding
@@ -88,7 +89,7 @@ class ArchitectAIProcessor(esper.Processor):
             HealthComponent,
             TeamComponent,
         ):
-            # Skip AI processing for player-selected units to allow manual control.
+            # Désactiver l'IA si l'unité est sélectionnée
             if esper.has_component(entity, PlayerSelectedComponent):
                 continue
 
