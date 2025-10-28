@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
 import pickle
 import os
+import sys
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.radiusComponent import RadiusComponent
@@ -24,12 +25,20 @@ def get_app_data_path() -> str:
     Ex: C:/Users/Username/AppData/Roaming/GaladIslands sur Windows.
     """
     app_name = "GaladIslands"
-    if os.name == 'nt':  # Windows
-        path = os.path.join(os.environ['APPDATA'], app_name)
-    else:  # Linux, macOS
-        path = os.path.join(os.path.expanduser('~'), '.local', 'share', app_name)
-    os.makedirs(path, exist_ok=True)
-    return path
+    # Si exécuté en version compilée (PyInstaller)
+    if getattr(sys, 'frozen', False):
+        if os.name == 'nt':  # Windows
+            path = os.path.join(os.environ['APPDATA'], app_name)
+        else:  # Linux, macOS
+            path = os.path.join(os.path.expanduser('~'), '.local', 'share', app_name)
+        os.makedirs(path, exist_ok=True)
+        return path
+    else:
+        # Version non compilée : stocker dans src/models du projet
+        path = os.path.join(os.path.dirname(__file__), '..', 'models')
+        path = os.path.abspath(path)
+        os.makedirs(path, exist_ok=True)
+        return path
 
 class BarhamusAI:
     """IA pour la troupe Barhamus (Maraudeur Zeppelin) utilisant scikit-learn"""
