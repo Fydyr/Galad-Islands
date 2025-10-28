@@ -57,12 +57,11 @@ class DruidAIProcessor(esper.Processor):
         self.minimax_service = run_minimax
         self.debug_timer = 0.0
         self.last_dt = 0.0
-
-    def process(self):
-        dt = self.last_dt
+        
+    def process(self, dt: float, **kwargs):
         self.debug_timer -= dt
         debug_this_frame = False
-        if self.debug_timer <= 0:
+        if self.debug_timer <= 0.0:
             self.debug_timer = 2.0
             debug_this_frame = True
 
@@ -103,10 +102,14 @@ class DruidAIProcessor(esper.Processor):
                 pos.direction = angle
                 vel.currentSpeed = vel.maxUpSpeed
 
-            ai.think_cooldown_current -= self.last_dt
+            ai.think_cooldown_current -= dt
             # --- 2. GESTION DE LA DÉCISION (PÉRIODIQUEMENT) ---
-            if ai.think_cooldown_current <= 0 and ai.current_action is None:
-                # print(f"[AI DEBUG 3] L'entité {ent} commence à RÉFLÉCHIR.") Moins de spam
+            # L'IA doit pouvoir réévaluer la situation même si une action est en cours (ex: un mouvement)
+            # On retire la condition `and ai.current_action is None` mais on garde le cooldown.
+            if ai.think_cooldown_current <= 0.0:
+                if debug_this_frame:
+                    print(f"[AI DEBUG 3] L'entité {ent} commence à RÉFLÉCHIR (action en cours: {ai.current_action}).")
+
                 ai.think_cooldown_current = ai.think_cooldown_max
 
                 game_state = self._build_game_state(ent, ai, pos, team, health)

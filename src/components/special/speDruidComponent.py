@@ -9,6 +9,7 @@ class SpeDruid:
         self.available: bool = available
         self.cooldown: float = cooldown
         self.cooldown_duration: float = cooldown_duration
+        self.projectile_launched: bool = False
 
     def can_cast_ivy(self) -> bool:
         return self.available

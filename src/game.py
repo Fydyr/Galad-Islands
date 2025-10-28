@@ -181,17 +181,6 @@ class EventHandler:
             self._show_help_modal()
         elif controls.matches_action(controls.ACTION_SYSTEM_DEBUG, event):
             self._toggle_debug()
-        # Dev cheat: give gold (F5) - only active when debug mode or dev flag enabled
-        elif event.key == pygame.K_F5:
-            # Allow only in debug mode or when configuration enables dev cheats
-            try:
-                dev_mode = config_manager.get('dev_mode', False)
-            except Exception:
-                dev_mode = False
-
-            if self.game_engine.show_debug or dev_mode:
-                self.game_engine._give_dev_gold(500)
-            return
         elif controls.matches_action(controls.ACTION_SYSTEM_SHOP, event):
             self._open_shop()
         elif controls.matches_action(controls.ACTION_CAMERA_FOLLOW_TOGGLE, event):
@@ -1805,13 +1794,6 @@ class GameEngine:
         if self.notification_system is not None:
             self.notification_system.update(dt)
 
-        # IA - Mise à jour du processeur IA (qui a besoin de dt)
-        if self.druid_ai_processor is not None:
-            # Assurer que la grille est à jour (au cas où elle changerait, peu probable)
-            if hasattr(self, 'grid') and self.grid is not None:
-                self.druid_ai_processor.grid = self.grid
-            self.druid_ai_processor.last_dt = dt
-        
         # Traiter les capacités spéciales d'abord (avec dt)
         if self.capacities_processor is not None:
             self.capacities_processor.process(dt)
@@ -1845,7 +1827,7 @@ class GameEngine:
             self.enemy_base_ai.self_play_mode = getattr(self, 'self_play_mode', False)
 
         # Traiter la logique ECS (sans dt pour les autres processeurs)
-        es.process()
+        es.process(dt=dt)
         
         # Mettre à jour toutes les IA de Maraudeurs
         self._update_all_maraudeur_ais(es, dt)

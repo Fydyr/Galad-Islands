@@ -80,7 +80,7 @@ class RapidTroopAIProcessor(esper.Processor):
         # Ce buffer accumule les informations affichées dans l'overlay de débogage.
 
     # Esper API ------------------------------------------------------------
-    def process(self) -> None:
+    def process(self, *args, **kwargs) -> None:
         now = time.perf_counter()
         elapsed = now - self._last_time
         self._last_time = now
