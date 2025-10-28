@@ -224,6 +224,9 @@ class BaseAi(esper.Processor):
             for action in range(7):
                 state_action = features + [action]
                 q_value = self.model.predict([state_action])[0]
+                # Bonus pour le Scout si la base ennemie n'est pas connue
+                if action == 1 and game_state['enemy_base_known'] == 0:
+                    q_value += 10.0
                 q_values.append(q_value)
 
             # Filtrer les actions possibles en fonction de l'or disponible
@@ -231,7 +234,10 @@ class BaseAi(esper.Processor):
                 action for action, details in self.ACTION_MAPPING.items()
                 if game_state['gold'] >= details['cost'] + details['reserve']
             ]
-            
+            # Exclure Kamikaze si la base ennemie n'est pas connue
+            if game_state['enemy_base_known'] == 0:
+                affordable_actions = [a for a in affordable_actions if a != 6]
+
             if not affordable_actions:
                 return 0
 
