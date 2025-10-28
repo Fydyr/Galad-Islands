@@ -37,7 +37,7 @@ from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
 from src.ia.KamikazeAi import KamikazeAiProcessor
 from src.ia.BaseAi import BaseAi
-from processeurs.ai.DruidAIProcessor import DruidAIProcessor
+from src.processeurs.ai.DruidAIProcessor import DruidAIProcessor
 from src.processeurs.towerProcessor import TowerProcessor
 from src.ia.ia_scout.processors.rapid_ai_processor import RapidTroopAIProcessor
 
