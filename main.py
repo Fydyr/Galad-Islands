@@ -358,9 +358,31 @@ class MainMenu:
                     self._render(dt)
 
         except Exception as e:
-            print(t("system.main_loop_error", error=e))
             import traceback
             traceback.print_exc()
+            # Affichage d'une popup graphique en cas de crash (tkinter)
+            try:
+                import tkinter as tk
+                import webbrowser
+                from urllib.parse import quote_plus
+                def open_github_issue():
+                    titre = quote_plus("Crash Galad Islands: " + type(e).__name__)
+                    body = quote_plus(f"## Description du bug\n\nOups ! Le jeu a crashé : {type(e).__name__}: {e}\n\nTraceback:\n{traceback.format_exc()}\n\nVersion: 28 octobre 2025\nMerci de décrire ce que tu faisais juste avant le crash !")
+                    url = f"https://github.com/Fydyr/Galad-Islands/issues/new?title={titre}&body={body}"
+                    webbrowser.open_new(url)
+                root = tk.Tk()
+                root.title("Erreur Galad Islands")
+                root.geometry("500x260")
+                msg = "Oups ! On dirait que le jeu s'est transformé en Kamikaze !\n\n" + f"{type(e).__name__}: {e}"
+                label = tk.Label(root, text=msg, fg="#d32f2f", font=("Arial", 12), wraplength=480, justify="left")
+                label.pack(pady=20)
+                btn = tk.Button(root, text="Signaler le bug sur GitHub", command=open_github_issue, bg="#1976d2", fg="white", font=("Arial", 11, "bold"))
+                btn.pack(pady=10)
+                btn2 = tk.Button(root, text="Fermer", command=root.destroy, font=("Arial", 10))
+                btn2.pack(pady=5)
+                root.mainloop()
+            except Exception:
+                print("Erreur critique lors de l'affichage de la popup tkinter !")
 
         finally:
             if self.created_local_window:
@@ -382,8 +404,6 @@ def main_menu(win=None):
 
 # Program entry point
 if __name__ == "__main__":
-
-    # Launch menu
 
     # Launch menu
     main_menu()
