@@ -3,6 +3,7 @@ import traceback
 def show_crash_popup(e):
     try:
         from src.settings.settings import config_manager
+        from src.settings.settings import get_project_version
         if config_manager.get('dev_mode', False):
             print(f"Crash Galad Islands: {type(e).__name__}: {e}")
             print(traceback.format_exc())
@@ -13,9 +14,10 @@ def show_crash_popup(e):
 
         def popup():
             def open_github_issue():
+                version = get_project_version()
                 titre = quote_plus("Crash Galad Islands: " + type(e).__name__)
                 body = quote_plus(
-                    f"## Description du bug\n\nOups ! Le jeu a crashé : {type(e).__name__}: {e}\n\nTraceback:\n{traceback.format_exc()}\n\nVersion: 28 octobre 2025\nMerci de décrire ce que tu faisais juste avant le crash !")
+                    f"## Description du bug\n\nOups ! Le jeu a crashé : {type(e).__name__}: {e}\n\nTraceback:\n{traceback.format_exc()}\n\nVersion: {version}\nMerci de décrire ce que tu faisais juste avant le crash !")
                 url = f"https://github.com/Fydyr/Galad-Islands/issues/new?title={titre}&body={body}"
                 webbrowser.open_new(url)
             root = tk.Tk()
