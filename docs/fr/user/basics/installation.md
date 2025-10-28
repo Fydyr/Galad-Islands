@@ -60,7 +60,8 @@ Pour en savoir plus, consultez le [guide dédié](../tools/galad-config-tool.md)
 1. Vérifier les prérequis système
 2. Mettre à jour les pilotes graphiques
 3. Réinstaller le jeu
-4. Vérifier les logs d'erreur en le lançant dans un terminal/console
+4. (Linux seulement) Installer la version Windows du jeu avec Wine ou Proton via Steam
+5. Vérifier les logs d'erreur en le lançant dans un terminal/console
    - Sur Windows : Ouvrir `cmd`, naviguer vers le dossier du jeu et exécuter `galad-islands.exe`
    - Sur macOS/Linux : Ouvrir un terminal, naviguer vers le dossier du jeu et exécuter `./galad-islands`
    - Consulter les messages d'erreur affichés pour identifier le problème et créer une issue sur la [page GitHub du projet](https://github.com/Galad-Islands/Issues)
