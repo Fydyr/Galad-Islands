@@ -71,23 +71,18 @@ saves/
 profiles/
 galad_config.json
 galad_resolutions.json
-galad_config.json
-galad_resolutions.json
 
 # Fichiers de modèles d'IA (ne pas versionner)
-models/
 *.pkl
+!models/base_ai_unified_final.pkl
 
-# Instructions de développement
-.github/instructions/
-technicalGameDesign.md
-GameDesign.md
 
 # documentation hook
 HOOKS_UNIVERSAL.md
 
 # Fichiers générés par le build de Pyinstaller
 *.spec
+!build.spec
 
 # Fichiers générés par l'IA
 *.npz
