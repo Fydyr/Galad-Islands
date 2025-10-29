@@ -75,8 +75,7 @@ galad_resolutions.json
 # Fichiers de modèles d'IA (ne pas versionner)
 *.pkl
 !models/base_ai_unified_final.pkl
-!models/barhamus_ai_pretrained.pkl
-!models/barhamus_scaler_pretrained.pkl
+!models/barhamus_pretrained.pkl
 
 
 # documentation hook
