@@ -31,6 +31,7 @@ DEFAULT_CONFIG = {
     "performance_mode": "auto",  # "auto", "high", "medium", "low"
     "disable_particles": False,
     "disable_shadows": False,
+    "disable_ai_learning": False,
     "max_fps": 60,
     "show_fps": False,
     "dev_mode": False,  # Mode développement pour les actions debug
@@ -192,6 +193,14 @@ class ConfigManager:
     def set_disable_shadows(self, disabled: bool) -> None:
         """Active/désactive les ombres."""
         self.config["disable_shadows"] = bool(disabled)
+
+    def get_disable_ai_learning(self) -> bool:
+        """Retourne si l'apprentissage IA est désactivé."""
+        return bool(self.config.get("disable_ai_learning", False))
+
+    def set_disable_ai_learning(self, disabled: bool) -> None:
+        """Active/désactive l'apprentissage IA."""
+        self.config["disable_ai_learning"] = bool(disabled)
 
     def get_key_bindings(self) -> Dict[str, List[str]]:
         """Retourne une copie des associations de touches personnalisées."""
@@ -374,6 +383,15 @@ def get_disable_shadows() -> bool:
 def set_disable_shadows(disabled: bool) -> bool:
     """Active/désactive les ombres et sauvegarde."""
     config_manager.set_disable_shadows(disabled)
+    return config_manager.save_config()
+
+def get_disable_ai_learning() -> bool:
+    """Retourne si l'apprentissage IA est désactivé."""
+    return config_manager.get_disable_ai_learning()
+
+def set_disable_ai_learning(disabled: bool) -> bool:
+    """Active/désactive l'apprentissage IA et sauvegarde."""
+    config_manager.set_disable_ai_learning(disabled)
     return config_manager.save_config()
 
 

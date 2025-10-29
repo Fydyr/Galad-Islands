@@ -2041,6 +2041,10 @@ class GameEngine:
 
     def _update_all_maraudeur_ais(self, es, dt):
         """Met à jour toutes les IA de Maraudeurs et gère leur création/suppression automatique"""
+        # Vérifier si l'apprentissage IA est désactivé pour améliorer les performances
+        if config_manager.get("disable_ai_learning", False):
+            return
+            
         # Vérifier tous les Maraudeurs existants
         all_maraudeurs = set()
         

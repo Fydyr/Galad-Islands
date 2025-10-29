@@ -20,6 +20,8 @@ from src.settings.settings import (
     set_disable_particles,
     get_disable_shadows,
     set_disable_shadows,
+    get_disable_ai_learning,
+    set_disable_ai_learning,
     reset_to_defaults,
 )
 from src.settings.localization import (
@@ -109,6 +111,7 @@ class OptionsState:
     performance_mode: str
     disable_particles: bool
     disable_shadows: bool
+    disable_ai_learning: bool
     vsync: bool
     max_fps: int
     
@@ -146,6 +149,7 @@ class OptionsState:
             performance_mode=get_performance_mode(),
             disable_particles=get_disable_particles(),
             disable_shadows=get_disable_shadows(),
+            disable_ai_learning=get_disable_ai_learning(),
             vsync=config_manager.get("vsync", True),
             max_fps=int(config_manager.get("max_fps", 60)),
         )
@@ -336,6 +340,26 @@ class OptionsWindow:
         )
         self.components.append(shadows_checkbox)
         y_pos += UIConstants.LINE_HEIGHT
+        
+        # Apprentissage IA
+        ai_learning_rect = pygame.Rect(0, y_pos, self.modal_width - 60, UIConstants.LINE_HEIGHT)
+        ai_learning_checkbox = RadioButton(
+            ai_learning_rect,
+            t("options.disable_ai_learning"),
+            self.font_normal,
+            "disable_ai_learning",
+            selected=self.state.disable_ai_learning,
+            callback=lambda x: self._on_disable_ai_learning_changed()
+        )
+        self.components.append(ai_learning_checkbox)
+        y_pos += UIConstants.LINE_HEIGHT
+        
+        # Description de l'option d'apprentissage IA
+        description_lines = t("options.disable_ai_learning_description").split('\n')
+        for line in description_lines:
+            desc_surf = self.font_small.render(line, True, Colors.GRAY)
+            surface.blit(desc_surf, (20, y_pos))
+            y_pos += 20  # Petite hauteur pour le texte descriptif
         
         # VSync
         vsync_rect = pygame.Rect(0, y_pos, self.modal_width - 60, UIConstants.LINE_HEIGHT)
@@ -767,6 +791,12 @@ class OptionsWindow:
         disabled = not self.state.disable_shadows  # Inverser l'état
         set_disable_shadows(disabled)
         self.state.disable_shadows = disabled
+    
+    def _on_disable_ai_learning_changed(self) -> None:
+        """Callback pour l'activation/désactivation de l'apprentissage IA."""
+        disabled = not self.state.disable_ai_learning  # Inverser l'état
+        set_disable_ai_learning(disabled)
+        self.state.disable_ai_learning = disabled
     
     def _on_reset(self) -> None:
         """Callback pour la réinitialisation des paramètres."""

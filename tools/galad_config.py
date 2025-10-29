@@ -82,7 +82,7 @@ class GaladConfigApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Galad Config Tool")
-        self.geometry("700x750")
+        self.geometry("700x800")
         self.resizable(True, True)
 
         # load current settings
@@ -185,21 +185,29 @@ class GaladConfigApp(tk.Tk):
         self.particles_var = tk.BooleanVar(value=self.config_data.get('disable_particles', False))
         ttk.Checkbutton(frm, text=t('options.disable_particles'), variable=self.particles_var).grid(row=18, column=0, sticky=tk.W, pady=(8, 0))
         
-                # Disable shadows
+        # Disable shadows
         self.shadows_var = tk.BooleanVar(value=self.config_data.get('disable_shadows', False))
         ttk.Checkbutton(frm, text=t('options.disable_shadows'), variable=self.shadows_var).grid(row=19, column=0, sticky=tk.W)
 
+        # Disable AI learning
+        self.disable_ai_learning_var = tk.BooleanVar(value=self.config_data.get('disable_ai_learning', False))
+        ttk.Checkbutton(frm, text=t('options.disable_ai_learning'), variable=self.disable_ai_learning_var).grid(row=20, column=0, sticky=tk.W, pady=(8, 0))
+        
+        # AI learning description
+        ai_desc_label = ttk.Label(frm, text=t('options.disable_ai_learning_description'), font=("", 8, "italic"), foreground="gray", wraplength=400, justify="left")
+        ai_desc_label.grid(row=21, column=0, columnspan=3, sticky=tk.W, pady=(2, 6))
+
                 # Camera sensitivity (placed after performance settings)
-        ttk.Separator(frm).grid(row=20, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        ttk.Separator(frm).grid(row=22, column=0, columnspan=3, sticky='ew', pady=(6, 6))
         self.camera_var = tk.DoubleVar(value=self.config_data.get('camera_sensitivity', 1.0))
         self.camera_label = ttk.Label(frm, text=t('options.camera_sensitivity', sensitivity=self.camera_var.get()))
-        self.camera_label.grid(row=21, column=0, sticky=tk.W)
+        self.camera_label.grid(row=23, column=0, sticky=tk.W)
         self.camera_scale = ttk.Scale(frm, from_=0.2, to=3.0, orient=tk.HORIZONTAL, variable=self.camera_var, command=self._on_camera_changed)
-        self.camera_scale.grid(row=22, column=0, columnspan=3, sticky='ew')
+        self.camera_scale.grid(row=24, column=0, columnspan=3, sticky='ew')
 
         # Language (placed after camera)
-        ttk.Separator(frm).grid(row=23, column=0, columnspan=3, sticky='ew', pady=(6, 6))
-        ttk.Label(frm, text=t('options.language_section')).grid(row=24, column=0, sticky=tk.W)
+        ttk.Separator(frm).grid(row=25, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        ttk.Label(frm, text=t('options.language_section')).grid(row=26, column=0, sticky=tk.W)
         
         # Language dropdown for extensibility
         self.lang_var = tk.StringVar(value=self.config_data.get('language', get_current_language()))
@@ -210,11 +218,11 @@ class GaladConfigApp(tk.Tk):
         self.lang_combo = ttk.Combobox(frm, values=lang_names, state="readonly", width=15)
         self.lang_combo.set(current_lang_name)
         self.lang_combo.bind("<<ComboboxSelected>>", self._on_lang_combo_changed)
-        self.lang_combo.grid(row=25, column=0, sticky=tk.W, padx=(0, 10))
+        self.lang_combo.grid(row=27, column=0, sticky=tk.W, padx=(0, 10))
 
         # Language restart note
         self.lang_note_label = ttk.Label(frm, text=t('options.language_restart_note'), font=("", 8, "italic"), foreground="gray")
-        self.lang_note_label.grid(row=26, column=0, sticky=tk.W, pady=(2, 0))
+        self.lang_note_label.grid(row=28, column=0, sticky=tk.W, pady=(2, 0))
 
         # Ensure the frame has three columns so buttons can align
         frm.columnconfigure(0, weight=1)
@@ -223,12 +231,12 @@ class GaladConfigApp(tk.Tk):
 
         # Action buttons (aligned across three columns)
         self.default_btn = ttk.Button(frm, text=t('options.button_default'), command=self._on_reset)
-        self.default_btn.grid(row=28, column=0, sticky=tk.W, pady=(12, 0), padx=(4, 4))
+        self.default_btn.grid(row=30, column=0, sticky=tk.W, pady=(12, 0), padx=(4, 4))
         self.apply_btn = ttk.Button(frm, text=t('options.apply'), command=self._on_apply)
-        self.apply_btn.grid(row=28, column=1, sticky='', pady=(12, 0))
+        self.apply_btn.grid(row=30, column=1, sticky='', pady=(12, 0))
         self.close_btn = ttk.Button(frm, text=t('options.button_close'), command=self.destroy)
-        self.close_btn.grid(row=28, column=2, sticky=tk.E, pady=(12, 0), padx=(4, 4))
-
+        self.close_btn.grid(row=30, column=2, sticky=tk.E, pady=(12, 0), padx=(4, 4))
+        
 
         # Audio tab
         audio_frm = ttk.Frame(self.notebook, padding=pad)
@@ -406,6 +414,7 @@ class GaladConfigApp(tk.Tk):
         config_manager.set("vsync", self.vsync_var.get())
         config_manager.set("disable_particles", self.particles_var.get())
         config_manager.set("disable_shadows", self.shadows_var.get())
+        config_manager.set("disable_ai_learning", self.disable_ai_learning_var.get())
         # max FPS
         config_manager.set("max_fps", self.fps_var.get())
         config_manager.save_config()
