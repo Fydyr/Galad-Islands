@@ -8,17 +8,22 @@ from sklearn.neighbors import NearestNeighbors
 import pickle
 import os
 import sys
+import heapq
+from typing import Optional
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.radiusComponent import RadiusComponent
-from src.components.core.attackComponent import AttackComponent
+from src.components.core.attackComponent import AttackComponent # Import manquant
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
+from src.components.events.flyChestComponent import FlyingChestComponent
+from src.components.special.speDruidComponent import SpeDruid
 from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
 from src.functions.resource_path import get_resource_path
+from src.settings.settings import config_manager
 
 def get_app_data_path() -> str:
     """
@@ -51,7 +56,7 @@ class BarhamusAI:
         self.grid = None
 
         # Chemin pour les modèles dynamiques
-        self.models_dir = os.path.join(get_app_data_path(), "models")
+        self.models_dir = get_app_data_path()
         
         # Système d'apprentissage avec scikit-learn
         self.decision_tree = DecisionTreeClassifier(random_state=42, max_depth=8)
@@ -94,12 +99,31 @@ class BarhamusAI:
         self.safe_positions = []
         self.dangerous_positions = []
         self.optimal_distances = {}
+        self.nav_grid = None # NOUVEAU: Grille de navigation avec obstacles gonflés
+        self.path = [] # NOUVEAU: Chemin pour le pathfinding
+        self.path_recalc_timer = 0.0
         
         # Initialiser avec des données de base
         self._initialize_base_knowledge()
         
-        # Charger modèle sauvegardé si disponible
+        # Charger modèle pré-entrainé si disponible
+        self._load_pretrained_model()
+        # Charger modèle sauvegardé spécifique à l'entité si disponible (priorité joueur)
         self._load_model()
+
+    def _load_pretrained_model(self):
+        """Charge le modèle/scaler pré-entrainé si disponible (pour démarrer avec une IA compétente)"""
+        try:
+            pretrained_path = os.path.join(self.models_dir, "barhamus_pretrained.pkl")
+            if os.path.exists(pretrained_path):
+                with open(pretrained_path, 'rb') as f:
+                    model_data = pickle.load(f)
+                self.decision_tree = model_data.get('decision_tree', self.decision_tree)
+                self.scaler = model_data.get('scaler', self.scaler)
+                self.is_trained = model_data.get('is_trained', False)
+                print(f"Barhamus {self.entity}: Modèle pré-entrainé chargé !")
+        except Exception as e:
+            print(f"Erreur chargement modèle pré-entrainé: {e}")
 
     def update(self, world, dt):
         """Mise à jour principale de l'IA avec apprentissage"""
@@ -109,16 +133,19 @@ class BarhamusAI:
             # print(f"Barhamus {self.entity}: IA désactivée car unité sélectionnée.")
             return
         try:
+            # Définir la variable ici pour qu'elle soit toujours disponible
+            is_learning_disabled = config_manager.get("disable_ai_learning", False)
+
             # Récupérer les composants
             pos = world.component_for_entity(self.entity, PositionComponent)
-            vel = world.component_for_entity(self.entity, VelocityComponent)
-            radius = world.component_for_entity(self.entity, RadiusComponent)
-            attack = world.component_for_entity(self.entity, AttackComponent)
-            health = world.component_for_entity(self.entity, HealthComponent)
-            team = world.component_for_entity(self.entity, TeamComponent)
-            spe = world.component_for_entity(self.entity, SpeMaraudeur)
+            vel = world.component_for_entity(self.entity, VelocityComponent) # Correction: pas de AttackComponent ici
+            radius = world.component_for_entity(self.entity, RadiusComponent) # Correction: pas de AttackComponent ici
+            health = world.component_for_entity(self.entity, HealthComponent) # Correction: pas de AttackComponent ici
+            team = world.component_for_entity(self.entity, TeamComponent) # Correction: pas de AttackComponent ici
+            spe = world.component_for_entity(self.entity, SpeMaraudeur) # Correction: pas de AttackComponent ici
             
-            print(f"Barhamus {self.entity}: Composants OK - pos={pos.x:.1f},{pos.y:.1f} vel={vel.currentSpeed}")
+            # Ce log est trop verbeux, on le retire pour ne garder que les logs de décision
+            # print(f"Barhamus {self.entity}: Composants OK - pos={pos.x:.1f},{pos.y:.1f} vel={vel.currentSpeed}")
         except Exception as e:
             print(f"Erreur composants Barhamus {self.entity}: {e}")
             return
@@ -126,6 +153,14 @@ class BarhamusAI:
         # Mettre à jour les statistiques de survie
         self.survival_time += dt
         
+        # Créer la grille de navigation si elle n'existe pas
+        if self.grid and self.nav_grid is None:
+            self._create_navigation_grid()
+
+        # Mettre à jour le timer de recalcul de chemin
+        if self.path_recalc_timer > 0:
+            self.path_recalc_timer -= dt
+
         # Gestion du cooldown
         if self.cooldown > 0:
             self.cooldown -= dt
@@ -133,49 +168,58 @@ class BarhamusAI:
         # Analyser la situation tactique
         try:
             current_state = self._analyze_situation(world, pos, health, team)
+
+            # NOUVEAU: Logique prioritaire pour chasser les coffres volants
+            # Condition : pas en danger (santé > 60% et pas d'ennemis proches)
+            enemies = self._find_nearby_enemies(world, pos, team)
+            is_safe = health.currentHealth / health.maxHealth > 0.6 and not enemies
+
+            if is_safe:
+                closest_chest = self._find_nearby_chest(world, pos)
+                if closest_chest:
+                    # Chasser le coffre et ignorer les autres décisions pour ce tick
+                    chest_pos = world.component_for_entity(closest_chest, PositionComponent)
+                    angle = self._angle_to(pos.x - chest_pos.x, pos.y - chest_pos.y)
+                    pos.direction = angle
+                    vel.currentSpeed = 4.0 # Vitesse de chasse
+                    return # Fin du traitement pour ce tick
             
-            # LOGIQUE TACTIQUE PRINCIPALE
-            base_position = self._find_team_base(world, team)
-            enemies_near_base = self._check_enemies_near_base(world, team, base_position)
-            
-            # Décision tactique: Défendre ou Attaquer
-            if enemies_near_base:
-                print(f"Barhamus {self.entity}: DÉFENSE - Ennemis détectés près de la base!")
-                action = self._decide_defensive_action(world, pos, team, base_position)
-            else:
-                print(f"Barhamus {self.entity}: ATTAQUE - Base sécurisée, mode offensif")
-                action = self._decide_offensive_action(world, pos, team)
+            # Prédire la meilleure action en utilisant le modèle ou la logique par défaut
+            action = self._predict_best_action(current_state)
             
             # Calculer la récompense de l'action précédente
-            if self.last_state is not None and self.last_action is not None:
+            # Enregistrer l'expérience uniquement si l'apprentissage est activé
+            if not is_learning_disabled and self.last_state is not None and self.last_action is not None:
                 reward = self._calculate_reward(current_state, health)
                 self._record_experience(self.last_state, self.last_action, reward, current_state)
             
-            action_names = ["Approche", "Attaque", "Patrouille", "Évitement", "Bouclier", "Défensif", "Retraite", "Embuscade"]
-            print(f"Barhamus {self.entity}: Exécute action {action} ({action_names[action]})")
+            action_names = {0: "Approche", 1: "Attaque", 2: "Patrouille", 3: "Évitement", 4: "Bouclier", 5: "Défensif", 6: "Retraite", 7: "Embuscade"}
+            action_name = action_names.get(action, 'Inconnue')
+            print(f"Barhamus {self.entity}: Exécute action {action} ({action_name})")
             
             # Exécuter l'action avec tir en salve si nécessaire
             self._execute_action_with_combat(action, world, pos, vel, health, team, spe)
             
         except Exception as e:
             print(f"Erreur IA Barhamus {self.entity}: {e}")
-            # Action par défaut: défendre la base
-            self._default_defense_behavior(world, pos, vel, team)
+            # Action par défaut en cas d'erreur majeure
+            self._action_patrol(pos, vel)
         
         # Sauvegarder l'état pour le prochain cycle
         self.last_state = current_state.copy()
         self.last_action = action
         
-        # Entraîner le modèle BEAUCOUP PLUS SOUVENT pour apprentissage rapide
-        if len(self.experiences) >= 10 and len(self.experiences) % 5 == 0:
-            self._retrain_model()
+        # Ré-entraîner le modèle périodiquement si l'apprentissage est activé
+        if not is_learning_disabled:
+            if len(self.experiences) >= 10 and len(self.experiences) % 5 == 0:
+                self._retrain_model()
         
-        # Adapter la stratégie basée sur les performances
-        self._adapt_strategy()
+            # Adapter la stratégie basée sur les performances
+            self._adapt_strategy()
         
-        # Sauvegarder le modèle périodiquement
-        if self.survival_time > 0 and int(self.survival_time) % 30 == 0:
-            self._save_model()
+            # Sauvegarder le modèle périodiquement
+            if self.survival_time > 0 and int(self.survival_time) % 30 == 0:
+                self._save_model()
 
     def _analyze_situation(self, world, pos, health, team):
         """Analyse la situation actuelle et retourne un vecteur d'état"""
@@ -213,7 +257,7 @@ class BarhamusAI:
         
         # 12-14: État interne
         state[11] = 1.0 if self.shield_active else 0.0
-        state[12] = max(0, self.cooldown) / 2.0  # Cooldown normalisé
+        state[12] = max(0, self.cooldown) / 5.0  # Cooldown normalisé (sur une base de 5s max)
         state[13] = self.survival_time / 300.0  # Temps de survie normalisé (5 min max)
         state[14] = {"balanced": 0, "aggressive": 0.33, "defensive": 0.66, "tactical": 1.0}[self.current_strategy]
         
@@ -236,7 +280,7 @@ class BarhamusAI:
             predicted_action = self.decision_tree.predict(state_scaled)[0]
             
             # Ajouter de l'exploration (30% de chance d'action aléatoire pour apprendre plus vite)
-            if random.random() < 0.3:
+            if not config_manager.get("disable_ai_learning", False) and random.random() < 0.3:
                 return random.randint(0, 7)  # 8 actions possibles
             
             print(f"Barhamus {self.entity}: Action PRÉDITE par modèle = {predicted_action}")
@@ -251,13 +295,13 @@ class BarhamusAI:
         health_ratio = state[2]
         enemy_count = state[3] * 5
         closest_enemy_dist = state[4]
-        
+
         if health_ratio < 0.3:
             return 6  # Retraite
-        elif enemy_count > 2:
-            return 5  # Défensif
-        elif closest_enemy_dist < 0.3:
+        elif enemy_count > 0 and closest_enemy_dist < 0.4: # Si ennemi proche
             return 1  # Attaque
+        elif enemy_count > 2 and closest_enemy_dist < 0.8: # Si plusieurs ennemis à distance moyenne
+            return 5  # Positionnement défensif
         else:
             return 0  # Approche
     
@@ -272,6 +316,11 @@ class BarhamusAI:
         
         # Gestion du combat en parallèle
         self._handle_tactical_combat(action, world, pos, team)
+
+        # NOUVEAU: Appliquer l'évitement d'obstacles après toutes les décisions
+        final_direction = self._apply_obstacle_avoidance(world, pos, vel)
+        if final_direction is not None:
+            pos.direction = final_direction
     
     def _execute_movement_action(self, action, world, pos, vel, team, spe):
         """Exécute seulement la partie mouvement de l'action"""
@@ -304,10 +353,14 @@ class BarhamusAI:
         
         # Trouver les ennemis à portée
         enemies_in_range = []
-        for enemy_ent, distance, priority in enemies:
-            if distance <= 8 * TILE_SIZE:  # Portée de tir
-                enemies_in_range.append((enemy_ent, distance, priority))
-        
+        try:
+            for enemy_ent, distance, priority in enemies:
+                if distance <= 8 * TILE_SIZE:  # Portée de tir
+                    # NOUVEAU: Vérifier la ligne de vue
+                    if self._has_line_of_sight(world, pos, enemy_ent):
+                        enemies_in_range.append((enemy_ent, distance, priority))
+        except Exception as e:
+            print(f"Erreur lors de la vérification de la ligne de vue: {e}")
         if not enemies_in_range:
             return
         
@@ -336,9 +389,116 @@ class BarhamusAI:
         
         # Déclencher le cooldown après la salve
         if targets_to_attack > 0:
-            self.cooldown = 2.0  # 2 secondes de cooldown
+            self.cooldown = 3.0  # 3 secondes de cooldown
             self.successful_attacks += targets_to_attack
+
+    def _has_line_of_sight(self, world, start_pos, target_entity):
+        """Vérifie si la ligne de vue entre deux points est dégagée."""
+        if not self.grid:
+            return True # Pas de grille, on suppose que c'est dégagé
+
+        try:
+            target_pos = world.component_for_entity(target_entity, PositionComponent)
+        except KeyError:
+            return False # La cible n'existe plus
+
+        # Échantillonner des points le long de la ligne de vue
+        num_steps = 10
+        for i in range(1, num_steps + 1):
+            t = i / num_steps
+            check_x = start_pos.x + t * (target_pos.x - start_pos.x)
+            check_y = start_pos.y + t * (target_pos.y - start_pos.y)
+
+            grid_x = int(check_x // TILE_SIZE)
+            grid_y = int(check_y // TILE_SIZE)
+
+            if not (0 <= grid_x < len(self.grid[0]) and 0 <= grid_y < len(self.grid)):
+                continue # Hors de la carte, on ignore
+
+            tile_type = self.grid[grid_y][grid_x]
+            if tile_type == TileType.GENERIC_ISLAND:
+                return False # Obstacle trouvé
+        
+        return True # Ligne de vue dégagée
+
+    def _apply_obstacle_avoidance(self, world, pos, vel) -> Optional[float]:
+        """Ajuste la direction pour éviter les obstacles proches."""
+        if vel.currentSpeed == 0 or not self.grid:
+            return None
+
+        # --- 1. Détection de blocage (Stuck Detection) ---
+        # Initialiser si nécessaire
+        if not hasattr(self, '_stuck_check_timer'):
+            self._stuck_check_timer = 0.0
+            self._last_stuck_check_pos = (pos.x, pos.y)
+
+        self._stuck_check_timer += 0.016 # dt approximatif
+        if self._stuck_check_timer > 2.0: # Vérifier toutes les 2 secondes
+            dist_moved = math.hypot(pos.x - self._last_stuck_check_pos[0], pos.y - self._last_stuck_check_pos[1])
+            if vel.currentSpeed > 1.0 and dist_moved < TILE_SIZE: # Si on essaie de bouger mais qu'on n'avance pas
+                # Manœuvre de déblocage : marche arrière et virage
+                vel.currentSpeed = -vel.maxReverseSpeed
+                return (pos.direction + 135) % 360
+            self._last_stuck_check_pos = (pos.x, pos.y)
+            self._stuck_check_timer = 0.0
+
+        # --- 2. Évitement d'obstacles par capteurs ---
+        probe_length = 5.0 * TILE_SIZE  # Regarder ENCORE plus loin pour mieux anticiper
+        # Angles des capteurs : un devant, deux sur les côtés plus larges
+        angles = [-50, 0, 50] # Angle élargi pour mieux détecter les bords d'îles en virage
+        direction_rad = math.radians(pos.direction)
+
+        steering_force = 0.0
+
+        for i, angle_offset in enumerate(angles):
+            probe_angle_rad = direction_rad - math.radians(angle_offset)
+            
+            # Échantillonner le long du capteur pour détecter l'obstacle le plus proche
+            for step in range(1, 5):
+                dist = probe_length * (step / 4.0)
+                probe_x = pos.x - dist * math.cos(probe_angle_rad)
+                probe_y = pos.y - dist * math.sin(probe_angle_rad)
+
+                grid_x = int(probe_x // TILE_SIZE)
+                grid_y = int(probe_y // TILE_SIZE)
+
+                if 0 <= grid_x < len(self.grid[0]) and 0 <= grid_y < len(self.grid):
+                    if self.grid[grid_y][grid_x] == TileType.GENERIC_ISLAND:
+                        # Obstacle trouvé. La force de répulsion est inversement proportionnelle à la distance.
+                        repulsion_strength = (1.0 - (dist / probe_length)) * 120.0 # Force de virage augmentée à 120°
+
+                        if angle_offset == 0: # Capteur central
+                            # Si obstacle droit devant, ralentir et choisir une direction
+                            vel.currentSpeed *= 0.7
+                            # Regarder quel côté a le plus de place
+                            steering_force += repulsion_strength if angles[0] < 0 else -repulsion_strength
+                        else: # Capteurs latéraux
+                            steering_force += -math.copysign(repulsion_strength, angle_offset)
+                        
+                        break # On a trouvé un obstacle sur ce capteur, on passe au suivant
+
+        if abs(steering_force) > 0.1:
+            # Appliquer la force de virage calculée
+            new_direction = (pos.direction + steering_force) % 360
+            return new_direction
+        
+        return None # Pas d'obstacle, pas de changement
     
+    def _action_retreat(self, world, pos, vel, team):
+        """Action: Retraite tactique. Cherche un Druide allié ou fuit l'ennemi."""
+        # 1. Chercher un Druide allié à proximité
+        for ent, (druid_spec, ally_team, ally_pos) in world.get_components(SpeDruid, TeamComponent, PositionComponent):
+            if ally_team.team_id == team.team_id:
+                # Druide trouvé, se diriger vers lui
+                angle = self._angle_to(pos.x - ally_pos.x, pos.y - ally_pos.y)
+                pos.direction = angle
+                vel.currentSpeed = 4.0
+                print(f"Barhamus {self.entity}: Retraite vers Druide allié {ent}")
+                return
+
+        # 2. Si pas de Druide, fuir l'ennemi le plus proche (comportement original)
+        self._flee_from_closest_enemy(world, pos, vel, team)
+
     def _fire_at_angle(self, world, pos, angle):
         """Tire un projectile dans la direction spécifiée"""
         try:
@@ -516,8 +676,15 @@ class BarhamusAI:
         search_radius = 15 * TILE_SIZE  # 15 tiles de rayon
         
         try:
+            from src.components.core.projectileComponent import ProjectileComponent
+            from src.components.events.flyChestComponent import FlyingChestComponent
+
             for ent, t_team in world.get_component(TeamComponent):
-                if t_team.team_id != team.team_id and world.has_component(ent, PositionComponent):
+                # Ignorer les projectiles et les coffres volants
+                if world.has_component(ent, ProjectileComponent) or world.has_component(ent, FlyingChestComponent):
+                    continue
+
+                if t_team.team_id != team.team_id and t_team.team_id != 0 and world.has_component(ent, PositionComponent):
                     t_pos = world.component_for_entity(ent, PositionComponent)
                     dist = ((pos.x - t_pos.x)**2 + (pos.y - t_pos.y)**2)**0.5
                     if dist <= search_radius:
@@ -735,15 +902,39 @@ class BarhamusAI:
     def _action_aggressive_approach(self, world, pos, vel, team):
         """Action: Approche agressive vers l'ennemi ou base ennemie"""
         enemies = self._find_nearby_enemies(world, pos, team)
-        
+
         if enemies:
             # Attaquer l'ennemi le plus proche
-            target_pos = world.component_for_entity(enemies[0][0], PositionComponent)
-            # IMPORTANT : movementProcessor SOUSTRAIT cos/sin, donc inverser la direction
-            angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
-            pos.direction = angle
-            vel.currentSpeed = 4.5  # Vitesse élevée
-            print(f"Barhamus {self.entity}: Approche agressive vers ennemi - angle={angle:.1f}°")
+            target_entity = enemies[0][0]
+            target_pos = world.component_for_entity(target_entity, PositionComponent)
+
+            # Vérifier si la ligne de vue est dégagée
+            if self._has_line_of_sight(world, pos, target_entity):
+                # Ligne de vue dégagée : foncer
+                angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
+                pos.direction = angle
+                vel.currentSpeed = 4.5
+                print(f"Barhamus {self.entity}: Approche agressive vers ennemi {target_entity} (directe)")
+            else:
+                # Ligne de vue bloquée : utiliser l'évitement pour contourner
+                # On ne définit PAS de direction ici. On laisse _apply_obstacle_avoidance
+                # prendre le contrôle total de la direction pour éviter les conflits.
+                # L'évitement essaiera de contourner l'obstacle tout en se rapprochant de la cible.
+                vel.currentSpeed = 3.5 # Vitesse de contournement
+                print(f"Barhamus {self.entity}: Approche agressive vers ennemi {target_entity} (contournement via évitement)")
+                
+                # NOUVEAU: Logique de pathfinding pour le contournement
+                if not self.path or self.path_recalc_timer <= 0:
+                    self.path = self._find_path(pos, target_pos)
+                    self.path_recalc_timer = 2.0 # Recalculer toutes les 2s max
+
+                if self.path:
+                    # Suivre le chemin
+                    next_waypoint = self.path[0]
+                    angle = self._angle_to(pos.x - next_waypoint[0], pos.y - next_waypoint[1])
+                    pos.direction = angle
+                    if math.hypot(pos.x - next_waypoint[0], pos.y - next_waypoint[1]) < TILE_SIZE * 1.5:
+                        self.path.pop(0) # Atteint le waypoint, passer au suivant
         else:
             # Pas d'ennemi, aller vers la base ennemie
             enemy_base = self._find_enemy_base(world, team)
@@ -824,20 +1015,6 @@ class BarhamusAI:
             pos.direction = angle
             vel.currentSpeed = 2.0
     
-    def _action_retreat(self, world, pos, vel, team):
-        """Action: Retraite tactique"""
-        enemies = self._find_nearby_enemies(world, pos, team)
-        if enemies:
-            # Fuir dans la direction opposée à l'ennemi le plus proche
-            closest = enemies[0]
-            enemy_pos = world.component_for_entity(closest[0], PositionComponent)
-            # IMPORTANT : déjà inversé (pos - enemy) donc garder tel quel
-            retreat_angle = self._angle_to(pos.x - enemy_pos.x, pos.y - enemy_pos.y)
-            # Mais pour movementProcessor qui soustrait, ré-inverser !
-            retreat_angle = self._angle_to(enemy_pos.x - pos.x, enemy_pos.y - pos.y)
-            pos.direction = retreat_angle
-            vel.currentSpeed = 4.0  # Vitesse de fuite
-    
     def _action_ambush(self, world, pos, vel, team):
         """Action: Embuscade - attendre dans une position avantageuse"""
         vel.currentSpeed = 0.5  # Mouvement minimal
@@ -848,6 +1025,38 @@ class BarhamusAI:
             # IMPORTANT : inverser pour movementProcessor
             angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
             pos.direction = angle
+
+    def _find_nearby_chest(self, world, pos):
+        """Trouve le coffre volant le plus proche."""
+        closest_chest = None
+        min_dist = float('inf')
+        
+        try:
+            for ent, (chest, chest_pos) in world.get_components(FlyingChestComponent, PositionComponent):
+                # Ignorer les coffres déjà collectés ou en train de couler
+                if chest.is_collected or chest.is_sinking:
+                    continue
+                
+                dist = math.hypot(pos.x - chest_pos.x, pos.y - chest_pos.y)
+                if dist < min_dist:
+                    min_dist = dist
+                    closest_chest = ent
+        except Exception as e:
+            print(f"Erreur recherche coffres: {e}")
+        
+        return closest_chest
+
+    def _flee_from_closest_enemy(self, world, pos, vel, team):
+        """Logique de fuite de base : s'éloigner de l'ennemi le plus proche."""
+        enemies = self._find_nearby_enemies(world, pos, team)
+        if enemies:
+            closest = enemies[0]
+            enemy_pos = world.component_for_entity(closest[0], PositionComponent)
+            # IMPORTANT : inverser la direction pour le movementProcessor qui soustrait
+            retreat_angle = self._angle_to(enemy_pos.x - pos.x, enemy_pos.y - pos.y)
+            pos.direction = retreat_angle
+            vel.currentSpeed = 4.0  # Vitesse de fuite
+            print(f"Barhamus {self.entity}: Fuite de l'ennemi {closest[0]}")
 
     def _calculate_border_penalty(self, current_state):
         """Calcule la pénalité pour être près des bords de la carte"""
@@ -883,6 +1092,76 @@ class BarhamusAI:
             if tactical_advantage > 0.7:  # Bonne position tactique
                 return 1.0  # Bonus pour bonne position offensive
         return 0
+    
+    def _create_navigation_grid(self):
+        """Crée une grille de navigation où les îles sont 'gonflées' pour l'évitement."""
+        if not self.grid:
+            return
+
+        grid_h, grid_w = len(self.grid), len(self.grid[0])
+        self.nav_grid = [row[:] for row in self.grid] # Copie de la grille
+        
+        # Le rayon de 'gonflement' en tuiles. 1 signifie qu'on bloque les 8 tuiles autour d'une île.
+        # Pour une unité large comme le Maraudeur, 1 est un bon début.
+        inflation_radius = 2 # Augmenté pour les Maraudeurs plus gros
+
+        for r in range(grid_h):
+            for c in range(grid_w):
+                if self.grid[r][c] == TileType.GENERIC_ISLAND:
+                    # Marquer les tuiles adjacentes comme des obstacles de navigation
+                    for dr in range(-inflation_radius, inflation_radius + 1):
+                        for dc in range(-inflation_radius, inflation_radius + 1):
+                            nr, nc = r + dr, c + dc
+                            if 0 <= nr < grid_h and 0 <= nc < grid_w:
+                                # On ne modifie que les tuiles de mer pour ne pas bloquer d'autres îles
+                                if self.nav_grid[nr][nc] == TileType.SEA:
+                                    self.nav_grid[nr][nc] = TileType.GENERIC_ISLAND
+
+    def _find_path(self, start_pos, end_pos):
+        """Implémentation simplifiée de A* pour le Maraudeur."""
+        # Utiliser la grille de navigation gonflée si elle existe, sinon la grille normale
+        grid_to_use = self.nav_grid if self.nav_grid else self.grid
+        if not grid_to_use:
+            return []
+
+        start_node = (int(start_pos.x // TILE_SIZE), int(start_pos.y // TILE_SIZE))
+        end_node = (int(end_pos.x // TILE_SIZE), int(end_pos.y // TILE_SIZE))
+        
+        grid_w, grid_h = len(grid_to_use[0]), len(grid_to_use)
+
+        def is_valid(n):
+            return 0 <= n[0] < grid_w and 0 <= n[1] < grid_h and grid_to_use[n[1]][n[0]] != TileType.GENERIC_ISLAND
+
+        if not is_valid(end_node): # Si la cible est dans un mur, ne pas calculer
+            return []
+
+        frontier = [(0, start_node)]
+        came_from = {start_node: None}
+        cost_so_far = {start_node: 0}
+
+        while frontier:
+            _, current = heapq.heappop(frontier)
+
+            if current == end_node:
+                break
+
+            for dx, dy in [(0,1), (0,-1), (1,0), (-1,0), (1,1), (1,-1), (-1,1), (-1,-1)]:
+                neighbor = (current[0] + dx, current[1] + dy)
+                if is_valid(neighbor):
+                    new_cost = cost_so_far[current] + (1.414 if dx != 0 and dy != 0 else 1)
+                    if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
+                        cost_so_far[neighbor] = new_cost
+                        priority = new_cost + math.hypot(end_node[0] - neighbor[0], end_node[1] - neighbor[1])
+                        heapq.heappush(frontier, (priority, neighbor))
+                        came_from[neighbor] = current
+        
+        path = []
+        node = end_node
+        while node != start_node and node in came_from:
+            path.append(((node[0] + 0.5) * TILE_SIZE, (node[1] + 0.5) * TILE_SIZE))
+            node = came_from[node]
+        path.reverse()
+        return path
     
     # Méthodes utilitaires et d'analyse
     def _analyze_nearby_obstacles(self, pos):
@@ -958,9 +1237,10 @@ class BarhamusAI:
         
         # Priorité basée sur la santé (cibles faibles = priorité haute)
         if world.has_component(entity, HealthComponent):
-            health = world.component_for_entity(entity, HealthComponent)
-            health_ratio = health.currentHealth / health.maxHealth
-            priority += (1.0 - health_ratio) * 3
+            health_comp = world.component_for_entity(entity, HealthComponent)
+            if health_comp.maxHealth > 0:
+                health_ratio = health_comp.currentHealth / health_comp.maxHealth
+                priority += (1.0 - health_ratio) * 3
         
         # Priorité basée sur l'attaque (cibles dangereuses = priorité haute)
         if world.has_component(entity, AttackComponent):
