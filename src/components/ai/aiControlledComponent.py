@@ -5,7 +5,7 @@ Il stocke l'état de l'IA, y compris son chemin A* actuel et ses cooldowns de r�
 
 from typing import List, Tuple, Optional, Any
 
-class AIControlledComponent:
+class AIControlledComponent: # A renommer
     def __init__(self, think_cooldown: float = 0.5, vision_range: float = 800.0):
         """
         Initialise le composant de contrôle IA.
