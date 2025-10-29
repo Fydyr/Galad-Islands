@@ -29,5 +29,4 @@ def ensure_ai_processors(world: esper.World, grid: Optional[Iterable[Iterable[in
     processor = RapidTroopAIProcessor(grid)
     world.add_processor(processor, priority=1)
     setattr(world, _PROCESSOR_ATTR, processor)
-    LOGGER.info("[AI] Rapid troop processor registered on world (priority=1)")
     return processor

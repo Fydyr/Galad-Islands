@@ -304,6 +304,11 @@ class RapidUnitController:
         self._persistent_nav_return: Optional[str] = None
         # Timer pour limiter la fréquence de recalcul du pathfinding
         self._last_path_request_time = -999.0
+        # Détection de blocage
+        self._stuck_timer = 0.0
+        self._last_position_check = (0, 0)
+
+        self._last_path_request_time = -999.0
         # Cache de chemin par destination (clé: (x, y), valeur: chemin)
         self._path_cache = {}
 
@@ -593,14 +598,14 @@ class RapidUnitController:
     def _attack_done(self, dt: float, context: UnitContext) -> bool:
         """
         Détermine si l'attaque est terminée et que l'unité doit quitter l'état Attack.
-        Les coffres ont priorité et forcer la sortie de l'attaque.
+        Les coffres ont
         """
         objective = context.current_objective
         if objective is None:
             return True
         
-        # Les coffres sont prioritaires - forcer la sortie de l'attaque
-        if objective.type in {"goto_chest"}:
+        # Les coffres et ressources d'îles sont prioritaires - forcer la sortie de l'
+        if objective.type in {"goto_chest", "goto_island_resource"}:
             return True
         
         # Pour les objectifs de position fixe comme attack_base, l'attaque ne se termine jamais
@@ -683,13 +688,14 @@ class RapidUnitController:
         if context.target_entity is not None and esper.entity_exists(context.target_entity):
             try:
                 target_team = esper.component_for_entity(context.target_entity, TeamComponent)
-                my_team = esper.component_for_entity(context.entity_id, TeamComponent)
-                if target_team.team_id != my_team.team_id and target_team.team_id != 0:
+                # Ne tirer que sur une équipe adverse (pas alliée, pas neutre)
+                if target_team.team_id != context.team_id and target_team.team_id != 0:
                     target_pos = esper.component_for_entity(context.target_entity, PositionComponent)
                     projectile_target = (target_pos.x, target_pos.y)
                     target_entity = context.target_entity
             except KeyError:
                 pass
+
 
         # Sinon, utiliser l'objectif actuel uniquement si c'est une entité ennemie
         if projectile_target is None and context.current_objective:
@@ -697,8 +703,8 @@ class RapidUnitController:
             if objective.target_entity and esper.entity_exists(objective.target_entity):
                 try:
                     target_team = esper.component_for_entity(objective.target_entity, TeamComponent)
-                    my_team = esper.component_for_entity(context.entity_id, TeamComponent)
-                    if target_team.team_id != my_team.team_id and target_team.team_id != 0:
+                    # Ne tirer que sur une équipe adverse
+                    if target_team.team_id != context.team_id and target_team.team_id != 0:
                         target_pos = esper.component_for_entity(objective.target_entity, PositionComponent)
                         projectile_target = (target_pos.x, target_pos.y)
                         target_entity = objective.target_entity
@@ -854,6 +860,11 @@ class RapidUnitController:
                 if owner in (None, self.entity_id) and objective.target_entity is not None:
                     self.coordination.assign_chest(self.entity_id, int(objective.target_entity), now)
                     context.assigned_chest_id = int(objective.target_entity)
+            elif objective.type == "goto_island_resource":
+                # Release any assigned chest when going for island resource
+                if context.assigned_chest_id is not None:
+                    self.coordination.release_chest(context.assigned_chest_id)
+                    context.assigned_chest_id = None
             elif context.assigned_chest_id is not None:
                 self.coordination.release_chest(context.assigned_chest_id)
                 context.assigned_chest_id = None
@@ -901,13 +912,32 @@ class RapidUnitController:
             context.last_state_change = now
             self.cancel_navigation(context)
 
+        # Détection de blocage de navigation
+        if current_state == "GoTo" and context.path:
+            dist_moved = math.hypot(context.position[0] - self._last_position_check[0], context.position[1] - self._last_position_check[1])
+            if dist_moved < TILE_SIZE * 0.5: # Si on a peu bougé
+                self._stuck_timer += dt
+            else:
+                self._stuck_timer = 0.0
+                self._last_position_check = context.position
+
+            if self._stuck_timer > 3.0: # Coincé depuis 3 secondes
+                context.advance_path() # Forcer le passage au waypoint suivant
+                self._stuck_timer = 0.0
+            context.stuck_state_time = 0.0
+            context.last_state_change = now
+            self.cancel_navigation(context)
+
     # Movement helpers ------------------------------------------------------
     def move_towards(self, target_position) -> None:
         if self.context is None or target_position is None:
             return
         
         # Ne déplacer l'unité que si le centre de la cible reste sur une zone valide
-        if self.pathfinding.is_world_blocked(target_position):
+        # Exception pour les ressources d'îles : permettre le mouvement même sur positions bloquées
+        objective = self.context.current_objective
+        allow_blocked = objective and objective.type == "goto_island_resource"
+        if self.pathfinding.is_world_blocked(target_position) and not allow_blocked:
             return
         
         pos = esper.component_for_entity(self.entity_id, PositionComponent)

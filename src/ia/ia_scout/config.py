@@ -50,7 +50,6 @@ class PathfindingSettings:
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),
         int(TileType.ENEMY_BASE),
-        int(TileType.GENERIC_ISLAND),
     )
     tile_soft_block: tuple[int, ...] = (int(TileType.MINE),)
     recompute_distance_min: float = 64.0

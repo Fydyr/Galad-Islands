@@ -10,9 +10,11 @@ import esper
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.events.flyChestComponent import FlyingChestComponent
+from src.components.events.islandResourceComponent import IslandResourceComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.baseComponent import BaseComponent
 from src.settings.settings import TILE_SIZE
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 
 from ..config import AISettings, get_settings
 
@@ -40,6 +42,7 @@ class GoalEvaluator:
     FOLLOW_DIE_MAX_DISTANCE = 360.0
     PRIORITY_SCORES = {
         "goto_chest": 100.0,
+        "goto_island_resource": 95.0,
         "follow_druid": 90.0,
         "attack": 80.0,
         "follow_die": 75.0,
@@ -68,6 +71,10 @@ class GoalEvaluator:
         chest_objective = self._select_chest(context, pathfinding)
         if chest_objective:
             return chest_objective, self._priority_score(chest_objective.type)
+
+        island_resource_objective = self._select_island_resource(context, pathfinding)
+        if island_resource_objective:
+            return island_resource_objective, self._priority_score(island_resource_objective.type)
 
         druid_objective = self._select_druid_objective(context)
         if druid_objective:
@@ -127,6 +134,26 @@ class GoalEvaluator:
             distance = self._distance(context.position, chest_pos)
             time_left = max(chest.max_lifetime - chest.elapsed_time, 0.0)
             candidate = Objective("goto_chest", chest_pos, entity)
+            key = (distance, time_left)
+            if best_candidate is None or key < (best_candidate[0], best_candidate[1]):
+                best_candidate = (distance, time_left, candidate)
+        return best_candidate[2] if best_candidate else None
+
+    def _select_island_resource(
+        self,
+        context,
+        pathfinding: Optional["PathfindingService"],
+    ) -> Optional[Objective]:
+        best_candidate: Optional[Tuple[float, float, Objective]] = None
+        for entity, (position, resource) in esper.get_components(PositionComponent, IslandResourceComponent):
+            if resource.is_disappearing or resource.is_collected:
+                continue
+            resource_pos = (position.x, position.y)
+            # Note: Island resources are on islands which are blocked, but units can still go there to collect them
+            # So we don't check is_world_blocked for island resources
+            distance = self._distance(context.position, resource_pos)
+            time_left = max(resource.max_lifetime - resource.elapsed_time, 0.0)
+            candidate = Objective("goto_island_resource", resource_pos, entity)
             key = (distance, time_left)
             if best_candidate is None or key < (best_candidate[0], best_candidate[1]):
                 best_candidate = (distance, time_left, candidate)
@@ -200,6 +227,10 @@ class GoalEvaluator:
         return best_candidate[1] if best_candidate else None
 
     def _select_attack_base(self, context) -> Optional[Objective]:
+        # Vérifier si la base ennemie est connue avant de l'attaquer
+        if not enemy_base_registry.is_enemy_base_known(context.team_id):
+            return None
+
         target_base = (
             BaseComponent.get_ally_base() if context.is_enemy else BaseComponent.get_enemy_base()
         )

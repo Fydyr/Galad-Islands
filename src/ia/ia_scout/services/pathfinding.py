@@ -38,28 +38,13 @@ def _heuristic_numba(goal_x: int, goal_y: int, node_x: int, node_y: int) -> floa
 class PathfindingService:
     def find_path(self, start: GridPos, goal: GridPos) -> List[WorldPos]:
         if not self._in_bounds(start) or not self._in_bounds(goal):
-            if config_manager.get('dev_mode', False):
-                LOGGER.warning(
-                    "[PF] find_path annulé: positions hors limites start=%s goal=%s",
-                    start,
-                    goal,
-                )
             return []
 
         goal_initial = goal
         if self._is_goal_blocked(goal):
             fallback = self._find_accessible_goal(goal)
             if fallback is None:
-                if config_manager.get('dev_mode', False):
-                    LOGGER.info(
-                        "[PF] find_path annulé: objectif impraticable (grid=%s) sans alternative",
-                        goal,
-                    )
                 return []
-            if config_manager.get('dev_mode', False):
-                LOGGER.info(
-                    "[PF] find_path objectif ajusté: %s -> %s", goal_initial, fallback
-                )
             goal = fallback
 
         frontier: List[Tuple[float, GridPos]] = []
@@ -87,12 +72,6 @@ class PathfindingService:
                     heapq.heappush(frontier, (priority, next_node))
                     came_from[next_node] = current
         if goal not in came_from:
-            if config_manager.get('dev_mode', False):
-                LOGGER.info(
-                    "[PF] find_path échec: aucun chemin trouvé start=%s goal=%s (frontier vide)",
-                    start,
-                    goal,
-                )
             return []
 
         grid_path: List[GridPos] = []
@@ -109,10 +88,6 @@ class PathfindingService:
         compressed_path = self._compress_axis_segments(axis_aligned_path)
         world_path: List[WorldPos] = [self.grid_to_world(g) for g in compressed_path]
         self._last_path = world_path  # Stocker le dernier chemin calculé
-        if config_manager.get('dev_mode', False):
-            LOGGER.info(
-                "[PF] find_path succès: %s noeuds (compressé=%s)", len(grid_path), len(world_path)
-            )
         return world_path
     def _is_passable(self, grid_pos: GridPos) -> bool:
         x, y = grid_pos
@@ -149,12 +124,6 @@ class PathfindingService:
 
         self._neighbors = self._build_neighbors()
 
-        LOGGER.info(
-            "[PF] Initialisation PathfindingService: sub_tile_factor=%s, grid_size=%sx%s",
-            self.sub_tile_factor,
-            self._width,
-            self._height,
-        )
         
         # Stockage du dernier chemin calculé pour l'affichage debug
         self._last_path: List[WorldPos] = []
@@ -181,8 +150,8 @@ class PathfindingService:
                 expanded_mask = neighborhood.max(axis=(2, 3)).astype(bool)
             else:
                 expanded_mask = island_expanded
-            # Bloquer complètement les îles et leur périmètre - np.inf = infranchissable
-            cost[expanded_mask] = np.inf
+            # Donner un coût élevé aux îles pour les éviter mais permettre l'accès
+            cost[expanded_mask] = self.settings.pathfinding.island_perimeter_weight
 
         mine_tile = int(TileType.MINE)
         mine_mask = self._coarse_grid == mine_tile
@@ -285,85 +254,6 @@ class PathfindingService:
         if not self._in_bounds((x, y)):
             return float('inf')
         return self._base_cost[y, x]
-
-        if not self._in_bounds(start) or not self._in_bounds(goal):
-            if config_manager.get('dev_mode', False):
-                LOGGER.warning(
-                    "[PF] find_path annulé: positions hors limites start=%s goal=%s",
-                    self._in_bounds(start),
-                    self._in_bounds(goal),
-                )
-            return []
-
-        goal_initial = goal
-        if self._is_goal_blocked(goal):
-            fallback = self._find_accessible_goal(goal)
-            if fallback is None:
-                if config_manager.get('dev_mode', False):
-                    LOGGER.info(
-                        "[PF] find_path annulé: objectif impraticable (grid=%s) sans alternative",
-                        goal,
-                    )
-                return []
-            if config_manager.get('dev_mode', False):
-                LOGGER.info(
-                    "[PF] find_path objectif ajusté: %s -> %s", goal_initial, fallback
-                )
-            goal = fallback
-
-        frontier: List[Tuple[float, GridPos]] = []
-        heapq.heappush(frontier, (0.0, start))
-
-        came_from: Dict[GridPos, Optional[GridPos]] = {start: None}
-        cost_so_far: Dict[GridPos, float] = {start: 0.0}
-
-        while frontier:
-            _, current = heapq.heappop(frontier)
-            # Ajout du bloc de gestion des voisins ici
-            for dx, dy, move_cost in self._neighbors:
-                next_node = (current[0] + dx, current[1] + dy)
-                if not self._in_bounds(next_node):
-                    continue
-                tile_value = self._grid[next_node[1], next_node[0]]
-                if tile_value in self.settings.pathfinding.tile_blacklist:
-                    continue
-                base_cost = self._tile_cost(next_node)
-                if tile_value in self.settings.pathfinding.tile_soft_block:
-                    base_cost *= 2.5
-                new_cost = cost_so_far[current] + move_cost * base_cost
-                if next_node not in cost_so_far or new_cost < cost_so_far[next_node]:
-                    cost_so_far[next_node] = new_cost
-                    priority = new_cost + self._heuristic(goal, next_node)
-                    heapq.heappush(frontier, (priority, next_node))
-                    came_from[next_node] = current
-        if goal not in came_from:
-            if config_manager.get('dev_mode', False):
-                LOGGER.info(
-                    "[PF] find_path échec: aucun chemin trouvé start=%s goal=%s (frontier vide)",
-                    start,
-                    goal,
-                )
-            return []
-
-        grid_path: List[GridPos] = []
-        node = goal
-        while True:
-            grid_path.append(node)
-            parent = came_from.get(node)
-            if parent is None:
-                break
-            node = parent
-
-        grid_path.reverse()
-        axis_aligned_path = self._inject_axis_checkpoints(grid_path)
-        compressed_path = self._compress_axis_segments(axis_aligned_path)
-        world_path: List[WorldPos] = [self.grid_to_world(g) for g in compressed_path]
-        self._last_path = world_path  # Stocker le dernier chemin calculé
-        if config_manager.get('dev_mode', False):
-            LOGGER.info(
-                "[PF] find_path succès: %s noeuds (compressé=%s)", len(grid_path), len(world_path)
-            )
-        return world_path
 
     def _is_goal_blocked(self, grid_pos: GridPos) -> bool:
         tile_value = self._grid[grid_pos[1], grid_pos[0]]
