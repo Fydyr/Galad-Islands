@@ -141,7 +141,7 @@ class PathfindingService:
         island_mask = self._coarse_grid == island_tile
         if island_mask.any():
             island_expanded = np.repeat(np.repeat(island_mask, factor, axis=0), factor, axis=1)
-            radius_cells = max(0, int(self.settings.pathfinding.island_perimeter_radius))
+            radius_cells = max(int(self.settings.pathfinding.island_perimeter_radius), int(0.75 * factor)) # Assurer un périmètre minimum de 0.75 tuile
             if radius_cells > 0:
                 # Rayon exprimé en sous-tuiles afin d'avoir un contrôle fin sur la zone bloquée
                 padded = np.pad(island_expanded.astype(np.uint8), radius_cells, mode="constant")

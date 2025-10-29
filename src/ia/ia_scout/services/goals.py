@@ -145,18 +145,25 @@ class GoalEvaluator:
         pathfinding: Optional["PathfindingService"],
     ) -> Optional[Objective]:
         best_candidate: Optional[Tuple[float, float, Objective]] = None
-        for entity, (position, resource) in esper.get_components(PositionComponent, IslandResourceComponent):
-            if resource.is_disappearing or resource.is_collected:
-                continue
-            resource_pos = (position.x, position.y)
-            # Note: Island resources are on islands which are blocked, but units can still go there to collect them
-            # So we don't check is_world_blocked for island resources
-            distance = self._distance(context.position, resource_pos)
-            time_left = max(resource.max_lifetime - resource.elapsed_time, 0.0)
-            candidate = Objective("goto_island_resource", resource_pos, entity)
-            key = (distance, time_left)
-            if best_candidate is None or key < (best_candidate[0], best_candidate[1]):
-                best_candidate = (distance, time_left, candidate)
+        if pathfinding: # S'assurer que le service de pathfinding est disponible
+            for entity, (position, resource) in esper.get_components(PositionComponent, IslandResourceComponent):
+                if resource.is_disappearing or resource.is_collected:
+                    continue
+                
+                # NOUVEAU: Trouver un point accessible près de la ressource
+                accessible_pos = pathfinding.find_accessible_world(
+                    (position.x, position.y), 
+                    max_radius_tiles=2.0
+                )
+                if not accessible_pos:
+                    continue # Impossible de trouver un point d'accès, on ignore cette ressource
+
+                distance = self._distance(context.position, accessible_pos)
+                time_left = max(resource.max_lifetime - resource.elapsed_time, 0.0)
+                candidate = Objective("goto_island_resource", accessible_pos, entity)
+                key = (distance, time_left)
+                if best_candidate is None or key < (best_candidate[0], best_candidate[1]):
+                    best_candidate = (distance, time_left, candidate)
         return best_candidate[2] if best_candidate else None
 
     def _select_druid_objective(self, context) -> Optional[Objective]:
