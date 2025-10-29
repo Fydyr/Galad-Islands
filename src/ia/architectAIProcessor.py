@@ -22,8 +22,8 @@ from src.functions.buildingCreator import createDefenseTower, createHealTower
 
 # AI and pathfinding
 from src.ia.architectAIComponent import ArchitectAIComponent
-from src.ia.min_max import ArchitectMinimax, GameState, DecisionAction
-from src.ia.pathfinding import SimplePathfinder
+from src.ia.architect.min_max import ArchitectMinimax, GameState, DecisionAction
+from src.ia.architect.pathfinding import SimplePathfinder
 from src.settings.settings import TILE_SIZE
 from src.constants.map_tiles import TileType
 logger = logging.getLogger(__name__)
