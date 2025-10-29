@@ -127,7 +127,7 @@ class RapidTroopAIProcessor(esper.Processor):
             t_entity1 = time.perf_counter()
             duration = (t_entity1 - t_entity0) * 1000.0
             if duration > 10.0:
-                print(f"[PROFILING][SCOUT] Entity {entity} tick duration: {duration:.2f} ms")
+                pass
             if collect_debug and controller.context is not None:
                 self._debug_overlay.append(
                     {
@@ -141,7 +141,7 @@ class RapidTroopAIProcessor(esper.Processor):
         t1 = time.perf_counter()
         total_duration = (t1 - t0) * 1000.0
         if total_duration > 30.0:
-            print(f"[PROFILING][SCOUT] Total tick duration: {total_duration:.2f} ms for {len(list(self._iter_controlled_units()))} entities")
+            pass
 
     def _iter_controlled_units(self):
         for entity, (team, classe, scout, health, position, velocity, radius) in esper.get_components(
@@ -174,7 +174,7 @@ class RapidTroopAIProcessor(esper.Processor):
             )
             self.controllers[entity_id] = controller
             if config_manager.get('dev_mode', False):
-                LOGGER.debug("[AI] Created controller for entity %s", entity_id)
+                pass
         return controller
 
     def _refresh_services(self, dt: float) -> None:
@@ -218,7 +218,7 @@ class RapidTroopAIProcessor(esper.Processor):
             self.coordination.release_chest(controller.context.assigned_chest_id)
         self.context_manager.remove_context(entity_id)
         if config_manager.get('dev_mode', False):
-            LOGGER.debug("[AI] Removed controller for entity %s", entity_id)
+            pass
 
     def _push_env_events(self) -> None:
         # Publish chest events
@@ -432,31 +432,26 @@ class RapidUnitController:
 
     def start_navigation(self, context: UnitContext, target: Optional[tuple[float, float]], return_state: str) -> bool:
         if target is None:
-            if config_manager.get('dev_mode', False):
-                LOGGER.info("[AI] %s start_navigation: target is None", self.entity_id)
             return False
         current_target = context.share_channel.get("nav_target") or self._persistent_nav_target
-        context.share_channel["nav_return"] = return_state
-        self._persistent_nav_return = return_state
-        if (self._persistent_nav_active or self.is_navigation_active(context)) and current_target is not None:
+        context.share_channel["nav_return"] = return_state if isinstance(return_state, str) else str(return_state)
+        self._persistent_nav_return = return_state if isinstance(return_state, str) else str(return_state)
+        if (self._persistent_nav_active or self.is_navigation_active(context)) and current_target is not None and isinstance(current_target, tuple):
             if self._navigation_distance(current_target, target) <= self.navigation_tolerance * 0.25:
                 if config_manager.get('dev_mode', False):
-                    LOGGER.info("[AI] %s start_navigation: already navigating to same target", self.entity_id)
+                    # Log désactivé
+                    pass
                 return False
-        context.share_channel["nav_target"] = target
-        self._persistent_nav_target = target
-        context.share_channel["nav_owner"] = self.state_machine.current_state.name
-        self._persistent_nav_owner = self.state_machine.current_state.name
+        context.share_channel["nav_target"] = target if isinstance(target, tuple) else (0.0, 0.0)
+        self._persistent_nav_target = target if isinstance(target, tuple) else (0.0, 0.0)
+        context.share_channel["nav_owner"] = self.state_machine.current_state.name if isinstance(self.state_machine.current_state.name, str) else str(self.state_machine.current_state.name)
+        self._persistent_nav_owner = self.state_machine.current_state.name if isinstance(self.state_machine.current_state.name, str) else str(self.state_machine.current_state.name)
         context.share_channel["nav_active"] = True
         self._persistent_nav_active = True
         context.share_channel["nav_request_time"] = self.context_manager.time
         if not self.navigation_target_matches(context, target, tolerance=self.navigation_tolerance * 0.25):
             context.reset_path()
         context.share_channel.pop("goto_last_replan", None)
-        if config_manager.get('dev_mode', False):
-            LOGGER.info("[AI] %s start_navigation: navigation started to (%.1f,%.1f), nav_active=%s, nav_owner=%s", 
-                       self.entity_id, target[0], target[1], 
-                       context.share_channel.get("nav_active"), context.share_channel.get("nav_owner"))
         return True
 
     def cancel_navigation(self, context: UnitContext) -> None:
@@ -520,60 +515,35 @@ class RapidUnitController:
         if context.in_flee_state:
             # En fuite : on continue tant que danger > seuil_liberation OU santé très basse
             should_still_flee = danger >= self.settings.danger.flee_release_threshold or health_ratio <= 0.2
-            LOGGER.debug(
-                "[AI] %s _should_flee: in_flee_state=True, danger=%.3f, threshold=%.3f, health=%.2f, should_still_flee=%s",
-                context.entity_id,
-                danger,
-                self.settings.danger.flee_release_threshold,
-                health_ratio,
-                should_still_flee,
-            )
+            # Log désactivé
             if not should_still_flee:
                 context.in_flee_state = False
                 context.flee_exit_time = now
-                LOGGER.debug("[AI] %s _should_flee: EXITING flee state", context.entity_id)
+                # Log désactivé
                 return False
 
             if nav_active and nav_return_state == "Flee":
-                LOGGER.debug(
-                    "[AI] %s _should_flee: navigation Flee active, délégation temporaire à GoTo",
-                    context.entity_id,
-                )
+                # Log désactivé
                 return False
 
             return True
 
         # Pas en fuite : délai minimum avant de pouvoir re-entrer en fuite (1.0s au lieu de 0.5s)
         if now - context.flee_exit_time < 1.0:
-            LOGGER.debug(
-                "[AI] %s _should_flee: cooldown active (%.1fs remaining), staying out of flee",
-                context.entity_id,
-                1.0 - (now - context.flee_exit_time),
-            )
+            # Log désactivé
             return False
 
         # Si la santé est supérieure à 50%, interdire l'entrée en état flee
         if health_ratio > 0.5:
-            LOGGER.debug(
-                "[AI] %s _should_flee: health=%.2f > 50%%, refusing flee state",
-                context.entity_id,
-                health_ratio,
-            )
+            # Log désactivé
             return False
 
         # Vérifier les conditions d'entrée en fuite
         should_start_flee = danger >= self.settings.danger.flee_threshold or health_ratio <= self.settings.flee_health_ratio
-        LOGGER.debug(
-            "[AI] %s _should_flee: danger=%.3f, threshold=%.3f, health=%.2f, should_start_flee=%s",
-            context.entity_id,
-            danger,
-            self.settings.danger.flee_threshold,
-            health_ratio,
-            should_start_flee,
-        )
+        # Log désactivé
         if should_start_flee:
             context.in_flee_state = True
-            LOGGER.debug("[AI] %s _should_flee: ENTERING flee state", context.entity_id)
+            # Log désactivé
         return should_start_flee
 
     def _should_follow_druid(self, dt: float, context: UnitContext) -> bool:
@@ -590,7 +560,6 @@ class RapidUnitController:
 
     def _has_attack_objective(self, dt: float, context: UnitContext) -> bool:
         if not context.current_objective:
-            LOGGER.debug("[AI] %s _has_attack_objective: no objective", self.entity_id)
             return False
         # Si on est en navigation lancée par Attack, reste en Attack/GoTo
         # Check both persistent and context storage
@@ -598,10 +567,6 @@ class RapidUnitController:
         if (self._persistent_nav_active or self.is_navigation_active(context)) and return_state == "Attack":
             return False
         result = context.current_objective.type in {"attack", "attack_mobile", "attack_base"}
-        if config_manager.get('dev_mode', False):
-            LOGGER.info("[AI] %s _has_attack_objective: returning %s (objective_type=%s, nav_active=%s, nav_return=%s)", 
-                        self.entity_id, result, context.current_objective.type, 
-                        self.is_navigation_active(context), return_state)
         return result
 
     def _has_follow_to_die(self, dt: float, context: UnitContext) -> bool:
@@ -632,42 +597,31 @@ class RapidUnitController:
         """
         objective = context.current_objective
         if objective is None:
-            if config_manager.get('dev_mode', False):
-                LOGGER.info("[AI] %s _attack_done: no objective, returning True", self.entity_id)
             return True
         
         # Les coffres sont prioritaires - forcer la sortie de l'attaque
         if objective.type in {"goto_chest"}:
-            if config_manager.get('dev_mode', False):
-                LOGGER.info("[AI] %s _attack_done: chest objective detected, returning True (priority switch)", self.entity_id)
             return True
         
         # Pour les objectifs de position fixe comme attack_base, l'attaque ne se termine jamais
         if objective.type in {"attack_base"}:
             result = False
-            if config_manager.get('dev_mode', False):
-                LOGGER.info("[AI] %s _attack_done: attack_base objective, returning %s", self.entity_id, result)
             return result
         
         # Pour les objectifs d'attaque: l'attaque se termine si l'entité cible n'existe plus
         if objective.type in {"attack", "attack_mobile"}:
             if objective.target_entity is None:
-                if config_manager.get('dev_mode', False):
-                    LOGGER.info("[AI] %s _attack_done: attack objective without target entity, returning True", self.entity_id)
                 return True
             try:
                 esper.component_for_entity(objective.target_entity, PositionComponent)
-                if config_manager.get('dev_mode', False):
-                    LOGGER.info("[AI] %s _attack_done: attack target still exists, returning False", self.entity_id)
                 return False
             except KeyError:
-                if config_manager.get('dev_mode', False):
-                    LOGGER.info("[AI] %s _attack_done: attack target no longer exists, returning True", self.entity_id)
                 return True
         
         # Fallback pour types inconnus
         if config_manager.get('dev_mode', False):
-            LOGGER.info("[AI] %s _attack_done: unknown objective type=%s, returning True", self.entity_id, objective.type)
+            # Log désactivé
+            pass
         return True
 
     def _near_druid(self, dt: float, context: UnitContext) -> bool:
@@ -691,19 +645,13 @@ class RapidUnitController:
         self.context = ctx
         self._tick_attack_cooldown(ctx, dt)
         ctx.danger_level = self.danger_map.sample_world(ctx.position)
-        LOGGER.debug("[AI] %s danger_level=%.3f, in_flee_state=%s, flee_exit_time=%.1f, current_time=%.1f", 
-                    self.entity_id, ctx.danger_level, ctx.in_flee_state, ctx.flee_exit_time, self.context_manager.time)
+    # Log désactivé
         self._refresh_objective(ctx)
         previous_state = self.state_machine.current_state.name
         self.state_machine.update(dt, ctx)
         current_state = self.state_machine.current_state.name
         if current_state != previous_state:
-            LOGGER.info(
-                "[AI] %s changement d'état : %s → %s",
-                self.entity_id,
-                previous_state,
-                current_state,
-            )
+            # Log désactivé
             self._last_state_name = current_state
         # NOTE: Do NOT manually force to GoTo here - let the FSM handle transitions
         # The global transition _has_navigation_request (priority 70) will trigger
@@ -896,37 +844,18 @@ class RapidUnitController:
             if objective.type == "goto_chest" and objective.target_entity is not None:
                 owner = self.coordination.chest_owner(objective.target_entity)
                 if owner not in (None, self.entity_id):
-                    if config_manager.get('dev_mode', False):
-                        LOGGER.info(
-                            "[AI] %s coffre %s déjà pris par %s, bascule en survie",
-                            self.entity_id,
-                            objective.target_entity,
-                            owner,
-                        )
                     objective = Objective("survive", context.position)
                     score = 0.0
-                else:
-                    if (
-                        context.assigned_chest_id is not None
-                        and context.assigned_chest_id != objective.target_entity
-                    ):
-                        self.coordination.release_chest(context.assigned_chest_id)
-                    self.coordination.assign_chest(self.entity_id, objective.target_entity, now)
-                    context.assigned_chest_id = objective.target_entity
-                    if config_manager.get('dev_mode', False):
-                        LOGGER.info(
-                            "[AI] %s coffre %s assigné",
-                            self.entity_id,
-                            objective.target_entity,
-                        )
+                if (
+                    context.assigned_chest_id is not None
+                    and context.assigned_chest_id != objective.target_entity
+                ):
+                    self.coordination.release_chest(context.assigned_chest_id)
+                if owner in (None, self.entity_id) and objective.target_entity is not None:
+                    self.coordination.assign_chest(self.entity_id, int(objective.target_entity), now)
+                    context.assigned_chest_id = int(objective.target_entity)
             elif context.assigned_chest_id is not None:
                 self.coordination.release_chest(context.assigned_chest_id)
-                if config_manager.get('dev_mode', False):
-                    LOGGER.info(
-                        "[AI] %s coffre %s libéré",
-                        self.entity_id,
-                        context.assigned_chest_id,
-                    )
                 context.assigned_chest_id = None
             # Vérifier si l'objectif attack_base est valide (pas d'unités ennemies près de la base)
             if objective.type == "attack_base" and objective.target_entity is not None:
@@ -934,25 +863,13 @@ class RapidUnitController:
                 base_protection_radius = 200.0
                 if self._is_base_protected(context, objective.target_entity, base_protection_radius):
                     if now >= base_block_until:
-                        if config_manager.get('dev_mode', False):
-                            LOGGER.info(
-                                "[AI] %s base protégée par des unités ennemies, autorisation d'attaque",
-                                self.entity_id,
-                            )
-                    # Autoriser l'attaque même si protégée
+                        # Autoriser l'attaque même si protégée
+                        pass
                 else:
                     if base_block_until > 0.0 and base_block_until > now:
                         context.share_channel["attack_base_block_until"] = 0.0
             new_signature = (objective.type, objective.target_entity)
             if new_signature != self._last_objective_signature:
-                if config_manager.get('dev_mode', False):
-                    LOGGER.info(
-                        "[AI] %s objectif %s → %s (score=%.2f)",
-                        self.entity_id,
-                        previous_type,
-                        objective.type,
-                        score,
-                    )
                 self._last_objective_signature = new_signature
             self.context_manager.assign_objective(context, objective, score)
             self.target_position = objective.target_position
@@ -973,19 +890,12 @@ class RapidUnitController:
             # Calculer le temps écoulé depuis le dernier changement d'état
             time_in_state = now - context.last_state_change
             context.stuck_state_time = time_in_state
-        
         # Si coincée dans Idle/Attack/Flee depuis plus de 5 secondes, abandonner l'objectif
-        if (context.stuck_state_time > 5.0 and 
-            current_state in ["Idle", "Attack", "Flee"] and 
-            context.current_objective is not None):
-            if config_manager.get('dev_mode', False):
-                LOGGER.info(
-                    "[AI] %s coincée dans %s depuis %.1fs, abandon objectif %s",
-                    self.entity_id,
-                    current_state,
-                    context.stuck_state_time,
-                    context.current_objective.type,
-                )
+        if (
+            context.stuck_state_time > 5.0
+            and current_state in ["Idle", "Attack", "Flee"]
+            and context.current_objective is not None
+        ):
             context.current_objective = None
             context.stuck_state_time = 0.0
             context.last_state_change = now
