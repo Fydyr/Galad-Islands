@@ -82,11 +82,14 @@ class GaladConfigApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Galad Config Tool")
-        self.geometry("600x650")
+        self.geometry("700x750")
         self.resizable(True, True)
 
         # load current settings
         self.config_data = load_config()
+        
+        # Store initial language for change detection
+        self.initial_language = self.config_data.get('language', get_current_language())
         
         # Load custom resolutions with warning if file doesn't exist
         try:
@@ -136,29 +139,29 @@ class GaladConfigApp(tk.Tk):
         self.h_var = tk.StringVar()
         ent_w = ttk.Entry(frm, width=6, textvariable=self.w_var)
         ent_h = ttk.Entry(frm, width=6, textvariable=self.h_var)
-        ent_w.grid(row=5, column=2, sticky=tk.W)
-        ttk.Label(frm, text=' x ').grid(row=5, column=2)
-        ent_h.grid(row=5, column=2, sticky=tk.E, padx=(30, 0))
+        ent_w.grid(row=11, column=0, sticky=tk.W)
+        ttk.Label(frm, text=' x ').grid(row=11, column=0)
+        ent_h.grid(row=11, column=0, sticky=tk.E, padx=(30, 0))
 
-        ttk.Button(frm, text=t('options.add_resolution'), command=self._add_manual).grid(row=6, column=2, sticky=tk.W)
-        ttk.Button(frm, text=t('options.add_current_resolution'), command=self._add_current).grid(row=7, column=2, sticky=tk.W)
-        ttk.Button(frm, text=t('options.remove_resolution'), command=self._remove_selected).grid(row=8, column=2, sticky=tk.W)
+        ttk.Button(frm, text=t('options.add_resolution'), command=self._add_manual).grid(row=12, column=0, sticky=tk.W)
+        ttk.Button(frm, text=t('options.add_current_resolution'), command=self._add_current).grid(row=12, column=1, sticky=tk.W)
+        ttk.Button(frm, text=t('options.remove_resolution'), command=self._remove_selected).grid(row=12, column=2, sticky=tk.W)
 
         # Performance settings
-        ttk.Separator(frm).grid(row=9, column=0, columnspan=3, sticky='ew', pady=(6, 6))
-        ttk.Label(frm, text=t('options.performance')).grid(row=10, column=0, sticky=tk.W)
+        ttk.Separator(frm).grid(row=13, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        ttk.Label(frm, text=t('options.performance')).grid(row=14, column=0, sticky=tk.W)
         
         # Performance mode
-        ttk.Label(frm, text=t('options.performance_mode_label')).grid(row=11, column=0, sticky=tk.W)
+        ttk.Label(frm, text=t('options.performance_mode_label')).grid(row=15, column=0, sticky=tk.W)
         self.perf_var = tk.StringVar(value=self.config_data.get('performance_mode', 'auto'))
         perf_combo = ttk.Combobox(frm, values=['auto', 'high', 'medium', 'low'], state="readonly", width=10)
         perf_combo.set(self.perf_var.get())
         perf_combo.bind("<<ComboboxSelected>>", lambda e: self.perf_var.set(perf_combo.get()))
-        perf_combo.grid(row=11, column=1, sticky=tk.W)
+        perf_combo.grid(row=15, column=1, sticky=tk.W)
         
         # VSync
         self.vsync_var = tk.BooleanVar(value=self.config_data.get('vsync', True))
-        ttk.Checkbutton(frm, text=t('options.vsync'), variable=self.vsync_var).grid(row=12, column=0, sticky=tk.W, pady=(0, 8))
+        ttk.Checkbutton(frm, text=t('options.vsync'), variable=self.vsync_var).grid(row=16, column=0, sticky=tk.W, pady=(0, 8))
         
         # FPS Max Slider with visible value
         self.fps_var = tk.IntVar(value=self.config_data.get('max_fps', 60))
@@ -168,7 +171,7 @@ class GaladConfigApp(tk.Tk):
         else:
             label_text = t('options.max_fps_label', fps=initial_fps)
         self.fps_label = ttk.Label(frm, text=label_text)
-        self.fps_label.grid(row=13, column=0, sticky=tk.W)
+        self.fps_label.grid(row=17, column=0, sticky=tk.W)
         def update_fps_label(val):
             fps_val = int(float(val))
             if fps_val == 0:
@@ -176,27 +179,27 @@ class GaladConfigApp(tk.Tk):
             else:
                 self.fps_label.config(text=t('options.max_fps_label', fps=fps_val))
         self.fps_scale = ttk.Scale(frm, from_=0, to=240, orient=tk.HORIZONTAL, variable=self.fps_var, command=update_fps_label)
-        self.fps_scale.grid(row=13, column=1, columnspan=2, sticky='ew', padx=(10, 0))
+        self.fps_scale.grid(row=17, column=1, columnspan=2, sticky='ew', padx=(10, 0))
         
         # Disable particles
         self.particles_var = tk.BooleanVar(value=self.config_data.get('disable_particles', False))
-        ttk.Checkbutton(frm, text=t('options.disable_particles'), variable=self.particles_var).grid(row=14, column=0, sticky=tk.W, pady=(8, 0))
+        ttk.Checkbutton(frm, text=t('options.disable_particles'), variable=self.particles_var).grid(row=18, column=0, sticky=tk.W, pady=(8, 0))
         
                 # Disable shadows
         self.shadows_var = tk.BooleanVar(value=self.config_data.get('disable_shadows', False))
-        ttk.Checkbutton(frm, text=t('options.disable_shadows'), variable=self.shadows_var).grid(row=15, column=0, sticky=tk.W)
+        ttk.Checkbutton(frm, text=t('options.disable_shadows'), variable=self.shadows_var).grid(row=19, column=0, sticky=tk.W)
 
-        # Camera sensitivity (placed after performance settings)
-        ttk.Separator(frm).grid(row=16, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+                # Camera sensitivity (placed after performance settings)
+        ttk.Separator(frm).grid(row=20, column=0, columnspan=3, sticky='ew', pady=(6, 6))
         self.camera_var = tk.DoubleVar(value=self.config_data.get('camera_sensitivity', 1.0))
         self.camera_label = ttk.Label(frm, text=t('options.camera_sensitivity', sensitivity=self.camera_var.get()))
-        self.camera_label.grid(row=17, column=0, sticky=tk.W)
+        self.camera_label.grid(row=21, column=0, sticky=tk.W)
         self.camera_scale = ttk.Scale(frm, from_=0.2, to=3.0, orient=tk.HORIZONTAL, variable=self.camera_var, command=self._on_camera_changed)
-        self.camera_scale.grid(row=18, column=0, columnspan=3, sticky='ew')
+        self.camera_scale.grid(row=22, column=0, columnspan=3, sticky='ew')
 
         # Language (placed after camera)
-        ttk.Separator(frm).grid(row=19, column=0, columnspan=3, sticky='ew', pady=(6, 6))
-        ttk.Label(frm, text=t('options.language_section')).grid(row=20, column=0, sticky=tk.W)
+        ttk.Separator(frm).grid(row=23, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        ttk.Label(frm, text=t('options.language_section')).grid(row=24, column=0, sticky=tk.W)
         
         # Language dropdown for extensibility
         self.lang_var = tk.StringVar(value=self.config_data.get('language', get_current_language()))
@@ -207,7 +210,11 @@ class GaladConfigApp(tk.Tk):
         self.lang_combo = ttk.Combobox(frm, values=lang_names, state="readonly", width=15)
         self.lang_combo.set(current_lang_name)
         self.lang_combo.bind("<<ComboboxSelected>>", self._on_lang_combo_changed)
-        self.lang_combo.grid(row=21, column=0, sticky=tk.W, padx=(0, 10))
+        self.lang_combo.grid(row=25, column=0, sticky=tk.W, padx=(0, 10))
+
+        # Language restart note
+        self.lang_note_label = ttk.Label(frm, text=t('options.language_restart_note'), font=("", 8, "italic"), foreground="gray")
+        self.lang_note_label.grid(row=26, column=0, sticky=tk.W, pady=(2, 0))
 
         # Ensure the frame has three columns so buttons can align
         frm.columnconfigure(0, weight=1)
@@ -216,11 +223,12 @@ class GaladConfigApp(tk.Tk):
 
         # Action buttons (aligned across three columns)
         self.default_btn = ttk.Button(frm, text=t('options.button_default'), command=self._on_reset)
-        self.default_btn.grid(row=23, column=0, sticky=tk.W, pady=(12, 0), padx=(4, 4))
+        self.default_btn.grid(row=28, column=0, sticky=tk.W, pady=(12, 0), padx=(4, 4))
         self.apply_btn = ttk.Button(frm, text=t('options.apply'), command=self._on_apply)
-        self.apply_btn.grid(row=23, column=1, sticky='', pady=(12, 0))
+        self.apply_btn.grid(row=28, column=1, sticky='', pady=(12, 0))
         self.close_btn = ttk.Button(frm, text=t('options.button_close'), command=self.destroy)
-        self.close_btn.grid(row=23, column=2, sticky=tk.E, pady=(12, 0), padx=(4, 4))
+        self.close_btn.grid(row=28, column=2, sticky=tk.E, pady=(12, 0), padx=(4, 4))
+
 
         # Audio tab
         audio_frm = ttk.Frame(self.notebook, padding=pad)
@@ -415,6 +423,22 @@ class GaladConfigApp(tk.Tk):
             pass
         # refresh UI texts to chosen language
         self._refresh_ui_texts()
+        
+        # Check if language changed and restart if needed
+        current_language = self.lang_var.get()
+        if current_language != self.initial_language:
+            restart = messagebox.askyesno(
+                t('options.language_changed_title'),
+                t('options.language_changed_message')
+            )
+            if restart:
+                self.destroy()
+                # Restart the application with new language
+                import subprocess
+                import sys
+                subprocess.Popen([sys.executable] + sys.argv)
+                return
+        
         messagebox.showinfo('OK', 'Paramètres appliqués')
 
     def _build_controls_tab(self, parent):
@@ -507,6 +531,10 @@ class GaladConfigApp(tk.Tk):
                 current_lang_name = self.langs_dict.get(current_lang_code, "")
                 if current_lang_name and current_lang_name != self.lang_combo.get():
                     self.lang_combo.set(current_lang_name)
+            
+            # Update language restart note
+            if hasattr(self, 'lang_note_label'):
+                self.lang_note_label.configure(text=t('options.language_restart_note'))
             
             # Update buttons
             self.default_btn.configure(text=t('options.button_default'))
