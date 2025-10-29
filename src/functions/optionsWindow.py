@@ -109,6 +109,8 @@ class OptionsState:
     performance_mode: str
     disable_particles: bool
     disable_shadows: bool
+    vsync: bool
+    max_fps: int
     
     @classmethod
     def from_config(cls) -> 'OptionsState':
@@ -144,6 +146,8 @@ class OptionsState:
             performance_mode=get_performance_mode(),
             disable_particles=get_disable_particles(),
             disable_shadows=get_disable_shadows(),
+            vsync=config_manager.get("vsync", True),
+            max_fps=int(config_manager.get("max_fps", 60)),
         )
 
 
@@ -333,7 +337,45 @@ class OptionsWindow:
         self.components.append(shadows_checkbox)
         y_pos += UIConstants.LINE_HEIGHT
         
+        # VSync
+        vsync_rect = pygame.Rect(0, y_pos, self.modal_width - 60, UIConstants.LINE_HEIGHT)
+        vsync_checkbox = RadioButton(
+            vsync_rect,
+            "VSync",
+            self.font_normal,
+            "vsync",
+            selected=self.state.vsync,
+            callback=lambda x: self._on_vsync_changed()
+        )
+        self.components.append(vsync_checkbox)
+        y_pos += UIConstants.LINE_HEIGHT
+
+        # Choix du framerate
+        fps_text = t("options.max_fps_label", fps=self.state.max_fps if self.state.max_fps > 0 else "Illimité")
+        fps_label = self.font_normal.render(fps_text, True, Colors.WHITE)
+        surface.blit(fps_label, (0, y_pos))
+        y_pos += 25
+        # Slider de FPS (0 à 240, 0 = illimité)
+        fps_slider_rect = pygame.Rect(0, y_pos, self.modal_width - 100, UIConstants.SLIDER_HEIGHT)
+        fps_slider = Slider(
+            fps_slider_rect,
+            min_value=0,
+            max_value=240,
+            initial_value=self.state.max_fps,
+            callback=self._on_fps_changed
+        )
+        self.components.append(fps_slider)
+        y_pos += 50
         return y_pos
+    def _on_vsync_changed(self):
+        config_manager.set("vsync", not self.state.vsync)
+        config_manager.save_config()
+        self._refresh_state()
+
+    def _on_fps_changed(self, fps: float) -> None:
+        config_manager.set("max_fps", int(fps))
+        config_manager.save_config()
+        self._refresh_state()
     
     def _create_resolution_section(self, surface: pygame.Surface, y_pos: int) -> int:
         """Crée la section des paramètres de résolution."""

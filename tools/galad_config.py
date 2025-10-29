@@ -75,7 +75,6 @@ def save_resolutions_list(res_list):
         RES_PATH.write_text(json.dumps(res_list, indent=4))
         return True
     except Exception as e:
-        messagebox.showerror("Erreur de sauvegarde", f"Erreur en sauvegardant les résolutions:\n{e}")
         return False
 
 
@@ -141,16 +140,16 @@ class GaladConfigApp(tk.Tk):
         ttk.Label(frm, text=' x ').grid(row=5, column=2)
         ent_h.grid(row=5, column=2, sticky=tk.E, padx=(30, 0))
 
-        ttk.Button(frm, text='Add', command=self._add_manual).grid(row=6, column=2, sticky=tk.W)
-        ttk.Button(frm, text='Add current', command=self._add_current).grid(row=7, column=2, sticky=tk.W)
-        ttk.Button(frm, text='Remove', command=self._remove_selected).grid(row=8, column=2, sticky=tk.W)
+        ttk.Button(frm, text=t('options.add_resolution'), command=self._add_manual).grid(row=6, column=2, sticky=tk.W)
+        ttk.Button(frm, text=t('options.add_current_resolution'), command=self._add_current).grid(row=7, column=2, sticky=tk.W)
+        ttk.Button(frm, text=t('options.remove_resolution'), command=self._remove_selected).grid(row=8, column=2, sticky=tk.W)
 
         # Performance settings
         ttk.Separator(frm).grid(row=9, column=0, columnspan=3, sticky='ew', pady=(6, 6))
-        ttk.Label(frm, text='Performance / Performances').grid(row=10, column=0, sticky=tk.W)
+        ttk.Label(frm, text=t('options.performance')).grid(row=10, column=0, sticky=tk.W)
         
         # Performance mode
-        ttk.Label(frm, text='Mode de performance').grid(row=11, column=0, sticky=tk.W)
+        ttk.Label(frm, text=t('options.performance_mode_label')).grid(row=11, column=0, sticky=tk.W)
         self.perf_var = tk.StringVar(value=self.config_data.get('performance_mode', 'auto'))
         perf_combo = ttk.Combobox(frm, values=['auto', 'high', 'medium', 'low'], state="readonly", width=10)
         perf_combo.set(self.perf_var.get())
@@ -159,27 +158,45 @@ class GaladConfigApp(tk.Tk):
         
         # VSync
         self.vsync_var = tk.BooleanVar(value=self.config_data.get('vsync', True))
-        ttk.Checkbutton(frm, text='VSync', variable=self.vsync_var).grid(row=12, column=0, sticky=tk.W)
+        ttk.Checkbutton(frm, text=t('options.vsync'), variable=self.vsync_var).grid(row=12, column=0, sticky=tk.W, pady=(0, 8))
+        
+        # FPS Max Slider with visible value
+        self.fps_var = tk.IntVar(value=self.config_data.get('max_fps', 60))
+        initial_fps = self.fps_var.get()
+        if initial_fps == 0:
+            label_text = t('options.max_fps_label', fps=t('options.unlimited'))
+        else:
+            label_text = t('options.max_fps_label', fps=initial_fps)
+        self.fps_label = ttk.Label(frm, text=label_text)
+        self.fps_label.grid(row=13, column=0, sticky=tk.W)
+        def update_fps_label(val):
+            fps_val = int(float(val))
+            if fps_val == 0:
+                self.fps_label.config(text=t('options.max_fps_label', fps=t('options.unlimited')))
+            else:
+                self.fps_label.config(text=t('options.max_fps_label', fps=fps_val))
+        self.fps_scale = ttk.Scale(frm, from_=0, to=240, orient=tk.HORIZONTAL, variable=self.fps_var, command=update_fps_label)
+        self.fps_scale.grid(row=13, column=1, columnspan=2, sticky='ew', padx=(10, 0))
         
         # Disable particles
         self.particles_var = tk.BooleanVar(value=self.config_data.get('disable_particles', False))
-        ttk.Checkbutton(frm, text='Désactiver particules', variable=self.particles_var).grid(row=13, column=0, sticky=tk.W)
+        ttk.Checkbutton(frm, text=t('options.disable_particles'), variable=self.particles_var).grid(row=14, column=0, sticky=tk.W, pady=(8, 0))
         
-        # Disable shadows
+                # Disable shadows
         self.shadows_var = tk.BooleanVar(value=self.config_data.get('disable_shadows', False))
-        ttk.Checkbutton(frm, text='Désactiver ombres', variable=self.shadows_var).grid(row=14, column=0, sticky=tk.W)
+        ttk.Checkbutton(frm, text=t('options.disable_shadows'), variable=self.shadows_var).grid(row=15, column=0, sticky=tk.W)
 
         # Camera sensitivity (placed after performance settings)
-        ttk.Separator(frm).grid(row=15, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        ttk.Separator(frm).grid(row=16, column=0, columnspan=3, sticky='ew', pady=(6, 6))
         self.camera_var = tk.DoubleVar(value=self.config_data.get('camera_sensitivity', 1.0))
         self.camera_label = ttk.Label(frm, text=t('options.camera_sensitivity', sensitivity=self.camera_var.get()))
-        self.camera_label.grid(row=16, column=0, sticky=tk.W)
+        self.camera_label.grid(row=17, column=0, sticky=tk.W)
         self.camera_scale = ttk.Scale(frm, from_=0.2, to=3.0, orient=tk.HORIZONTAL, variable=self.camera_var, command=self._on_camera_changed)
-        self.camera_scale.grid(row=17, column=0, columnspan=3, sticky='ew')
+        self.camera_scale.grid(row=18, column=0, columnspan=3, sticky='ew')
 
         # Language (placed after camera)
-        ttk.Separator(frm).grid(row=18, column=0, columnspan=3, sticky='ew', pady=(6, 6))
-        ttk.Label(frm, text=t('options.language_section')).grid(row=19, column=0, sticky=tk.W)
+        ttk.Separator(frm).grid(row=19, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        ttk.Label(frm, text=t('options.language_section')).grid(row=20, column=0, sticky=tk.W)
         
         # Language dropdown for extensibility
         self.lang_var = tk.StringVar(value=self.config_data.get('language', get_current_language()))
@@ -190,7 +207,7 @@ class GaladConfigApp(tk.Tk):
         self.lang_combo = ttk.Combobox(frm, values=lang_names, state="readonly", width=15)
         self.lang_combo.set(current_lang_name)
         self.lang_combo.bind("<<ComboboxSelected>>", self._on_lang_combo_changed)
-        self.lang_combo.grid(row=20, column=0, sticky=tk.W, padx=(0, 10))
+        self.lang_combo.grid(row=21, column=0, sticky=tk.W, padx=(0, 10))
 
         # Ensure the frame has three columns so buttons can align
         frm.columnconfigure(0, weight=1)
@@ -199,11 +216,11 @@ class GaladConfigApp(tk.Tk):
 
         # Action buttons (aligned across three columns)
         self.default_btn = ttk.Button(frm, text=t('options.button_default'), command=self._on_reset)
-        self.default_btn.grid(row=22, column=0, sticky=tk.W, pady=(12, 0), padx=(4, 4))
+        self.default_btn.grid(row=23, column=0, sticky=tk.W, pady=(12, 0), padx=(4, 4))
         self.apply_btn = ttk.Button(frm, text=t('options.apply'), command=self._on_apply)
-        self.apply_btn.grid(row=22, column=1, sticky='', pady=(12, 0))
+        self.apply_btn.grid(row=23, column=1, sticky='', pady=(12, 0))
         self.close_btn = ttk.Button(frm, text=t('options.button_close'), command=self.destroy)
-        self.close_btn.grid(row=22, column=2, sticky=tk.E, pady=(12, 0), padx=(4, 4))
+        self.close_btn.grid(row=23, column=2, sticky=tk.E, pady=(12, 0), padx=(4, 4))
 
         # Audio tab
         audio_frm = ttk.Frame(self.notebook, padding=pad)
@@ -242,10 +259,10 @@ class GaladConfigApp(tk.Tk):
 
         # Configuration tab
         config_frm = ttk.Frame(self.notebook, padding=pad)
-        self.notebook.add(config_frm, text="Configuration")
+        self.notebook.add(config_frm, text=t('options.configuration'))
         
         # Config file selection
-        ttk.Label(config_frm, text="Fichier de configuration:").grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        ttk.Label(config_frm, text=t('options.config_file_label')).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
         
         config_frame = ttk.Frame(config_frm)
         config_frame.grid(row=1, column=0, columnspan=3, sticky='ew', pady=(0, 10))
@@ -254,10 +271,10 @@ class GaladConfigApp(tk.Tk):
         self.config_path_var = tk.StringVar(value=str(CONFIG_PATH))
         self.config_path_entry = ttk.Entry(config_frame, textvariable=self.config_path_var, width=50)
         self.config_path_entry.grid(row=0, column=0, sticky='ew', padx=(0, 5))
-        ttk.Button(config_frame, text="Parcourir...", command=self._browse_config_file).grid(row=0, column=1)
+        ttk.Button(config_frame, text=t('options.browse_button'), command=self._browse_config_file).grid(row=0, column=1)
         
         # Resolutions file selection
-        ttk.Label(config_frm, text="Fichier des résolutions personnalisées:").grid(row=2, column=0, sticky=tk.W, pady=(10, 5))
+        ttk.Label(config_frm, text=t('options.resolutions_file_label')).grid(row=2, column=0, sticky=tk.W, pady=(10, 5))
         
         res_frame = ttk.Frame(config_frm)
         res_frame.grid(row=3, column=0, columnspan=3, sticky='ew', pady=(0, 10))
@@ -266,13 +283,13 @@ class GaladConfigApp(tk.Tk):
         self.res_path_var = tk.StringVar(value=str(RES_PATH))
         self.res_path_entry = ttk.Entry(res_frame, textvariable=self.res_path_var, width=50)
         self.res_path_entry.grid(row=0, column=0, sticky='ew', padx=(0, 5))
-        ttk.Button(res_frame, text="Parcourir...", command=self._browse_res_file).grid(row=0, column=1)
+        ttk.Button(res_frame, text=t('options.browse_button'), command=self._browse_res_file).grid(row=0, column=1)
         
         # Apply paths button
-        ttk.Button(config_frm, text="Appliquer les chemins", command=self._apply_paths).grid(row=4, column=0, pady=(10, 0))
+        ttk.Button(config_frm, text=t('options.apply_paths'), command=self._apply_paths).grid(row=4, column=0, pady=(10, 0))
         
         # Info label
-        self.info_label = ttk.Label(config_frm, text="Chemins par défaut utilisés", foreground="green")
+        self.info_label = ttk.Label(config_frm, text=t('options.default_paths_used'), foreground="green")
         self.info_label.grid(row=5, column=0, columnspan=3, pady=(10, 0))
 
     def _populate_resolutions(self):
@@ -342,7 +359,7 @@ class GaladConfigApp(tk.Tk):
         idx = sel[0]
         w,h,lab = self.res_entries[idx]
         if (w,h) not in self.customs:
-            messagebox.showerror('Erreur', 'Impossible de supprimer une résolution prédéfinie.\nSeules les résolutions personnalisées peuvent être supprimées.')
+            messagebox.showerror('Erreur', t('options.cannot_remove_builtin_resolution'))
             return
         self.customs.remove((w,h))
         save_resolutions_list([list(x) for x in self.customs])
@@ -381,6 +398,8 @@ class GaladConfigApp(tk.Tk):
         config_manager.set("vsync", self.vsync_var.get())
         config_manager.set("disable_particles", self.particles_var.get())
         config_manager.set("disable_shadows", self.shadows_var.get())
+        # max FPS
+        config_manager.set("max_fps", self.fps_var.get())
         config_manager.save_config()
         # language
         set_language(self.lang_var.get())

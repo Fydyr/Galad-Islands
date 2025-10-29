@@ -933,9 +933,9 @@ class GameEngine:
             except Exception:
                 # fallback to direct creation avec optimisations pour de meilleures performances
                 flags = pygame.RESIZABLE | pygame.DOUBLEBUF
-                # Désactiver VSync si configuré pour de meilleures performances
-                if not config_manager.get("vsync", True):
-                    flags |= pygame.NOFRAME  # Évite la synchronisation verticale
+                # Vsync (pygame 2.x): utiliser le paramètre vsync si disponible
+                vsync_enabled = config_manager.get("vsync", True)
+                max_fps = int(config_manager.get("max_fps", 60))
                 # Utiliser HWSURFACE si disponible (accélération matérielle)
                 try:
                     test_surface = pygame.display.set_mode((100, 100), flags | pygame.HWSURFACE)
@@ -945,12 +945,18 @@ class GameEngine:
                         pygame.display.init()  # Réinitialiser
                 except:
                     pass  # HWSURFACE non disponible
-                self.window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE), flags)
+                # Appliquer Vsync si supporté
+                try:
+                    self.window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE), flags, vsync=1 if vsync_enabled else 0)
+                except TypeError:
+                    # Si le paramètre vsync n'est pas supporté
+                    self.window = pygame.display.set_mode((MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE), flags)
                 pygame.display.set_caption(t("system.game_window_title"))
             self.created_local_window = True
         
         self.clock = pygame.time.Clock()
-        self.clock.tick(60)
+        max_fps = int(config_manager.get("max_fps", 60))
+        self.clock.tick(max_fps)
         
         # Initialiser l'ActionBar
         self.action_bar = ActionBar(self.window.get_width(), self.window.get_height(), game_engine=self)
@@ -1730,7 +1736,8 @@ class GameEngine:
         
         while self.running:
             frame_start = pygame.time.get_ticks()
-            dt = self.clock.tick(60) / 1000.0
+            max_fps = int(config_manager.get("max_fps", 60))
+            dt = self.clock.tick(max_fps) / 1000.0
             
             self.event_handler.handle_events()
             self._update_game(dt)
