@@ -321,7 +321,18 @@ class UnifiedShop:
 
     def _get_base_spawn_position(self, is_enemy=False):
         """Calcule une position de spawn praticable selon la faction."""
-        spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=is_enemy)
+        if is_enemy:
+            base_entity = BaseComponent.get_enemy_base()
+        else:
+            base_entity = BaseComponent.get_ally_base()
+
+        if base_entity is None or not esper.has_component(base_entity, PositionComponent):
+            # Fallback to a default position or raise an error if base not found
+            return PositionComponent(0, 0)  # Or handle error appropriately
+        base_pos = esper.component_for_entity(base_entity, PositionComponent)
+        spawn_x, spawn_y = BaseComponent.get_spawn_position(
+            base_pos.x, base_pos.y, is_enemy=is_enemy)
+
         return PositionComponent(spawn_x, spawn_y)
 
     def _get_game_grid(self):

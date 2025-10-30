@@ -1,6 +1,7 @@
 # Importation des modules nécessaires
 import pygame
 import sys
+import numpy as np
 from random import randint
 import os
 from src.constants.map_tiles import TileType
@@ -46,7 +47,7 @@ def charger_images():
         'sea': pygame.transform.scale(pygame.image.load(get_resource_path(os.path.join("assets", "sprites", "terrain", "sea.png"))), (TILE_SIZE, TILE_SIZE)),
     }
 
-def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
+def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None, base_positions=None):
     """
     Vérifie si un bloc de taille size*size peut être placé à partir de (x, y) sur la grille.
     Le bloc ne doit pas chevaucher d'autres éléments, ni être adjacent à une île générique,
@@ -59,6 +60,7 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
         size (int, optional): Taille du bloc (par défaut 1)
         avoid_bases (bool, optional): Empêche le placement près des bases (par défaut True)
         avoid_type (int, optional): Empêche le placement près d'un type donné (par défaut None)
+        base_positions (list[tuple[int, int]], optional): Liste des positions des bases à éviter.
     Returns:
         bool: True si le bloc peut être placé, False sinon
     """
@@ -78,8 +80,11 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
                     if avoid_type is not None and grid[ny][nx] == avoid_type:
                         return False
     if avoid_bases:
-        # Éviter les bases (zone 4x4 avec marge de sécurité)
-        for bx, by in [(1, 1), (MAP_WIDTH-5, MAP_HEIGHT-5)]:
+        # Utiliser les positions de base dynamiques si fournies, sinon les positions par défaut
+        if base_positions is None:
+            base_positions = [(1, 1), (MAP_WIDTH-5, MAP_HEIGHT-5)]
+
+        for bx, by in base_positions:
             # Augmentation de la marge de sécurité de 2 à 3 tuiles
             # La boucle va maintenant de -3 à 6 (4+3), soit une zone de 10x10
             for dy in range(-3, 7):
@@ -91,22 +96,23 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
                                 return False
         
         # Éviter les zones de spawn des druides
-        # Calcul des positions de spawn basé sur la logique de BaseComponent.get_spawn_position()
-        ally_base_center_x, ally_base_center_y = 3.0, 3.0  # Centre de la base alliée en coordonnées de grille
-        enemy_base_center_x, enemy_base_center_y = MAP_WIDTH - 3.0, MAP_HEIGHT - 2.8  # Centre de la base ennemie
-        
-        half_extent = 2.0  # 2 * TILE_SIZE en coordonnées de grille
-        safety_margin = 1.25  # 1.25 * TILE_SIZE en coordonnées de grille
-        max_jitter = 0.35  # Jitter maximal en coordonnées de grille
-        spawn_zone_radius = 1.5  # Rayon de la zone à éviter autour du spawn
-        
-        # Zone de spawn alliée (direction positive depuis la base)
-        ally_spawn_x = ally_base_center_x + (half_extent + safety_margin + max_jitter)
-        ally_spawn_y = ally_base_center_y + (half_extent + safety_margin + max_jitter)
-        
-        # Zone de spawn ennemie (direction négative depuis la base)
-        enemy_spawn_x = enemy_base_center_x - (half_extent + safety_margin + max_jitter)
-        enemy_spawn_y = enemy_base_center_y - (half_extent + safety_margin + max_jitter)
+        # Utiliser les positions de base dynamiques pour calculer les zones de spawn
+        if base_positions:
+            ally_base_pos, enemy_base_pos = base_positions
+            
+            # Calcul des positions de spawn basé sur la logique de BaseComponent.get_spawn_position()
+            ally_base_center_x, ally_base_center_y = ally_base_pos[0] + 2.0, ally_base_pos[1] + 2.0
+            enemy_base_center_x, enemy_base_center_y = enemy_base_pos[0] + 2.0, enemy_base_pos[1] + 2.0
+            
+            half_extent = 2.0  # 2 * TILE_SIZE en coordonnées de grille
+            safety_margin = 1.25
+            spawn_zone_radius = 2.5 # Rayon de la zone à éviter autour du spawn
+            
+            ally_spawn_x = ally_base_center_x + (half_extent + safety_margin)
+            ally_spawn_y = ally_base_center_y
+            
+            enemy_spawn_x = enemy_base_center_x - (half_extent + safety_margin)
+            enemy_spawn_y = enemy_base_center_y
         
         # Vérifier si le bloc à placer interfère avec les zones de spawn
         spawn_positions = [(ally_spawn_x, ally_spawn_y), (enemy_spawn_x, enemy_spawn_y)]
@@ -123,7 +129,7 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None):
     
     return True
 
-def placer_bloc_aleatoire(grid, valeur, nombre, size=2, min_dist=2, avoid_bases=True, avoid_type=None):
+def placer_bloc_aleatoire(grid, valeur, nombre, size=2, min_dist=2, avoid_bases=True, avoid_type=None, base_positions=None):
     """
     Place aléatoirement un certain nombre de blocs de taille size*size sur la grille,
     en respectant une distance minimale entre eux et les contraintes de sécurité.
@@ -135,6 +141,7 @@ def placer_bloc_aleatoire(grid, valeur, nombre, size=2, min_dist=2, avoid_bases=
         min_dist (int, optional): Distance minimale entre les centres des blocs (par défaut 2)
         avoid_bases (bool, optional): Empêche le placement près des bases (par défaut True)
         avoid_type (int, optional): Empêche le placement près d'un type donné (par défaut None)
+        base_positions (list[tuple[int, int]], optional): Liste des positions des bases à passer à bloc_libre.
     Returns:
         list[tuple[float, float]]: Liste des centres des blocs placés
     """
@@ -142,7 +149,7 @@ def placer_bloc_aleatoire(grid, valeur, nombre, size=2, min_dist=2, avoid_bases=
     centers = []
     while placed < nombre:
         x, y = randint(1, MAP_WIDTH-size-1), randint(1, MAP_HEIGHT-size-1)
-        if bloc_libre(grid, x, y, size=size, avoid_bases=avoid_bases, avoid_type=avoid_type):
+        if bloc_libre(grid, x, y, size=size, avoid_bases=avoid_bases, avoid_type=avoid_type, base_positions=base_positions):
             cx, cy = x+size/2-0.5, y+size/2-0.5
             trop_proche = False
             for px, py in centers:
@@ -162,22 +169,51 @@ def placer_elements(grid):
     Place tous les éléments du jeu sur la grille : bases, îles génériques, nuages, mines.
     Args:
         grid (list[list[int]]): Grille de la carte à remplir
+    Returns:
+        tuple[tuple[int, int], tuple[int, int]]: Positions des bases alliée et ennemie.
     """
-    margin = 1
-    # Bases
+    # --- PLACEMENT ALÉATOIRE DES BASES ---
+    ally_spawn_zone = (2, MAP_WIDTH // 4)
+    enemy_spawn_zone = (MAP_WIDTH - (MAP_WIDTH // 4), MAP_WIDTH - 7)
+    vertical_spawn_zone = (2, MAP_HEIGHT - 7) # Permettre le spawn sur tout le bord vertical
+    min_distance_between_bases = MAP_WIDTH / 2
+
+    attempts = 0
+    while attempts < 100:
+        ally_base_x = randint(ally_spawn_zone[0], ally_spawn_zone[1])
+        ally_base_y = randint(vertical_spawn_zone[0], vertical_spawn_zone[1])
+        enemy_base_x = randint(enemy_spawn_zone[0], enemy_spawn_zone[1])
+        enemy_base_y = randint(vertical_spawn_zone[0], vertical_spawn_zone[1])
+
+        distance = np.hypot(ally_base_x - enemy_base_x, ally_base_y - enemy_base_y)
+        if distance >= min_distance_between_bases:
+            break
+        attempts += 1
+
+    if attempts == 100: # Fallback si aucune position valide n'est trouvée
+        ally_base_x, ally_base_y = 1, 1
+        enemy_base_x, enemy_base_y = MAP_WIDTH - 5, MAP_HEIGHT - 5
+
+    # Placer la base alliée
     for dy in range(4):
         for dx in range(4):
-            grid[margin+dy][margin+dx] = int(TileType.ALLY_BASE)
+            grid[ally_base_y + dy][ally_base_x + dx] = int(TileType.ALLY_BASE)
+
+    # Placer la base ennemie
     for dy in range(4):
         for dx in range(4):
-            grid[MAP_HEIGHT-4-margin+dy][MAP_WIDTH-4-margin+dx] = int(TileType.ENEMY_BASE)
+            grid[enemy_base_y + dy][enemy_base_x + dx] = int(TileType.ENEMY_BASE)
+
+    base_positions = [(ally_base_x, ally_base_y), (enemy_base_x, enemy_base_y)]
+
     # Îles génériques
-    placer_bloc_aleatoire(grid, TileType.GENERIC_ISLAND, GENERIC_ISLAND_RATE, size=3, min_dist=2, avoid_bases=True)
+    placer_bloc_aleatoire(grid, TileType.GENERIC_ISLAND, GENERIC_ISLAND_RATE, size=3, min_dist=2, avoid_bases=True, base_positions=base_positions)
     # Nuages
     placer_bloc_aleatoire(grid, TileType.CLOUD, CLOUD_RATE, size=1, min_dist=0, avoid_bases=False)
     # Mines
-    placer_bloc_aleatoire(grid, TileType.MINE, MINE_RATE, size=1, min_dist=2, avoid_bases=True)
+    placer_bloc_aleatoire(grid, TileType.MINE, MINE_RATE, size=1, min_dist=2, avoid_bases=True, base_positions=base_positions)
 
+    return (ally_base_x, ally_base_y), (enemy_base_x, enemy_base_y)
 
 def is_tile_island(grid, world_x: float, world_y: float) -> bool:
     """
@@ -253,7 +289,7 @@ def rects_intersect(r1, r2):
     x2, y2, w2, h2 = r2
     return not (x1 + w1 <= x2 or x2 + w2 <= x1 or y1 + h1 <= y2 or y2 + h2 <= y1)
 
-def afficher_grille(window, grid, images, camera):
+def afficher_grille(window, grid, images, camera, ally_base_pos, enemy_base_pos):
     """
     Affiche la grille de jeu dans la fenêtre pygame, avec tous les éléments graphiques.
     Utilise le système de caméra pour n'afficher que les éléments visibles.
@@ -268,6 +304,8 @@ def afficher_grille(window, grid, images, camera):
         grid (list[list[int]]): Grille de la carte
         images (dict[str, pygame.Surface]): Dictionnaire des images par type
         camera (Camera): Instance de la caméra pour le viewport
+        ally_base_pos (tuple[int, int]): Position de la base alliée.
+        enemy_base_pos (tuple[int, int]): Position de la base ennemie.
     """
     # --- OPTIMISATION DÉSACTIVÉE TEMPORAIREMENT ---
     # L'optimisation de pré-rendu causait des problèmes d'alignement
@@ -321,7 +359,7 @@ def afficher_grille(window, grid, images, camera):
     # - Logique plus simple et robuste
     
     # Base alliée (position fixe en haut à gauche)
-    ally_base_world_x, ally_base_world_y = 1 * TILE_SIZE, 1 * TILE_SIZE
+    ally_base_world_x, ally_base_world_y = ally_base_pos[0] * TILE_SIZE, ally_base_pos[1] * TILE_SIZE
     ally_screen_x, ally_screen_y = camera.world_to_screen(ally_base_world_x, ally_base_world_y)
     ally_display_size = int(4 * TILE_SIZE * camera.zoom)
     if ally_display_size > 0 and rects_intersect((ally_screen_x, ally_screen_y, ally_display_size, ally_display_size), (0, 0, window.get_width(), window.get_height())):
@@ -329,7 +367,7 @@ def afficher_grille(window, grid, images, camera):
         window.blit(scaled_ally_base, (ally_screen_x, ally_screen_y))
 
     # Base ennemie (position fixe en bas à droite)
-    enemy_base_world_x, enemy_base_world_y = (MAP_WIDTH - 5) * TILE_SIZE, (MAP_HEIGHT - 5) * TILE_SIZE
+    enemy_base_world_x, enemy_base_world_y = enemy_base_pos[0] * TILE_SIZE, enemy_base_pos[1] * TILE_SIZE
     enemy_screen_x, enemy_screen_y = camera.world_to_screen(enemy_base_world_x, enemy_base_world_y)
     enemy_display_size = int(4 * TILE_SIZE * camera.zoom)
     if enemy_display_size > 0 and rects_intersect((enemy_screen_x, enemy_screen_y, enemy_display_size, enemy_display_size), (0, 0, window.get_width(), window.get_height())):
@@ -348,7 +386,7 @@ def init_game_map(screen_width, screen_height):
     """
     grid = creer_grille()
     images = charger_images()
-    placer_elements(grid)
+    ally_base_pos, enemy_base_pos = placer_elements(grid)
     camera = Camera(screen_width, screen_height)
     camera.zoom = 0.75  # Zoom réduit pour voir plus de carte
     # Positionner la caméra au coin supérieur gauche (0, 0)
@@ -360,6 +398,8 @@ def init_game_map(screen_width, screen_height):
         "grid": grid,
         "images": images,
         "camera": camera,
+        "ally_base_pos": ally_base_pos,
+        "enemy_base_pos": enemy_base_pos,
         "show_debug": False,
     }
 

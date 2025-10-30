@@ -55,7 +55,7 @@ class BaseComponent:
         return ally_ok and enemy_ok
 
     @classmethod
-    def initialize_bases(cls):
+    def initialize_bases(cls, ally_base_pos: Tuple[int, int], enemy_base_pos: Tuple[int, int]):
         """Crée les entités de base alliée et ennemie si besoin."""
         if cls._initialized and cls._bases_are_valid():
             return
@@ -100,8 +100,8 @@ class BaseComponent:
             return entity
 
         # Paramètres de la base alliée
-        ally_x = 3.0 * TILE_SIZE
-        ally_y = 3.0 * TILE_SIZE
+        ally_x = ally_base_pos[0] * TILE_SIZE
+        ally_y = ally_base_pos[1] * TILE_SIZE
         ally_hitbox = (int(391 * 0.75), int(350 * 0.75))
         cls._ally_base_entity = create_base(
             team_id=1,
@@ -115,8 +115,8 @@ class BaseComponent:
         )
 
         # Paramètres de la base ennemie
-        enemy_x = (MAP_WIDTH - 3.0) * TILE_SIZE
-        enemy_y = (MAP_HEIGHT - 2.8) * TILE_SIZE
+        enemy_x = enemy_base_pos[0] * TILE_SIZE
+        enemy_y = enemy_base_pos[1] * TILE_SIZE
         enemy_hitbox = (int(477 * 0.60), int(394 * 0.60))
         cls._enemy_base_entity = create_base(
             team_id=2,
@@ -163,25 +163,17 @@ class BaseComponent:
         return False
 
     @classmethod
-    def get_spawn_position(cls, is_enemy: bool = False, jitter: float = TILE_SIZE * 0.35) -> Tuple[float, float]:
+    def get_spawn_position(cls, base_x: float, base_y: float, is_enemy: bool = False, jitter: float = TILE_SIZE * 0.35) -> Tuple[float, float]:
         """Retourne une position de spawn praticable à proximité de la base choisie."""
-        if not cls._initialized:
-            cls.initialize_bases()
-
-        base_entity = cls._enemy_base_entity if is_enemy else cls._ally_base_entity
-        if base_entity is None:
-            raise RuntimeError("Impossible de déterminer l'entité de base pour le spawn")
-
-        if not esper.has_component(base_entity, PositionComponent):
-            raise RuntimeError("La base ne possède pas de PositionComponent pour calculer le spawn")
-
-        base_position = esper.component_for_entity(base_entity, PositionComponent)
-        half_extent = 2 * TILE_SIZE
+        # Le centre de la base (4x4 tuiles) est à +2 tuiles de son coin supérieur gauche
+        base_center_x = base_x + 2 * TILE_SIZE
+        base_center_y = base_y + 2 * TILE_SIZE
+        half_extent = 2 * TILE_SIZE # Demi-largeur de la base
         safety_margin = TILE_SIZE * 1.25
 
         direction = -1 if is_enemy else 1
-        spawn_x = base_position.x + direction * (half_extent + safety_margin)
-        spawn_y = base_position.y + direction * (half_extent + safety_margin)
+        spawn_x = base_center_x + direction * (half_extent + safety_margin)
+        spawn_y = base_center_y
 
         if jitter > 0:
             tangential_jitter = random.uniform(-jitter, jitter)
@@ -190,8 +182,8 @@ class BaseComponent:
             spawn_y += direction * radial_jitter
 
         boundary_offset = half_extent + TILE_SIZE * 0.25
-        boundary_x = base_position.x + direction * boundary_offset
-        boundary_y = base_position.y + direction * boundary_offset
+        boundary_x = base_center_x + direction * boundary_offset
+        boundary_y = base_center_y + direction * boundary_offset
 
         if direction > 0:
             spawn_x = max(spawn_x, boundary_x)

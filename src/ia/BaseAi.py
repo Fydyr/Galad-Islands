@@ -306,9 +306,16 @@ class BaseAi(esper.Processor):
     def _spawn_unit(self, unit_type: UnitType, ai_team_id: int):
         """Fait apparaître une unité depuis la base."""
         try:
+            base_pos_comp = None
+            for ent, (base_comp, team_comp, pos_comp) in esper.get_components(BaseComponent, TeamComponent, PositionComponent):
+                if team_comp.team_id == ai_team_id:
+                    base_pos_comp = pos_comp
+                    break
+            
+            if base_pos_comp is None: return
+
             is_enemy = (ai_team_id == Team.ENEMY)
-            spawn_x, spawn_y = BaseComponent.get_spawn_position(
-                is_enemy=is_enemy)
+            spawn_x, spawn_y = BaseComponent.get_spawn_position(base_pos_comp.x, base_pos_comp.y, is_enemy=is_enemy)
             pos = PositionComponent(spawn_x, spawn_y, 0)
             new_entity = UnitFactory(unit_type, is_enemy, pos)
 

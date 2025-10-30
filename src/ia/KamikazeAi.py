@@ -28,6 +28,7 @@ from src.components.events.flyChestComponent import FlyingChestComponent
 from src.components.core.towerComponent import TowerComponent
 from src.components.core.baseComponent import BaseComponent
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
+from src.constants.team import Team
 import math
 import numpy as np
 import pygame
@@ -537,19 +538,23 @@ class KamikazeAiProcessor(esper.Processor):
 
     def find_enemy_base_position(self, my_team_id: int) -> PositionComponent:
         """Trouve la position de la base ENNEMIE."""
+        enemy_base_entity_id = None
+        if my_team_id == Team.ALLY: # Si je suis allié (Team 1), l'ennemi est Team 2
+            enemy_base_entity_id = BaseComponent.get_enemy_base()
+        elif my_team_id == Team.ENEMY: # Si je suis ennemi (Team 2), l'ennemi est Team 1
+            enemy_base_entity_id = BaseComponent.get_ally_base()
+        
+        if enemy_base_entity_id is not None and esper.has_component(enemy_base_entity_id, PositionComponent):
+            return esper.component_for_entity(enemy_base_entity_id, PositionComponent)
+        
+        # Fallback vers des positions codées en dur si BaseComponent non trouvé ou non initialisé
         BASE_SIZE = 4
-        margin_tiles = 2
-
-        # Si je suis l'équipe 1, la base ennemie (équipe 2) est en bas à droite.
-        if my_team_id == 1:
-            base_x_min, base_y_min = MAP_WIDTH - BASE_SIZE, MAP_HEIGHT - BASE_SIZE
-        else:
-            # Si je suis l'équipe 2, la base ennemie (équipe 1) est en haut à gauche.
-            base_x_min, base_y_min = 0, 0
-
-        # Correction: Multiplier par TILE_SIZE pour obtenir les coordonnées en pixels.
-        center_x = (base_x_min + BASE_SIZE / 2)
-        center_y = (base_y_min + BASE_SIZE / 2)
+        if my_team_id == Team.ALLY: # Si je suis allié (Team 1), l'ennemi est Team 2 (en bas à droite)
+            center_x = (MAP_WIDTH - BASE_SIZE / 2) * TILE_SIZE
+            center_y = (MAP_HEIGHT - BASE_SIZE / 2) * TILE_SIZE
+        else: # Si je suis ennemi (Team 2), l'ennemi est Team 1 (en haut à gauche)
+            center_x = (BASE_SIZE / 2) * TILE_SIZE
+            center_y = (BASE_SIZE / 2) * TILE_SIZE
         return PositionComponent(x=center_x * TILE_SIZE, y=center_y * TILE_SIZE)
 
     def find_best_kamikaze_target(self, my_pos: PositionComponent, my_team_id: int, current_target_id: Optional[int]) -> Tuple[Optional[PositionComponent], Optional[int]]:

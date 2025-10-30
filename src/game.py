@@ -4,6 +4,7 @@ import traceback
 import logging
 import pygame
 from collections import Counter
+import numpy as np
 from typing import Dict, List, Optional, Tuple
 
 # Importations des modules internes
@@ -329,7 +330,7 @@ class GameRenderer:
     def _render_game_world(self, window, grid, images, camera):
         """Rend la grille de jeu et les éléments du monde."""
         if grid is not None and images is not None and camera is not None:
-            game_map.afficher_grille(window, grid, images, camera)
+            game_map.afficher_grille(window, grid, images, camera, self.game_engine.ally_base_pos, self.game_engine.enemy_base_pos)
             
     def _render_fog_of_war(self, window, camera):
         """Rend le brouillard de guerre avec nuages et brouillard léger."""
@@ -589,7 +590,7 @@ class GameRenderer:
         if es.has_component(entity, HealthComponent):
             health = es.component_for_entity(entity, HealthComponent)
             if health.currentHealth < health.maxHealth:
-                self._draw_health_bar(window, screen_x, screen_y, health, display_width, display_height)
+                self._draw_health_bar(window, screen_x, screen_y, health, display_width, display_height, entity)
         
         return render_sprite
                 
@@ -620,16 +621,21 @@ class GameRenderer:
 
         pygame.draw.circle(window, SELECTION_COLOR, center, radius, width=3)
             
-    def _draw_health_bar(self, screen, x, y, health, sprite_width, sprite_height):
+    def _draw_health_bar(self, screen, x, y, health, sprite_width, sprite_height, entity_id):
         """Dessine une barre de vie pour une entité."""
         # Configuration de la barre de vie
         bar_width = sprite_width
-        bar_height = 6
-        bar_offset_y = sprite_height // 2 + 10  # Position au-dessus du sprite
+        bar_height = 8 # Légèrement plus épaisse pour la visibilité
+        
+        # Calculer l'offset en tenant compte de la rotation du sprite
+        direction_rad = -pygame.math.Vector2(0, -1).angle_to(pygame.math.Vector2(1, 0).rotate(es.component_for_entity(entity_id, PositionComponent).direction)) * (3.14159 / 180)
+        offset_y_base = sprite_height // 2 + 12
+        
+        offset_x = offset_y_base * -np.sin(direction_rad)
+        offset_y = offset_y_base * -np.cos(direction_rad)
         
         # Position de la barre (centrée au-dessus de l'entité)
-        bar_x = x - bar_width // 2
-        bar_y = y - bar_offset_y
+        bar_x, bar_y = x - bar_width // 2 + offset_x, y - offset_y
         
         # Vérifier que maxHealth n'est pas zéro pour éviter la division par zéro
         if health.maxHealth <= 0:
@@ -824,6 +830,8 @@ class GameEngine:
         self.grid = None
         self.images = None
         self.camera = None
+        self.ally_base_pos = None
+        self.enemy_base_pos = None
         self.camera_positions = {}  # Stockage des positions de caméra par équipe
         self.flying_chest_processor = FlyingChestProcessor()
         self.island_resource_manager = IslandResourceManager()
@@ -990,6 +998,8 @@ class GameEngine:
         self.grid = game_state["grid"]
         self.images = game_state["images"]
         self.camera = game_state["camera"]
+        self.ally_base_pos = game_state["ally_base_pos"]
+        self.enemy_base_pos = game_state["enemy_base_pos"]
         
         # Initialize flying chest processor
         if self.flying_chest_processor is not None and self.grid is not None:
@@ -1093,10 +1103,11 @@ class GameEngine:
         self.player = ally_player
         
         # Initialiser le gestionnaire de bases
-        BaseComponent.initialize_bases()
+        BaseComponent.initialize_bases(self.ally_base_pos, self.enemy_base_pos)
         
         # Créer un Scout allié
-        spawn_x, spawn_y = BaseComponent.get_spawn_position(is_enemy=False, jitter=TILE_SIZE * 0.1)
+        ally_base_grid_x, ally_base_grid_y = self.ally_base_pos
+        spawn_x, spawn_y = BaseComponent.get_spawn_position(ally_base_grid_x * TILE_SIZE, ally_base_grid_y * TILE_SIZE, is_enemy=False, jitter=TILE_SIZE * 0.1)
         player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
         if player_unit is not None:
             if not getattr(self, 'self_play_mode', False):
@@ -1104,7 +1115,8 @@ class GameEngine:
 
     
         # Créer un Scout ennemi
-        enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(is_enemy=True, jitter=TILE_SIZE * 0.1)
+        enemy_base_grid_x, enemy_base_grid_y = self.enemy_base_pos
+        enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(enemy_base_grid_x * TILE_SIZE, enemy_base_grid_y * TILE_SIZE, is_enemy=True, jitter=TILE_SIZE * 0.1)
         enemy_scout = UnitFactory(UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
         if enemy_scout is not None:
             print(f"Scout ennemi créé: {enemy_scout}")
