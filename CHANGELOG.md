@@ -1,5 +1,73 @@
 # 🧾 Changelog
 
+## v0.10.0 (2025-10-30)
+
+### Feat
+
+- Les bases sont placés dynamiquement, refactoriser la gestion des positions de base pour une meilleure flexibilité et intégration dans le système de spawn
+- améliorer la gestion des erreurs avec des messages localisés dans la fenêtre de crash
+- ajuster les intervalles de génération des ressources et ajouter la collecte de ressources d'île pour l'IA
+- implémenter une nouvelle stratégie d'entraînement en deux phases (exploration, assaut) pour l'IA et ajuster les constantes de jeu
+- ajouter la collecte de ressources et la gestion de l'or pour l'IA Architecte
+- add pre-training script for Barhamus AI with tactical combat simulations
+- ajouter l'option de désactivation de l'apprentissage IA du Maraudeur pour améliorer les performances
+- ajouter des options de VSync et de FPS maximum dans les paramètres du jeu
+
+### Fix
+
+- corriger le chemin d'importation des modèles dans les workflows de build
+- corriger la position de spawn des unités en utilisant les coordonnées de la base alliée et ennemie
+- centrer la hitbox des bases alliées et ennemies et ajuster les positions de spawn dans mapComponent.py
+- corriger le chemin d'importation de AIControlledComponent et remplacer par DruidAiComponent dans DruidAIProcessor.py fix: corriger le chemin d'importation de ArchitectAIComponent dans architectAIProcessor.py
+- corriger le chemin d'importation de ArchitectAIComponent dans unitFactory.py
+- améliorer l'affichage du traceback dans la fenêtre de crash en ajoutant un message par défaut si aucun traceback n'est disponible
+- remplacer la valeur de l'or stocké par défaut des joueurs par une constante
+- supprimer les fichiers de modèles d'IA pré-entraînés obsolètes du .gitignore
+- ajustement du taux de génération des îles à 0.7%
+- tentative d'améliorer le pathfinding du Scout (encore des choses à revoir)
+- suppresion des logs du Scout et amélioration du pathfinding
+- **BaseAi**: ajouter un bonus pour le Scout et exclure le Kamikaze si la base ennemie n'est pas connue
+- désactiver l'IA pour les unités sélectionnées par le joueur dans plusieurs processeurs d'IA
+- mise à jour de la gestion des chemins d'accès pour l'IA du Maraudeur pour les versions compilées et non compilées de l'application
+- recalculer le chemin lors de l'assignation d'un nouvel objectif et conversion des coordonnées pour le pathfinding
+- correction du chemin d'importation pour BarhamusAI dans game.py
+- mise à jour des chemins d'accès pour les ressources dans les scripts de construction pour une compatibilité multiplateforme
+- mise à jour de la gestion des binaires dans le fichier build.spec pour inclure les bibliothèques Python selon le système d'exploitation
+- ajout de la gestion du chemin d'accès pour les modèles dynamiques dans BarhamusAI pour la version compilé
+- ajout de la gestion du cooldown dans DruidAIProcessor et mise à jour des signatures de méthode
+- mise à jour de la version de Python à 3.13 et ajustement de la construction avec PyInstaller
+- correction du chemin d'importation pour DruidAIProcessor
+- correction des chemins d'archive pour les builds Windows et Linux/Mac
+
+### Refactor
+
+- remplacer AIControlledComponent par DruidAiComponent et corriger le chemin d'importation d'ArchitectAIComponent
+- tri dans les processeurs et composents des IA
+- ajout d'un commentaire pour indiquer que la classe AIControlledComponent doit être renommée
+- désactiver les logs de débogage dans le processeur IA des troupes rapides
+- Reajustement des élements de l'outil de configuration et ajouter des messages de changement de langue et redémarrage dans l'outil de configuration
+
+## v0.9.1 (2025-10-28)
+
+### Feat
+
+- ajout d'une popup graphique pour signaler les erreurs de crash en jeu
+- ajout de la journalisation des performances et mise en cache des chemins dans le processeur IA du Scout
+- ajout des tours comme obstacles dans le processeur d'IA Kamikaze
+- ajout d'une fenêtre modale de sélection d'équipe pour le mode Joueur vs IA
+
+### Fix
+
+- ajout de la gestion des collisions pour éviter les positions occupées par d'autres unités
+- le message de crash s'affiche bien si le jeu plante maintenant
+- correction des IA pour les empecher de tirer n'importe où
+- amélioration de la logique d'évitement pour les obstacles dans le processeur IA Kamikaze
+
+### Refactor
+
+- mise à jour de la version dans le message de rapport de crash
+- ajout d'un timer pour le recalcul de chemin par entité dans le processeur IA Kamikaze
+
 ## v0.9.0 (2025-10-27)
 
 ### Feat
