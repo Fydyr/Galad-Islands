@@ -126,7 +126,8 @@ def show_crash_popup(e):
             scrollbar.config(command=text_widget.yview)
             
             # Insérer le traceback complet
-            text_widget.insert(tk.END, traceback.format_exc())
+            tb_text = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+            text_widget.insert(tk.END, tb_text if tb_text else "No traceback available")
             text_widget.config(state=tk.DISABLED)  # Rendre le texte non éditable
             
             # Cadre pour les boutons
