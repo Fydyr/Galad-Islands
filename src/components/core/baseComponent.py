@@ -103,10 +103,14 @@ class BaseComponent:
         ally_x = ally_base_pos[0] * TILE_SIZE
         ally_y = ally_base_pos[1] * TILE_SIZE
         ally_hitbox = (int(391 * 0.75), int(350 * 0.75))
+        # Centrer la hitbox sur la position (ajustement fin)
+        ally_width, ally_height = ally_hitbox
+        ally_centered_x = ally_x + ally_width * 0.4
+        ally_centered_y = ally_y + ally_height * 0.4
         cls._ally_base_entity = create_base(
             team_id=1,
-            pos_x=ally_x,
-            pos_y=ally_y,
+            pos_x=ally_centered_x,
+            pos_y=ally_centered_y,
             is_enemy=False,
             hitbox=ally_hitbox,
             unit_type="ALLY_BASE",
@@ -118,10 +122,14 @@ class BaseComponent:
         enemy_x = enemy_base_pos[0] * TILE_SIZE
         enemy_y = enemy_base_pos[1] * TILE_SIZE
         enemy_hitbox = (int(477 * 0.60), int(394 * 0.60))
+        # Centrer la hitbox sur la position (ajustement fin)
+        enemy_width, enemy_height = enemy_hitbox
+        enemy_centered_x = enemy_x + enemy_width * 0.4
+        enemy_centered_y = enemy_y + enemy_height * 0.4
         cls._enemy_base_entity = create_base(
             team_id=2,
-            pos_x=enemy_x,
-            pos_y=enemy_y,
+            pos_x=enemy_centered_x,
+            pos_y=enemy_centered_y,
             is_enemy=True,
             hitbox=enemy_hitbox,
             unit_type="ENEMY_BASE",
@@ -135,21 +143,21 @@ class BaseComponent:
     def get_ally_base(cls):
         """Retourne l'entité de base alliée."""
         if not cls._initialized:
-            cls.initialize_bases()
+            raise RuntimeError("Bases not initialized. Call initialize_bases first.")
         return cls._ally_base_entity
     
     @classmethod
     def get_enemy_base(cls):
         """Retourne l'entité de base ennemie."""
         if not cls._initialized:
-            cls.initialize_bases()
+            raise RuntimeError("Bases not initialized. Call initialize_bases first.")
         return cls._enemy_base_entity
     
     @classmethod
     def add_unit_to_base(cls, unit_entity, is_enemy=False):
         """Ajoute une unité à la liste des troupes de la base appropriée."""
         if not cls._initialized:
-            cls.initialize_bases()
+            raise RuntimeError("Bases not initialized. Call initialize_bases first.")
         
         # Choisir la base selon la faction
         base_entity = cls._enemy_base_entity if is_enemy else cls._ally_base_entity
@@ -201,7 +209,7 @@ class BaseComponent:
     def get_base_units(cls, is_enemy=False):
         """Retourne la liste des unités d'une base."""
         if not cls._initialized:
-            cls.initialize_bases()
+            raise RuntimeError("Bases not initialized. Call initialize_bases first.")
         
         base_entity = cls._enemy_base_entity if is_enemy else cls._ally_base_entity
         

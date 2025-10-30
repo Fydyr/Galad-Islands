@@ -22,6 +22,7 @@ from src.settings.settings import (
 from src.settings.localization import t
 from src.components.globals.cameraComponent import Camera
 from src.functions.resource_path import get_resource_path
+from src.components.core.baseComponent import BaseComponent
 
 
 def creer_grille():
@@ -100,19 +101,18 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None, base_posit
         if base_positions:
             ally_base_pos, enemy_base_pos = base_positions
             
-            # Calcul des positions de spawn basé sur la logique de BaseComponent.get_spawn_position()
-            ally_base_center_x, ally_base_center_y = ally_base_pos[0] + 2.0, ally_base_pos[1] + 2.0
-            enemy_base_center_x, enemy_base_center_y = enemy_base_pos[0] + 2.0, enemy_base_pos[1] + 2.0
+            # Calcul des positions de spawn basé sur la logique de BaseComponent.get_spawn_position() en coordonnées monde
+            ally_base_world_x, ally_base_world_y = (ally_base_pos[0] * TILE_SIZE), (ally_base_pos[1] * TILE_SIZE)
+            enemy_base_world_x, enemy_base_world_y = (enemy_base_pos[0] * TILE_SIZE), (enemy_base_pos[1] * TILE_SIZE)
             
-            half_extent = 2.0  # 2 * TILE_SIZE en coordonnées de grille
-            safety_margin = 1.25
+            ally_spawn_world_x, ally_spawn_world_y = BaseComponent.get_spawn_position(ally_base_world_x, ally_base_world_y, is_enemy=False)
+            enemy_spawn_world_x, enemy_spawn_world_y = BaseComponent.get_spawn_position(enemy_base_world_x, enemy_base_world_y, is_enemy=True)
+
             spawn_zone_radius = 2.5 # Rayon de la zone à éviter autour du spawn
-            
-            ally_spawn_x = ally_base_center_x + (half_extent + safety_margin)
-            ally_spawn_y = ally_base_center_y
-            
-            enemy_spawn_x = enemy_base_center_x - (half_extent + safety_margin)
-            enemy_spawn_y = enemy_base_center_y
+            ally_spawn_x = ally_spawn_world_x / TILE_SIZE
+            ally_spawn_y = ally_spawn_world_y / TILE_SIZE
+            enemy_spawn_x = enemy_spawn_world_x / TILE_SIZE
+            enemy_spawn_y = enemy_spawn_world_y / TILE_SIZE
         
         # Vérifier si le bloc à placer interfère avec les zones de spawn
         spawn_positions = [(ally_spawn_x, ally_spawn_y), (enemy_spawn_x, enemy_spawn_y)]
