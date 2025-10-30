@@ -100,7 +100,6 @@ class ArchitectAIProcessor(esper.Processor):
 
         # Iterate over all entities that have the Architect AI component.
         for entity, (ai_comp, spe_arch, pos, vel, health, team) in esper.get_components(
-        for entity, (ai_comp, spe_arch, pos, vel, health, team) in self.world.get_components(
             ArchitectAIComponent,
             SpeArchitect,
             PositionComponent,

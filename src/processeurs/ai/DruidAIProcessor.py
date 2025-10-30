@@ -12,7 +12,7 @@ import math
 from typing import Dict, Any, List, Optional, Tuple
 
 # Composant de l'IA
-from src.components.ai.aiControlledComponent import AIControlledComponent
+from src.components.ai.DruidAiComponent import DruidAiComponent
 
 # Composants Core
 from src.components.core.positionComponent import PositionComponent
@@ -67,7 +67,7 @@ class DruidAIProcessor(esper.Processor):
             debug_this_frame = True
 
         for ent, (ai, pos, team, vel, health) in self.world.get_components(
-            AIControlledComponent,
+            DruidAiComponent,
             PositionComponent,
             TeamComponent,
             VelocityComponent,
@@ -141,7 +141,7 @@ class DruidAIProcessor(esper.Processor):
                     ai.current_action = best_action
                     self._execute_action(ent, ai, pos, best_action)
 
-    def _build_game_state(self, druid_entity: int, ai: AIControlledComponent, druid_pos: PositionComponent, druid_team: TeamComponent, druid_health: HealthComponent) -> Optional[GameState]:
+    def _build_game_state(self, druid_entity: int, ai: DruidAiComponent, druid_pos: PositionComponent, druid_team: TeamComponent, druid_health: HealthComponent) -> Optional[GameState]:
         """Construit un état de jeu simplifié pour Minimax."""
         try:
             spe_druid = esper.component_for_entity(druid_entity, SpeDruid)
@@ -205,7 +205,7 @@ class DruidAIProcessor(esper.Processor):
 
         return game_state
 
-    def _execute_action(self, druid_entity: int, ai: AIControlledComponent, druid_pos_comp: PositionComponent, action: Tuple[str, Any]):
+    def _execute_action(self, druid_entity: int, ai: DruidAiComponent, druid_pos_comp: PositionComponent, action: Tuple[str, Any]):
         """Traduit une décision Minimax en commandes de jeu."""
 
         action_type, target_id = action
