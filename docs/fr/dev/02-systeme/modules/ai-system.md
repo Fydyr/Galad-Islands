@@ -48,6 +48,9 @@ L'entraînement est réalisé par le script `train_unified_base_ai.py`. Il combi
     - Des exemples de jeu sont générés à partir de scénarios clés définis manuellement (ex: "Défense prioritaire", "Exploration nécessaire", "Coup de grâce").
     - Chaque scénario associe un état de jeu à une action attendue et une récompense élevée. Les actions incorrectes reçoivent une pénalité.
     - Certains scénarios comme l'exploration et la défense sont surreprésentés pour renforcer ces comportements.
+    - **Stratégie en deux phases** : L'entraînement met l'accent sur une stratégie en deux temps.
+        1. **Phase d'exploration** : Tant que la base ennemie n'est pas connue (`enemy_base_known = 0`), l'IA est fortement incitée à produire des éclaireurs.
+        2. **Phase d'assaut** : Une fois la base localisée (`enemy_base_known = 1`), si l'IA a un avantage économique, elle est récompensée pour la production d'unités lourdes comme le Léviathan, afin de lancer l'assaut final.
 
 2. **Auto-apprentissage (`simulate_self_play_game`)**
     - Des parties complètes sont simulées entre deux instances de l'IA.

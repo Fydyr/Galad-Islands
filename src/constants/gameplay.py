@@ -90,7 +90,7 @@ SHOP_TAB_HEIGHT = 40
 SHOP_TAB_SPACING = 10
 
 # Constantes du joueur
-PLAYER_DEFAULT_GOLD = 100
+PLAYER_DEFAULT_GOLD = 250
 
 # Constantes de la boutique - Items
 SHOP_ITEM_WIDTH = 200
@@ -283,7 +283,7 @@ BASE_MAX_HEALTH = 1000
 
 # Coffres volants
 FLYING_CHEST_SPAWN_INTERVAL = 20.0      # Intervalle d'apparition des coffres volants
-FLYING_CHEST_MAX_COUNT = 2              # Nombre maximum de coffres volants actifs
+FLYING_CHEST_MAX_COUNT = 5              # Nombre maximum de coffres volants actifs
 FLYING_CHEST_GOLD_MIN = 60              # Gain minimal en or lors de la collecte
 FLYING_CHEST_GOLD_MAX = 150             # Gain maximal en or lors de la collecte
 FLYING_CHEST_LIFETIME = 25.0            # Durée avant la chute automatique dans l'océan
@@ -293,7 +293,7 @@ FLYING_CHEST_SINK_DURATION = 3.0        # Durée de l'animation de chute avant d
 ISLAND_RESOURCE_GOLD_MIN = 200
 ISLAND_RESOURCE_GOLD_MAX = 500
 ISLAND_RESOURCE_LIFETIME = 120.0  # 2 minutes
-ISLAND_RESOURCE_MAX_COUNT = 3
+ISLAND_RESOURCE_MAX_COUNT = 5
 ISLAND_RESOURCE_SPAWN_INTERVAL = 180.0  # every 3 minutes on average
 
 # =============================================================================

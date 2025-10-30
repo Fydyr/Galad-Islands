@@ -231,7 +231,8 @@ class BaseAi(esper.Processor):
 
             # Filtrer les actions possibles en fonction de l'or disponible
             affordable_actions = [
-                action for action, details in self.ACTION_MAPPING.items()
+                action
+                for action, details in self.ACTION_MAPPING.items()
                 if game_state['gold'] >= details['cost'] + details['reserve']
             ]
             # Exclure Kamikaze si la base ennemie n'est pas connue

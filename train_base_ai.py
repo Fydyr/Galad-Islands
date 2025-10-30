@@ -30,15 +30,20 @@ class UnifiedBaseAiTrainer:
     def generate_scenario_examples(self, n_per_scenario=200):
         """Génère des exemples pour chaque scénario stratégique clé, y compris la pénurie d'or. Exploration et Défense prioritaire sont surreprésentés et surpondérés."""
         scenarios = [
-            # (gold, base_health, allied_units, enemy_units, enemy_base_known, towers_needed, enemy_base_health, expected_action, repeat, reward_val)
-            (100, 1.0, 1, 1, 0, 0, 1.0, 1, 10, 500),  # Exploration nécessaire (Éclaireur) x10
+            # (gold, base_health, allied_units, enemy_units, enemy_base_known, towers_needed, enemy_base_health, expected_action, repeat, reward_val)            
+            # --- NOUVELLE STRATÉGIE : PHASE D'EXPLORATION ---
+            # Si la base ennemie est inconnue, la priorité absolue est de créer des éclaireurs.
+            (100, 1.0, 1, 1, 0, 0, 1.0, 1, 20, 600),  # Exploration nécessaire (Éclaireur), poids augmenté (x20, récompense 600)
+            
+            # --- NOUVELLE STRATÉGIE : PHASE D'ASSAUT (POST-DÉCOUVERTE) ---
+            # Une fois la base ennemie connue et avec un avantage économique, on investit dans des unités lourdes.
+            (350, 0.9, 10, 2, 1, 0, 1.0, 4, 10, 500),  # Avantage économique -> Léviathan (action 4), poids augmenté (x10)
+            
+            # --- SCÉNARIOS EXISTANTS ---
             # Défense prioritaire raffinée : base très basse ET forte infériorité numérique
             (150, 0.35, 2, 7, 1, 1, 1.0, 6, 20, 700),  # Défense extrême : attaque Kamikaze x20
             (120, 0.3, 1, 8, 1, 1, 1.0, 6, 10, 700),   # Variante extrême : attaque Kamikaze x10
             (150, 0.5, 3, 6, 1, 1, 1.0, 3, 5, 400),    # Défense modérée : Maraudeur x5
-            # Scénarios frontière : base basse mais égalité numérique
-            (150, 0.5, 6, 6, 1, 1, 1.0, 3, 2, 120),   # Pas de défense, égalité (Maraudeur)
-            (350, 0.9, 10, 2, 1, 0, 1.0, 4, 1, 120),  # Avantage économique (Léviathan)
             (150, 0.7, 4, 7, 1, 1, 1.0, 3, 1, 120),   # Infériorité numérique (Maraudeur)
             (120, 0.8, 2, 4, 1, 0, 1.0, 6, 1, 120),   # Contre-attaque rapide (Kamikaze)
             (150, 0.9, 3, 2, 1, 0, 0.1, 6, 1, 120),   # Coup de grâce (Kamikaze)
@@ -72,12 +77,14 @@ class UnifiedBaseAiTrainer:
     def simulate_self_play_game(self, ai1, ai2, bonus_victory=200):
         """Simule une partie entre deux IA, avec bonus fort à la victoire."""
         game_state = {
-            'ally_gold': 100,
-            'enemy_gold': 100,
+            'ally_gold': 50,  # Mise à jour pour correspondre à PLAYER_DEFAULT_GOLD
+            'enemy_gold': 50, # Mise à jour pour correspondre à PLAYER_DEFAULT_GOLD
             'ally_base_health': 1.0,
             'enemy_base_health': 1.0,
             'ally_units': 1,
             'enemy_units': 1,
+            'ally_architects': 0,  # NOUVEAU: Suivi des architectes
+            'enemy_architects': 0, # NOUVEAU: Suivi des architectes
             'ally_towers_needed': 0,
             'enemy_towers_needed': 0,
             'enemy_base_known_ally': 0,
@@ -160,10 +167,10 @@ class UnifiedBaseAiTrainer:
 
     def _get_state_for_ai(self, game_state, is_ally=True):
         """Retourne un vecteur d'état pour `decide_action_for_training`.
-
         Ajoute en fin la valeur `allied_units_health` pour compatibilité avec la nouvelle signature.
         """
         allied_units_health_default = 1.0
+        # NOTE: Le nombre d'architectes n'est pas encore une feature du modèle, donc on ne l'ajoute pas ici.
         if is_ally:
             return [game_state['ally_gold'], game_state['ally_base_health'], game_state['ally_units'], game_state['enemy_units'], game_state['enemy_base_known_ally'], game_state['ally_towers_needed'], game_state['enemy_base_health'], allied_units_health_default]
         else:
@@ -171,9 +178,9 @@ class UnifiedBaseAiTrainer:
 
     def _apply_action_simulation(self, action, game_state, is_ally=True):
         if is_ally:
-            gold_key = 'ally_gold'; units_key = 'ally_units'; towers_key = 'ally_towers_needed'; enemy_health_key = 'enemy_base_health'; enemy_known_key = 'enemy_base_known_ally'
+            gold_key, units_key, architects_key, towers_key, enemy_health_key, enemy_known_key = 'ally_gold', 'ally_units', 'ally_architects', 'ally_towers_needed', 'enemy_base_health', 'enemy_base_known_ally'
         else:
-            gold_key = 'enemy_gold'; units_key = 'enemy_units'; towers_key = 'enemy_towers_needed'; enemy_health_key = 'ally_base_health'; enemy_known_key = 'enemy_base_known_enemy'
+            gold_key, units_key, architects_key, towers_key, enemy_health_key, enemy_known_key = 'enemy_gold', 'enemy_units', 'enemy_architects', 'enemy_towers_needed', 'ally_base_health', 'enemy_base_known_enemy'
         gold = game_state[gold_key]; reward = 0
         if action == 0:
             if gold > 500: reward += 15
@@ -187,18 +194,39 @@ class UnifiedBaseAiTrainer:
         elif action == 6: cost = UNIT_COSTS["kamikaze"]
         if action != 0 and gold >= cost:
             game_state[gold_key] -= cost
-            reward += cost / 15
-            game_state[units_key] += 1
+            reward += cost / 15 # Récompense proportionnelle au coût
+
+            # Gérer la création d'architecte séparément
+            if action == 2: # Action pour créer un Architecte
+                game_state[architects_key] += 1
+            else:
+                game_state[units_key] += 1
+
             if action == 1:
                 game_state[enemy_known_key] = 1; reward += 5
-            elif action == 2:
-                game_state[towers_key] = max(0, game_state[towers_key] - 1); reward += 10
             elif action == 6:
                 game_state[enemy_health_key] -= 0.15; reward += 15
         return reward
 
     def _evolve_world(self, game_state):
         # Collecte active : chaque unité alliée rapporte 8 à 15 or par tour
+        # --- Simulation de l'Architecte ---
+        # 1. Collecte d'or
+        for _ in range(game_state['ally_architects']):
+            if random.random() < 0.2: # 20% de chance par tour de trouver un coffre
+                game_state['ally_gold'] += random.randint(60, 150) # Gain d'un coffre volant
+        for _ in range(game_state['enemy_architects']):
+            if random.random() < 0.2:
+                game_state['enemy_gold'] += random.randint(60, 150)
+        
+        # 2. Dépense d'or pour les tours (NOUVEAU)
+        for _ in range(game_state['ally_architects']):
+            if random.random() < 0.1 and game_state['ally_gold'] > 150: # 10% de chance de construire une tour si l'or est suffisant
+                game_state['ally_gold'] -= UNIT_COSTS["attack_tower"]
+        for _ in range(game_state['enemy_architects']):
+            if random.random() < 0.1 and game_state['enemy_gold'] > 150:
+                game_state['enemy_gold'] -= UNIT_COSTS["attack_tower"]
+
         game_state['ally_gold'] += sum([random.randint(8, 15) for _ in range(game_state['ally_units'])])
         game_state['enemy_gold'] += sum([random.randint(8, 15) for _ in range(game_state['enemy_units'])])
         # Si aucune unité, très faible revenu (trésor de base)
