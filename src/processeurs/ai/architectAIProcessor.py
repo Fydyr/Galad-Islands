@@ -23,7 +23,7 @@ from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.functions.buildingCreator import createDefenseTower, createHealTower
 
 # AI and pathfinding
-from src.ia.architectAIComponent import ArchitectAIComponent
+from src.components.ai.architectAIComponent import ArchitectAIComponent
 from src.ia.architect.min_max import ArchitectMinimax, GameState, DecisionAction
 from src.ia.architect.pathfinding import SimplePathfinder
 from src.settings.settings import TILE_SIZE
@@ -100,6 +100,7 @@ class ArchitectAIProcessor(esper.Processor):
 
         # Iterate over all entities that have the Architect AI component.
         for entity, (ai_comp, spe_arch, pos, vel, health, team) in esper.get_components(
+        for entity, (ai_comp, spe_arch, pos, vel, health, team) in self.world.get_components(
             ArchitectAIComponent,
             SpeArchitect,
             PositionComponent,

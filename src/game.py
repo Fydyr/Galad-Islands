@@ -31,10 +31,10 @@ from src.processeurs.collisionProcessor import CollisionProcessor
 from src.processeurs.playerControlProcessor import PlayerControlProcessor
 from src.processeurs.CapacitiesSpecialesProcessor import CapacitiesSpecialesProcessor
 from src.processeurs.lifetimeProcessor import LifetimeProcessor
-from src.ia.architectAIProcessor import ArchitectAIProcessor
+from src.processeurs.ai.architectAIProcessor import ArchitectAIProcessor
 from src.processeurs.eventProcessor import EventProcessor
 from src.processeurs.towerProcessor import TowerProcessor
-from src.processeurs.aiLeviathanProcessor import AILeviathanProcessor
+from src.processeurs.ai.aiLeviathanProcessor import AILeviathanProcessor
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
 from src.ia.KamikazeAi import KamikazeAiProcessor
 from src.ia.BaseAi import BaseAi
@@ -66,7 +66,7 @@ from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 # Note: only the main ability components available are imported above (Scout, Maraudeur, Leviathan, Druid, Architect)
 
 # IA - Import du nouveau composant
-from src.components.ai.aiControlledComponent import AIControlledComponent
+from src.components.ai.DruidAiComponent import DruidAiComponent
 
 # import event
 from src.components.events.banditsComponent import Bandits
