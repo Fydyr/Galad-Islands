@@ -45,12 +45,12 @@ from src.components.core.classeComponent import ClasseComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
-from src.components.ai.aiControlledComponent import AIControlledComponent # Qu'est que c'est que ce truc là ?
+from src.components.ai.DruidAiComponent import DruidAiComponent # Qu'est que c'est que ce truc là ?
 from src.components.ai.aiLeviathanComponent import AILeviathanComponent
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.core.visionComponent import VisionComponent
-from src.ia.architectAIComponent import ArchitectAIComponent
+from components.ai.architectAIComponent import ArchitectAIComponent
 from src.settings.localization import t
 
 
@@ -77,7 +77,6 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             es.add_component(entity, HealthComponent(UNIT_HEALTH_SCOUT, UNIT_HEALTH_SCOUT))
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpeScout())
-            es.add_component(entity, AIControlledComponent())
             es.add_component(entity, VisionComponent(UNIT_VISION_SCOUT))
             sprite_id = SpriteID.ALLY_SCOUT if not enemy else SpriteID.ENEMY_SCOUT
             size = sprite_manager.get_default_size(sprite_id)
@@ -159,7 +158,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             ))
             es.add_component(entity, VisionComponent(UNIT_VISION_DRUID))
 
-            es.add_component(entity, AIControlledComponent())
+            es.add_component(entity, DruidAiComponent())
 
         case UnitType.ARCHITECT:
             entity = es.create_entity()
