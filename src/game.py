@@ -94,6 +94,8 @@ from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.ingame_menu_modal import InGameMenuModal
 from src.ui.notification_system import get_notification_system
 from src.ia.ia_scout import ensure_ai_processors
+
+from src.constants.gameplay import PLAYER_DEFAULT_GOLD
 # Couleur utilisée pour mettre en évidence l'unité sélectionnée
 SELECTION_COLOR = (255, 215, 0)
 
@@ -1079,12 +1081,12 @@ class GameEngine:
         # Créer les PlayerComponent pour CHAQUE équipe (alliés ET ennemis)
         # Équipe Alliée (team_id = 1)
         ally_player = es.create_entity()
-        es.add_component(ally_player, PlayerComponent(stored_gold=1000))
+        es.add_component(ally_player, PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD))
         es.add_component(ally_player, TeamComponent(Team.ALLY))
         
         # Équipe Ennemie (team_id = 2)
         enemy_player = es.create_entity()
-        es.add_component(enemy_player, PlayerComponent(stored_gold=1000))
+        es.add_component(enemy_player, PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD))
         es.add_component(enemy_player, TeamComponent(Team.ENEMY))
         
         # Garder une référence au joueur allié par défaut
