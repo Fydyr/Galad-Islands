@@ -50,7 +50,7 @@ from src.components.ai.aiLeviathanComponent import AILeviathanComponent
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.core.visionComponent import VisionComponent
-from components.ai.architectAIComponent import ArchitectAIComponent
+from src.components.ai.architectAIComponent import ArchitectAIComponent
 from src.settings.localization import t
 
 
