@@ -218,6 +218,13 @@ class UnifiedBaseAiTrainer:
         for _ in range(game_state['enemy_architects']):
             if random.random() < 0.2:
                 game_state['enemy_gold'] += random.randint(60, 150)
+
+        # NOUVEAU: Simulation de la collecte de ressources d'île (plus rares mais plus lucratives)
+        if random.random() < 0.025: # Chance plus faible que les coffres
+            game_state['ally_gold'] += random.randint(200, 500)
+        if random.random() < 0.025:
+            game_state['enemy_gold'] += random.randint(200, 500)
+
         
         # 2. Dépense d'or pour les tours (NOUVEAU)
         for _ in range(game_state['ally_architects']):

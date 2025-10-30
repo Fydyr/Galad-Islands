@@ -282,7 +282,7 @@ BASE_MAX_HEALTH = 1000
 # =============================================================================
 
 # Coffres volants
-FLYING_CHEST_SPAWN_INTERVAL = 20.0      # Intervalle d'apparition des coffres volants
+FLYING_CHEST_SPAWN_INTERVAL = 15.0      # Intervalle d'apparition des coffres volants
 FLYING_CHEST_MAX_COUNT = 5              # Nombre maximum de coffres volants actifs
 FLYING_CHEST_GOLD_MIN = 60              # Gain minimal en or lors de la collecte
 FLYING_CHEST_GOLD_MAX = 150             # Gain maximal en or lors de la collecte
@@ -293,8 +293,8 @@ FLYING_CHEST_SINK_DURATION = 3.0        # Durée de l'animation de chute avant d
 ISLAND_RESOURCE_GOLD_MIN = 200
 ISLAND_RESOURCE_GOLD_MAX = 500
 ISLAND_RESOURCE_LIFETIME = 120.0  # 2 minutes
-ISLAND_RESOURCE_MAX_COUNT = 5
-ISLAND_RESOURCE_SPAWN_INTERVAL = 180.0  # every 3 minutes on average
+ISLAND_RESOURCE_MAX_COUNT = 3 # Réduit pour compenser la fréquence accrue
+ISLAND_RESOURCE_SPAWN_INTERVAL = 120.0  # every 2 minutes on average
 
 # =============================================================================
 # CONSTANTES DE POSITIONNEMENT
