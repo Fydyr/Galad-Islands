@@ -2,50 +2,51 @@
 
 ## v0.10.0 (2025-10-30)
 
-### Feat
+### ✨ Feat
 
-- Les bases sont placés dynamiquement, refactoriser la gestion des positions de base pour une meilleure flexibilité et intégration dans le système de spawn
-- améliorer la gestion des erreurs avec des messages localisés dans la fenêtre de crash
-- ajuster les intervalles de génération des ressources et ajouter la collecte de ressources d'île pour l'IA
-- implémenter une nouvelle stratégie d'entraînement en deux phases (exploration, assaut) pour l'IA et ajuster les constantes de jeu
-- ajouter la collecte de ressources et la gestion de l'or pour l'IA Architecte
-- add pre-training script for Barhamus AI with tactical combat simulations
-- ajouter l'option de désactivation de l'apprentissage IA du Maraudeur pour améliorer les performances
-- ajouter des options de VSync et de FPS maximum dans les paramètres du jeu
+- placement dynamique des bases, refactorisation de la gestion des positions de base pour une meilleure flexibilité et intégration dans le système de spawn
+- amélioration de la gestion des erreurs avec des messages localisés dans la fenêtre de crash
+- ajustement des intervalles de génération des ressources et ajout de la collecte de ressources d'île pour l'IA
+- implémentation d'une nouvelle stratégie d'entraînement en deux phases (exploration, assaut) pour l'IA et ajustement des constantes de jeu
+- ajout de la collecte de ressources et de la gestion de l'or pour l'IA Architecte
+- ajout d'un script de pré-entraînement pour l'IA Barhamus avec simulations de combats tactiques
+- ajout de l'option de désactivation de l'apprentissage IA du Maraudeur pour améliorer les performances
+- ajout d'options de VSync et de FPS maximum dans les paramètres du jeu
 
-### Fix
+### 🐞 Fix
 
-- corriger le chemin d'importation des modèles dans les workflows de build
-- corriger la position de spawn des unités en utilisant les coordonnées de la base alliée et ennemie
-- centrer la hitbox des bases alliées et ennemies et ajuster les positions de spawn dans mapComponent.py
-- corriger le chemin d'importation de AIControlledComponent et remplacer par DruidAiComponent dans DruidAIProcessor.py fix: corriger le chemin d'importation de ArchitectAIComponent dans architectAIProcessor.py
-- corriger le chemin d'importation de ArchitectAIComponent dans unitFactory.py
-- améliorer l'affichage du traceback dans la fenêtre de crash en ajoutant un message par défaut si aucun traceback n'est disponible
-- remplacer la valeur de l'or stocké par défaut des joueurs par une constante
-- supprimer les fichiers de modèles d'IA pré-entraînés obsolètes du .gitignore
+- correction du chemin d'importation des modèles dans les workflows de build
+- correction de la position de spawn des unités en utilisant les coordonnées de la base alliée et ennemie
+- centrage de la hitbox des bases alliées et ennemies et ajustement des positions de spawn dans mapComponent.py
+- correction du chemin d'importation de AIControlledComponent et remplacement par DruidAiComponent dans DruidAIProcessor.py
+- correction du chemin d'importation de ArchitectAIComponent dans architectAIProcessor.py
+- correction du chemin d'importation de ArchitectAIComponent dans unitFactory.py
+- amélioration de l'affichage du traceback dans la fenêtre de crash en ajoutant un message par défaut si aucun traceback n'est disponible
+- remplacement de la valeur de l'or stocké par défaut des joueurs par une constante
+- suppression des fichiers de modèles d'IA pré-entraînés obsolètes du .gitignore
 - ajustement du taux de génération des îles à 0.7%
-- tentative d'améliorer le pathfinding du Scout (encore des choses à revoir)
-- suppresion des logs du Scout et amélioration du pathfinding
-- **BaseAi**: ajouter un bonus pour le Scout et exclure le Kamikaze si la base ennemie n'est pas connue
-- désactiver l'IA pour les unités sélectionnées par le joueur dans plusieurs processeurs d'IA
+- tentative d'amélioration du pathfinding du Scout (encore des choses à revoir)
+- suppression des logs du Scout et amélioration du pathfinding
+- **BaseAi** : ajout d'un bonus pour le Scout et exclusion du Kamikaze si la base ennemie n'est pas connue
+- désactivation de l'IA pour les unités sélectionnées par le joueur dans plusieurs processeurs d'IA
 - mise à jour de la gestion des chemins d'accès pour l'IA du Maraudeur pour les versions compilées et non compilées de l'application
-- recalculer le chemin lors de l'assignation d'un nouvel objectif et conversion des coordonnées pour le pathfinding
+- recalcul du chemin lors de l'assignation d'un nouvel objectif et conversion des coordonnées pour le pathfinding
 - correction du chemin d'importation pour BarhamusAI dans game.py
 - mise à jour des chemins d'accès pour les ressources dans les scripts de construction pour une compatibilité multiplateforme
 - mise à jour de la gestion des binaires dans le fichier build.spec pour inclure les bibliothèques Python selon le système d'exploitation
-- ajout de la gestion du chemin d'accès pour les modèles dynamiques dans BarhamusAI pour la version compilé
+- ajout de la gestion du chemin d'accès pour les modèles dynamiques dans BarhamusAI pour la version compilée
 - ajout de la gestion du cooldown dans DruidAIProcessor et mise à jour des signatures de méthode
 - mise à jour de la version de Python à 3.13 et ajustement de la construction avec PyInstaller
 - correction du chemin d'importation pour DruidAIProcessor
 - correction des chemins d'archive pour les builds Windows et Linux/Mac
 
-### Refactor
+### 🧹 Refactor
 
-- remplacer AIControlledComponent par DruidAiComponent et corriger le chemin d'importation d'ArchitectAIComponent
-- tri dans les processeurs et composents des IA
+- remplacement de AIControlledComponent par DruidAiComponent et correction du chemin d'importation d'ArchitectAIComponent
+- tri dans les processeurs et composants des IA
 - ajout d'un commentaire pour indiquer que la classe AIControlledComponent doit être renommée
-- désactiver les logs de débogage dans le processeur IA des troupes rapides
-- Reajustement des élements de l'outil de configuration et ajouter des messages de changement de langue et redémarrage dans l'outil de configuration
+- désactivation des logs de débogage dans le processeur IA des troupes rapides
+- réajustement des éléments de l'outil de configuration et ajout de messages de changement de langue et redémarrage dans l'outil de configuration
 
 ## v0.9.1 (2025-10-28)
 
