@@ -173,9 +173,9 @@ class BaseComponent:
     @classmethod
     def get_spawn_position(cls, base_x: float, base_y: float, is_enemy: bool = False, jitter: float = TILE_SIZE * 0.35) -> Tuple[float, float]:
         """Retourne une position de spawn praticable à proximité de la base choisie."""
-        # Le centre de la base (4x4 tuiles) est à +2 tuiles de son coin supérieur gauche
-        base_center_x = base_x + 2 * TILE_SIZE
-        base_center_y = base_y + 2 * TILE_SIZE
+        # La position passée est déjà le centre de la base
+        base_center_x = base_x
+        base_center_y = base_y
         half_extent = 2 * TILE_SIZE # Demi-largeur de la base
         safety_margin = TILE_SIZE * 1.25
 

@@ -1106,20 +1106,24 @@ class GameEngine:
         BaseComponent.initialize_bases(self.ally_base_pos, self.enemy_base_pos)
         
         # Créer un Scout allié
-        ally_base_grid_x, ally_base_grid_y = self.ally_base_pos
-        spawn_x, spawn_y = BaseComponent.get_spawn_position(ally_base_grid_x * TILE_SIZE, ally_base_grid_y * TILE_SIZE, is_enemy=False, jitter=TILE_SIZE * 0.1)
-        player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
-        if player_unit is not None:
-            if not getattr(self, 'self_play_mode', False):
-                self._set_selected_entity(player_unit)
+        ally_base_entity = BaseComponent.get_ally_base()
+        if ally_base_entity is not None:
+            ally_base_pos_comp = es.component_for_entity(ally_base_entity, PositionComponent)
+            spawn_x, spawn_y = BaseComponent.get_spawn_position(ally_base_pos_comp.x, ally_base_pos_comp.y, is_enemy=False, jitter=TILE_SIZE * 0.1)
+            player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
+            if player_unit is not None:
+                if not getattr(self, 'self_play_mode', False):
+                    self._set_selected_entity(player_unit)
 
     
         # Créer un Scout ennemi
-        enemy_base_grid_x, enemy_base_grid_y = self.enemy_base_pos
-        enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(enemy_base_grid_x * TILE_SIZE, enemy_base_grid_y * TILE_SIZE, is_enemy=True, jitter=TILE_SIZE * 0.1)
-        enemy_scout = UnitFactory(UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
-        if enemy_scout is not None:
-            print(f"Scout ennemi créé: {enemy_scout}")
+        enemy_base_entity = BaseComponent.get_enemy_base()
+        if enemy_base_entity is not None:
+            enemy_base_pos_comp = es.component_for_entity(enemy_base_entity, PositionComponent)
+            enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(enemy_base_pos_comp.x, enemy_base_pos_comp.y, is_enemy=True, jitter=TILE_SIZE * 0.1)
+            enemy_scout = UnitFactory(UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
+            if enemy_scout is not None:
+                print(f"Scout ennemi créé: {enemy_scout}")
         
         # Initialiser la visibilité pour l'équipe actuelle
         vision_system.update_visibility(Team.ALLY)
