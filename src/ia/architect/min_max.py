@@ -40,6 +40,10 @@ class GameState:
     closest_island_bearing: Optional[float]
     is_on_island: bool
     is_tower_on_current_island: bool  # Flag to check if the current island is occupied
+    # --- Resource Information ---
+    closest_chest_dist: Optional[float]
+    closest_chest_bearing: Optional[float]
+    closest_island_resource_dist: Optional[float]
     island_groups: List[List[Tuple[float, float]]]  # Clusters of adjacent island tiles
     closest_mine_dist: Optional[float]
     closest_mine_bearing: Optional[float]
@@ -58,6 +62,8 @@ class DecisionAction:
     EVADE_ENEMY = "evade_enemy"
     NAVIGATE_TO_ALLY = "navigate_to_ally"
     ACTIVATE_ARCHITECT_ABILITY = "activate_architect_ability"
+    NAVIGATE_TO_CHEST = "navigate_to_chest"
+    NAVIGATE_TO_ISLAND_RESOURCE = "navigate_to_island_resource"
     GET_UNSTUCK = "get_unstuck"
     MOVE_RANDOMLY = "move_randomly"
     DO_NOTHING = "do_nothing"
@@ -88,6 +94,8 @@ class ArchitectMinimax:
             DecisionAction.CHOOSE_ANOTHER_ISLAND,
             DecisionAction.BUILD_DEFENSE_TOWER,
             DecisionAction.BUILD_HEAL_TOWER,
+            DecisionAction.NAVIGATE_TO_CHEST,
+            DecisionAction.NAVIGATE_TO_ISLAND_RESOURCE,
         ]
 
     def decide(self, state: GameState) -> str:
@@ -106,6 +114,14 @@ class ArchitectMinimax:
 
         # Dynamically filter possible actions based on the current game state.
         current_actions = self.possible_actions.copy()
+
+        # Priorité à la collecte de ressources si elles sont proches
+        if state.closest_chest_dist is not None and state.closest_chest_dist < TILE_SIZE * 10:
+            current_actions.insert(0, DecisionAction.NAVIGATE_TO_CHEST)
+        
+        if state.closest_island_resource_dist is not None and state.closest_island_resource_dist < TILE_SIZE * 12:
+            current_actions.insert(0, DecisionAction.NAVIGATE_TO_ISLAND_RESOURCE)
+
 
         # The Architect can build if it's on an island or very close to one.
         can_reach_island_to_build = (state.is_on_island or (state.closest_island_dist is not None and state.closest_island_dist < TILE_SIZE * 4))
@@ -205,6 +221,14 @@ class ArchitectMinimax:
             if state.nearby_foes_count > 0:
                 score += 150
 
+        # --- Resource Collection Scoring ---
+        # Forte récompense pour être proche d'une ressource
+        if state.closest_chest_dist is not None:
+            score += max(0, 400 - state.closest_chest_dist)
+        
+        if state.closest_island_resource_dist is not None:
+            score += max(0, 300 - state.closest_island_resource_dist)
+
         return score
 
     def _get_next_state(self, current_state: GameState, action: str) -> GameState:
@@ -229,6 +253,10 @@ class ArchitectMinimax:
         # --- Simulate Unit Movement ---
         bearing = 0
         if action == DecisionAction.NAVIGATE_TO_ISLAND and next_state.closest_island_bearing is not None:
+            bearing = next_state.closest_island_bearing
+        elif action == DecisionAction.NAVIGATE_TO_CHEST and next_state.closest_chest_bearing is not None:
+            bearing = next_state.closest_chest_bearing
+        elif action == DecisionAction.NAVIGATE_TO_ISLAND_RESOURCE and next_state.closest_island_bearing is not None: # Assume resource is on island
             bearing = next_state.closest_island_bearing
         # For actions like CHOOSE_ANOTHER_ISLAND, no movement is simulated for our unit in this step.
         else:

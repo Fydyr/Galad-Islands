@@ -15,6 +15,8 @@ from src.components.core.teamComponent import TeamComponent
 from src.components.core.playerComponent import PlayerComponent
 from src.components.core.baseComponent import BaseComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
+from src.components.events.flyChestComponent import FlyingChestComponent
+from src.components.events.islandResourceComponent import IslandResourceComponent
 from src.components.special.speArchitectComponent import SpeArchitect
 from src.components.core.towerComponent import TowerComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
@@ -25,6 +27,7 @@ from src.ia.architectAIComponent import ArchitectAIComponent
 from src.ia.architect.min_max import ArchitectMinimax, GameState, DecisionAction
 from src.ia.architect.pathfinding import SimplePathfinder
 from src.settings.settings import TILE_SIZE
+from src.constants.gameplay import UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER
 from src.constants.map_tiles import TileType
 logger = logging.getLogger(__name__)
 
@@ -53,6 +56,7 @@ class ArchitectAIProcessor(esper.Processor):
         # Caches for pathfinding and behavior to avoid redundant calculations.
         self._entity_paths = {}
         self._entity_path_targets = {}
+        self.gold_reserve = 50  # Réserve d'or à conserver, comme pour BaseAi
         self._entity_taboo_targets = {}  # Stores recently failed pathfinding targets to avoid retrying.
         self._entity_position_history = {}  # Tracks recent positions to detect if an entity is stuck.
 
@@ -66,6 +70,20 @@ class ArchitectAIProcessor(esper.Processor):
         
         logger.info("ArchitectAIProcessor initialized.")
 
+    def _get_player_gold(self, team_id: int) -> int:
+        """
+        Récupère la quantité d'or pour une équipe donnée.
+        """
+        for _, (player_comp, player_team) in esper.get_components(PlayerComponent, TeamComponent):
+            if player_team.team_id == team_id:
+                return player_comp.get_gold()
+        return 0
+
+    def _spend_player_gold(self, team_id: int, amount: int) -> bool:
+        for _, (player_comp, player_team) in esper.get_components(PlayerComponent, TeamComponent):
+            if player_team.team_id == team_id:
+                return player_comp.spend_gold(amount)
+        return False
     def process(self, grid):
         """Process all Architect units with enabled AI."""
         self.map_grid = grid
@@ -152,6 +170,12 @@ class ArchitectAIProcessor(esper.Processor):
         # Check if a tower is already on the island the AI is currently on or nearest to.
         is_tower_on_current_island = False
         if is_on_island:
+            # Utiliser la position de l'île la plus proche pour vérifier la présence de tours
+            closest_island_pos_tuple = self._get_target_from_bearing(pos, closest_island_dist, closest_island_bearing)
+            if closest_island_pos_tuple:
+                is_tower_on_current_island = self._is_tower_on_island(closest_island_pos_tuple)
+
+        if is_on_island and not is_tower_on_current_island:
             for _, (tower_pos, _) in esper.get_components(PositionComponent, TowerComponent):
                 dist_sq = (tower_pos.x - pos.x)**2 + (tower_pos.y - pos.y)**2
                 if dist_sq < (self.ISLAND_PROXIMITY_THRESHOLD * 1.5)**2: # Use a slightly larger radius for detection
@@ -160,6 +184,12 @@ class ArchitectAIProcessor(esper.Processor):
 
         # Find closest mine hazard.
         closest_mine_dist, closest_mine_bearing = self._find_closest_mine(pos)
+
+        # Find closest chest and island resource
+        closest_chest_dist, closest_chest_bearing = self._find_closest_resource(pos, FlyingChestComponent)
+        closest_island_resource_dist, _ = self._find_closest_resource(pos, IslandResourceComponent)
+
+
 
         # Get state of the Architect's special ability.
         architect_comp = esper.component_for_entity(entity, SpeArchitect)
@@ -208,6 +238,9 @@ class ArchitectAIProcessor(esper.Processor):
             closest_island_dist=closest_island_dist,
             closest_island_bearing=closest_island_bearing,
             is_on_island=is_on_island,
+            closest_chest_dist=closest_chest_dist,
+            closest_chest_bearing=closest_chest_bearing,
+            closest_island_resource_dist=closest_island_resource_dist,
             is_tower_on_current_island=is_tower_on_current_island,
             island_groups=self._get_island_groups(),
             # --- Status Information ---
@@ -228,6 +261,12 @@ class ArchitectAIProcessor(esper.Processor):
         
         if action == DecisionAction.NAVIGATE_TO_ISLAND:
             # If the closest island is on the "taboo list" (i.e., pathfinding to it failed recently),
+            target_pos = self._get_target_from_bearing(pos, state.closest_island_dist, state.closest_island_bearing)
+        
+        elif action == DecisionAction.NAVIGATE_TO_CHEST:
+            target_pos = self._get_target_from_bearing(pos, state.closest_chest_dist, state.closest_chest_bearing)
+
+        elif action == DecisionAction.NAVIGATE_TO_ISLAND_RESOURCE:
             # override the action to choose a different island.
             potential_target = self._get_target_from_bearing(pos, state.closest_island_dist, state.closest_island_bearing)
             taboo_list = self._entity_taboo_targets.get(entity, [])
@@ -299,16 +338,25 @@ class ArchitectAIProcessor(esper.Processor):
             return  # No movement for this action.
 
         elif action == DecisionAction.BUILD_DEFENSE_TOWER:
-            self._build_defense_tower(entity)
-            ai_comp.start_build_cooldown()
-            self._clear_path(entity)
-            target_pos = self._find_island_in_different_group((pos.x, pos.y))
+            # Vérifier si l'IA a assez d'or avant de construire
+            if self._get_player_gold(state.team_id) >= UNIT_COST_ATTACK_TOWER + self.gold_reserve:
+                if self._build_defense_tower(entity):
+                    ai_comp.start_build_cooldown()
+                    self._clear_path(entity)
+                    # Après avoir construit, chercher une autre île
+                    target_pos = self._find_island_in_different_group((pos.x, pos.y))
+            else:
+                # Pas assez d'or, l'IA doit attendre ou faire autre chose
+                vel.currentSpeed = 0
 
         elif action == DecisionAction.BUILD_HEAL_TOWER:
-            self._build_heal_tower(entity)
-            ai_comp.start_build_cooldown()
-            self._clear_path(entity)
-            target_pos = self._find_island_in_different_group((pos.x, pos.y))
+            if self._get_player_gold(state.team_id) >= UNIT_COST_HEAL_TOWER + self.gold_reserve:
+                if self._build_heal_tower(entity):
+                    ai_comp.start_build_cooldown()
+                    self._clear_path(entity)
+                    target_pos = self._find_island_in_different_group((pos.x, pos.y))
+            else:
+                vel.currentSpeed = 0
 
         elif action == DecisionAction.DO_NOTHING:
             vel.currentSpeed = 0
@@ -486,6 +534,29 @@ class ArchitectAIProcessor(esper.Processor):
         is_on = dist < self.ISLAND_PROXIMITY_THRESHOLD
         
         return dist, bearing, is_on
+
+    def _find_closest_resource(self, pos: PositionComponent, component_type) -> Tuple[Optional[float], Optional[float]]:
+        """Finds the closest resource of a given type (e.g., FlyingChestComponent)."""
+        closest_dist_sq = float('inf')
+        closest_bearing = None
+        closest_resource_pos = None
+
+        for _, (res_pos, _) in esper.get_components(PositionComponent, component_type):
+            dist_sq = (res_pos.x - pos.x)**2 + (res_pos.y - pos.y)**2
+            if dist_sq < closest_dist_sq:
+                closest_dist_sq = dist_sq
+                closest_resource_pos = res_pos
+
+        if closest_resource_pos:
+            dist = np.sqrt(closest_dist_sq)
+            dx = closest_resource_pos.x - pos.x
+            dy = closest_resource_pos.y - pos.y
+            # Invert dy for bearing calculation due to inverted Y-axis in Pygame.
+            bearing = (np.arctan2(-dy, dx) * 180 / np.pi + 360) % 360
+            return dist, bearing
+
+        return None, None
+
 
     def _find_island_cluster_recursive(self, x: int, y: int, visited: set, current_group: list, width: int, height: int):
         """
@@ -692,20 +763,37 @@ class ArchitectAIProcessor(esper.Processor):
         distance_moved = np.hypot(end_pos[0] - start_pos[0], end_pos[1] - start_pos[1])
         return distance_moved < TILE_SIZE * 0.5  # Stuck if moved less than half a tile in 3s.
     
+    def _is_tower_on_island(self, island_pos: Tuple[float, float]) -> bool:
+        """Checks if a tower already exists on or very near the given island position."""
+        if not island_pos:
+            return False
+        
+        for _, (tower_pos, _) in esper.get_components(PositionComponent, TowerComponent):
+            dist_sq = (tower_pos.x - island_pos[0])**2 + (tower_pos.y - island_pos[1])**2
+            if dist_sq < (TILE_SIZE * 0.8)**2:  # Check within a radius slightly smaller than a tile
+                return True
+        return False
+
     def _build_defense_tower(self, entity: int):
-        """Instructs the AI to build a defense tower at its current location."""
+        """Tente de construire une tour de défense et de dépenser l'or."""
         if self.map_grid is None:
-            return
+            return False
         pos = esper.component_for_entity(entity, PositionComponent)
         team = esper.component_for_entity(entity, TeamComponent)
-        createDefenseTower(self.map_grid, pos, team)
-        logger.info(f"Architect AI (Entity {entity}) is building a defense tower.")
+        if self._spend_player_gold(team.team_id, UNIT_COST_ATTACK_TOWER):
+            createDefenseTower(self.map_grid, pos, team)
+            logger.info(f"Architect AI (Entity {entity}) built a defense tower for {UNIT_COST_ATTACK_TOWER} gold.")
+            return True
+        return False
 
     def _build_heal_tower(self, entity: int):
-        """Instructs the AI to build a heal tower at its current location."""
+        """Tente de construire une tour de soin et de dépenser l'or."""
         if self.map_grid is None:
-            return
+            return False
         pos = esper.component_for_entity(entity, PositionComponent)
         team = esper.component_for_entity(entity, TeamComponent)
-        createHealTower(self.map_grid, pos, team)
-        logger.info(f"Architect AI (Entity {entity}) is building a heal tower.")
+        if self._spend_player_gold(team.team_id, UNIT_COST_HEAL_TOWER):
+            createHealTower(self.map_grid, pos, team)
+            logger.info(f"Architect AI (Entity {entity}) built a heal tower for {UNIT_COST_HEAL_TOWER} gold.")
+            return True
+        return False
