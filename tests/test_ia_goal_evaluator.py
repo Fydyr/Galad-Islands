@@ -70,7 +70,7 @@ def _patch_esper_defaults(monkeypatch: MonkeyPatch) -> None:
 
 
 def test_chest_prioritaire_si_accessible(monkeypatch: MonkeyPatch) -> None:
-	"""Vérifie qu'un coffre accessible prime sur toutes les autres actions."""
+	"""Check qu'un coffre accessible prime sur all autres actions."""
 
 	evaluator = GoalEvaluator()
 	context = UnitContext(entity_id=1, team_id=2, unit_type=None, max_health=120.0, health=120.0)
@@ -103,7 +103,7 @@ def test_chest_prioritaire_si_accessible(monkeypatch: MonkeyPatch) -> None:
 
 
 def test_coffre_ignore_si_bloque(monkeypatch: MonkeyPatch) -> None:
-	"""Confirme qu'un coffre dans une zone interdite est écarté et que l'IA se replie sur le druide."""
+	"""Confirme qu'un coffre in une zone interdite est écarté et que l'IA se replie sur le druide."""
 
 	evaluator = GoalEvaluator()
 	context = UnitContext(entity_id=2, team_id=2, unit_type=None, max_health=120.0, health=40.0)
@@ -258,7 +258,7 @@ def test_attack_base_quand_aucune_autre_option(monkeypatch: MonkeyPatch) -> None
 
 
 def test_enemy_units_visent_base_adverse(monkeypatch: MonkeyPatch) -> None:
-	"""S'assure que les unités ennemies attaquent la bonne base avec le nouvel arbre."""
+	"""S'assure que les units ennemies attaquent la bonne base avec le nouvel arbre."""
 
 	evaluator = GoalEvaluator()
 	context = UnitContext(entity_id=12, team_id=1, unit_type=None, max_health=120.0, health=120.0)

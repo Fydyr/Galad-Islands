@@ -1,4 +1,4 @@
-"""Module de compatibilité réexportant les constantes d'unités."""
+"""Module de compatibilité réexportant les constantes d'units."""
 
 from src.factory.unitType import UnitType
 

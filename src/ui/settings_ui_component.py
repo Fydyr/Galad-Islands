@@ -2,7 +2,7 @@ import pygame
 from typing import Tuple, Optional, Callable, Any
 
 class UIComponent:
-    """Classe de base pour les composants UI."""
+    """Classe de base pour les components UI."""
     def __init__(self, rect: pygame.Rect):
         self.rect = rect
         self.visible = True

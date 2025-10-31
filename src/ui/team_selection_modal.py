@@ -3,7 +3,7 @@ from src.ui.generic_modal import GenericModal
 from src.settings.localization import t
 
 class TeamSelectionModal:
-    """Fenêtre modale pour choisir Team 1 ou Team 2 au lancement du mode Joueur vs IA."""
+    """window modale pour choisir Team 1 ou Team 2 au lancement du mode Joueur vs IA."""
     def __init__(self, callback):
         buttons = [
             ("team1", "team_selection.team1"),

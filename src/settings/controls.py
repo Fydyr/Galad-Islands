@@ -2,7 +2,7 @@
 
 Ce module fournit une interface unique pour récupérer l'état des actions
 claviers configurables. Les joueurs peuvent modifier les associations de
-commandes via le fichier de configuration `galad_config.json`.
+commandes via le file de configuration `galad_config.json`.
 """
 
 from __future__ import annotations
@@ -106,7 +106,7 @@ class KeyBindingManager:
 		self._combo_cache: Dict[str, List[KeyCombo]] = {}
 
 	def reload(self) -> None:
-		"""Recharge les combinaisons depuis la configuration."""
+		"""Recharge les combinaisons from la configuration."""
 		self._raw_bindings = config_manager.get_key_bindings()
 		self._combo_cache.clear()
 
@@ -196,7 +196,7 @@ def matches_action(action: str, event: pygame.event.Event) -> bool:
 
 
 def refresh_key_bindings() -> None:
-	"""Force le rechargement des combinaisons depuis la configuration."""
+	"""Force le rechargement des combinaisons from la configuration."""
 	_key_binding_manager.reload()
 
 

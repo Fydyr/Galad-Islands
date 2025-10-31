@@ -4,7 +4,7 @@ import esper
 
 @component
 class PlayerComponent:
-    """Composant qui gère les données et actions du joueur."""
+    """component qui gère les données et actions du joueur."""
     
     def __init__(self, stored_gold: int = 0):
         self.stored_gold: int = stored_gold
@@ -18,12 +18,12 @@ class PlayerComponent:
         self.stored_gold = max(0, gold)
     
     def add_gold(self, amount: int) -> None:
-        """Ajoute de l'or au joueur."""
+        """adds de l'or au joueur."""
         self.stored_gold = max(0, self.stored_gold + amount)
     
     def spend_gold(self, amount: int) -> bool:
         """
-        Dépense l'or du joueur si possible.
+        Dépense l'or du joueur if possible.
         
         Args:
             amount: Montant à dépenser
@@ -37,5 +37,5 @@ class PlayerComponent:
         return False
     
     def can_afford(self, amount: int) -> bool:
-        """Vérifie si le joueur peut se permettre un achat."""
+        """Check sile joueur peut se permettre un achat."""
         return self.stored_gold >= amount

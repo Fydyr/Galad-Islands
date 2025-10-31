@@ -22,13 +22,13 @@ class MovementProcessor(esper.Processor):
         self.world_width = MAP_WIDTH * TILE_SIZE
         self.world_height = MAP_HEIGHT * TILE_SIZE
         
-        # Marge de sécurité pour éviter que les sprites sortent complètement
+        # Marge de sécurité pour avoid que les sprites sortent complètement
         # (basée sur une taille moyenne de sprite)
         self.boundary_margin = 32  # pixels
 
     def process(self, **kwargs):
         for ent, (vel, pos) in esper.get_components(Velocity, Position):
-            # Vérifier si c'est un bandit (ils traversent les îles)
+            # Check sic'est un bandit (ils traversent les îles)
             is_bandit = esper.has_component(ent, Bandits)
             
             # Calculer la vitesse effective d'abord
@@ -55,12 +55,12 @@ class MovementProcessor(esper.Processor):
                 is_projectile = esper.has_component(ent, ProjectileComponent)
                 
                 if is_projectile:
-                    # Pour les projectiles : vérifier si ils sortent des limites et les supprimer
+                    # Pour les projectiles : Check siils sortent des limites et les supprimer
                     if self._is_out_of_bounds(new_x, new_y):
                         esper.delete_entity(ent)
                         continue
                     else:
-                        # Projectile encore dans les limites, appliquer le mouvement
+                        # Projectile encore in les limites, appliquer le mouvement
                         pos.x = new_x
                         pos.y = new_y
                 else:
@@ -86,11 +86,9 @@ class MovementProcessor(esper.Processor):
 
     def _is_out_of_bounds(self, x: float, y: float) -> bool:
         """
-        Vérifie si une position est en dehors des limites jouables de la carte (avec marge).
+        Check siune position est en dehors des limites jouables de la carte (avec marge).
         Args:
-            x (float): Position X à vérifier
-            y (float): Position Y à vérifier
-        Returns:
+            x (float): Position X à Check             y (float): Position Y à Check         Returns:
             bool: True si la position est hors limites
         """
         return (
@@ -100,7 +98,7 @@ class MovementProcessor(esper.Processor):
 
     def _constrain_position(self, x: float, y: float) -> tuple[float, float]:
         """
-        Contraint une position pour qu'elle reste dans les limites de la carte.
+        Contraint une position pour qu'elle reste in les limites de la carte.
         
         Args:
             x (float): Position X à contraindre

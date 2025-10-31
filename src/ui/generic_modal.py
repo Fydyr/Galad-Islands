@@ -60,7 +60,7 @@ class GenericModal:
         self.active = False
 
     def handle_event(self, event: pygame.event.Event, surface: Optional[pygame.Surface] = None) -> Optional[str]:
-        """Traite un événement utilisateur pendant que la modale est active."""
+        """Traite un événement utilisateur during que la modale est active."""
         if not self.active:
             return None
 
@@ -92,7 +92,7 @@ class GenericModal:
             if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
                 return self._activate_choice(self.selected_index)
             if event.key == pygame.K_ESCAPE:
-                return self._activate_choice(0)  # Première option par défaut
+                return self._activate_choice(0)  # Première option By default
             return None
 
         if event.type == pygame.MOUSEMOTION:
@@ -142,7 +142,7 @@ class GenericModal:
         surface.blit(panel, self.modal_rect.topleft)
 
     def _render_button(self, panel: pygame.Surface, rect: pygame.Rect, index: int) -> None:
-        """Détaille le rendu d'un bouton de la modale."""
+        """Détaille le Rendering d'un bouton de la modale."""
         base_color = (70, 70, 90)
         hover_color = (90, 90, 120)
         active_color = (120, 80, 160)
@@ -163,7 +163,7 @@ class GenericModal:
         panel.blit(label, label_pos)
 
     def _ensure_layout(self, size: Tuple[int, int]) -> None:
-        """Calcule la disposition si la taille de fenêtre a changé."""
+        """Calcule la disposition si la taille de window a changé."""
         if self.cached_size == size and self.modal_rect is not None:
             return
 
@@ -191,7 +191,7 @@ class GenericModal:
         
         if self.vertical_layout:
             # Boutons arrangés verticalement
-            start_y = 120  # Commencer après le titre et message
+            start_y = 120  # Commencer after le titre et message
             for i in range(len(self.button_actions)):
                 x = (panel_width - button_width) // 2
                 y = start_y + i * (button_height + spacing)

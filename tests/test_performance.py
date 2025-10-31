@@ -11,7 +11,7 @@ import cProfile
 import pstats
 import io
 
-# Ajouter le répertoire src au path
+# Add the directory src au path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import esper
@@ -30,10 +30,10 @@ from components.core.classeComponent import ClasseComponent
 @pytest.mark.performance
 @pytest.mark.performance
 class TestProcessorPerformance:
-    """Tests de performance pour les composants critiques."""
+    """Tests de performance pour les components critiques."""
 
     def test_entity_creation_performance(self):
-        """Test les performances de création d'entités."""
+        """Test les performances de Entity creation."""
         num_entities = 1000
 
         start_time = time.time()
@@ -49,20 +49,20 @@ class TestProcessorPerformance:
 
         creation_time = time.time() - start_time
 
-        # Nettoyer
+        # Clean up
         for entity in entities:
             esper.delete_entity(entity)
 
-        # Vérifier que c'est raisonnable (< 1 seconde pour 1000 entités)
+        # Check quec'est raisonnable (< 1 seconde pour 1000 entities)
         assert creation_time < 1.0, f"Création trop lente: {creation_time:.3f}s pour {num_entities} entités"
         print(".3f")
 
     def test_component_query_performance(self):
-        """Test les performances des requêtes de composants."""
-        esper.clear_database()  # Nettoyer les entités précédentes
+        """Test les performances des Component queries."""
+        esper.clear_database()  # Clean up les entities précédentes
         num_entities = 500
 
-        # Créer des entités de test
+        # Create test entities
         entities = []
         for i in range(num_entities):
             entity = esper.create_entity()
@@ -81,11 +81,11 @@ class TestProcessorPerformance:
 
         query_time = time.time() - start_time
 
-        # Nettoyer
+        # Clean up
         for entity in entities:
             esper.delete_entity(entity)
 
-        # Vérifier que c'est raisonnable (< 0.1 seconde pour 500 entités)
+        # Check quec'est raisonnable (< 0.1 seconde pour 500 entities)
         assert query_time < 0.1, f"Requête trop lente: {query_time:.3f}s pour {num_entities} entités"
         assert count == num_entities // 2  # Seulement la moitié ont TeamComponent
         print(".3f")
@@ -93,16 +93,16 @@ class TestProcessorPerformance:
     @pytest.mark.skip(reason="Test problématique - le processeur ne crée pas de coffres malgré les conditions remplies. Nécessite investigation approfondie du CombatRewardProcessor.")
     def test_combat_reward_processor_performance(self):
         """Test les performances du CombatRewardProcessor."""
-        esper.clear_database()  # Nettoyer la base de données esper
+        esper.clear_database()  # Clean up la base de données esper
         processor = CombatRewardProcessor()
         num_units = 100
 
-        # Créer un attaquant
+        # Create un attaquant
         attacker_entity = esper.create_entity()
         esper.add_component(attacker_entity, PositionComponent(0, 0))
         esper.add_component(attacker_entity, TeamComponent(Team.ALLY.value))
 
-        # Créer des unités mortes
+        # Create units mortes
         entities = []
         for i in range(num_units):
             entity = esper.create_entity()
@@ -125,13 +125,13 @@ class TestProcessorPerformance:
             if esper.has_component(entity_id, FlyingChestComponent):
                 chest_count += 1
 
-        # Nettoyer
+        # Clean up
         for entity in list(esper._entities.keys()):
             esper.delete_entity(entity, immediate=True)
 
-        # Vérifier que c'est raisonnable (< 0.5 seconde pour 100 unités)
+        # Check quec'est raisonnable (< 0.5 seconde pour 100 units)
         assert processing_time < 0.5, f"Traitement trop lent: {processing_time:.3f}s pour {num_units} unités"
-        assert chest_count == num_units  # Un coffre par unité
+        assert chest_count == num_units  # Un coffre par unit
 
     def test_memory_usage_growth(self):
         """Test la croissance de l'utilisation mémoire."""
@@ -141,7 +141,7 @@ class TestProcessorPerformance:
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss / 1024 / 1024  # MB
 
-        # Créer beaucoup d'entités
+        # Create beaucoup d'entities
         num_entities = 5000
         entities = []
 
@@ -154,7 +154,7 @@ class TestProcessorPerformance:
 
         after_creation_memory = process.memory_info().rss / 1024 / 1024
 
-        # Nettoyer
+        # Clean up
         for entity in entities:
             esper.delete_entity(entity)
 
@@ -163,7 +163,7 @@ class TestProcessorPerformance:
         memory_growth = after_creation_memory - initial_memory
         memory_leak = after_cleanup_memory - initial_memory
 
-        # Vérifier qu'il n'y a pas de fuite mémoire importante
+        # Check qu'il n'y a pas de fuite mémoire importante
         assert memory_leak < 10, f"Fuite mémoire détectée: {memory_leak:.1f} MB"
         print(".1f")
         print(".1f")
@@ -188,7 +188,7 @@ def profile_function(func, *args, **kwargs):
 
 @pytest.mark.performance
 def test_entity_operations_profiling():
-    """Test profilé des opérations sur les entités."""
+    """Test profilé des opérations sur les entities."""
     def entity_operations():
         entities = []
         for i in range(100):
@@ -199,10 +199,10 @@ def test_entity_operations_profiling():
 
         # Effectuer des requêtes
         for ent, (pos, health) in esper.get_components(PositionComponent, HealthComponent):
-            # Simuler un traitement
+            # Simulate un traitement
             health.currentHealth -= 1
 
-        # Nettoyer
+        # Clean up
         for entity in entities:
             esper.delete_entity(entity)
 

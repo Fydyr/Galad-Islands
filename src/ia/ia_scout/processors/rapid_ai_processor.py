@@ -78,7 +78,7 @@ class RapidTroopAIProcessor(esper.Processor):
         self._debug_overlay = []
         self.world = cast(Optional["World"], None)
         # L'attribut world est renseigné par Esper lors de l'attachement du processor.
-        # Ce buffer accumule les informations affichées dans l'overlay de débogage.
+        # Ce buffer accumule les informations affichées in l'overlay de débogage.
 
     # Esper API ------------------------------------------------------------
     def process(self, *args, **kwargs) -> None:
@@ -88,7 +88,7 @@ class RapidTroopAIProcessor(esper.Processor):
         step = 1.0 / max(self.settings.tick_frequency, 1e-3)
         self._accumulator += elapsed
 
-        # Limiter l'accumulateur pour éviter les gros rattrapages après une pause
+        # Limiter l'accumulateur pour avoid les gros rattrapages after une pause
         max_accumulator = 0.5  # Maximum 0.5 secondes d'accumulation
         self._accumulator = min(self._accumulator, max_accumulator)
 
@@ -118,7 +118,7 @@ class RapidTroopAIProcessor(esper.Processor):
             self._debug_overlay.clear()
 
         for entity, components in self._iter_controlled_units():
-            # Désactiver l'IA si l'unité est sélectionnée
+            # Désactiver l'IA si l'unit est sélectionnée
             if self.world is not None and self.world.has_component(entity, PlayerSelectedComponent):
                 continue
             t_entity0 = time.perf_counter()
@@ -181,9 +181,9 @@ class RapidTroopAIProcessor(esper.Processor):
         self.danger_map.update(dt)
 
     def _cleanup_dead_entities(self) -> None:
-        """Supprime les contrôleurs des entités disparues ou mortes."""
+        """Supprime les contrôleurs des entities disparues ou mortes."""
         if self.world is None:
-            # Le monde n'est pas encore initialisé - ne pas nettoyer
+            # Le monde n'est pas encore initialisé - ne pas Clean up
             return
 
         existing_entities = set(self.world._entities.keys())
@@ -212,7 +212,7 @@ class RapidTroopAIProcessor(esper.Processor):
         self.coordination.cleanup(alive_entities)
 
     def _discard_entity_state(self, entity_id: int) -> None:
-        """Retire toutes les références internes associées à l'entité fournie."""
+        """Retire all références internes associées à l'entity fournie."""
         controller = self.controllers.pop(entity_id, None)
         if controller and controller.context and controller.context.assigned_chest_id is not None:
             self.coordination.release_chest(controller.context.assigned_chest_id)
@@ -366,7 +366,7 @@ class RapidUnitController:
         )
 
         # Attack transitions
-        # Coffres prioritaires - forcer la sortie vers GoTo depuis l'attaque
+        # Coffres prioritaires - forcer la sortie to GoTo from l'attaque
         fsm.add_transition(
             attack,
             Transition(condition=self._has_goto_objective, target=goto, priority=25)
@@ -407,7 +407,7 @@ class RapidUnitController:
         return self._navigation_tolerance
 
     def get_shooting_range(self, context: UnitContext) -> float:
-        """Retourne la portée de tir effective de l'unité en pixels."""
+        """Retourne la portée de tir effective de l'unit en pixels."""
 
         if context.shooting_range > 0.0:
             return context.shooting_range
@@ -516,7 +516,7 @@ class RapidUnitController:
         nav_active = self.is_navigation_active(context)
         nav_return_state = context.share_channel.get("nav_return") or self._persistent_nav_return
         
-        # Hysteresis : seuil d'entrée > seuil de sortie pour éviter l'oscillation
+        # Hysteresis : seuil d'entrée > seuil de sortie pour avoid l'oscillation
         if context.in_flee_state:
             # En fuite : on continue tant que danger > seuil_liberation OU santé très basse
             should_still_flee = danger >= self.settings.danger.flee_release_threshold or health_ratio <= 0.2
@@ -533,7 +533,7 @@ class RapidUnitController:
 
             return True
 
-        # Pas en fuite : délai minimum avant de pouvoir re-entrer en fuite (1.0s au lieu de 0.5s)
+        # Pas en fuite : délai minimum before de pouvoir re-entrer en fuite (1.0s au lieu de 0.5s)
         if now - context.flee_exit_time < 1.0:
             # Log désactivé
             return False
@@ -543,7 +543,7 @@ class RapidUnitController:
             # Log désactivé
             return False
 
-        # Vérifier les conditions d'entrée en fuite
+        # Check les conditions d'entrée en fuite
         should_start_flee = danger >= self.settings.danger.flee_threshold or health_ratio <= self.settings.flee_health_ratio
         # Log désactivé
         if should_start_flee:
@@ -597,7 +597,7 @@ class RapidUnitController:
 
     def _attack_done(self, dt: float, context: UnitContext) -> bool:
         """
-        Détermine si l'attaque est terminée et que l'unité doit quitter l'état Attack.
+        Détermine si l'attaque est terminée et que l'unit doit quitter l'état Attack.
         Les coffres ont
         """
         objective = context.current_objective
@@ -613,7 +613,7 @@ class RapidUnitController:
             result = False
             return result
         
-        # Pour les objectifs d'attaque: l'attaque se termine si l'entité cible n'existe plus
+        # Pour les objectifs d'attaque: l'attaque se termine si l'entity cible n'existe plus
         if objective.type in {"attack", "attack_mobile"}:
             if objective.target_entity is None:
                 return True
@@ -673,7 +673,7 @@ class RapidUnitController:
         self._try_continuous_shoot(self.context)
 
     def _try_continuous_shoot(self, context: UnitContext) -> None:
-        """Fait tirer l'unité en continu sauf sur les mines."""
+        """Fait tirer l'unit en continu sauf sur les mines."""
         radius = context.radius_component
         if radius is None:
             return
@@ -697,7 +697,7 @@ class RapidUnitController:
                 pass
 
 
-        # Sinon, utiliser l'objectif actuel uniquement si c'est une entité ennemie
+        # Sinon, utiliser l'objectif actuel uniquement si c'est une entity ennemie
         if projectile_target is None and context.current_objective:
             objective = context.current_objective
             if objective.target_entity and esper.entity_exists(objective.target_entity):
@@ -710,9 +710,9 @@ class RapidUnitController:
                         target_entity = objective.target_entity
                 except KeyError:
                     pass
-            # On ignore objective.target_position si ce n'est pas une entité ennemie
+            # On ignore objective.target_position si ce n'est pas une entity ennemie
 
-        # Vérification du radius de tir et de vision
+        # Check du radius de tir et de vision
         vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
         shooting_radius = self.get_shooting_range(context)
         if projectile_target is not None:
@@ -721,7 +721,7 @@ class RapidUnitController:
                 dx = pos.x - projectile_target[0]
                 dy = pos.y - projectile_target[1]
                 distance = math.hypot(dx, dy)
-                # La cible doit être dans le radius de tir ET de vision
+                # La cible doit être in le radius de tir ET de vision
                 if (vision_radius > 0.0 and distance > vision_radius) or (shooting_radius > 0.0 and distance > shooting_radius):
                     return  # Cible hors du champ de vision ou de tir
             except KeyError:
@@ -729,7 +729,7 @@ class RapidUnitController:
 
 
 
-        # Vérifier si la cible est une mine (entité de la team neutre)
+        # Check sila cible est une mine (entity de la team neutre)
         is_mine = False
         NEUTRAL_TEAM_ID = 0
         if target_entity is not None:
@@ -740,7 +740,7 @@ class RapidUnitController:
             except Exception:
                 pass
 
-        # Vérifier si la position de la cible est sur une mine (entité neutre proche)
+        # Check sila position de la cible est sur une mine (entity neutre proche)
         if not is_mine and projectile_target is not None:
             try:
                 for entity, team_comp in esper.get_component(TeamComponent):
@@ -752,7 +752,7 @@ class RapidUnitController:
             except Exception:
                 pass
 
-        # Vérifier si la cible est un allié
+        # Check sila cible est un allié
         is_ally = False
         if target_entity is not None:
             try:
@@ -767,9 +767,9 @@ class RapidUnitController:
         # Si la cible est une mine ou un allié, ne pas tirer
         if is_mine or is_ally:
             return
-        # Filtre supplémentaire : ne tirer que sur une entité ayant TeamComponent et team adverse
+        # Filtre supplémentaire : ne tirer que sur une entity ayant TeamComponent et team adverse
         if target_entity is None:
-            return # Ne pas tirer si aucune entité n'est ciblée
+            return # Ne pas tirer si aucune entity n'est ciblée
 
         try:
             target_team = esper.component_for_entity(target_entity, TeamComponent)
@@ -777,9 +777,9 @@ class RapidUnitController:
             if target_team.team_id == my_team.team_id:
                 return  # Ne pas tirer sur sa propre équipe
         except Exception:
-            return # Ne pas tirer si la cible n'a pas de composant d'équipe
+            return # Ne pas tirer si la cible n'a pas de component d'équipe
 
-        # Orienter vers la cible (ou garder la direction actuelle)
+        # Orienter to la cible (ou garder la direction actuelle)
         if projectile_target is not None:
             try:
                 pos = esper.component_for_entity(context.entity_id, PositionComponent)
@@ -868,7 +868,7 @@ class RapidUnitController:
             elif context.assigned_chest_id is not None:
                 self.coordination.release_chest(context.assigned_chest_id)
                 context.assigned_chest_id = None
-            # Vérifier si l'objectif attack_base est valide (pas d'unités ennemies près de la base)
+            # Check sil'objectif attack_base est valide (pas d'units ennemies près de la base)
             if objective.type == "attack_base" and objective.target_entity is not None:
                 base_block_until = context.share_channel.get("attack_base_block_until", 0.0)
                 base_protection_radius = 200.0
@@ -890,7 +890,7 @@ class RapidUnitController:
         if skip_attack_flag:
             context.share_channel.pop("skip_attack_base", None)
 
-        # Vérifier si l'IA est coincée dans le même état trop longtemps
+        # Check sil'IA est coincée in le même état trop longtemps
         now = self.context_manager.time
         current_state = self.state_machine.current_state.name
         if current_state != context.debug_last_state:
@@ -898,10 +898,10 @@ class RapidUnitController:
             context.stuck_state_time = 0.0
             context.debug_last_state = current_state
         else:
-            # Calculer le temps écoulé depuis le dernier changement d'état
+            # Calculer elapsed time from le dernier changement d'état
             time_in_state = now - context.last_state_change
             context.stuck_state_time = time_in_state
-        # Si coincée dans Idle/Attack/Flee depuis plus de 5 secondes, abandonner l'objectif
+        # Si coincée in Idle/Attack/Flee from plus de 5 secondes, abandonner l'objectif
         if (
             context.stuck_state_time > 5.0
             and current_state in ["Idle", "Attack", "Flee"]
@@ -921,7 +921,7 @@ class RapidUnitController:
                 self._stuck_timer = 0.0
                 self._last_position_check = context.position
 
-            if self._stuck_timer > 3.0: # Coincé depuis 3 secondes
+            if self._stuck_timer > 3.0: # Coincé from 3 secondes
                 context.advance_path() # Forcer le passage au waypoint suivant
                 self._stuck_timer = 0.0
             context.stuck_state_time = 0.0
@@ -933,7 +933,7 @@ class RapidUnitController:
         if self.context is None or target_position is None:
             return
         
-        # Ne déplacer l'unité que si le centre de la cible reste sur une zone valide
+        # Ne déplacer l'unit que si le centre de la cible reste sur une zone valide
         # Exception pour les ressources d'îles : permettre le mouvement même sur positions bloquées
         objective = self.context.current_objective
         allow_blocked = objective and objective.type == "goto_island_resource"
@@ -1007,14 +1007,14 @@ class RapidUnitController:
     def request_path(self, target_position):
         if self.context is None or target_position is None:
             return
-        # Clé de cache arrondie pour éviter les recalculs sur des positions très proches
+        # Clé de cache arrondie pour avoid les recalculs sur des positions très proches
         cache_key = (round(target_position[0], 1), round(target_position[1], 1))
         # Si le chemin est déjà en cache et la position de départ n'a pas trop changé, réutiliser
         if cache_key in self._path_cache:
             cached_path = self._path_cache[cache_key]
-            # Vérifie que le chemin existe et que la destination finale est correcte
+            # Check quele chemin existe et que la destination finale est correcte
             if cached_path and math.hypot(target_position[0] - cached_path[-1][0], target_position[1] - cached_path[-1][1]) < 8.0:
-                # Vérifie que le Scout est encore sur le chemin ou proche du début
+                # Check quele Scout est encore sur le chemin ou proche du début
                 if math.hypot(self.context.position[0] - cached_path[0][0], self.context.position[1] - cached_path[0][1]) < 32.0:
                     self.context.set_path(cached_path)
                     return

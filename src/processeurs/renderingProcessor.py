@@ -37,7 +37,7 @@ class RenderProcessor(esper.Processor):
             # Blit using the rect's topleft to keep the rotation centered
             self.screen.blit(rotated_image, rect.topleft)
             
-            # Afficher la barre de vie si l'entité a un HealthComponent
+            # Afficher la barre de vie si l'entity a un HealthComponent
             if esper.has_component(ent, HealthComponent):
                 health = esper.component_for_entity(ent, HealthComponent)
                 if health.currentHealth < health.maxHealth :
@@ -49,11 +49,11 @@ class RenderProcessor(esper.Processor):
         bar_height = 6
         bar_offset_y = sprite_height // 2 + 10  # Position au-dessus du sprite
         
-        # Position de la barre (centrée au-dessus de l'entité)
+        # Position de la barre (centrée au-dessus de l'entity)
         bar_x = x - bar_width // 2
         bar_y = y - bar_offset_y
         
-        # Vérifier que maxHealth n'est pas zéro pour éviter la division par zéro
+        # Check quemaxHealth n'est pas zéro pour avoid la division par zéro
         if health.maxHealth <= 0:
             # Si maxHealth est 0 ou négatif, on ne dessine pas la barre de vie
             return

@@ -6,8 +6,8 @@ import sys
 import pygame
 
 # --- Configuration du chemin d'accès ---
-# Ajoute le répertoire parent (racine du projet) au path pour que les imports fonctionnent
-# comme si on lançait depuis la racine du projet.
+# Add the directory parent (racine du projet) au path pour que les imports fonctionnent
+# comme si on lançait from la racine du projet.
 # Ceci est crucial pour que `from src.game import game` fonctionne.
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
@@ -19,7 +19,7 @@ def run_profiler():
     Lance le jeu avec le profiler cProfile et affiche les résultats.
     Le profilage se fait sur toute la durée de la partie.
     """
-    # Créer une instance du profiler
+    # Create an instance du profiler
     profiler = cProfile.Profile()
 
     # Lancer le jeu sous le contrôle du profiler
@@ -39,18 +39,18 @@ def run_profiler():
     profiler.enable()
 
     try:
-        # Appeler la fonction principale du jeu
+        # Appeler la Main function du jeu
         main.main_menu()
     except (SystemExit, pygame.error):
         # Pygame.quit() peut lever SystemExit, on l'intercepte pour continuer.
         print("\n✅ Partie terminée. Analyse du profilage en cours...")
     finally:
-        profiler.disable()    # Créer un flux en mémoire pour capturer la sortie de pstats
+        profiler.disable()    # Create un flux en mémoire pour capturer la sortie de pstats
     s = io.StringIO()
 
     # Trier les statistiques par temps cumulé ('cumulative')
-    # 'tottime' : temps total passé dans la fonction (sans les sous-fonctions)
-    # 'cumulative' : temps total passé dans la fonction ET ses sous-fonctions
+    # 'tottime' : TOTAL TIME passé in la fonction (sans les sous-fonctions)
+    # 'cumulative' : TOTAL TIME passé in la fonction ET ses sous-fonctions
     sortby = pstats.SortKey.CUMULATIVE
     ps = pstats.Stats(profiler, stream=s).sort_stats(sortby)
 

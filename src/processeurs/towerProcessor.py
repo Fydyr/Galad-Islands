@@ -16,7 +16,7 @@ from src.constants.gameplay import PROJECTILE_SPEED, PROJECTILE_WIDTH, PROJECTIL
 
 
 class TowerProcessor(esper.Processor):
-    """Processor unifié pour gérer le comportement de tous les types de tours."""
+    """Processor unifié pour gérer le comportement de all types de tours."""
     def __init__(self):
         super().__init__()
 
@@ -31,11 +31,11 @@ class TowerProcessor(esper.Processor):
             min_dist = float('inf')
             
             for e2, (p2, t2, hp2) in esper.get_components(PositionComponent, TeamComponent, HealthComponent):
-                # Éviter de se cibler soi-même
+                # avoid de se cibler soi-même
                 if e2 == ent:
                     continue
                 
-                # NE PAS cibler les entités neutres (team_id = 0, comme les mines)
+                # NE PAS cibler les entities neutres (team_id = 0, comme les mines)
                 if t2.team_id == 0:
                     continue
                 
@@ -67,13 +67,13 @@ class TowerProcessor(esper.Processor):
                     target_entity = e2
                     target_pos = p2
 
-            # Stocker la cible actuelle dans le composant de la tour
+            # Stocker la cible actuelle in le component de la tour
             tower.target_entity = target_entity
 
             # Tirer seulement si cooldown ready ET qu'on a une cible
             if target_entity is not None and target_pos is not None and tower.can_attack():
                 if tower.is_defense_tower() and tower.damage is not None:
-                    # Créer un projectile vers la cible (comme le Scout)
+                    # Create un projectile to la cible (comme le Scout)
                     self._create_tower_projectile(ent, pos, target_pos, team.team_id, tower.damage)
                 elif tower.is_heal_tower() and tower.heal_amount is not None:
                     # Soin direct instantané
@@ -83,15 +83,15 @@ class TowerProcessor(esper.Processor):
                 tower.trigger_action()
 
     def _create_tower_projectile(self, tower_entity: int, tower_pos: PositionComponent, target_pos: PositionComponent, team_id: int, damage: int):
-        """Crée un projectile de tour vers une cible."""
-        # Calculer l'angle vers la cible
-        # Le movementProcessor SOUSTRAIT cos/sin, donc pour aller VERS la cible,
+        """creates un projectile de tour to une cible."""
+        # Calculer l'angle to la cible
+        # Le movementProcessor SOUSTRAIT cos/sin, donc pour aller to la cible,
         # on doit inverser la direction (tour - target au lieu de target - tour)
         dx = tower_pos.x - target_pos.x
         dy = tower_pos.y - target_pos.y
         angle = math.degrees(math.atan2(dy, dx))
         
-        # Créer l'entité projectile
+        # Create l'entity projectile
         projectile = esper.create_entity()
         
         # Position de départ
@@ -104,7 +104,7 @@ class TowerProcessor(esper.Processor):
         # Équipe
         esper.add_component(projectile, TeamComponent(team_id=team_id))
         
-        # Vitesse - IMPORTANT : initialiser terrain_modifier à 1.0
+        # Vitesse - IMPORTANT : Initialize terrain_modifier à 1.0
         esper.add_component(projectile, VelocityComponent(
             currentSpeed=PROJECTILE_SPEED,
             maxUpSpeed=PROJECTILE_SPEED,

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script de test pour vérifier l'installation des hooks avec bump automatique
+Script de test pour Check l'installation des hooks avec bump automatique
 """
 
 import os
@@ -12,7 +12,7 @@ def test_hook_installation():
     """Teste que les hooks sont correctement installés"""
     print("🧪 Test de l'installation des hooks")
     
-    # Vérifier les fichiers de hooks
+    # Check les fichiers de hooks
     hooks_to_check = [
         '.git/hooks/pre-commit',
         '.git/hooks/commit-msg'  # Optionnel
@@ -22,7 +22,7 @@ def test_hook_installation():
         if Path(hook_path).exists():
             print(f"✅ {hook_path} trouvé")
             
-            # Vérifier que le hook est exécutable (sur Unix)
+            # Check quele hook est exécutable (sur Unix)
             if os.name != 'nt':
                 if os.access(hook_path, os.X_OK):
                     print(f"✅ {hook_path} est exécutable")
@@ -56,7 +56,7 @@ def test_git_status():
     print("\n🧪 Test de l'état Git")
     
     try:
-        # Vérifier qu'on est dans un repo Git
+        # Check qu'on est in un repo Git
         result = subprocess.run(['git', 'status', '--porcelain'], 
                               capture_output=True, text=True)
         if result.returncode == 0:
@@ -78,15 +78,15 @@ def test_git_status():
         return False
 
 def simulate_commit_test():
-    """Simule un test de commit pour vérifier le hook"""
+    """Simule un test de commit pour Check le hook"""
     print("\n🧪 Simulation d'un commit de test")
     
-    # Créer un fichier temporaire
+    # Create un file temporaire
     test_file = Path('test_hook_simulation.tmp')
     try:
         test_file.write_text("Test du hook pre-commit\n")
         
-        # Ajouter le fichier
+        # Add the file
         result = subprocess.run(['git', 'add', str(test_file)], 
                               capture_output=True, text=True)
         
@@ -99,14 +99,14 @@ def simulate_commit_test():
         print(f"   git commit -m 'test: test du hook pre-commit'")
         print("   (puis git reset HEAD~1 pour annuler)")
         
-        # Nettoyer
+        # Clean up
         subprocess.run(['git', 'reset', 'HEAD', str(test_file)], 
                       capture_output=True)
         test_file.unlink()
         
     except Exception as e:
         print(f"⚠️  Erreur lors de la simulation: {e}")
-        # Nettoyer en cas d'erreur
+        # Clean up in case of error
         try:
             subprocess.run(['git', 'reset', 'HEAD', str(test_file)], 
                           capture_output=True)
@@ -116,7 +116,7 @@ def simulate_commit_test():
             pass
 
 def main():
-    """Fonction principale de test"""
+    """Main function de test"""
     print("🔍 TESTS D'INSTALLATION DES HOOKS AVEC BUMP AUTOMATIQUE")
     print("="*60)
     

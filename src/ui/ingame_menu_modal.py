@@ -26,7 +26,7 @@ class InGameMenuModal:
     def _on_action(self, action_id: str) -> None:
         """Callback appelé par GenericModal lors du clic sur un bouton.
 
-        Si l'utilisateur choisit 'settings', on ouvre la fenêtre d'options.
+        Si l'utilisateur choisit 'settings', on ouvre the window d'options.
         Pour 'stay', on ne fait rien (la modale se ferme automatiquement).
         Si l'utilisateur choisit 'quit', on ouvre une modale de confirmation.
         """
@@ -64,7 +64,7 @@ class InGameMenuModal:
         self.modal.close()
 
     def handle_event(self, event: pygame.event.Event, surface: Optional[pygame.Surface] = None) -> Optional[str]:
-        """Traite un événement utilisateur pendant que la modale est active."""
+        """Traite un événement utilisateur during que la modale est active."""
         return self.modal.handle_event(event, surface)
 
     def render(self, surface: pygame.Surface) -> None:

@@ -1,4 +1,4 @@
-"""Composant marquant une entité comme coffre volant."""
+"""component marquant une entity comme coffre volant."""
 
 from dataclasses import dataclass as component
 
@@ -9,12 +9,12 @@ class FlyingChestComponent:
 
     Attributs :
         gold_amount : Gain d'or remis au premier navire entrant en collision.
-        max_lifetime : Durée maximale de vol avant de sombrer automatiquement.
-        sink_duration : Durée de l'animation de chute dans l'océan après expiration.
-    elapsed_time : Temps écoulé depuis l'apparition du coffre.
-    sink_elapsed_time : Durée passée depuis le début de la phase de chute.
+        max_lifetime : Durée maximale de vol before de sombrer automatiquement.
+        sink_duration : Durée de l'animation de chute in l'océan after expiration.
+    elapsed_time : Temps écoulé from l'apparition du coffre.
+    sink_elapsed_time : Durée passée from le début de la phase de chute.
         is_collected : Indique si le coffre a déjà été récupéré.
-        is_sinking : Indique si le coffre est en phase de chute après expiration.
+        is_sinking : Indique si le coffre est en phase de chute after expiration.
     """
 
     def __init__(

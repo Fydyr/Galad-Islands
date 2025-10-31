@@ -1,4 +1,4 @@
-"""Composant marquant une entité comme ressource d'île ramassable."""
+"""component marquant une entity comme ressource d'île ramassable."""
 
 from dataclasses import dataclass as component
 
@@ -9,11 +9,11 @@ class IslandResourceComponent:
 
     Attributs :
         gold_amount : Quantité d'or donnée au premier navire entrant en collision.
-        max_lifetime : Durée maximale pendant laquelle la ressource reste disponible.
+        max_lifetime : Durée maximale during laquelle la ressource reste disponible.
         sink_duration : Durée de l'animation de disparition (optionnelle).
-    elapsed_time : Temps écoulé depuis l'apparition de la ressource.
+    elapsed_time : Temps écoulé from l'apparition de la ressource.
     is_collected : Indique si la ressource a été récupérée.
-    is_disappearing : Indique si la ressource est en cours de disparition après expiration.
+    is_disappearing : Indique si la ressource est en cours de disparition after expiration.
     """
 
     def __init__(

@@ -21,7 +21,7 @@ def detect_os():
         return 'unix'
 
 def create_auto_installer():
-    """Crée le script d'auto-installation"""
+    """creates le script d'auto-installation"""
     
     # Contenu de l'installateur universel (version compacte)
     installer_content = '''#!/usr/bin/env python
@@ -34,7 +34,7 @@ def detect_os():
 
 def install():
     try:
-        # Vérifier si déjà installé
+        # Check sidéjà installé
         if Path('.git/hooks/.commitizen_installed').exists():
             return
         
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     return installer_content
 
 def create_post_checkout_hook():
-    """Crée le hook post-checkout pour auto-installation"""
+    """creates le hook post-checkout pour auto-installation"""
     
     hooks_dir = Path('hooks')
     hooks_dir.mkdir(exist_ok=True)
@@ -106,7 +106,7 @@ def create_post_checkout_hook():
     return True
 
 def create_commitizen_config():
-    """Crée la configuration commitizen"""
+    """creates la configuration commitizen"""
     
     config_content = """# Configuration commitizen pour l'équipe
 [tool.commitizen]
@@ -124,7 +124,7 @@ allowed_types = [
     "style",    # Formatage, espaces, etc.
     "refactor", # Refactorisation du code
     "perf",     # Amélioration des performances
-    "test",     # Ajout ou modification de tests
+    "test",     # add ou modification de tests
     "build",    # Système de build ou dépendances
     "ci",       # Configuration CI
     "chore",    # Maintenance
@@ -147,7 +147,7 @@ build-backend = "setuptools.build_meta"
         print("pyproject.toml existe déjà")
 
 def install_post_checkout_locally():
-    """Installe le hook post-checkout dans .git/hooks"""
+    """Installe le hook post-checkout in .git/hooks"""
     
     source = Path('hooks/post-checkout')
     dest = Path('.git/hooks/post-checkout')
@@ -163,11 +163,11 @@ def install_post_checkout_locally():
         print(f"Hook post-checkout installé dans .git/hooks/")
 
 def create_documentation():
-    """Crée la documentation pour tous les OS"""
+    """creates la documentation pour all OS"""
     
     doc_content = """# Hooks Commitizen Automatiques
 
-## 🌍 Compatible avec tous les OS
+## 🌍 Compatible avec all OS
 - ✅ Windows
 - ✅ Linux  
 - ✅ macOS
@@ -202,10 +202,10 @@ type(scope): description
 
 ### ✅ Exemples valides
 ```bash
-git commit -m "feat: ajouter système de login"
+git commit -m "feat: Add système de login"
 git commit -m "fix(auth): corriger bug de session"
 git commit -m "docs: mettre à jour README"
-git commit -m "ci: ajouter pipeline"
+git commit -m "ci: Add pipeline"
 ```
 
 ## 🛠️ Commandes utiles
@@ -235,7 +235,7 @@ pip install commitizen
 python -m commitizen install-hook
 ```
 
-### Vérifier l'installation
+### Check l'installation
 ```bash
 python -m commitizen --version
 ls -la .git/hooks/commit-msg
@@ -250,18 +250,18 @@ ls -la .git/hooks/commit-msg
     print("Documentation créée: HOOKS_UNIVERSAL.md")
 
 def main():
-    """Configuration complète pour tous les OS"""
+    """Configuration complète pour all OS"""
     os_name = {'windows': 'Windows', 'linux': 'Linux', 'macos': 'macOS', 'unix': 'Unix'}[detect_os()]
     
     print(f"🌍 Configuration commitizen universelle pour {os_name}")
     print("="*60)
     
-    # Vérifier qu'on est dans un repo Git
+    # Check qu'on est in un repo Git
     if not Path('.git').exists():
         print("❌ Erreur: Pas dans un repository Git")
         return False
     
-    # Créer tous les fichiers
+    # Create all fichiers
     create_commitizen_config()
     create_post_checkout_hook()
     install_post_checkout_locally()

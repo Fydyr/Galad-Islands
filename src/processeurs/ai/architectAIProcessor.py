@@ -107,7 +107,7 @@ class ArchitectAIProcessor(esper.Processor):
             HealthComponent,
             TeamComponent,
         ):
-            # Désactiver l'IA si l'unité est sélectionnée
+            # Désactiver l'IA si l'unit est sélectionnée
             if esper.has_component(entity, PlayerSelectedComponent):
                 continue
 
@@ -170,7 +170,7 @@ class ArchitectAIProcessor(esper.Processor):
         # Check if a tower is already on the island the AI is currently on or nearest to.
         is_tower_on_current_island = False
         if is_on_island:
-            # Utiliser la position de l'île la plus proche pour vérifier la présence de tours
+            # Utiliser la position de l'île la plus proche pour Check la présence de tours
             closest_island_pos_tuple = self._get_target_from_bearing(pos, closest_island_dist, closest_island_bearing)
             if closest_island_pos_tuple:
                 is_tower_on_current_island = self._is_tower_on_island(closest_island_pos_tuple)
@@ -338,12 +338,12 @@ class ArchitectAIProcessor(esper.Processor):
             return  # No movement for this action.
 
         elif action == DecisionAction.BUILD_DEFENSE_TOWER:
-            # Vérifier si l'IA a assez d'or avant de construire
+            # Check sil'IA a assez d'or before de construire
             if self._get_player_gold(state.team_id) >= UNIT_COST_ATTACK_TOWER + self.gold_reserve:
                 if self._build_defense_tower(entity):
                     ai_comp.start_build_cooldown()
                     self._clear_path(entity)
-                    # Après avoir construit, chercher une autre île
+                    # after avoir construit, chercher une autre île
                     target_pos = self._find_island_in_different_group((pos.x, pos.y))
             else:
                 # Pas assez d'or, l'IA doit attendre ou faire autre chose

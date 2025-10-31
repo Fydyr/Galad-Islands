@@ -157,5 +157,5 @@ class VolumeWatcher:
 
         except Exception as e:
             print(f"⚠️ Erreur lors du chargement du volume: {e}")
-            # Fallback: utiliser les valeurs par défaut
+            # Fallback: utiliser les valeurs By default
             pygame.mixer.music.set_volume(0.4)  # 0.5 * 0.8

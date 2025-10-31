@@ -311,7 +311,7 @@ class SpriteManager:
             width, height = size
             esper.add_component(ent, sprite_manager.create_sprite_component(sprite_id, width, height))
         else:
-            # Fallback vers l'ancienne méthode
+            # Fallback to old method
             esper.add_component(ent, Sprite(
                 "assets/sprites/projectile/ball.png",
                 150,

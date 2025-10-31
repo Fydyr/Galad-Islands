@@ -4,7 +4,7 @@ import pygame
 import sys
 import os
 import logging
-# Par défaut, ne pas afficher les DEBUG en production
+# By default, do not display DEBUG in production
 logging.basicConfig(level=logging.INFO)
 from src.ui.crash_window import show_crash_popup
 from src.managers.display import DisplayManager, LayoutManager, get_display_manager
@@ -28,7 +28,7 @@ class MainMenu:
     def __init__(self, surface=None):
         # Logo pygame
         logo_path = get_resource_path(os.path.join("assets", "logo.png"))
-        print(logo_path)  # vérification
+        print(logo_path)  # verification
 
         if os.path.isfile(logo_path):
             logo = pygame.image.load(logo_path)
@@ -152,17 +152,17 @@ class MainMenu:
 
     def _on_play(self):
         """Starts the game."""
-        # Affiche la modale et récupère le mode de jeu choisi (le "signal").
+        # Display the modal and retrieve the selected game mode (the "signal").
         selected_mode = show_gamemode_selection_modal(
             window=self.surface,
             bg_image=self.bg_scaled,
             select_sound=self.audio_manager.get_select_sound()
         )
 
-        # Si un mode a été sélectionné, on lance le jeu.
+        # If a mode has been selected, launch the game.
         if selected_mode in ["player_vs_ai", "ai_vs_ai"]:
-            # Lancer le jeu est une action bloquante.
-            # Le menu reprendra après la fin de la partie.
+            # Launching the game is a blocking action.
+            # The menu will resume after the game ends.
             game(self.surface, bg_original=self.bg_original, select_sound=self.audio_manager.get_select_sound(), mode=selected_mode)
 
     def _on_options(self):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Configuration commune pour les tests pytest
-Fournit des fixtures pour l'initialisation des composants de test
+Fournit des fixtures pour l'initialisation des components de test
 """
 
 import pytest
@@ -9,7 +9,7 @@ import pygame
 import sys
 import os
 
-# Ajouter le répertoire src au path pour les imports
+# Add the directory src au path pour les imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import esper
@@ -23,7 +23,7 @@ from components.core.spriteComponent import SpriteComponent
 
 @pytest.fixture(scope="session", autouse=True)
 def pygame_init():
-    """Initialise pygame pour tous les tests nécessitant l'affichage."""
+    """Initialize pygamepour all tests nécessitant l'affichage."""
     pygame.init()
     pygame.display.set_mode((1, 1))  # Mode headless minimal
     yield
@@ -33,15 +33,15 @@ def pygame_init():
 @pytest.fixture
 def world():
     """Prépare esper pour les tests (utilise le monde global)."""
-    # Nettoyer les entités existantes
+    # Clean up les entities existantes
     for entity in list(esper._entities.keys()):
         esper.delete_entity(entity, immediate=True)
 
-    # Nettoyer les processeurs
+    # Clean up les processeurs
     esper._processors.clear()
 
     yield esper
-    # Nettoyage après le test
+    # Nettoyage after le test
     for entity in list(esper._entities.keys()):
         esper.delete_entity(entity, immediate=True)
     esper._processors.clear()
@@ -49,7 +49,7 @@ def world():
 
 @pytest.fixture
 def basic_entity(world):
-    """Crée une entité basique avec position, santé et équipe."""
+    """Create an entity basique avec position, santé et équipe."""
     entity = esper.create_entity()
 
     esper.add_component(entity, PositionComponent(100, 100))
@@ -62,7 +62,7 @@ def basic_entity(world):
 
 @pytest.fixture
 def enemy_entity(world):
-    """Crée une entité ennemie basique."""
+    """Create an entity ennemie basique."""
     entity = esper.create_entity()
 
     esper.add_component(entity, PositionComponent(200, 200))
@@ -75,7 +75,7 @@ def enemy_entity(world):
 
 @pytest.fixture
 def mock_sprite():
-    """Crée un mock de sprite pygame pour les tests."""
+    """creates un mock de sprite pygame pour les tests."""
     class MockSprite:
         def __init__(self):
             self.image = pygame.Surface((32, 32))
@@ -93,5 +93,5 @@ def mock_sprite():
 
 @pytest.fixture
 def test_surface():
-    """Crée une surface de test pour les tests de rendu."""
+    """creates une surface de test pour les tests de Rendering."""
     return pygame.Surface((800, 600))

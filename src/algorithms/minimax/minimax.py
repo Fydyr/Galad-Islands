@@ -5,7 +5,7 @@ Ce module fournit la logique de décision pour l'IA :
 1.  evaluate_state: Donne un "score" à un état de jeu.
 2.  get_possible_actions: Génère les coups possibles pour le Druide.
 3.  simulate_action: Simule l'effet d'une action sur un état de jeu.
-4.  run_minimax: Fonction principale qui lance l'algorithme.
+4.  run_minimax: Main function qui lance l'algorithme.
 """
 
 import math
@@ -17,7 +17,7 @@ from src.constants.gameplay import (
     UNIT_COOLDOWN_DRUID, 
     SPECIAL_ABILITY_COOLDOWN
 )
-# Le montant de soin est défini dans unitType.py pour le Druide
+# Le montant de soin est défini in unitType.py pour le Druide
 from src.factory.unitType import get_unit_metadata
 DRUID_HEAL_AMOUNT = get_unit_metadata(UnitType.DRUID).ally.stats.get("soin", 20) #
 
@@ -58,7 +58,7 @@ def evaluate_state(game_state: GameState) -> float:
             score += SCORE_VINED_ENEMY
     score += druid["health"] * SCORE_WEIGHT_DRUID_HEALTH
     score += (druid["heal_cooldown"] / UNIT_COOLDOWN_DRUID) * SCORE_PENALTY_COOLDOWN
-    # Vérifier si SPECIAL_ABILITY_COOLDOWN est 0 pour éviter division par zéro
+    # Check siSPECIAL_ABILITY_COOLDOWN est 0 pour avoid division par zéro
     if SPECIAL_ABILITY_COOLDOWN > 0:
         score += (druid["spec_cooldown"] / SPECIAL_ABILITY_COOLDOWN) * SCORE_PENALTY_COOLDOWN
     else:
@@ -68,7 +68,7 @@ def evaluate_state(game_state: GameState) -> float:
 
 
 def get_possible_actions(game_state: GameState, is_maximizing_player: bool) -> List[Action]:
-    """Génère toutes les actions possibles depuis l'état actuel."""
+    """Génère all actions possibles from l'état actuel."""
 
     if not is_maximizing_player:
         return [("WAIT", None)]

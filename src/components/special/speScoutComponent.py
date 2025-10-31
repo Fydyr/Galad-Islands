@@ -8,14 +8,14 @@ class SpeScout:
         self.duration: float = duration  # Durée d'invincibilité (3 secondes)
         self.timer: float = timer        # Temps restant d'invincibilité
         self.cooldown: float = cooldown  # Cooldown de la capacité spéciale
-        self.cooldown_timer: float = cooldown_timer  # Temps restant avant réactivation
+        self.cooldown_timer: float = cooldown_timer  # Temps restant before réactivation
 
     def can_activate(self):
-        """Vérifie si la capacité peut être activée (pas en cooldown ni déjà active)."""
+        """Check sila capacité peut être activée (pas en cooldown ni déjà active)."""
         return (not self.is_active) and (self.cooldown_timer <= 0)
 
     def activate(self):
-        """Active la manœuvre d'évasion (invincibilité) si possible."""
+        """Active la manœuvre d'évasion (invincibilité) if possible."""
         if self.can_activate():
             self.is_active = True
             self.timer = self.duration
@@ -27,7 +27,7 @@ class SpeScout:
     def update(self, dt):
         """
         Met à jour le timer d'invincibilité et le cooldown.
-        - dt: temps écoulé depuis la dernière frame
+        - dt: temps écoulé from la dernière frame
         """
         # Gestion du cooldown
         if self.cooldown_timer > 0:

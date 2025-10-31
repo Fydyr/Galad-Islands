@@ -45,7 +45,7 @@ def load_config():
         if CONFIG_PATH.exists():
             return json.loads(CONFIG_PATH.read_text())
         else:
-            # Afficher un message d'avertissement bilingue (FR + EN) dans une popup Tkinter
+            # Afficher un message d'avertissement bilingue (FR + EN) in une popup Tkinter
             try:
                 fr = (
                     f"Fichier de configuration manquant:\n{CONFIG_PATH}\n\n"
@@ -578,7 +578,7 @@ class GaladConfigApp(tk.Tk):
             messagebox.showwarning("Avertissement", f"Erreur lors de la mise à jour de l'interface:\n{e}")
 
     def _browse_config_file(self):
-        """Ouvrir un dialog pour sélectionner le fichier galad_config.json"""
+        """Ouvrir un dialog pour sélectionner le file galad_config.json"""
         filename = filedialog.askopenfilename(
             title="Sélectionner le fichier de configuration",
             filetypes=[("Fichiers JSON", "*.json"), ("Tous les fichiers", "*.*")],
@@ -589,7 +589,7 @@ class GaladConfigApp(tk.Tk):
             self.config_path_var.set(filename)
 
     def _browse_res_file(self):
-        """Ouvrir un dialog pour sélectionner le fichier galad_resolutions.json"""
+        """Ouvrir un dialog pour sélectionner le file galad_resolutions.json"""
         filename = filedialog.askopenfilename(
             title="Sélectionner le fichier des résolutions personnalisées",
             filetypes=[("Fichiers JSON", "*.json"), ("Tous les fichiers", "*.*")],
@@ -608,7 +608,7 @@ class GaladConfigApp(tk.Tk):
             
             warnings = []
             
-            # Vérifier le fichier de configuration
+            # Check le file de configuration
             if new_config_path.exists():
                 CONFIG_PATH = new_config_path
             elif new_config_path.parent.exists():
@@ -617,7 +617,7 @@ class GaladConfigApp(tk.Tk):
             else:
                 warnings.append(f"Config: dossier {new_config_path.parent} introuvable")
                 
-            # Vérifier le fichier des résolutions
+            # Check le file des résolutions
             if new_res_path.exists():
                 RES_PATH = new_res_path
             elif new_res_path.parent.exists():

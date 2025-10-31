@@ -52,7 +52,7 @@ class NotificationSystem:
     
     def add_notification(self, message: str, notification_type: NotificationType = NotificationType.INFO, duration: float = 3.0):
         """
-        Ajoute une nouvelle notification.
+        adds une nouvelle notification.
         
         Args:
             message: Le message à afficher
@@ -91,7 +91,7 @@ class NotificationSystem:
             self.notifications.remove(notification)
     
     def render(self, screen: pygame.Surface):
-        """Affiche toutes les notifications actives."""
+        """Affiche all notifications actives."""
         if not self.notifications:
             return
         
@@ -105,7 +105,7 @@ class NotificationSystem:
         for i, notification in enumerate(self.notifications):
             y_pos = start_y + i * (self.notification_height + self.padding)
             
-            # Créer une surface pour la notification avec alpha
+            # Create une surface pour la notification avec alpha
             notif_surface = pygame.Surface((self.notification_width, self.notification_height), pygame.SRCALPHA)
             
             # Couleur de fond avec transparence
@@ -148,7 +148,7 @@ class NotificationSystem:
             screen.blit(notif_surface, (start_x, y_pos))
     
     def clear(self):
-        """Efface toutes les notifications."""
+        """Efface all notifications."""
         self.notifications.clear()
 
 

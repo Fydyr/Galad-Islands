@@ -21,14 +21,14 @@ class LocalizationManager:
     def __init__(self):
         if not hasattr(self, '_initialized'):
             self._initialized = True
-            # Charger la langue depuis la config
+            # Charger la langue from la config
             self._current_language = config_manager.get("language", "fr")
             self._load_translations()
     
     def _load_translations(self):
         """Charge les traductions pour la langue actuelle"""
         try:
-            # Mapper les codes de langue vers les modules
+            # Mapper les codes de langue to les modules
             language_modules = {
                 "fr": "assets.locales.french", 
                 "en": "assets.locales.english"
@@ -45,7 +45,7 @@ class LocalizationManager:
             
         except ImportError as e:
             print(f"[WARN] Error loading translations: {e}")
-            # Fallback vers le français
+            # Fallback to le français
             if self._current_language != "fr":
                 self._current_language = "fr"
                 self._load_translations()
@@ -54,7 +54,7 @@ class LocalizationManager:
         """Change la langue actuelle"""
         if language_code in ["fr", "en"]:
             self._current_language = language_code
-            # Sauvegarder dans la config
+            # Sauvegarder in la config
             config_manager.set("language", language_code)
             config_manager.save_config()
             # Recharger les traductions
@@ -81,7 +81,7 @@ class LocalizationManager:
         }
     
     def get_all_tips(self):
-        """Retourne toutes les tips dans la langue actuelle"""
+        """Retourne all tips in la langue actuelle"""
         tips = []
         i = 0
         while f"tip.{i}" in self._translations:
@@ -90,7 +90,7 @@ class LocalizationManager:
         return tips
     
     def get_random_tip(self):
-        """Retourne une tip aléatoire dans la langue actuelle"""
+        """Retourne une tip aléatoire in la langue actuelle"""
         import random
         tips = self.get_all_tips()
         return random.choice(tips) if tips else self.t('system.no_tips_available')
@@ -99,7 +99,7 @@ class LocalizationManager:
         """Traduit une clé en utilisant les paramètres fournis"""
         translation = self._translations.get(key, key)
         
-        # Remplacer les paramètres dans la traduction
+        # Remplacer les paramètres in la traduction
         if kwargs:
             try:
                 translation = translation.format(**kwargs)
@@ -134,7 +134,7 @@ def get_available_languages():
     return _localization_manager.get_available_languages()
 
 def get_all_tips():
-    """Fonction globale pour obtenir toutes les tips traduites"""
+    """Fonction globale pour obtenir all tips traduites"""
     return _localization_manager.get_all_tips()
 
 def get_random_tip():

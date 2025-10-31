@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Installation des hooks Git avec bump automatique de version
-Peut être importé dans setup_dev.py ou utilisé directement
+Peut être importé in setup_dev.py ou utilisé directement
 """
 
 import os
@@ -56,18 +56,18 @@ def is_windows():
     return os.name == 'nt'
 
 def is_git_repo():
-    """Vérifie qu'on est dans un repository Git"""
+    """Check qu'on est in un repository Git"""
     return Path('.git').exists()
 
 def is_venv_active():
-    """Vérifie si un environnement virtuel est actif"""
+    """Check siun environnement virtuel est actif"""
     return (
         hasattr(sys, 'real_prefix') or
         (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
     )
 
 def check_commitizen():
-    """Vérifie que commitizen est installé et accessible"""
+    """Check quecommitizen est installé et accessible"""
     try:
         result = subprocess.run([sys.executable, '-m', 'commitizen', 'version'], 
                               capture_output=True, text=True)
@@ -101,10 +101,10 @@ def copy_hook(source_hook, target_hook):
         return False
     
     try:
-        # Créer le répertoire .git/hooks s'il n'existe pas
+        # Create le directory .git/hooks s'il n'existe pas
         Path(target_hook).parent.mkdir(parents=True, exist_ok=True)
         
-        # Copier le fichier
+        # Copier le file
         shutil.copy2(source_hook, target_hook)
         
         # Rendre exécutable (Unix/Linux/macOS)
@@ -133,7 +133,7 @@ def install_hooks_with_bump():
         warning("Aucun environnement virtuel détecté")
         warning("Le hook pourrait ne pas fonctionner correctement")
     
-    # Vérifier commitizen
+    # Check commitizen
     cz_available, cz_version = check_commitizen()
     
     if not cz_available:
@@ -205,9 +205,9 @@ def install_hooks_with_bump():
         return False
 
 def main():
-    """Fonction principale si le script est exécuté directement"""
+    """Main function si le script est exécuté directement"""
     try:
-        # Changer vers le répertoire racine du projet
+        # Changer to le directory racine du projet
         script_dir = Path(__file__).parent
         project_root = script_dir.parent if script_dir.name == 'setup' else script_dir
         os.chdir(project_root)

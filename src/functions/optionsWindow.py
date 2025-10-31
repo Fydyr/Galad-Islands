@@ -1,5 +1,5 @@
 """
-Fenêtre des options pour Galad Islands.
+window des options pour Galad Islands.
 Interface graphique permettant de configurer les paramètres du jeu.
 """
 
@@ -117,11 +117,11 @@ class OptionsState:
     
     @classmethod
     def from_config(cls) -> 'OptionsState':
-        """Crée un état à partir de la configuration actuelle."""
+        """creates un état à partir de la configuration actuelle."""
         current_res = config_manager.get_resolution()
         resolutions = get_available_resolutions()
         
-        # Trouver la résolution actuelle dans la liste
+        # Trouver la résolution actuelle in la liste
         selected_resolution = None
         for res in resolutions:
             if res[0] == current_res[0] and res[1] == current_res[1]:
@@ -156,11 +156,11 @@ class OptionsState:
 
 
 # =============================================================================
-# FENÊTRE DES OPTIONS PRINCIPALE
+# window DES OPTIONS PRINCIPALE
 # =============================================================================
 
 class OptionsWindow:
-    """Fenêtre modale des options du jeu."""
+    """window modale des options du jeu."""
     
     def __init__(self):
         # Ensure font subsystem is initialized for safe instantiation in test contexts
@@ -208,7 +208,7 @@ class OptionsWindow:
         self.max_scroll = 0
         self.capturing_action: Optional[str] = None
         
-        # Composants UI
+        # components UI
         self.components: List[UIComponent] = []
         
     def _setup_fonts(self) -> None:
@@ -219,12 +219,12 @@ class OptionsWindow:
         self.font_small = pygame.font.SysFont("Arial", 12)
     
     def _refresh_state(self) -> None:
-        """Met à jour l'état depuis la configuration actuelle."""
+        """Met à jour l'état from la configuration actuelle."""
         self.state = OptionsState.from_config()
         self.capturing_action = None
     
     def _create_components(self, content_surface: pygame.Surface, y_pos: int) -> int:
-        """Crée tous les composants UI et retourne la position Y finale."""
+        """creates all components UI et retourne la position Y finale."""
         self.components.clear()
         
         # Section Mode d'affichage
@@ -261,7 +261,7 @@ class OptionsWindow:
         return y_pos
     
     def _create_display_section(self, surface: pygame.Surface, y_pos: int) -> int:
-        """Crée la section des paramètres d'affichage."""
+        """creates la section des paramètres d'affichage."""
         # Titre de section
         section_surf = self.font_section.render(t("options.display"), True, Colors.GOLD)
         surface.blit(section_surf, (0, y_pos))
@@ -285,7 +285,7 @@ class OptionsWindow:
         return y_pos
     
     def _create_performance_section(self, surface: pygame.Surface, y_pos: int) -> int:
-        """Crée la section des paramètres de performance."""
+        """creates la section des paramètres de performance."""
         # Titre de section
         section_surf = self.font_section.render(t("options.performance"), True, Colors.GOLD)
         surface.blit(section_surf, (0, y_pos))
@@ -402,7 +402,7 @@ class OptionsWindow:
         self._refresh_state()
     
     def _create_resolution_section(self, surface: pygame.Surface, y_pos: int) -> int:
-        """Crée la section des paramètres de résolution."""
+        """creates la section des paramètres de résolution."""
         # Titre de section
         section_surf = self.font_section.render(t("options.resolution_section"), True, Colors.GOLD)
         surface.blit(section_surf, (0, y_pos))
@@ -414,7 +414,7 @@ class OptionsWindow:
         custom_list = set(load_custom_resolutions())
         for res in resolutions:
             width, height, label = res
-            # Marquer les résolutions venant du fichier utilisateur
+            # Marquer les résolutions venant du file utilisateur
             if (width, height) in custom_list:
                 try:
                     marker = t('options.custom_marker')
@@ -456,7 +456,7 @@ class OptionsWindow:
         return y_pos
     
     def _create_audio_section(self, surface: pygame.Surface, y_pos: int) -> int:
-        """Crée la section des paramètres audio."""
+        """creates la section des paramètres audio."""
         # Titre de section
         section_surf = self.font_section.render(t("options.audio"), True, Colors.GOLD)
         surface.blit(section_surf, (0, y_pos))
@@ -483,7 +483,7 @@ class OptionsWindow:
         return y_pos
     
     def _create_language_section(self, surface: pygame.Surface, y_pos: int) -> int:
-        """Crée la section des paramètres de langue."""
+        """creates la section des paramètres de langue."""
         # Titre de section
         section_surf = self.font_section.render(t("options.language_section"), True, Colors.GOLD)
         surface.blit(section_surf, (0, y_pos))
@@ -518,7 +518,7 @@ class OptionsWindow:
         return y_pos
     
     def _create_controls_section(self, surface: pygame.Surface, y_pos: int) -> int:
-        """Crée la section des paramètres de contrôles."""
+        """creates la section des paramètres de contrôles."""
         # Titre de section
         section_surf = self.font_section.render(t("options.controls"), True, Colors.GOLD)
         surface.blit(section_surf, (0, y_pos))
@@ -547,7 +547,7 @@ class OptionsWindow:
         return y_pos
 
     def _create_key_binding_section(self, surface: pygame.Surface, y_pos: int) -> int:
-        """Crée la liste des raccourcis personnalisables."""
+        """creates la liste des raccourcis personnalisables."""
         info_text = t("options.binding.instructions")
         info_surf = self.font_small.render(info_text, True, Colors.LIGHT_GRAY)
         surface.blit(info_surf, (0, y_pos))
@@ -578,7 +578,7 @@ class OptionsWindow:
         return y_pos
     
     def _create_info_section(self, surface: pygame.Surface, y_pos: int) -> int:
-        """Crée la section d'informations."""
+        """creates la section d'informations."""
         # Titre de section
         section_surf = self.font_section.render(t("options.information_section"), True, Colors.GOLD)
         surface.blit(section_surf, (0, y_pos))
@@ -603,7 +603,7 @@ class OptionsWindow:
         return y_pos
     
     def _create_action_buttons(self, surface: pygame.Surface, y_pos: int) -> int:
-        """Crée les boutons d'action."""
+        """creates les boutons d'action."""
         # Bouton Reset
         reset_rect = pygame.Rect(50, y_pos, UIConstants.BUTTON_WIDTH, UIConstants.BUTTON_HEIGHT)
         reset_button = Button(
@@ -655,7 +655,7 @@ class OptionsWindow:
         self.capturing_action = None
 
     def _handle_capture_event(self, event: pygame.event.Event) -> None:
-        """Gère un événement clavier pendant la capture d'un raccourci."""
+        """Gère un événement clavier during la capture d'un raccourci."""
         if self.capturing_action is None:
             return
 
@@ -702,7 +702,7 @@ class OptionsWindow:
         return combo or None
 
     def _apply_binding_change(self, action: str, combo: str) -> None:
-        """Enregistre une nouvelle combinaison dans la configuration."""
+        """Enregistre une nouvelle combinaison in la configuration."""
         config_manager.set_key_binding(action, [combo])
         config_manager.save_config()
         self.state.key_bindings[action] = [combo]
@@ -803,14 +803,14 @@ class OptionsWindow:
         reset_to_defaults()
         self._refresh_state()
         controls.refresh_key_bindings()
-        # Appliquer le volume par défaut immédiatement
+        # Appliquer le volume By default immédiatement
         if pygame.mixer.get_init():
             default_volume = config_manager.get("volume_music", 0.5)
             pygame.mixer.music.set_volume(default_volume)
         print("✅ Paramètres réinitialisés")
     
     def _on_close(self) -> None:
-        """Callback pour fermer la fenêtre."""
+        """Callback pour fermer the window."""
         self.running = False
     
     # =========================================================================
@@ -818,7 +818,7 @@ class OptionsWindow:
     # =========================================================================
     
     def _handle_events(self) -> None:
-        """Gère tous les événements pygame."""
+        """Gère all événements pygame."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
@@ -830,21 +830,21 @@ class OptionsWindow:
                 else:
                     self._handle_component_events(event)
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:  # Molette vers le haut
+                if event.button == 4:  # Molette to le haut
                     self.scroll_y = min(self.scroll_y + 30, 0)
-                elif event.button == 5:  # Molette vers le bas
+                elif event.button == 5:  # Molette to le bas
                     self.scroll_y = max(self.scroll_y - 30, -self.max_scroll)
                 else:
-                    # Transmettre l'événement aux composants
+                    # Transmettre l'événement aux components
                     self._handle_component_events(event)
             else:
-                # Transmettre l'événement aux composants
+                # Transmettre l'événement aux components
                 self._handle_component_events(event)
     
     def _handle_component_events(self, event: pygame.event.Event) -> None:
-        """Transmet les événements aux composants UI."""
+        """Transmet les événements aux components UI."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            # Vérifier si le clic est dans le modal
+            # Check sile clic est in le modal
             if self.modal_rect.collidepoint(event.pos):
                 # Convertir en coordonnées locales avec scroll
                 local_x = event.pos[0] - self.modal_rect.left - self.content_rect.left
@@ -855,7 +855,7 @@ class OptionsWindow:
                     button=event.button
                 )
                 
-                # Transmettre aux composants
+                # Transmettre aux components
                 for component in self.components:
                     if component.handle_event(local_event):
                         break
@@ -866,11 +866,11 @@ class OptionsWindow:
                     break
     
     # =========================================================================
-    # RENDU
+    # Rendering
     # =========================================================================
     
     def _render(self) -> None:
-        """Effectue le rendu complet de la fenêtre."""
+        """Effectue le Rendering complet de the window."""
         # Overlay semi-transparent
         overlay = pygame.Surface((self.screen_width, self.screen_height), flags=pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
@@ -885,7 +885,7 @@ class OptionsWindow:
         title_surf = self.font_title.render(t("options.title"), True, Colors.GOLD)
         self.modal_surface.blit(title_surf, (20, 15))
         
-        # Créer le contenu avec défilement (surface provisoire)
+        # Create le contenu avec défilement (surface provisoire)
         content_height_hint = max(self.content_rect.height, 2048)
         content_surface = pygame.Surface((self.modal_width - 40, content_height_hint), flags=pygame.SRCALPHA)
         final_y = self._create_components(content_surface, 0)
@@ -899,7 +899,7 @@ class OptionsWindow:
         # Calculer le défilement maximum
         self.max_scroll = max(0, final_y - (self.modal_height - 100))
         
-        # Dessiner les composants
+        # Dessiner les components
         for component in self.components:
             component.draw(content_surface)
         
@@ -960,7 +960,7 @@ class OptionsWindow:
     # =========================================================================
     
     def run(self) -> None:
-        """Lance la boucle principale de la fenêtre d'options."""
+        """Lance la boucle principale de the window d'options."""
         clock = pygame.time.Clock()
         
         while self.running:
@@ -970,7 +970,7 @@ class OptionsWindow:
             # Rafraîchir l'état si nécessaire
             # (Pour l'instant, on le fait à chaque frame, mais on pourrait optimiser)
             
-            # Rendu
+            # Rendering
             if self.running:
                 self._render()
                 pygame.display.flip()
@@ -983,6 +983,6 @@ class OptionsWindow:
 # =============================================================================
 
 def show_options_window() -> None:
-    """Affiche la fenêtre d'options du jeu."""
+    """Affiche the window d'options du jeu."""
     options_window = OptionsWindow()
     options_window.run()

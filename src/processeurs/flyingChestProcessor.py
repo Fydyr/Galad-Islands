@@ -49,7 +49,7 @@ class FlyingChestProcessor(esper.Processor):
             if team_comp.team_id == team_id:
                 return player_comp
         
-        # Si pas trouvé, créer l'entité joueur
+        # Si pas trouvé, Create l'entity joueur
         from src.constants.gameplay import PLAYER_DEFAULT_GOLD
         entity = esper.create_entity()
         player_comp = PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD)
@@ -58,7 +58,7 @@ class FlyingChestProcessor(esper.Processor):
         return player_comp
     
     def _add_player_gold(self, amount: int, is_enemy: bool = False) -> None:
-        """Ajoute de l'or au joueur spécifié."""
+        """adds de l'or au joueur spécifié."""
         player_comp = self._get_player_component(is_enemy)
         if player_comp:
             player_comp.add_gold(amount)
@@ -122,7 +122,7 @@ class FlyingChestProcessor(esper.Processor):
         self._set_sprite(chest_entity, SpriteID.CHEST_OPEN)
 
     def _identify_chest_pair(self, entity_a: int, entity_b: int) -> Tuple[Optional[int], Optional[int]]:
-        """Retourne l'entité coffre et son homologue lors d'une collision."""
+        """Retourne l'entity coffre et son homologue lors d'une collision."""
         if esper.has_component(entity_a, FlyingChestComponent):
             return entity_a, entity_b
         if esper.has_component(entity_b, FlyingChestComponent):
@@ -130,7 +130,7 @@ class FlyingChestProcessor(esper.Processor):
         return None, None
 
     def _try_spawn_chest(self) -> None:
-        """Tente de créer un nouveau coffre volant si la limite n'est pas atteinte."""
+        """Attempt to create un nouveau coffre volant si la limite n'est pas atteinte."""
         if self._sea_positions is None or self._sea_positions.size == 0:
             return
 
@@ -156,7 +156,7 @@ class FlyingChestProcessor(esper.Processor):
         return world_x, world_y
 
     def _create_chest_entity(self, world_position: Tuple[float, float]) -> None:
-        """Construit l'entité représentant le coffre volant."""
+        """Construit l'entity représentant le coffre volant."""
         gold_amount = int(self._rng.integers(FLYING_CHEST_GOLD_MIN, FLYING_CHEST_GOLD_MAX + 1))
 
         entity = esper.create_entity()
@@ -181,7 +181,7 @@ class FlyingChestProcessor(esper.Processor):
 
     def _update_existing_chests(self, dt: float) -> None:
         """Met à jour la durée de vie de chaque coffre actif."""
-        # Itérer sur toutes les entités ayant un FlyingChestComponent
+        # Itérer sur all entities ayant un FlyingChestComponent
         for entity in list(esper._entities.keys()):
             if esper.has_component(entity, FlyingChestComponent):
                 chest = esper.component_for_entity(entity, FlyingChestComponent)
@@ -218,7 +218,7 @@ class FlyingChestProcessor(esper.Processor):
         sprite_component.surface = replacement.surface
 
     def _disable_collision(self, entity: int) -> None:
-        """Supprime le composant de collision pour éviter les triggers multiples."""
+        """Supprime le component collision pour avoid les triggers multiples."""
         if esper.has_component(entity, CanCollideComponent):
             esper.remove_component(entity, CanCollideComponent)
 

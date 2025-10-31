@@ -125,9 +125,9 @@ class DebugModal:
             self._show_feedback('warning', t('tooltip.dev_give_gold', default='Dev action not allowed'))
             return
         
-        # Donner de l'or à la team active (pas seulement les alliés !)
-        # Récupérer la team active depuis l'action_bar du game_engine
-        active_team = TeamEnum.ALLY.value  # Par défaut
+        # Donner de l'or à the active team (pas seulement les alliés !)
+        # Récupérer the active team from l'action_bar du game_engine
+        active_team = TeamEnum.ALLY.value  # By default
         if hasattr(self.game_engine, 'action_bar') and self.game_engine.action_bar is not None:
             active_team = self.game_engine.action_bar.current_camp
         

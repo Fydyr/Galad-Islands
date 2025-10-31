@@ -15,7 +15,7 @@ class TileType(IntEnum):
     ENEMY_BASE = 5
 
     def is_solid(self) -> bool:
-        """Indique si la tuile bloque le déplacement des unités."""
+        """Indique si la tuile bloque le déplacement des units."""
         return self in {TileType.GENERIC_ISLAND, TileType.ALLY_BASE, TileType.ENEMY_BASE}
 
     def is_island(self) -> bool:

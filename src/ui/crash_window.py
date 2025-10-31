@@ -27,7 +27,7 @@ def show_crash_popup(e):
 
         def popup():
             # Détermination de la langue
-            if language == 'babel': # Cette easter egg s'affiche si le message d'erreur ne parvient pas à récupérer la langue
+            if language == 'babel': # Cette easter egg s'affiche si le message d'error ne parvient pas à récupérer la langue
                 # Easter egg : Tour de Babel - confusion des langues
                 messages = {
                     'title': "Galad Islands Error",
@@ -46,7 +46,7 @@ def show_crash_popup(e):
                     'github_button': "Signaler le bug sur GitHub",
                     'close_button': "Fermer",
                     'github_title': "Crash Galad Islands: ",
-                    'github_body': "## Description du bug\n\nOups ! Le jeu a crashé : {type}: {msg}\n\nTraceback:\n{traceback}\n\nVersion: {version}\nMerci de décrire ce que tu faisais juste avant le crash !"
+                    'github_body': "## Bug description\n\nOups ! Le jeu a crashé : {type}: {msg}\n\nTraceback:\n{traceback}\n\nVersion: {version}\nMerci de décrire ce que tu faisais juste before le crash !"
                 }
             elif language == 'en':
                 messages = {
@@ -73,7 +73,7 @@ def show_crash_popup(e):
                         'github_button': "Signaler le bug sur GitHub",
                         'close_button': "Fermer",
                         'github_title': "Crash Galad Islands: ",
-                        'github_body': "## Description du bug\n\nOups ! Le jeu a crashé : {type}: {msg}\n\nTraceback:\n{traceback}\n\nVersion: {version}\nMerci de décrire ce que tu faisais juste avant le crash !"
+                        'github_body': "## Bug description\n\nOups ! Le jeu a crashé : {type}: {msg}\n\nTraceback:\n{traceback}\n\nVersion: {version}\nMerci de décrire ce que tu faisais juste before le crash !"
                     }
                 else:
                     messages = {

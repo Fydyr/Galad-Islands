@@ -9,14 +9,14 @@ class SpeArchitect:
         self.available: bool = available
         self.radius: float = radius  # Rayon d'effet de la capacité
         self.reload_factor: float = reload_factor  # Divise la durée de rechargement par 2
-        self.affected_units: List[int] = affected_units if affected_units is not None else []  # IDs des unités affectées
+        self.affected_units: List[int] = affected_units if affected_units is not None else []  # IDs des units affectées
         self.duration: float = duration  # Durée de l'effet
         self.timer: float = timer  # Temps restant 
 
     def activate(self, affected_units: List[int], duration: float = 0.0):
         """ 
-        Active le rechargement automatique sur les zeppelins dans le rayon.
-        affected_units: Liste des IDs des unités affectées
+        Active le rechargement automatique sur les zeppelins in le rayon.
+        affected_units: Liste des IDs des units affectées
         duration: Durée de l'effet (optionnel, 0 = effet permanent tant que actif)
         """
         self.is_active = True
@@ -28,7 +28,7 @@ class SpeArchitect:
     def update(self, dt):
         """
         Met à jour le timer de la capacité.
-        - dt: temps écoulé depuis la dernière frame
+        - dt: temps écoulé from la dernière frame
         """
         if self.is_active and self.duration > 0.0:
             self.timer -= dt

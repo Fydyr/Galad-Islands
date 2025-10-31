@@ -33,7 +33,7 @@ def _empty_get_components(*_: object, **__: object) -> List[Tuple[int, Tuple]]:
 
 
 def test_danger_map_trouve_un_point_plus_sur(monkeypatch: MonkeyPatch) -> None:
-    """Vérifie que la recherche de zone sûre évite une case dangereuse."""
+    """Check quela recherche de zone sûre avoid une case dangereuse."""
 
     grid = [[int(TileType.SEA) for _ in range(4)] for _ in range(4)]
     monkeypatch.setattr(esper, "get_components", _empty_get_components)
@@ -52,7 +52,7 @@ def test_danger_map_trouve_un_point_plus_sur(monkeypatch: MonkeyPatch) -> None:
 
 
 def test_pathfinding_evite_les_tuiles_risquees(monkeypatch: MonkeyPatch) -> None:
-    """S'assure que le chemin évite une case où le danger est élevé."""
+    """S'assure que le chemin avoid une case où le danger est élevé."""
 
     grid = [[int(TileType.SEA) for _ in range(5)] for _ in range(5)]
     monkeypatch.setattr(esper, "get_components", _empty_get_components)

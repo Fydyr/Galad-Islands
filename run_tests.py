@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Script de lancement des tests pour Galad Islands
-Permet de lancer les tests avec différentes options de configuration
+Test launcher script for Galad Islands
+Allows running tests with different configuration options
 """
 
 import argparse
@@ -11,11 +11,11 @@ import os
 from pathlib import Path
 
 def run_command(cmd, description):
-    """Exécute une commande et affiche le résultat."""
+    """Executes a command and displays the result."""
     print(f"\n{'='*60}")
     print(f"🚀 {description}")
     print('='*60)
-    print(f"Commande: {' '.join(cmd)}")
+    print(f"Command: {' '.join(cmd)}")
     print()
 
     try:
@@ -29,12 +29,12 @@ def run_command(cmd, description):
             print("STDERR:")
             print(result.stderr)
 
-        print(f"Code de retour: {result.returncode}")
+        print(f"Return code: {result.returncode}")
 
         return result.returncode == 0
 
     except Exception as e:
-        print(f"Erreur lors de l'exécution: {e}")
+        print(f"Execution error: {e}")
         return False
 
 def main():
@@ -44,68 +44,68 @@ def main():
         epilog="""
 Exemples d'utilisation:
 
-  # Lancer tous les tests
+  # Run all tests
   python run_tests.py
 
-  # Lancer seulement les tests unitaires
+  # Run only unit tests
   python run_tests.py --unit
 
-  # Lancer seulement les tests d'intégration
+  # Run only integration tests
   python run_tests.py --integration
 
-  # Lancer les tests avec couverture
+  # Run tests with coverage
   python run_tests.py --coverage
 
-  # Lancer les tests en mode verbeux
+  # Run tests in verbose mode
   python run_tests.py --verbose
 
-  # Lancer seulement un fichier de test spécifique
+  # Run only a specific test file
   python run_tests.py --file test_processors.py
 
-  # Lancer les tests de performance
+  # Run performance tests
   python run_tests.py --performance
 
-  # Générer un rapport HTML de couverture
+  # Generate an HTML coverage report
   python run_tests.py --coverage --html-report
         """
     )
 
     parser.add_argument('--unit', action='store_true',
-                       help='Lancer seulement les tests unitaires')
+                       help='Run only unit tests')
     parser.add_argument('--integration', action='store_true',
-                       help='Lancer seulement les tests d\'intégration')
+                       help='Run only integration tests')
     parser.add_argument('--performance', action='store_true',
-                       help='Lancer seulement les tests de performance')
+                       help='Run only performance tests')
     parser.add_argument('--coverage', action='store_true',
-                       help='Générer un rapport de couverture')
+                       help='Generate a coverage report')
     parser.add_argument('--html-report', action='store_true',
-                       help='Générer un rapport HTML de couverture (implique --coverage)')
+                       help='Generate an HTML coverage report (implies --coverage)')
     parser.add_argument('--verbose', '-v', action='store_true',
-                       help='Mode verbeux')
+                       help='Verbose mode')
     parser.add_argument('--file', type=str,
-                       help='Lancer seulement un fichier de test spécifique')
+                       help='Run only a specific test file')
     parser.add_argument('--fail-fast', action='store_true',
-                       help='Arrêter au premier échec')
+                       help='Stop at the first failure')
     parser.add_argument('--no-capture', action='store_true',
-                       help='Ne pas capturer la sortie (utile pour debug)')
+                       help='Do not capture output (useful for debugging)')
 
     args = parser.parse_args()
 
-    # Vérifier que pytest est installé
+    # Check quepytest est installé
     try:
         import pytest
     except ImportError:
-        print("❌ pytest n'est pas installé. Installez-le avec:")
+        print("❌ pytest is not installed. Install it with:")
         print("   pip install pytest pytest-cov pytest-mock")
         sys.exit(1)
 
-    # Construire la commande pytest
+    # Build the pytest command
     cmd = [sys.executable, '-m', 'pytest']
 
-    # Options de base depuis pyproject.toml
-    # Les options sont déjà configurées dans pyproject.toml
+    # Base options from pyproject.toml
+    # The options are already configured in pyproject.toml
 
-    # Filtres par type de test
+    # Filters by test type
     if args.unit:
         cmd.extend(['-m', 'unit'])
     elif args.integration:
@@ -113,7 +113,7 @@ Exemples d'utilisation:
     elif args.performance:
         cmd.extend(['-m', 'performance'])
 
-    # Fichier spécifique
+    # Specific file
     if args.file:
         if not args.file.startswith('test_'):
             args.file = f'test_{args.file}'
@@ -121,13 +121,13 @@ Exemples d'utilisation:
             args.file = f'{args.file}.py'
         cmd.append(f'tests/{args.file}')
 
-    # Options de couverture
+    # Options of coverage
     if args.coverage or args.html_report:
         cmd.extend(['--cov=src', '--cov-report=term-missing'])
         if args.html_report:
             cmd.append('--cov-report=html:htmlcov')
 
-    # Options générales
+    # Options general
     if args.verbose:
         cmd.append('-v')
     if args.fail_fast:
@@ -135,10 +135,10 @@ Exemples d'utilisation:
     if args.no_capture:
         cmd.append('-s')
 
-    # Lancer les tests
+    # Run the tests
     success = run_command(cmd, "LANCEMENT DES TESTS GALAD ISLANDS")
 
-    # Résumé final
+    # final summary
     print(f"\n{'='*60}")
     if success:
         print("✅ TOUS LES TESTS SONT RÉUSSIS!")

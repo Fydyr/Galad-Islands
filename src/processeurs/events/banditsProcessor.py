@@ -22,25 +22,25 @@ class BanditsProcessor:
     @staticmethod
     def process(dt, entity, bandits, event, grid):
         """
-        Traite un navire bandit pendant sa durée de vie
+        Traite un navire bandit during sa durée de vie
         
         Args:
             dt: Delta time
-            entity: L'entité du navire bandit
-            bandits: Composant Bandits
-            event: Composant EventsComponent
+            entity: L'entity du navire bandit
+            bandits: component Bandits
+            event: component EventsComponent
             grid: La grille du jeu
         """
         # Mettre à jour le temps actuel
         event.current_time += dt
 
-        # Si le temps de l'événement est écoulé, détruire l'entité
+        # Si le temps de l'événement est écoulé, détruire l'entity
         if event.current_time >= event.event_duration:
             if esper.entity_exists(entity):
                 esper.delete_entity(entity)
             return
 
-        # Vérifier si le bandit est sorti de la carte
+        # Check sile bandit est sorti de la carte
         if esper.has_component(entity, Position):
             pos = esper.component_for_entity(entity, Position)
             # Détruire le bandit s'il est trop loin de la carte
@@ -57,7 +57,7 @@ class BanditsProcessor:
         # Mettre à jour le cooldown d'attaque
         bandits.update_cooldown(dt)
 
-        # Attaquer les entités à proximité de manière continue (comme les tours)
+        # Attaquer les entities à proximité de manière continue (comme les tours)
         # Si encore invulnérable, ne pas attaquer
         if not (hasattr(bandits, 'invulnerable_time_remaining') and bandits.invulnerable_time_remaining > 0):
             BanditsProcessor._attack_nearby_entities(entity, grid, bandits)
@@ -69,14 +69,14 @@ class BanditsProcessor:
         
         Args:
             dt: Delta time
-            entity: L'entité du bandit
-            bandits: Composant Bandits
+            entity: L'entity du bandit
+            bandits: component Bandits
         """
-        # Initialiser les attributs de phase si nécessaire
+        # Initialize les attributs de phase si nécessaire
         if not hasattr(bandits, 'movement_phase'):
             bandits.movement_phase = 'waiting'  # Commencer en phase d'attente
             bandits.phase_timer = 0.0
-            # Avancer pendant 6 secondes (~1.9 cases)
+            # Avancer during 6 secondes (~1.9 cases)
             bandits.movement_duration = 6.0
             bandits.wait_duration = 5.0      # Attendre 5 secondes
 
@@ -106,7 +106,7 @@ class BanditsProcessor:
 
     @staticmethod
     def _attack_nearby_entities(entity, grid, bandits):
-        """Tire des projectiles sur les entités ennemies dans le rayon du navire bandit."""
+        """Tire des projectiles sur les entities ennemies in le rayon du navire bandit."""
         if not esper.has_component(entity, Position):
             return
 
@@ -128,7 +128,7 @@ class BanditsProcessor:
             if esper.has_component(target_ent, Bandits):
                 continue
 
-            # Ne pas attaquer les bases : vérifier la tuile correspondante
+            # Ne pas attaquer les bases : Check la tuile correspondante
             try:
                 grid_x = int(target_pos_comp.x // TILE_SIZE)
                 grid_y = int(target_pos_comp.y // TILE_SIZE)
@@ -137,7 +137,7 @@ class BanditsProcessor:
                     if terrain in [TileType.ALLY_BASE, TileType.ENEMY_BASE]:
                         continue
             except Exception:
-                # Si pas de grille ou erreur, on continue normalement
+                # Si pas de grille ou error, on continue normalement
                 pass
 
             # Calculer la distance
@@ -145,13 +145,13 @@ class BanditsProcessor:
             dy = target_pos_comp.y - bandit_pos.y
             distance = math.sqrt(dx * dx + dy * dy)
 
-            # Garder la cible la plus proche dans le rayon
+            # Garder la cible la plus proche in le rayon
             if distance <= detection_radius_pixels and distance < min_dist:
                 min_dist = distance
                 target_entity = target_ent
                 target_pos = target_pos_comp
 
-        # Stocker la cible actuelle dans le composant
+        # Stocker la cible actuelle in le component
         bandits.target_entity = target_entity
 
         # Tirer seulement si on a une cible et que le cooldown est prêt
@@ -161,26 +161,26 @@ class BanditsProcessor:
 
     @staticmethod
     def _fire_projectile_at_target(bandit_entity, target_entity):
-        """Tire un projectile du bandit vers la cible"""
+        """Tire un projectile du bandit to la cible"""
         if not esper.has_component(bandit_entity, Position) or not esper.has_component(target_entity, Position):
             return
 
         bandit_pos = esper.component_for_entity(bandit_entity, Position)
         target_pos = esper.component_for_entity(target_entity, Position)
 
-        # Calculer la direction vers la cible
+        # Calculer la direction to la cible
         dx = target_pos.x - bandit_pos.x
         dy = target_pos.y - bandit_pos.y
         distance = math.sqrt(dx * dx + dy * dy)
 
         if distance == 0:
-            return  # Éviter la division par zéro
+            return  # avoid la division par zéro
 
         # Normaliser la direction
         dir_x = dx / distance
         dir_y = dy / distance
 
-        # Créer le projectile
+        # Create le projectile
         projectile_entity = esper.create_entity()
 
         # Position du projectile : légèrement devant le bandit
@@ -209,11 +209,11 @@ class BanditsProcessor:
         esper.add_component(projectile_entity, CanCollide())
         esper.add_component(projectile_entity, Team(0))  # Team neutre
 
-        # Ajouter le composant projectile
+        # Add le component projectile
         from src.components.core.projectileComponent import ProjectileComponent
         esper.add_component(projectile_entity, ProjectileComponent())
 
-        # Ajouter un sprite pour le projectile
+        # Add un sprite pour le projectile
         sprite_size = (8, 8)  # Petit projectile
         sprite_component = sprite_manager.create_sprite_component(
             SpriteID.PROJECTILE_BULLET, sprite_size[0], sprite_size[1])
@@ -231,10 +231,10 @@ class BanditsProcessor:
         
         Args:
             grid: La grille du jeu
-            num_boats: Nombre de bateaux à créer
+            num_boats: Nombre de bateaux à Create
             
         Returns:
-            Liste des entités créées
+            Liste des entities créées
         """
         created_entities = []
 
@@ -249,12 +249,12 @@ class BanditsProcessor:
         spawn_y = (MAP_HEIGHT * TILE_SIZE) // 2
 
         # Déterminer la position de spawn et la direction
-        if side == 0:  # Gauche - spawn à gauche, va vers la droite
+        if side == 0:  # Gauche - spawn à gauche, va to la droite
             spawn_x = -spawn_margin_pixels
-        else:  # Droite - spawn à droite, va vers la gauche
+        else:  # Droite - spawn à droite, va to la gauche
             spawn_x = MAP_WIDTH * TILE_SIZE + spawn_margin_pixels
 
-        # Créer chaque bateau
+        # Create chaque bateau
         for i in range(num_boats):
             # Calculer la position verticale pour espacer les bandits
             # Les bandits sont espacés de TILE_SIZE pixels verticalement
@@ -263,11 +263,11 @@ class BanditsProcessor:
             y_offset = (i // 2) * TILE_SIZE * ((i % 2) * 2 - 1)
             spawn_y = base_y + y_offset
 
-            # S'assurer que spawn_y reste dans les limites
+            # S'assurer que spawn_y reste in les limites
             spawn_y = max(TILE_SIZE, min(
                 MAP_HEIGHT * TILE_SIZE - TILE_SIZE, spawn_y))
 
-            # Créer l'entité bandit
+            # Create l'entity bandit
             bandit_ent = esper.create_entity()
 
             # Calculer la direction selon le côté
@@ -279,7 +279,7 @@ class BanditsProcessor:
             # La vitesse est gérée par _handle_phased_movement, on initialise à 0 pour commencer en phase d'attente
             speed = 0.0
 
-            # Ajouter les composants
+            # Add les components
             esper.add_component(bandit_ent, Position(
                 spawn_x, spawn_y, direction))
             # maxUpSpeed défini à 20.0 pour correspondre à la vitesse de mouvement
@@ -295,7 +295,7 @@ class BanditsProcessor:
             esper.add_component(bandit_ent, Bandits(
                 2, 6, invulnerable_time_remaining=1.0))
 
-            # Ajouter le sprite
+            # Add le sprite
             sprite_id = SpriteID.PIRATE_SHIP
             size = sprite_manager.get_default_size(sprite_id)
 

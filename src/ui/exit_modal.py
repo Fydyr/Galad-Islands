@@ -39,7 +39,7 @@ class ExitConfirmationModal:
         self.modal.close()
 
     def handle_event(self, event: pygame.event.Event, surface: Optional[pygame.Surface] = None) -> Optional[str]:
-        """Traite un événement utilisateur pendant que la modale est active."""
+        """Traite un événement utilisateur during que la modale est active."""
         return self.modal.handle_event(event, surface)
 
     def render(self, surface: pygame.Surface) -> None:

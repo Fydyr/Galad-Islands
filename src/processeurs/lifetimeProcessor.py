@@ -4,8 +4,8 @@ from src.components.core.lifetimeComponent import LifetimeComponent
 class LifetimeProcessor(esper.Processor):
     def process(self, dt=0.016, **kwargs):
         """
-        Supprime les entités dont la durée de vie est écoulée.
-        dt : temps écoulé depuis la dernière frame (en secondes)
+        Supprime les entities dont la durée de vie est écoulée.
+        dt : temps écoulé from la dernière frame (en secondes)
         """
         entities_to_delete = []
 

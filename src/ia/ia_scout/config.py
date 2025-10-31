@@ -28,7 +28,7 @@ class DangerSettings:
     bandit_radius: float = 6.0  # tiles
     safe_threshold: float = 0.45
     flee_threshold: float = 0.7
-    flee_release_threshold: float = 0.15  # Encore plus bas pour éviter l'oscillation
+    flee_release_threshold: float = 0.15  # Encore plus bas pour avoid l'oscillation
     max_value_cap: float = 12.0
 
 
@@ -41,11 +41,11 @@ class PathfindingSettings:
     storm_weight: float = 6.0
     danger_weight: float = 4.0
     diagonal_cost: float = 1.4
-    island_perimeter_weight: float = 50.0  # Beaucoup plus élevé pour vraiment éviter les îles
+    island_perimeter_weight: float = 50.0  # Beaucoup plus élevé pour vraiment avoid les îles
     island_perimeter_radius: int = 1  # Rayon exprimé en sous-tuiles IA
     mine_perimeter_radius: int = 1  # Rayon exprimé en sous-tuiles IA
     blocked_margin_radius: int = 2  # Rayon de sécurité autour des zones bloquées (sous-tuiles)
-    blocked_margin_weight: float = 15.0  # Poids appliqué dans la marge pour décoller les chemins
+    blocked_margin_weight: float = 15.0  # Poids appliqué in la marge pour décoller les chemins
     map_border_radius: int = 1  # Largeur en sous-tuiles bloquée sur les bords de la carte
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),

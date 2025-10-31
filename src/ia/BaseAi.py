@@ -1,7 +1,7 @@
 """
 IA de la base utilisant un modèle de Machine Learning pré-entraîné.
 Ce processeur charge un modèle et l'utilise pour prendre des décisions stratégiques,
-comme la production d'unités.
+comme la production d'units.
 """
 
 import esper
@@ -32,7 +32,7 @@ class BaseAi(esper.Processor):
     IA de la base utilisant un arbre de décision.
 
     Cette classe est un processeur ECS qui agit comme le cerveau stratégique pour une équipe.
-    Elle charge un modèle `scikit-learn` pré-entraîné pour décider quelle unité produire.
+    Elle charge un modèle `scikit-learn` pré-entraîné pour décider quelle unit produire.
 
     Features: [gold, base_health_ratio, allied_units, enemy_units, enemy_base_known, towers_needed, enemy_base_health_ratio, action] 
     Actions: 0: rien, 1: éclaireur, 2: architecte, 3: maraudeur, 4: léviathan, 5: druide, 6: kamikaze
@@ -66,7 +66,7 @@ class BaseAi(esper.Processor):
         self.last_decision_time = time.time()
         self.enabled = True
         self.model = None
-        self.active_player_team_id = 1  # Par défaut allié
+        self.active_player_team_id = 1  # By default allié
         self.self_play_mode = False
         self.load_model()
         # Activer les logs de l'IA si le mode développeur est activé
@@ -123,7 +123,7 @@ class BaseAi(esper.Processor):
             self.last_action_time = 0
 
     def _get_current_game_state(self, ai_team_id: int):
-        """Récupère l'état actuel du jeu pour la prise de décision."""
+        """Récupère l'état actuel of the game to la prise de décision."""
         try:
             base_entity = None
             for ent, (base_comp, team_comp) in esper.get_components(BaseComponent, TeamComponent):
@@ -161,7 +161,7 @@ class BaseAi(esper.Processor):
 
                 if team_comp.team_id == ai_team_id:
                     allied_units += 1
-                    # collecter santé moyenne des unités alliées (exclure la base/tours)
+                    # collecter santé moyenne des units alliées (exclure la base/tours)
                     try:
                         if hasattr(health_comp, 'currentHealth') and hasattr(health_comp, 'maxHealth') and health_comp.maxHealth > 0:
                             allied_health_total += (health_comp.currentHealth / health_comp.maxHealth)
@@ -193,7 +193,7 @@ class BaseAi(esper.Processor):
                 'enemy_base_known': enemy_base_known,
                 'towers_needed': towers_needed,
                 'enemy_base_health_ratio': enemy_base_health_ratio,
-                # santé moyenne (0.0 - 1.0) des unités alliées; 1.0 si aucune unité
+                # santé moyenne (0.0 - 1.0) des units alliées; 1.0 si aucune unit
                 'allied_units_health': (allied_health_total / allied_health_count) if allied_health_count > 0 else 1.0
             }
 
@@ -215,7 +215,7 @@ class BaseAi(esper.Processor):
             game_state['enemy_base_known'],
             game_state['towers_needed'],
             game_state['enemy_base_health_ratio'],
-            game_state.get('allied_units_health', 1.0) # Ajout de la santé moyenne des alliés
+            game_state.get('allied_units_health', 1.0) # add de la santé moyenne des alliés
         ]
 
         try:
@@ -304,7 +304,7 @@ class BaseAi(esper.Processor):
             return False
 
     def _spawn_unit(self, unit_type: UnitType, ai_team_id: int):
-        """Fait apparaître une unité depuis la base."""
+        """Fait apparaître une unit from la base."""
         try:
             base_pos_comp = None
             for ent, (base_comp, team_comp, pos_comp) in esper.get_components(BaseComponent, TeamComponent, PositionComponent):

@@ -27,7 +27,7 @@ from src.components.core.baseComponent import BaseComponent
 
 def creer_grille():
     """
-    Crée et retourne une grille vide de la carte, initialisée à 0 (mer).
+    creates et retourne une grille vide de la carte, initialisée à 0 (mer).
     Returns:
         list[list[int]]: Grille de la carte (MAP_HEIGHT x MAP_WIDTH)
     """
@@ -35,7 +35,7 @@ def creer_grille():
 
 def charger_images():
     """
-    Charge et redimensionne toutes les images nécessaires à l'affichage de la carte.
+    Charge et redimensionne all images nécessaires à l'affichage de la carte.
     Returns:
         dict[str, pygame.Surface]: Dictionnaire des images par type d'élément
     """
@@ -50,18 +50,18 @@ def charger_images():
 
 def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None, base_positions=None):
     """
-    Vérifie si un bloc de taille size*size peut être placé à partir de (x, y) sur la grille.
+    Check siun bloc de taille size*size peut être placé à partir de (x, y) sur la grille.
     Le bloc ne doit pas chevaucher d'autres éléments, ni être adjacent à une île générique,
     ni (optionnellement) à un type donné, ni trop proche des bases (zone de sécurité),
-    ni dans les zones de spawn des druides.
+    ni in les zones de spawn des druides.
     Args:
         grid (list[list[int]]): Grille de la carte
         x (int): Colonne de départ du bloc
         y (int): Ligne de départ du bloc
-        size (int, optional): Taille du bloc (par défaut 1)
-        avoid_bases (bool, optional): Empêche le placement près des bases (par défaut True)
-        avoid_type (int, optional): Empêche le placement près d'un type donné (par défaut None)
-        base_positions (list[tuple[int, int]], optional): Liste des positions des bases à éviter.
+        size (int, optional): Taille du bloc (By default 1)
+        avoid_bases (bool, optional): Empêche le placement près des bases (By default True)
+        avoid_type (int, optional): Empêche le placement près d'un type donné (By default None)
+        base_positions (list[tuple[int, int]], optional): Liste des positions des bases à avoid.
     Returns:
         bool: True si le bloc peut être placé, False sinon
     """
@@ -81,7 +81,7 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None, base_posit
                     if avoid_type is not None and grid[ny][nx] == avoid_type:
                         return False
     if avoid_bases:
-        # Utiliser les positions de base dynamiques si fournies, sinon les positions par défaut
+        # Utiliser les positions de base dynamiques si fournies, sinon les positions By default
         if base_positions is None:
             base_positions = [(1, 1), (MAP_WIDTH-5, MAP_HEIGHT-5)]
 
@@ -96,7 +96,7 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None, base_posit
                             if nx == x+bdx and ny == y+bdy:
                                 return False
         
-        # Éviter les zones de spawn des druides
+        # avoid les zones de spawn des druides
         # Utiliser les positions de base dynamiques pour calculer les zones de spawn
         if base_positions:
             ally_base_pos, enemy_base_pos = base_positions
@@ -108,13 +108,13 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None, base_posit
             ally_spawn_world_x, ally_spawn_world_y = BaseComponent.get_spawn_position(ally_base_world_x, ally_base_world_y, is_enemy=False)
             enemy_spawn_world_x, enemy_spawn_world_y = BaseComponent.get_spawn_position(enemy_base_world_x, enemy_base_world_y, is_enemy=True)
 
-            spawn_zone_radius = 2.5 # Rayon de la zone à éviter autour du spawn
+            spawn_zone_radius = 2.5 # Rayon de la zone à avoid autour du spawn
             ally_spawn_x = ally_spawn_world_x / TILE_SIZE
             ally_spawn_y = ally_spawn_world_y / TILE_SIZE
             enemy_spawn_x = enemy_spawn_world_x / TILE_SIZE
             enemy_spawn_y = enemy_spawn_world_y / TILE_SIZE
         
-        # Vérifier si le bloc à placer interfère avec les zones de spawn
+        # Check sile bloc à placer interfère avec les zones de spawn
         spawn_positions = [(ally_spawn_x, ally_spawn_y), (enemy_spawn_x, enemy_spawn_y)]
         
         for spawn_x_grid, spawn_y_grid in spawn_positions:
@@ -122,7 +122,7 @@ def bloc_libre(grid, x, y, size=1, avoid_bases=True, avoid_type=None, base_posit
             block_center_x = x + size / 2.0
             block_center_y = y + size / 2.0
             
-            # Vérifier la distance entre le centre du bloc et la zone de spawn
+            # Check la distance entre le centre du bloc et la zone de spawn
             distance = ((block_center_x - spawn_x_grid) ** 2 + (block_center_y - spawn_y_grid) ** 2) ** 0.5
             if distance < spawn_zone_radius:
                 return False
@@ -135,12 +135,12 @@ def placer_bloc_aleatoire(grid, valeur, nombre, size=2, min_dist=2, avoid_bases=
     en respectant une distance minimale entre eux et les contraintes de sécurité.
     Args:
         grid (list[list[int]]): Grille de la carte
-        valeur (int): Valeur à placer dans la grille (type d'élément)
+        valeur (int): Valeur à placer in la grille (type d'élément)
         nombre (int): Nombre de blocs à placer
-        size (int, optional): Taille du bloc (par défaut 2)
-        min_dist (int, optional): Distance minimale entre les centres des blocs (par défaut 2)
-        avoid_bases (bool, optional): Empêche le placement près des bases (par défaut True)
-        avoid_type (int, optional): Empêche le placement près d'un type donné (par défaut None)
+        size (int, optional): Taille du bloc (By default 2)
+        min_dist (int, optional): Distance minimale entre les centres des blocs (By default 2)
+        avoid_bases (bool, optional): Empêche le placement près des bases (By default True)
+        avoid_type (int, optional): Empêche le placement près d'un type donné (By default None)
         base_positions (list[tuple[int, int]], optional): Liste des positions des bases à passer à bloc_libre.
     Returns:
         list[tuple[float, float]]: Liste des centres des blocs placés
@@ -166,7 +166,7 @@ def placer_bloc_aleatoire(grid, valeur, nombre, size=2, min_dist=2, avoid_bases=
 
 def placer_elements(grid):
     """
-    Place tous les éléments du jeu sur la grille : bases, îles génériques, nuages, mines.
+    Place all éléments du jeu sur la grille : bases, îles génériques, nuages, mines.
     Args:
         grid (list[list[int]]): Grille de la carte à remplir
     Returns:
@@ -217,7 +217,7 @@ def placer_elements(grid):
 
 def is_tile_island(grid, world_x: float, world_y: float) -> bool:
     """
-    Vérifie si la position donnée (coordonnées monde en pixels) correspond à une tuile d'île.
+    Check sila position donnée (coordonnées monde en pixels) correspond à une tuile d'île.
     Retourne True si la tuile est une île (GENERIC_ISLAND, ALLY_BASE ou ENEMY_BASE).
     """
     try:
@@ -228,7 +228,7 @@ def is_tile_island(grid, world_x: float, world_y: float) -> bool:
 
     if 0 <= grid_x < MAP_WIDTH and 0 <= grid_y < MAP_HEIGHT:
         tile_type = grid[grid_y][grid_x]
-        # Utiliser la méthode is_island() de TileType pour vérifier tous les types d'îles
+        # Utiliser la méthode is_island() de TileType pour Check all types d'îles
         return TileType(tile_type).is_island()
     return False
 
@@ -282,7 +282,7 @@ def _pre_render_static_map(images, grid, zoom_level):
 
 def rects_intersect(r1, r2):
     """
-    Vérifie si deux rectangles se chevauchent.
+    Check sideux rectangles se chevauchent.
     r1, r2: tuples (x, y, width, height)
     """
     x1, y1, w1, h1 = r1
@@ -291,16 +291,16 @@ def rects_intersect(r1, r2):
 
 def afficher_grille(window, grid, images, camera, ally_base_pos, enemy_base_pos):
     """
-    Affiche la grille de jeu dans la fenêtre pygame, avec tous les éléments graphiques.
+    Affiche la grille de jeu in the window pygame, avec all éléments graphiques.
     Utilise le système de caméra pour n'afficher que les éléments visibles.
 
     Optimisations implémentées:
-    - Rendu tuile par tuile au lieu de pré-rendu (résout les problèmes d'alignement)
-    - Gestion spéciale des bases multi-tuiles (4x4) pour éviter les disparitions partielles
-    - Debug logging pour diagnostiquer les problèmes de rendu
+    - Rendering tuile par tuile au lieu de pré-Rendering (résout les problèmes d'alignement)
+    - Gestion spéciale des bases multi-tuiles (4x4) pour avoid les disparitions partielles
+    - Debug logging pour diagnostiquer les problèmes de Rendering
 
     Args:
-        window (pygame.Surface): Fenêtre d'affichage
+        window (pygame.Surface): window d'affichage
         grid (list[list[int]]): Grille de la carte
         images (dict[str, pygame.Surface]): Dictionnaire des images par type
         camera (Camera): Instance de la caméra pour le viewport
@@ -308,8 +308,8 @@ def afficher_grille(window, grid, images, camera, ally_base_pos, enemy_base_pos)
         enemy_base_pos (tuple[int, int]): Position de la base ennemie.
     """
     # --- OPTIMISATION DÉSACTIVÉE TEMPORAIREMENT ---
-    # L'optimisation de pré-rendu causait des problèmes d'alignement
-    # On revient au rendu classique qui fonctionne correctement
+    # L'optimisation de pré-Rendering causait des problèmes d'alignement
+    # On revient au Rendering classique qui fonctionne correctement
 
     # Obtenir les limites visibles
     start_col, start_row, end_col, end_row = camera.get_visible_tiles()
@@ -321,7 +321,7 @@ def afficher_grille(window, grid, images, camera, ally_base_pos, enemy_base_pos)
             world_x, world_y = j * TILE_SIZE, i * TILE_SIZE
             screen_x, screen_y = camera.world_to_screen(world_x, world_y)
             
-            # Vérifier que la tuile est visible à l'écran
+            # Check quela tuile est visible à l'écran
             display_size = int(TILE_SIZE * camera.zoom)
             if display_size > 0 and rects_intersect((screen_x, screen_y, display_size, display_size), (0, 0, window.get_width(), window.get_height())):
                 
@@ -341,21 +341,21 @@ def afficher_grille(window, grid, images, camera, ally_base_pos, enemy_base_pos)
                     scaled_img = pygame.transform.scale(images['cloud'], (display_size, display_size))
                     window.blit(scaled_img, (screen_x, screen_y))
 
-    # --- DEBUT CORRECTION DU RENDU DES BASES ---
-    # CORRECTION MAJEURE: Rendu des bases en dehors de la boucle principale
+    # --- DEBUT CORRECTION DU Rendering DES BASES ---
+    # CORRECTION MAJEURE: Rendering des bases en dehors de la boucle principale
     #
     # Problème précédent: Les bases (4x4 tuiles) ne se rendaient que si leur coin
-    # supérieur gauche était dans la zone visible. Si la caméra était positionnée
+    # supérieur gauche était in la zone visible. Si la caméra était positionnée
     # de sorte que seul un coin de la base était visible, la base disparaissait
     # complètement.
     #
-    # Solution: Rendre les bases séparément après la boucle principale, en vérifiant
+    # Solution: Rendre les bases séparément after la boucle principale, en vérifiant
     # si elles intersectent avec la zone visible de l'écran. Cela garantit que les
-    # bases sont toujours visibles même en rendu partiel.
+    # bases sont toujours visibles même en Rendering partiel.
     #
     # Avantages:
     # - Bases toujours présentes à l'écran quand pertinentes
-    # - Performance maintenue (rendu conditionnel)
+    # - Performance maintenue (Rendering conditionnel)
     # - Logique plus simple et robuste
     
     # Base alliée (position fixe en haut à gauche)
@@ -373,16 +373,16 @@ def afficher_grille(window, grid, images, camera, ally_base_pos, enemy_base_pos)
     if enemy_display_size > 0 and rects_intersect((enemy_screen_x, enemy_screen_y, enemy_display_size, enemy_display_size), (0, 0, window.get_width(), window.get_height())):
         scaled_enemy_base = pygame.transform.scale(images['enemy'], (enemy_display_size, enemy_display_size))
         window.blit(scaled_enemy_base, (enemy_screen_x, enemy_screen_y))
-    # --- FIN CORRECTION DU RENDU DES BASES ---
+    # --- FIN CORRECTION DU Rendering DES BASES ---
 
-    # Les nuages sont rendus séparément dans le code appelant
-    # (après l'appel à afficher_grille)
+    # Les nuages sont rendus séparément in le code appelant
+    # (after l'appel à afficher_grille)
 
 def init_game_map(screen_width, screen_height):
     """
-    Initialise les composants de la carte du jeu.
+    Initialise les components de la carte du jeu.
     Returns:
-        dict: Un dictionnaire contenant les composants initialisés (grid, images, camera).
+        dict: Un dictionnaire contenant les components initialisés (grid, images, camera).
     """
     grid = creer_grille()
     images = charger_images()
@@ -405,7 +405,7 @@ def init_game_map(screen_width, screen_height):
 
 def run_game_frame(window, game_state, dt):
     """
-    Exécute une seule frame de la logique et du rendu de la carte.
+    Exécute une seule frame de la logique et du Rendering de la carte.
     Args:
         window (pygame.Surface): La surface sur laquelle dessiner.
         game_state (dict): L'état actuel du jeu (grid, images, camera).
@@ -453,15 +453,15 @@ def run_game_frame(window, game_state, dt):
 
 def map():
     """
-    Fonction principale qui gère la carte du jeu avec une grille pour l'IA.
-    Initialise pygame, crée la grille, place les éléments et lance la boucle d'affichage
+    Main function qui gère la carte du jeu avec une grille pour l'IA.
+    Initialise pygame, creates la grille, place les éléments et lance la boucle d'affichage
     avec système de caméra adaptatif.
     Returns:
         list[list[int]]: Grille finale de la carte
     """
     pygame.init()
     
-    # Utiliser la résolution d'écran définie dans settings via le DisplayManager
+    # Utiliser la résolution d'écran définie in settings via le DisplayManager
     try:
         from src.managers.display import get_display_manager
         dm = get_display_manager()

@@ -52,7 +52,7 @@ if __name__ == "__main__":
     print(f"  Sprites en cache: {status['loaded_in_cache']}")
     print(f"  Utilisation du cache: {status['cache_usage_percent']:.1f}%")
     
-    # Lister tous les sprites
+    # Lister all sprites
     print(f"\n{sprite_manager.list_all_sprites()}")
     
     cleanup_sprite_system()

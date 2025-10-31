@@ -24,7 +24,7 @@ class Camera:
         self.x = 0.0  # Position X de la caméra en pixels monde
         self.y = 0.0  # Position Y de la caméra en pixels monde
         from src.settings.settings import ZOOM_MIN
-        self.zoom = ZOOM_MIN  # Facteur de zoom (dézoom par défaut)
+        self.zoom = ZOOM_MIN  # Facteur de zoom (dézoom By default)
         self.screen_width = screen_width
         self.screen_height = screen_height
         
@@ -61,7 +61,7 @@ class Camera:
         if controls.is_action_active(controls.ACTION_CAMERA_MOVE_DOWN, keys, modifiers_state):
             self.y += move_speed
             
-        # Contraindre la caméra dans les limites du monde
+        # Contraindre la caméra in les limites du monde
         self._constrain_camera()
     
     def handle_zoom(self, zoom_delta, modifiers_state: int | None = None):
@@ -69,14 +69,14 @@ class Camera:
         if modifiers_state is None:
             modifiers_state = pygame.key.get_mods()
             
-        # Vérifier si Ctrl est appuyé pour doubler la sensibilité
+        # Check siCtrl est appuyé pour doubler la sensibilité
         sensitivity_multiplier = 2.0 if (modifiers_state & pygame.KMOD_CTRL) else 1.0
         
         old_zoom = self.zoom
         self.zoom += zoom_delta * ZOOM_SPEED * sensitivity_multiplier
         self.zoom = max(ZOOM_MIN, min(ZOOM_MAX, self.zoom))
         
-        # Ajuster la position pour zoomer vers le centre de l'écran
+        # Ajuster la position pour zoomer to le centre de l'écran
         if self.zoom != old_zoom:
             # Calculer la taille visible avec le nouveau zoom
             new_visible_width = self.screen_width / self.zoom
@@ -88,7 +88,7 @@ class Camera:
                 # Laisser _constrain_camera() gérer le centrage
                 pass
             else:
-                # Zoom normal vers le centre de l'écran
+                # Zoom normal to le centre de l'écran
                 zoom_ratio = self.zoom / old_zoom
                 center_x = self.x + self.screen_width / (2 * old_zoom)
                 center_y = self.y + self.screen_height / (2 * old_zoom)

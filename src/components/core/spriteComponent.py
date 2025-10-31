@@ -5,7 +5,7 @@ import pygame
 class SpriteComponent:
     
     def __init__ ( self, image_path: str = "", width=0.0, height=0.0, image=None, surface=None, image_loading_enabled: bool = True):
-        self.image_path: str = image_path  # Chemin vers l'image du sprite dans le dossier assets
+        self.image_path: str = image_path  # Chemin to l'image du sprite in le dossier assets
         self.width: float = width
         self.height: float = height
         # Conserver les dimensions originales pour les collisions

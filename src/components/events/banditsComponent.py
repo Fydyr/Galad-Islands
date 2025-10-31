@@ -11,7 +11,7 @@ class Bandits:
         # attack system like towers
         self.attack_speed: float = attack_speed  # attacks per second
         self._cooldown: float = 0.0  # internal timer
-        self.target_entity = None  # ID de l'entité actuellement ciblée
+        self.target_entity = None  # ID de l'entity actuellement ciblée
     
     def can_attack(self):
         """Returns True if the bandit can attack (cooldown is ready)."""

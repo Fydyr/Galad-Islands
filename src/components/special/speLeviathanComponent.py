@@ -12,7 +12,7 @@ class SpeLeviathan:
         # - available : la capacité peut être activée (pas en cooldown)
         self.pending: bool = is_active  # Capacité spéciale "en attente" (à consommer)
         self.cooldown: float = cooldown   # Cooldown de la capacité spéciale
-        self.cooldown_timer: float = cooldown_timer  # Temps restant avant réactivation
+        self.cooldown_timer: float = cooldown_timer  # Temps restant before réactivation
         self.available: bool = salve_ready  # Disponible pour activation
 
     # Compatibilité descendante : propriétés pour garder `is_active` et `salve_ready`
@@ -33,7 +33,7 @@ class SpeLeviathan:
         self.available = bool(value)
 
     def can_activate(self):
-        """Vérifie si la capacité peut être activée (pas en cooldown).
+        """Check sila capacité peut être activée (pas en cooldown).
 
         Remarque: `can_activate` teste la disponibilité pour lancer l'activation;
         la consommation effective de la seconde salve est signalée par `pending` (alias `is_active`).
@@ -74,6 +74,6 @@ class SpeLeviathan:
                 logger.debug("SpeLeviathan.update -> cooldown finished, available=True")
 
         # NB: on ne réinitialise pas self.is_active ici ; l'attaque qui lit le flag
-        # (dans `trigger_selected_attack`) doit consommer la capacité et remettre
-        # `is_active` à False lorsqu'elle est utilisée. Cela évite que l'état soit
-        # perdu par la mise à jour des processeurs avant que l'attaque ait lieu.
+        # (in `trigger_selected_attack`) doit consommer la capacité et remettre
+        # `is_active` à False lorsqu'elle est utilisée. Cela avoid que l'état soit
+        # perdu par la mise à jour des processeurs before que l'attaque ait lieu.

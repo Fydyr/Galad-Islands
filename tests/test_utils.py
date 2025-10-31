@@ -7,7 +7,7 @@ import pytest
 import sys
 import os
 
-# Ajouter le répertoire src au path
+# Add the directory src au path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from utils.sprite_utils import get_unit_sprite_id
@@ -71,12 +71,12 @@ class TestSpriteUtils:
         assert sprite_id == SpriteID.ENEMY_ARCHITECT
 
     def test_get_unit_sprite_id_unknown_unit(self):
-        """Test avec un type d'unité inconnu."""
+        """Test avec un type d'unit inconnu."""
         sprite_id = get_unit_sprite_id("UNKNOWN_UNIT", False)
         assert sprite_id is None
 
     def test_get_unit_sprite_id_unknown_unit_enemy(self):
-        """Test avec un type d'unité inconnu pour ennemi."""
+        """Test avec un type d'unit inconnu pour ennemi."""
         sprite_id = get_unit_sprite_id("UNKNOWN_UNIT", True)
         assert sprite_id is None
 
@@ -89,10 +89,10 @@ class TestVersionUtils:
         """Test récupération de la version du projet."""
         version = get_project_version()
         assert isinstance(version, str)
-        assert version != ""  # Devrait retourner quelque chose
+        assert version != ""  # Devrait Return quelque chose
 
     def test_is_dev_mode_enabled(self):
-        """Test vérification du mode développeur."""
+        """Test Check du mode développeur."""
         dev_mode = is_dev_mode_enabled()
         assert isinstance(dev_mode, bool)
         # En environnement de développement, le mode dev peut être activé

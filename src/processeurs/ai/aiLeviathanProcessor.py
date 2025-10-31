@@ -145,7 +145,7 @@ class AILeviathanProcessor(esper.Processor):
         ):
             ai_entities_found += 1
 
-            # Désactivation IA si unité sélectionnée par le joueur
+            # Désactivation IA si unit sélectionnée par le joueur
             if not ai_comp.enabled or esper.has_component(entity, PlayerSelectedComponent):
                 continue
 
@@ -405,7 +405,7 @@ class AILeviathanProcessor(esper.Processor):
 
             # Primary Fire: Forward-facing weapons
             if in_attack_range and abs(angle_diff) < ALIGN_TOLERANCE_ATTACK:
-                # Vérifie que la cible n’est pas une mine (team neutre)
+                # Check quela cible n’est pas une mine (team neutre)
                 target_enemy_id = getattr(state, 'nearest_enemy_id', None)
                 is_mine = False
                 if target_enemy_id is not None and esper.has_component(target_enemy_id, TeamComponent):

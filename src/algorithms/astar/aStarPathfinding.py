@@ -32,7 +32,7 @@ class AStarNode:
         return isinstance(other, AStarNode) and self.pos == other.pos
 
 def _is_walkable(grid: Grid, tile_pos: PositionTile) -> bool:
-    """Vérifie si une tuile est franchissable."""
+    """Check siune tuile est franchissable."""
     x, y = tile_pos
     if not (0 <= x < MAP_WIDTH and 0 <= y < MAP_HEIGHT):
         return False
@@ -42,7 +42,7 @@ def _is_walkable(grid: Grid, tile_pos: PositionTile) -> bool:
         tile_type = TileType(grid[y][x])
         return not tile_type.is_solid() #
     except ValueError:
-        return True # Par défaut, si tuile inconnue, on la considère franchissable
+        return True # By default, si tuile inconnue, on la considère franchissable
 
 def _heuristic(a: PositionTile, b: PositionTile) -> float:
     """Calcule l'heuristique (distance Euclidienne) entre deux tuiles."""
@@ -120,7 +120,7 @@ def a_star_pathfinding(grid: Grid, start_pos_pixel: PositionPixel, end_pos_pixel
                 neighbor_node.h = _heuristic(neighbor_node.pos, end_node.pos)
                 neighbor_node.f = neighbor_node.g + neighbor_node.h
 
-                # Vérifier si un meilleur chemin existe déjà dans open_list
+                # Check siun meilleur chemin existe déjà in open_list
                 if any(n.pos == neighbor_node.pos and n.f < neighbor_node.f for n in open_list):
                     continue
                     

@@ -38,7 +38,7 @@ class PredictionService:
             if team.team_id == team_id:
                 continue  # Skip allies
             if esper.has_component(entity, Bandits):
-                continue  # Ignorer les navires bandits pour éviter les tirs
+                continue  # Ignorer les navires bandits pour avoid les tirs
 
             direction = radians(pos.direction)
             future_x = pos.x - vel.currentSpeed * cos(direction) * self.horizon

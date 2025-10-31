@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Tests unitaires pour les composants core du système ECS
+Tests unitaires pour les components core du système ECS
 """
 
 import pytest
 import sys
 import os
 
-# Ajouter le répertoire src au path
+# Add the directory src au path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from components.core.positionComponent import PositionComponent
@@ -23,14 +23,14 @@ class TestPositionComponent:
     """Tests pour le PositionComponent."""
 
     def test_position_initialization(self):
-        """Test l'initialisation d'un composant de position."""
+        """Test l'initialisation d'un component de position."""
         pos = PositionComponent(10.5, 20.7)
         assert pos.x == 10.5
         assert pos.y == 20.7
         assert pos.direction == 0.0
 
     def test_position_default_direction(self):
-        """Test que la direction par défaut est 0."""
+        """Test que la direction By default est 0."""
         pos = PositionComponent(5, 10)
         assert pos.direction == 0.0
 
@@ -45,7 +45,7 @@ class TestHealthComponent:
     """Tests pour le HealthComponent."""
 
     def test_health_initialization(self):
-        """Test l'initialisation d'un composant de santé."""
+        """Test l'initialisation d'un component de santé."""
         health = HealthComponent(75, 100)
         assert health.currentHealth == 75
         assert health.maxHealth == 100
@@ -99,7 +99,7 @@ class TestVelocityComponent:
     """Tests pour le VelocityComponent."""
 
     def test_velocity_initialization(self):
-        """Test l'initialisation d'un composant de vélocité."""
+        """Test l'initialisation d'un component de vélocité."""
         vel = VelocityComponent(5.0, 10.0, -5.0, 1.0)
         assert vel.currentSpeed == 5.0
         assert vel.maxUpSpeed == 10.0
@@ -115,7 +115,7 @@ class TestVelocityComponent:
         assert vel.terrain_modifier == 0
 
     def test_velocity_defaults(self):
-        """Test avec valeurs par défaut."""
+        """Test avec valeurs By default."""
         vel = VelocityComponent()
         assert vel.currentSpeed == 0.0
         assert vel.maxUpSpeed == 0.0
@@ -128,14 +128,14 @@ class TestSpriteComponent:
     """Tests pour le SpriteComponent."""
 
     def test_sprite_initialization_basic(self):
-        """Test l'initialisation basique d'un composant sprite."""
+        """Test l'initialisation basique d'un component sprite."""
         import pygame
         pygame.init()
 
-        # Créer une vraie surface pygame pour le test
+        # Create une vraie surface pygame pour le test
         test_surface = pygame.Surface((32, 32))
 
-        # Fournir directement l'image et la surface pour éviter les opérations pygame
+        # Fournir directement l'image et la surface pour avoid les opérations pygame
         sprite = SpriteComponent("test.png", 32, 32, image=test_surface, surface=test_surface)
         assert sprite.image_path == "test.png"
         assert sprite.width == 32
@@ -143,7 +143,7 @@ class TestSpriteComponent:
         assert sprite.surface is not None
 
     def test_sprite_initialization_full(self):
-        """Test l'initialisation complète d'un composant sprite."""
+        """Test l'initialisation complète d'un component sprite."""
         import pygame
         pygame.init()
         surface = pygame.Surface((64, 64))

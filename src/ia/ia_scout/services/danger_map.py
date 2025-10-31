@@ -53,7 +53,7 @@ class DangerMapService:
         mine_tile = int(TileType.MINE)
         mine_mask = self._grid == mine_tile
         if mine_mask.any():
-            # Adapter dynamiquement le rayon de danger des mines depuis la configuration
+            # Adapter dynamiquement le rayon de danger des mines from la configuration
             mine_radius_tiles = max(1, int(np.ceil(self.settings.danger.mine_radius)))
             window_size = 2 * mine_radius_tiles + 1
             padded = np.pad(mine_mask.astype(np.uint8), mine_radius_tiles, mode="constant")

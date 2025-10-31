@@ -24,7 +24,7 @@ def create_defense_tower(x: float, y: float, team_id: int = 1):
     esper.add_component(entity, HealthComponent(currentHealth=300, maxHealth=300))
     esper.add_component(entity, DefenseTowerComponent())
     esper.add_component(entity, ClasseComponent(unit_type="ATTACK_TOWER", shop_id="defense_tower", display_name=t("shop.defense_tower"), is_enemy=False))
-    # Ajouter le TowerComponent unifié pour le TowerProcessor
+    # Add le TowerComponent unifié pour le TowerProcessor
     esper.add_component(entity, TowerComponent(tower_type=TowerType.DEFENSE, range=350.0, damage=25, attack_speed=1.0))
     esper.add_component(entity, CanCollideComponent())  # Permet aux tours d'être attaquées
     esper.add_component(entity, RadiusComponent(hit_cooldown_duration=1.0))  # Cooldown entre les hits (comme les bases)
@@ -49,7 +49,7 @@ def create_heal_tower(x: float, y: float, team_id: int = 1):
     esper.add_component(entity, HealthComponent(currentHealth=200, maxHealth=200))
     esper.add_component(entity, HealTowerComponent())
     esper.add_component(entity, ClasseComponent(unit_type="HEAL_TOWER", shop_id="heal_tower", display_name=t("shop.heal_tower"), is_enemy=False))
-    # Ajouter le TowerComponent unifié pour le TowerProcessor
+    # Add le TowerComponent unifié pour le TowerProcessor
     esper.add_component(entity, TowerComponent(tower_type=TowerType.HEAL, range=200.0, heal_amount=10, attack_speed=1.0))
     esper.add_component(entity, CanCollideComponent())  # Permet aux tours d'être attaquées
     esper.add_component(entity, RadiusComponent(hit_cooldown_duration=1.0))  # Cooldown entre les hits (comme les bases)

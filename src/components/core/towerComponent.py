@@ -15,7 +15,7 @@ class TowerComponent:
         self.range: float = range
         self.attack_speed: float = attack_speed  # actions per second
         self._cooldown: float = 0.0  # internal timer
-        self.target_entity: Optional[int] = None  # ID de l'entité actuellement ciblée
+        self.target_entity: Optional[int] = None  # ID de l'entity actuellement ciblée
         self.can_attack_buildings: bool = can_attack_buildings # Les bases ne ciblent pas les bâtiments
         
         # Specific attributes based on tower type

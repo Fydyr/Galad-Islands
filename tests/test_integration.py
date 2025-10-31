@@ -7,7 +7,7 @@ import pytest
 import sys
 import os
 
-# Ajouter le répertoire src au path
+# Add the directory src au path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import esper
@@ -28,7 +28,7 @@ class TestCombatIntegration:
     @pytest.fixture
     def combat_setup(self):
         """Configuration pour les tests de combat."""
-        # Créer deux unités : une alliée et une ennemie
+        # Create deux units : une alliée et une ennemie
         ally_unit = esper.create_entity()
         esper.add_component(ally_unit, PositionComponent(100, 100))
         esper.add_component(ally_unit, HealthComponent(100, 100))
@@ -52,23 +52,23 @@ class TestCombatIntegration:
 
     @pytest.mark.skip(reason="Le processeur CombatRewardProcessor ne crée pas de coffre malgré attacker_entity et ClasseComponent présents. Problème probable avec les constantes UNIT_COST_* ou la logique de création de coffre.")
     def test_unit_death_creates_reward_chest(self, combat_setup):
-        """Test qu'une unité morte crée un coffre de récompense."""
+        """Test qu'une unit morte creates un coffre de récompense."""
         ally_unit = combat_setup['ally_unit']
         enemy_unit = combat_setup['enemy_unit']
         processor = combat_setup['processor']
 
-        # Simuler la mort de l'unité ennemie
+        # Simulate la mort de l'unit ennemie
         health_comp = esper.component_for_entity(enemy_unit, HealthComponent)
-        health_comp.currentHealth = 0  # L'unité est morte
+        health_comp.currentHealth = 0  # L'unit est morte
 
-        # Compter les entités avant
+        # Count entities before
         entities_before = len(esper._entities)
 
         # Traiter la mort via le système de santé
-        # (Dans un vrai scénario, ceci serait appelé par le processeur de collision)
+        # (in un vrai scénario, ceci serait appelé par le processeur collision)
         processor.create_unit_reward(enemy_unit, ally_unit)
 
-        # Vérifier qu'un coffre a été créé
+        # Check qu'un coffre a été created
         entities_after = len(esper._entities)
         assert entities_after > entities_before
 
@@ -85,17 +85,17 @@ class TestCombatIntegration:
 
     @pytest.mark.skip(reason="Dépend de la logique de création de coffre qui ne fonctionne pas.")
     def test_ally_unit_death_creates_reward(self, combat_setup):
-        """Test qu'une unité alliée morte crée aussi une récompense."""
+        """Test qu'une unit alliée morte creates aussi une récompense."""
         ally_unit = combat_setup['ally_unit']
         processor = combat_setup['processor']
 
-        # Tuer l'unité alliée
+        # Tuer l'unit alliée
         health_comp = esper.component_for_entity(ally_unit, HealthComponent)
         health_comp.currentHealth = 0
 
         entities_before = len(esper._entities)
 
-        # Créer un attaquant fictif (ennemi)
+        # Create un attaquant fictif (ennemi)
         attacker = esper.create_entity()
         esper.add_component(attacker, PositionComponent(0, 0))
         from components.core.classeComponent import ClasseComponent
@@ -107,11 +107,11 @@ class TestCombatIntegration:
         assert entities_after > entities_before
 
     def test_living_unit_no_reward(self, combat_setup):
-        """Test qu'une unité vivante ne crée pas de récompense."""
+        """Test qu'une unit vivante ne creates pas de récompense."""
         ally_unit = combat_setup['ally_unit']
         processor = combat_setup['processor']
 
-        # L'unité est vivante
+        # L'unit est vivante
         health_comp = esper.component_for_entity(ally_unit, HealthComponent)
         assert health_comp.currentHealth > 0
 
@@ -120,23 +120,23 @@ class TestCombatIntegration:
         processor.create_unit_reward(ally_unit)
 
         entities_after = len(esper._entities)
-        assert entities_after == entities_before  # Aucune nouvelle entité
+        assert entities_after == entities_before  # Aucune nouvelle entity
 
     def test_reward_chest_position(self, combat_setup):
-        """Test que le coffre de récompense apparaît à la position de l'unité morte."""
+        """Test que le coffre de récompense apparaît à la position de l'unit morte."""
         enemy_unit = combat_setup['enemy_unit']
         processor = combat_setup['processor']
 
-        # Position de l'unité ennemie
+        # Position de l'unit ennemie
         enemy_pos = esper.component_for_entity(enemy_unit, PositionComponent)
 
-        # Tuer l'unité
+        # Tuer l'unit
         health_comp = esper.component_for_entity(enemy_unit, HealthComponent)
         health_comp.currentHealth = 0
 
         processor.create_unit_reward(enemy_unit)
 
-        # Trouver le coffre et vérifier sa position
+        # Trouver le coffre et Check sa position
         for entity_id in esper._entities.keys():
             if esper.has_component(entity_id, FlyingChestComponent):
                 chest_pos = esper.component_for_entity(entity_id, PositionComponent)
@@ -150,8 +150,8 @@ class TestGameSystemsIntegration:
     """Tests d'intégration pour les systèmes principaux du jeu."""
 
     def test_entity_creation_and_cleanup(self):
-        """Test création et nettoyage d'entités."""
-        # Créer plusieurs entités
+        """Test création et nettoyage d'entities."""
+        # Create plusieurs entities
         entities = []
         for i in range(5):
             entity = esper.create_entity()
@@ -159,23 +159,23 @@ class TestGameSystemsIntegration:
             esper.add_component(entity, HealthComponent(100, 100))
             entities.append(entity)
 
-        # Vérifier qu'elles existent
+        # Check qu'elles existent
         assert len(esper._entities) >= 5
 
-        # Nettoyer une entité
+        # Clean up une entity
         entity_to_remove = entities[0]
         esper.delete_entity(entity_to_remove)
 
-        # Vérifier qu'elle n'existe plus
+        # Check qu'elle n'existe plus
         assert not esper.entity_exists(entity_to_remove)
 
-        # Nettoyer toutes les entités restantes
+        # Clean up all entities restantes
         for entity in entities[1:]:
             esper.delete_entity(entity)
 
     def test_component_queries(self):
-        """Test les requêtes de composants."""
-        # Créer des entités avec différents composants
+        """Test les Component queries."""
+        # Create entities avec différents components
         entity1 = esper.create_entity()
         esper.add_component(entity1, PositionComponent(0, 0))
         esper.add_component(entity1, HealthComponent(100, 100))
@@ -186,7 +186,7 @@ class TestGameSystemsIntegration:
         esper.add_component(entity2, TeamComponent(Team.ENEMY.value))
         # Pas de HealthComponent
 
-        # Rechercher les entités avec PositionComponent et HealthComponent
+        # Rechercher les entities avec PositionComponent et HealthComponent
         entities_with_health = []
         for ent, (pos, health) in esper.get_components(PositionComponent, HealthComponent):
             entities_with_health.append(ent)
@@ -194,7 +194,7 @@ class TestGameSystemsIntegration:
         assert entity1 in entities_with_health
         assert entity2 not in entities_with_health
 
-        # Rechercher les entités avec TeamComponent
+        # Rechercher les entities avec TeamComponent
         entities_with_team = []
         for ent in esper._entities.keys():
             if esper.has_component(ent, TeamComponent):

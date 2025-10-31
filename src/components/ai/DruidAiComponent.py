@@ -1,5 +1,5 @@
 """
-Composant pour marquer une entité comme étant contrôlée par l'IA.
+component pour marquer une entity comme étant contrôlée par l'IA.
 Il stocke l'état de l'IA, y compris son chemin A* actuel et ses cooldowns de réflexion.
 """
 
@@ -8,7 +8,7 @@ from typing import List, Tuple, Optional, Any
 class DruidAiComponent: # A renommer
     def __init__(self, think_cooldown: float = 0.5, vision_range: float = 800.0):
         """
-        Initialise le composant de contrôle IA.
+        Initialise le component de contrôle IA.
 
         Args:
             think_cooldown (float): Temps en secondes entre chaque "réflexion" (lancement de Minimax).
@@ -20,7 +20,7 @@ class DruidAiComponent: # A renommer
         self.think_cooldown_max: float = think_cooldown
         self.think_cooldown_current: float = 0.0
         
-        # Portée de détection des autres unités
+        # Portée de détection des autres units
         self.vision_range: float = vision_range
 
         # Stockage du chemin A*

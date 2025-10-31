@@ -21,7 +21,7 @@ from src.managers.sprite_manager import sprite_manager, SpriteID
 
 
 class VisionSystem:
-    """Système pour gérer la visibilité des unités et le brouillard de guerre."""
+    """Système pour gérer la visibilité des units et le brouillard de guerre."""
 
     def __init__(self):
         self.visible_tiles: dict[int, Set[Tuple[int, int]]] = {}  # Par équipe
@@ -50,7 +50,7 @@ class VisionSystem:
         
         img_width, img_height = self.cloud_image.get_size()
         
-        # Utiliser les coordonnées pour créer un léger décalage déterministe
+        # Utiliser les coordonnées pour Create un léger décalage déterministe
         offset_x = (x % 3 - 1) * 10  # -10, 0, ou 10
         offset_y = (y % 3 - 1) * 10  # -10, 0, ou 10
         
@@ -89,7 +89,7 @@ class VisionSystem:
         if current_team is not None:
             self.current_team = current_team
 
-        # Initialiser les ensembles pour cette équipe si nécessaire
+        # Initialize les ensembles pour cette équipe si nécessaire
         if self.current_team not in self.visible_tiles:
             self.visible_tiles[self.current_team] = set()
         if self.current_team not in self.explored_tiles:
@@ -99,7 +99,7 @@ class VisionSystem:
 
         self.visible_tiles[self.current_team].clear()
 
-        # Vérifier si la vision illimitée est activée pour cette équipe
+        # Check sila vision illimitée est enabled for cette équipe
         if self.unlimited_vision.get(self.current_team, False):
             # Vision illimitée : révéler toute la carte
             all_tiles = set()
@@ -108,17 +108,17 @@ class VisionSystem:
                     all_tiles.add((x, y))
             self.visible_tiles[self.current_team] = all_tiles.copy()
         else:
-            # Vision normale : calculer depuis les unités
-            # Parcourir toutes les unités de l'équipe actuelle avec vision
+            # Vision normale : calculer from les units
+            # Parcourir all units de l'équipe actuelle avec vision
             for entity, (pos, team, vision) in es.get_components(
                 PositionComponent, TeamComponent, VisionComponent
             ):
                 if team.team_id == self.current_team:
-                    # Calculer les tuiles visibles depuis cette unité
+                    # Calculer les tuiles visibles from cette unit
                     self._add_visible_tiles_from_unit(pos.x, pos.y, vision.range)
 
-        # Ajouter les zones actuellement visibles aux zones découvertes
-        # Avant d'update explored, vérifier si des tuiles de base ennemie deviennent visibles
+        # Add les zones actuellement visibles aux zones découvertes
+        # before d'update explored, Check sides tuiles de base ennemie deviennent visibles
         newly_visible = set(self.visible_tiles[self.current_team]) - set(self.explored_tiles.get(self.current_team, set()))
         
         # Déterminer la base ennemie en fonction de l'équipe actuelle
@@ -131,7 +131,7 @@ class VisionSystem:
             enemy_team_id = 1
             enemy_base_pos = (3.0 * TILE_SIZE, 3.0 * TILE_SIZE)
 
-        # Ne vérifier la découverte que si la base n'est pas déjà connue
+        # Ne Check la découverte que si la base n'est pas déjà connue
         if not enemy_base_registry.is_enemy_base_known(self.current_team):
             for (tx, ty) in newly_visible:
                 if (tx, ty) in enemy_base_tiles:
@@ -149,12 +149,12 @@ class VisionSystem:
 
     def _add_visible_tiles_from_unit(self, unit_x: float, unit_y: float, vision_range: float):
         """
-        Ajoute les tuiles visibles depuis une unité à l'ensemble des tuiles visibles.
+        adds les tuiles visibles from une unit à l'ensemble des tuiles visibles.
 
         Args:
-            unit_x (float): Position X de l'unité en coordonnées monde
-            unit_y (float): Position Y de l'unité en coordonnées monde
-            vision_range (float): Portée de vision en unités de grille
+            unit_x (float): Position X de l'unit en coordonnées monde
+            unit_y (float): Position Y de l'unit en coordonnées monde
+            vision_range (float): Portée de vision en units de grille
         """
         # Convertir les coordonnées monde en coordonnées grille
         grid_x = int(unit_x / TILE_SIZE)
@@ -166,19 +166,19 @@ class VisionSystem:
         # Calculer le cercle de visibilité (approximation avec carrés)
         for dy in range(-radius_tiles, radius_tiles + 1):
             for dx in range(-radius_tiles, radius_tiles + 1):
-                # Vérifier si dans le cercle
+                # Check sidans le cercle
                 distance = math.sqrt(dx * dx + dy * dy)
                 if distance <= vision_range:
                     tile_x = grid_x + dx
                     tile_y = grid_y + dy
 
-                    # Vérifier les limites de la carte
+                    # Check les limites de la carte
                     if 0 <= tile_x < MAP_WIDTH and 0 <= tile_y < MAP_HEIGHT:
                         self.visible_tiles[self.current_team].add((tile_x, tile_y))
 
     def is_tile_visible(self, grid_x: int, grid_y: int, team_id: Optional[int] = None) -> bool:
         """
-        Vérifie si une tuile est visible pour une équipe.
+        Check siune tuile est visible pour une équipe.
 
         Args:
             grid_x (int): Coordonnée X en grille
@@ -195,7 +195,7 @@ class VisionSystem:
 
     def is_tile_explored(self, grid_x: int, grid_y: int, team_id: Optional[int] = None) -> bool:
         """
-        Vérifie si une tuile a été découverte (visible au moins une fois) par une équipe.
+        Check siune tuile a été découverte (visible au moins une fois) par une équipe.
 
         Args:
             grid_x (int): Coordonnée X en grille
@@ -212,10 +212,10 @@ class VisionSystem:
 
     def is_dirty(self, team_id: int) -> bool:
         """
-        Vérifie si la visibilité pour une équipe a changé depuis la dernière vérification.
+        Check sila visibilité pour une équipe a changé from la dernière verification.
         
         Args:
-            team_id (int): L'ID de l'équipe à vérifier.
+            team_id (int): L'ID de l'équipe à Check.
             
         Returns:
             bool: True si la visibilité a changé, False sinon.
@@ -227,7 +227,7 @@ class VisionSystem:
 
     def create_fog_surface(self, camera, team_id: int) -> Optional[pygame.Surface]:
         """
-        Crée une surface unique pour le brouillard de guerre, optimisée pour le rendu.
+        creates une surface unique pour le brouillard de guerre, optimisée pour le Rendering.
 
         Args:
             camera: Instance de la caméra pour les calculs de viewport
@@ -242,7 +242,7 @@ class VisionSystem:
             if self.cloud_image is None:
                 return None # Impossible de rendre le brouillard sans l'image
 
-        # Créer une surface de la taille de la fenêtre, avec transparence
+        # Create une surface de la taille de the window, avec transparence
         fog_surface = pygame.Surface(camera.get_screen_size(), pygame.SRCALPHA)
         fog_surface.fill((0, 0, 0, 0)) # Remplir de transparent
 
@@ -306,13 +306,13 @@ class VisionSystem:
         Args:
             team (int): Équipe pour laquelle révéler la carte
         """
-        # Initialiser les ensembles pour cette équipe si nécessaire
+        # Initialize les ensembles pour cette équipe si nécessaire
         if team not in self.visible_tiles:
             self.visible_tiles[team] = set()
         if team not in self.explored_tiles:
             self.explored_tiles[team] = set()
 
-        # Marquer toutes les tuiles comme visibles et explorées
+        # Marquer all tuiles comme visibles et explorées
         all_tiles = set()
         for x in range(MAP_WIDTH):
             for y in range(MAP_HEIGHT):

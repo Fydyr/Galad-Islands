@@ -3,11 +3,11 @@
 Script de démonstration des benchmarks Galad Islands
 
 Ce script montre comment utiliser les différents benchmarks disponibles :
-- Benchmarks ECS complets (entités, composants, processeurs)
-- Benchmark de simulation complète du jeu avec fenêtre réelle
+- Benchmarks ECS complets (entities, components, processeurs)
+- Benchmark de simulation complète du jeu with game window réelle
 
 Utilisation :
-    python demo_benchmarks.py              # Tous les benchmarks
+    python demo_benchmarks.py              # All benchmarks
     python demo_benchmarks.py --full-game  # Seulement simulation complète
     python demo_benchmarks.py --quick      # Tests rapides (2 secondes)
 """
@@ -25,11 +25,11 @@ def run_command(cmd, description):
     return result.returncode == 0
 
 def main():
-    """Fonction principale de démonstration."""
+    """Main function de démonstration."""
     print("🎮 Démonstration des Benchmarks Galad Islands")
     print("Ce script montre les capacités de performance du jeu.\n")
 
-    # Benchmark complet (tous les tests)
+    # Benchmark complet (all tests)
     if run_command("python benchmark.py --duration 3",
                    "BENCHMARK COMPLET - Tous les tests ECS (3 secondes chacun)"):
         print("✅ Benchmark complet réussi!")

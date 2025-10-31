@@ -6,7 +6,7 @@ Test de la boutique unifiée Galad Islands
 import sys
 import os
 
-# Ajouter le répertoire parent au chemin Python
+# Add the directory parent au chemin Python
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from ui.boutique import UnifiedShop, ShopFaction, ShopCategory
@@ -16,7 +16,7 @@ def test_unified_shop():
     """Test de base de la boutique unifiée."""
     pygame.init()
     
-    # Initialiser la boutique alliée
+    # Initialize la boutique alliée
     ally_shop = UnifiedShop(800, 600, ShopFaction.ALLY)
     print("✅ Boutique alliée créée")
     print(f"   - Items unités: {len(ally_shop.shop_items[ShopCategory.UNITS])}")

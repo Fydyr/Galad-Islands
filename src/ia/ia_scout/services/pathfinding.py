@@ -150,7 +150,7 @@ class PathfindingService:
                 expanded_mask = neighborhood.max(axis=(2, 3)).astype(bool)
             else:
                 expanded_mask = island_expanded
-            # Donner un coût élevé aux îles pour les éviter mais permettre l'accès
+            # Donner un coût élevé aux îles pour les avoid mais permettre l'accès
             cost[expanded_mask] = self.settings.pathfinding.island_perimeter_weight
 
         mine_tile = int(TileType.MINE)
@@ -194,7 +194,7 @@ class PathfindingService:
             border_cells = border_radius_tiles
             border_cells = min(border_cells, cost.shape[0] // 2, cost.shape[1] // 2)
             if border_cells > 0:
-                # Bloquer les bords de la carte pour éviter que l'IA ne s'y colle
+                # Bloquer les bords de la carte pour avoid que l'IA ne s'y colle
                 cost[:border_cells, :] = np.inf
                 cost[-border_cells:, :] = np.inf
                 cost[:, :border_cells] = np.inf
@@ -371,7 +371,7 @@ class PathfindingService:
         return _heuristic_numba(goal[0], goal[1], node[0], node[1]) / self.sub_tile_factor
 
     def get_unwalkable_areas(self) -> List[WorldPos]:
-        """Retourne la liste des positions centrales des tuiles infranchissables ou à éviter."""
+        """Retourne la liste des positions centrales des tuiles infranchissables ou à avoid."""
         unwalkable_positions = []
         base_cost = self._base_cost
         for y in range(self._height):

@@ -2,7 +2,7 @@
 
 Ce processeur stocke, pour chaque équipe, si elle connaît la position de la base
 adverse et fournit une API simple (declare_enemy_base/is_enemy_base_known/get_enemy_base_position)
-consultable par les autres systèmes/IA. Une instance singleton `enemy_base_registry`
+consultable par les autres systèmes/IA. an instance singleton `enemy_base_registry`
 est exposée au module pour accès direct.
 """
 from typing import Optional, Tuple
@@ -61,7 +61,7 @@ class KnownBaseProcessor(esper.Processor):
         """Méthode process requise par esper.Processor.
 
         Ce processeur n'a pas de logique périodique; on expose une méthode no-op
-        pour satisfaire l'API d'esper et éviter NotImplementedError lors de
+        pour satisfaire l'API d'esper et avoid NotImplementedError lors de
         l'appel global `es.process(...)`.
         """
         # No periodic work required for the registry

@@ -1,6 +1,6 @@
 """
-Composant spécial pour l'unité Kamikaze.
-Ce composant gère la capacité spéciale de l'unité (boost de vitesse)
+component spécial pour l'unit Kamikaze.
+Ce component gère la capacité spéciale de l'unit (boost de vitesse)
 et sert de marqueur pour déclencher son comportement d'explosion.
 """
 
@@ -20,7 +20,7 @@ class SpeKamikazeComponent:
     cooldown_timer: float = 0.0
 
     def can_activate(self) -> bool:
-        """Vérifie si la capacité peut être activée."""
+        """Check sila capacité peut être activée."""
         return not self.is_active and self.cooldown_timer <= 0
 
     def activate(self):

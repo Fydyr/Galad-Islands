@@ -1,4 +1,4 @@
-"""Factory de création des entités d'unités du jeu et accès au catalogue."""
+"""Factory de création des entities d'units du jeu et accès au catalogue."""
 
 from typing import Iterable, Optional, Tuple
 
@@ -15,9 +15,9 @@ from src.factory.unitType import (
     purchasable_units,
 )
 from src.constants.gameplay import (
-    # Directions par défaut
+    # Directions By default
     ALLY_DEFAULT_DIRECTION, ENEMY_DEFAULT_DIRECTION,
-    # Stats des unités - KAMIKAZE ajouté
+    # Stats des units - KAMIKAZE added
     UNIT_HEALTH_SCOUT, UNIT_HEALTH_MARAUDEUR, UNIT_HEALTH_LEVIATHAN, UNIT_HEALTH_DRUID, UNIT_HEALTH_ARCHITECT,
     UNIT_SPEED_SCOUT, UNIT_SPEED_MARAUDEUR, UNIT_SPEED_LEVIATHAN, UNIT_SPEED_DRUID, UNIT_SPEED_ARCHITECT,
     UNIT_REVERSE_SPEED_SCOUT, UNIT_REVERSE_SPEED_MARAUDEUR, UNIT_REVERSE_SPEED_LEVIATHAN, UNIT_REVERSE_SPEED_DRUID, UNIT_REVERSE_SPEED_ARCHITECT,
@@ -56,14 +56,14 @@ from src.settings.localization import t
 
 def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: bool = None):
     """
-    Instancie une entité Esper correspondant au type d'unité fourni.
+    Instancie une entity Esper correspondant au type d'unit fourni.
 
     Args:
-        unit: Type d'unité à créer
-        enemy: Si True, créé une unité ennemie (team 2), sinon alliée (team 1)
-        pos: Position initiale de l'unité
+        unit: Type d'unit à Create
+        enemy: Si True, created une unit ennemie (team 2), sinon alliée (team 1)
+        pos: Position initiale de l'unit
         enable_ai: Si True/False, force l'activation/désactivation de l'IA.
-                   Si None (défaut), l'IA est activée uniquement pour les ennemis.
+                   Si None (default), l'IA est activée uniquement pour les ennemis.
     """
     entity = None
     match(unit):
@@ -84,7 +84,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
                 width, height = size
                 es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
             else:
-                # Fallback vers les anciennes valeurs si le sprite n'est pas trouvé
+                # Fallback to old values si le sprite n'est pas trouvé
                 es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Scout.png" if not enemy else "assets/sprites/units/enemy/Scout.png", 80, 100))
 
 
@@ -119,8 +119,8 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             es.add_component(entity, SpeLeviathan())
             es.add_component(entity, VisionComponent(UNIT_VISION_LEVIATHAN))
 
-            # Ajouter le composant IA pour les Léviathans
-            # Par défaut, IA activée pour tous les léviathans (alliés et ennemis)
+            # Add le component IA pour les Léviathans
+            # By default, IA enabled for all léviathans (alliés et ennemis)
             # Peut être désactivée avec enable_ai=False
             should_enable_ai = True if enable_ai is None else enable_ai
             if should_enable_ai:
@@ -200,7 +200,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             es.add_component(entity, CanCollideComponent())
             es.add_component(entity, SpeKamikazeComponent()) # Gère la capacité spéciale et le marqueur d'explosion
             es.add_component(entity, VisionComponent(UNIT_VISION_KAMIKAZE))
-            # Ajout du composant IA pour le Kamikaze (toutes équipes)
+            # add AI component for le Kamikaze (toutes équipes)
             es.add_component(entity, KamikazeAiComponent(unit_type=UnitType.KAMIKAZE))
 
             sprite_id = SpriteID.ALLY_KAMIKAZE if not enemy else SpriteID.ENEMY_KAMIKAZE
@@ -240,13 +240,13 @@ def iter_unit_shop_configs(enemy: bool = False) -> Iterable[Tuple[UnitKey, Facti
 
 
 def resolve_unit_type_from_shop_id(shop_id: str) -> Optional[UnitKey]:
-    """Associe l'identifiant boutique fourni à un type d'unité constant."""
+    """Associe l'identifiant boutique fourni à un type d'unit constant."""
 
     return _catalog_unit_lookup(shop_id)
 
 
 def get_unit_metadata_for(unit: UnitKey) -> UnitMetadata:
-    """Expose les métadonnées détaillées d'un type d'unité."""
+    """Expose les métadonnées détaillées d'un type d'unit."""
 
     return get_unit_metadata(unit)
 

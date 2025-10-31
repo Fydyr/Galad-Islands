@@ -68,7 +68,7 @@ class UIColors:
     WARNING = (255, 180, 0)            # Orange attention
 
 class ActionType(Enum):
-    """Types d'actions disponibles dans la barre d'action."""
+    """Types d'actions disponibles in la barre d'action."""
     CREATE_ZASPER = "create_zasper"
     CREATE_BARHAMUS = "create_barhamus"
     CREATE_DRAUPNIR = "create_draupnir"
@@ -85,7 +85,7 @@ class ActionType(Enum):
 
 @dataclass
 class ActionButton:
-    """Représente un bouton d'action dans la barre."""
+    """Représente un bouton d'action in la barre."""
     action_type: ActionType
     icon_path: str
     text: str
@@ -98,7 +98,7 @@ class ActionButton:
     is_global: bool = False  # Pour les boutons globaux
 
 class UnitInfo:
-    """Informations sur une unité sélectionnée."""
+    """Informations sur une unit sélectionnée."""
     def __init__(self, unit_id: int, unit_type: str, health: int, max_health: int, 
                  position: Tuple[float, float], special_cooldown: float = 0.0,
                  mana: int = 0, max_mana: int = 0):
@@ -153,7 +153,7 @@ class ActionBar:
         self.action_buttons: List[ActionButton] = []
         self.button_rects: List[pygame.Rect] = []
 
-        # Synchroniser le mode self-play avec le moteur de jeu si disponible
+        # Synchroniser le mode self-play avec the game engine si disponible
         if self.game_engine is not None and hasattr(self.game_engine, 'self_play_mode'):
             self.self_play_mode = bool(self.game_engine.self_play_mode)
         self.global_button_rects: List[pygame.Rect] = []
@@ -163,12 +163,12 @@ class ActionBar:
         self.hovered_camp_button = False
         self.pressed_button = -1
         
-    # Boutique intégrée - accès direct aux composants
+    # Boutique intégrée - accès direct aux components
         self.shop = Shop(screen_width, screen_height)
         self.on_camp_change: Optional[Callable[[int], None]] = None
-        self.game_engine = None  # Référence vers le moteur de jeu
+        self.game_engine = None  # Référence to the game engine
         
-        # Configurations des unités (placeholder)
+        # Configurations des units (placeholder)
         self.unit_configs = {
             ActionType.CREATE_ZASPER: {'name': 'Zasper', 'cost': UNIT_COST_SCOUT},
             ActionType.CREATE_BARHAMUS: {'name': 'Barhamus', 'cost': UNIT_COST_MARAUDEUR},
@@ -181,7 +181,7 @@ class ActionBar:
         self._load_icons()
 
     def set_game_engine(self, game_engine):
-        """Définit la référence vers le moteur de jeu."""
+        """Définit la référence to the game engine."""
         self.game_engine = game_engine
         # Propagate game_engine to embedded shop so it can access the grid and other state
         try:
@@ -198,7 +198,7 @@ class ActionBar:
             if team_comp.team_id == team_id:
                 return player_comp
         
-        # Si pas trouvé, créer l'entité joueur
+        # Si pas trouvé, Create l'entity joueur
 
         entity = esper.create_entity()
         player_comp = PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD)
@@ -207,12 +207,12 @@ class ActionBar:
         return player_comp
     
     def _get_player_gold_direct(self, is_enemy: bool = False) -> int:
-        """Récupère l'or du joueur directement du composant."""
+        """Récupère l'or du joueur directement the component."""
         player_comp = self._get_player_component(is_enemy)
         return player_comp.get_gold() if player_comp else 0
     
     def _set_player_gold_direct(self, gold: int, is_enemy: bool = False) -> None:
-        """Définit l'or du joueur directement sur le composant."""
+        """Définit l'or du joueur directement sur le component."""
         player_comp = self._get_player_component(is_enemy)
         if player_comp:
             player_comp.set_gold(gold)
@@ -279,7 +279,7 @@ class ActionBar:
         global_buttons = [
         ]
         
-        # Vérifier si le mode debug ou dev_mode est activé pour afficher le bouton
+        # Check sile mode debug ou dev_mode est activé pour afficher le bouton
         if config_manager.get('dev_mode', False):
             global_buttons.append(
                 ActionButton(
@@ -341,7 +341,7 @@ class ActionBar:
             self.font_large = pygame.font.Font(None, self.font_large.get_height())
             self.font_title = pygame.font.Font(None, self.font_title.get_height())
         except Exception:
-            # Silencieux : évite de faire planter la boucle principale
+            # Silencieux : avoid de faire planter la boucle principale
             pass
     
     def _load_icons(self):
@@ -378,7 +378,7 @@ class ActionBar:
         self.font_title = pygame.font.Font(None, int(28 * font_scale))
     
     def _create_placeholder_icon(self, text: str, is_global: bool = False) -> pygame.Surface:
-        """Crée une icône de remplacement avec du texte."""
+        """creates une icône de remplacement avec du texte."""
         icon = pygame.Surface((48, 48), pygame.SRCALPHA)
         
         # Couleur selon le type
@@ -424,7 +424,7 @@ class ActionBar:
         start_y = self.screen_height - self.bar_height + 10
 
         # Boutons normaux (à gauche)
-        # Si une unité est sélectionnée et que c'est un Architect allié, activer les boutons build
+        # Si une unit est sélectionnée et que c'est un Architect allié, activer les boutons build
         is_architect_selected = False
         if self.selected_unit and hasattr(self, 'game_engine') and self.game_engine:
             sel_id = self.game_engine.selected_unit_id
@@ -439,7 +439,7 @@ class ActionBar:
                 # Les boutons de construction ne sont visibles que si un architecte est sélectionné ET qu'on n'est pas en mode spectateur.
                 if btn.action_type in (ActionType.BUILD_DEFENSE_TOWER, ActionType.BUILD_HEAL_TOWER):
                     btn.visible = is_architect_selected
-                # Les boutons d'action d'unité ne sont visibles que si une unité est sélectionnée
+                # Les boutons d'action d'unit ne sont visibles que si une unit est sélectionnée
                 elif btn.action_type in [ActionType.SPECIAL_ABILITY, ActionType.ATTACK_MODE]:
                     btn.visible = self.selected_unit is not None
                 # Le bouton de la boutique est toujours visible sauf en self-play
@@ -466,7 +466,7 @@ class ActionBar:
 
         for btn in global_buttons:
             if btn.action_type == ActionType.DEV_GIVE_GOLD:
-                # Visible si le moteur de jeu est en debug ou si dev_mode est activé
+                # Visible si the game engine est en debug ou si dev_mode est activé
                 is_debug = hasattr(self, 'game_engine') and self.game_engine and getattr(self.game_engine, 'show_debug', False)
                 btn.visible = bool(dev_mode or is_debug)
         global_start_x = self.screen_width - len(global_buttons) * (button_size + button_spacing) - 10
@@ -491,7 +491,7 @@ class ActionBar:
             self.camp_button_rect = None
     
     def _create_unit_callback(self, unit_type: ActionType):
-        """Crée une fonction de callback pour la création d'unité (placeholder)."""
+        """creates une fonction de callback pour la création d'unit (placeholder)."""
         def callback():
             config = self.unit_configs[unit_type]
             print(f"[PLACEHOLDER] Demande création {config['name']} - Camp: {self.current_camp}")
@@ -543,7 +543,7 @@ class ActionBar:
             feedback_type: Type de feedback ("success", "warning", "error", "info")
             message: Le message à afficher
         """
-        # Mapping des types de feedback vers NotificationType
+        # Mapping des types de feedback to NotificationType
         type_mapping = {
             "success": NotificationType.SUCCESS,
             "warning": NotificationType.WARNING,
@@ -555,7 +555,7 @@ class ActionBar:
         self.notification_system.add_notification(message, notification_type)
     
     def _use_special_ability(self):
-        """Déclenche la capacité spéciale de l'unité sélectionnée."""
+        """Déclenche la capacité spéciale de l'unit sélectionnée."""
         # Déléguer au moteur de jeu pour la logique de capacité spéciale
         if hasattr(self, 'game_engine') and self.game_engine:
             self.game_engine.trigger_selected_special_ability()
@@ -570,7 +570,7 @@ class ActionBar:
             self.notification_system.add_notification(t("shop.cannot_purchase"), NotificationType.ERROR)
             return
 
-        # Vérifier qu'on a un Architecte sélectionné pour la team
+        # Check qu'on a un Architecte sélectionné pour la team
         if self.selected_unit is None:
             self.notification_system.add_notification(t("tooltip.need_architect"), NotificationType.WARNING)
             return
@@ -586,7 +586,7 @@ class ActionBar:
 
         team = esper.component_for_entity(entity_id, TeamComponent)
 
-        # Vérifier l'or
+        # Check l'or
         current_gold = self._get_current_player_gold()
         cost = UNIT_COST_ATTACK_TOWER
         if current_gold < cost:
@@ -609,7 +609,7 @@ class ActionBar:
             self.notification_system.add_notification(t("shop.cannot_purchase"), NotificationType.ERROR)
             return
 
-        # Vérifier qu'on a un Architecte sélectionné pour la team
+        # Check qu'on a un Architecte sélectionné pour la team
         if self.selected_unit is None:
             self.notification_system.add_notification(t("tooltip.need_architect"), NotificationType.WARNING)
             return
@@ -625,7 +625,7 @@ class ActionBar:
 
         team = esper.component_for_entity(entity_id, TeamComponent)
 
-        # Vérifier l'or
+        # Check l'or
         current_gold = self._get_current_player_gold()
         cost = UNIT_COST_HEAL_TOWER
         if current_gold < cost:
@@ -805,10 +805,10 @@ class ActionBar:
         return False
     
     def select_unit(self, unit_info: Optional[UnitInfo]):
-        """Sélectionne une unité et met à jour la barre d'action."""
+        """Sélectionne une unit et met à jour la barre d'action."""
         self.selected_unit = unit_info
 
-        # La visibilité des boutons est maintenant gérée dans _update_button_positions
+        # La visibilité des boutons est maintenant gérée in _update_button_positions
         self._update_button_positions()
     
     def update_player_gold(self, gold: int):
@@ -837,7 +837,7 @@ class ActionBar:
         if self.selected_unit and self.selected_unit.special_cooldown > 0:
             self.selected_unit.special_cooldown = max(0, self.selected_unit.special_cooldown - dt)
         
-        # Mise à jour de l'état des boutons (pas de vérification d'or pour les placeholders)
+        # Mise à jour de l'état des boutons (pas de Check d'or pour les placeholders)
         for button in self.action_buttons:
             if button.action_type in self.unit_configs:
                 # Toujours actif pour les placeholders (pas de déduction d'or)
@@ -881,7 +881,7 @@ class ActionBar:
         # Informations du joueur
         self._draw_player_info(surface)
         
-        # Informations de l'unité sélectionnée
+        # Informations de l'unit sélectionnée
         if self.selected_unit:
             self._draw_selected_unit_info(surface)
         
@@ -969,7 +969,7 @@ class ActionBar:
         else:
             color = UIColors.BUTTON_NORMAL
         
-        # Effet de lueur si bouton global actif (désactivé pour éviter la surbrillance inutile)
+        # Effet de lueur si bouton global actif (désactivé pour avoid la surbrillance inutile)
         # if is_global:
         #     glow_size = int(5 + 3 * math.sin(self.button_glow_timer * 3))
         #     glow_rect = rect.inflate(glow_size, glow_size)
@@ -1075,7 +1075,7 @@ class ActionBar:
         surface.blit(mode_text_colored, mode_rect)
     
     def _draw_selected_unit_info(self, surface: pygame.Surface):
-        """Dessine les informations de l'unité sélectionnée à droite."""
+        """Dessine les informations de l'unit sélectionnée à droite."""
         if not self.selected_unit:
             return
         
@@ -1084,12 +1084,12 @@ class ActionBar:
         info_x = self.screen_width - info_width - 280  # Laisser place aux boutons globaux
         info_y = self.screen_height - self.bar_height + 10
         
-        # Fond pour les informations de l'unité
+        # Fond pour les informations de l'unit
         unit_rect = pygame.Rect(info_x, info_y, info_width, 70)
         pygame.draw.rect(surface, UIColors.BACKGROUND, unit_rect, border_radius=8)
         pygame.draw.rect(surface, UIColors.SELECTION, unit_rect, 2, border_radius=8)
         
-        # Nom de l'unité
+        # Nom de l'unit
         unit_name = self.font_normal.render(
             f"{self.selected_unit.unit_type}", 
             True, UIColors.TEXT_HIGHLIGHT
@@ -1122,7 +1122,7 @@ class ActionBar:
         )
         surface.blit(health_text, (info_x + 5, info_y + 45))
         
-        # Barre de mana si l'unité en a (à côté de la vie)
+        # Barre de mana si l'unit en a (à côté de la vie)
         if self.selected_unit.max_mana > 0:
             mana_ratio = self.selected_unit.mana / self.selected_unit.max_mana
             mana_bg_rect = pygame.Rect(info_x + 105, info_y + 30, bar_width, bar_height)
@@ -1165,7 +1165,7 @@ class ActionBar:
         tooltip_width = max_width + 20
         tooltip_height = len(tooltip_lines) * line_height + 10
         
-        # Position de la tooltip (éviter les bords)
+        # Position de la tooltip (avoid les bords)
         tooltip_x = mouse_pos[0] + 15
         tooltip_y = mouse_pos[1] - tooltip_height - 10
         
@@ -1202,7 +1202,7 @@ def main():
     clock = pygame.time.Clock()
     action_bar = ActionBar(screen_width, screen_height)
     
-    # Simuler une unité sélectionnée
+    # Simulate une unit sélectionnée
     test_unit = UnitInfo(
         unit_id=1,
         unit_type="Zasper",
@@ -1227,7 +1227,7 @@ def main():
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    # Ajouter de l'or pour tester
+                    # Add de l'or pour tester
                     current_gold = action_bar._get_player_gold_direct(action_bar.current_camp == Team.ENEMY)
                     action_bar.update_player_gold(current_gold + 50)
                     print(f"Or ajouté! Total: {current_gold + 50}")
@@ -1239,7 +1239,7 @@ def main():
         # Mise à jour
         action_bar.update(dt)
         
-        # Rendu
+        # Rendering
         screen.fill((50, 50, 50))  # Fond gris foncé
         
         # Instructions à l'écran

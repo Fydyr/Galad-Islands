@@ -30,29 +30,29 @@ def processHealth(entity, damage, attacker_entity=None):
         pass
 
     if not esper.has_component(entity, Health):
-        return  # Pas de composant Health, rien à faire
+        return  # Pas de component Health, rien à faire
     health = esper.component_for_entity(entity, Health)
     
-    # Vérifie si l'entité possède le bouclier de Barhamus
+    # Check sil'entity possède le bouclier de Barhamus
     if esper.has_component(entity, SpeMaraudeur):
         shield = esper.component_for_entity(entity, SpeMaraudeur)
         try:
             damage = shield.apply_damage_reduction(damage)
         except Exception:
-            # En cas d'erreur interne au bouclier, ne pas bloquer l'application des dégâts
+            # in case of error interne au bouclier, ne pas bloquer l'application des dégâts
             pass
-    # Vérifie si l'entité possède l'invincibilité du Zasper
+    # Check sil'entity possède l'invincibilité du Zasper
     if esper.has_component(entity, SpeScout):
         invincibility = esper.component_for_entity(entity, SpeScout)
         if invincibility.is_invincible():
             # Scout invincible — silenced debug log
             damage = 0
 
-    # Vérifie si la cible est un bandit
+    # Check sila cible est un bandit
     if esper.has_component(entity, Bandits):
         if attacker_entity is not None and esper.has_component(attacker_entity, ProjectileComponent):
             damage = 0
-        # Vérifier si l'attaquant est une mine (health max = 1, team_id = 0, attack = 40)
+        # Check sil'attaquant est une mine (health max = 1, team_id = 0, attack = 40)
         elif (attacker_entity is not None and 
               esper.has_component(attacker_entity, Health) and 
               esper.has_component(attacker_entity, Team) and 
@@ -77,21 +77,21 @@ def processHealth(entity, damage, attacker_entity=None):
         # Si la structure Health est inattendue, abandonner silencieusement
         pass
 
-    # Supprimer l'entité si elle est morte
+    # Delete entity si elle est morte
     try:
         if health.currentHealth <= 0:
-            # Vérifier si c'est une base qui meurt
+            # Check sic'est une base qui meurt
             if esper.has_component(entity, BaseComponent):
                 # Déterminer quelle équipe a perdu
-                team_id = 1  # Par défaut équipe alliée
+                team_id = 1  # By default équipe alliée
                 if esper.has_component(entity, TeamComponent):
                     team_comp = esper.component_for_entity(entity, TeamComponent)
                     team_id = team_comp.team_id
                 
-                # Dispatcher l'événement de fin de partie AVANT de supprimer l'entité
+                # Dispatcher l'événement de fin de partie before de Delete entity
                 esper.dispatch_event('game_over', team_id)
             
-            # Si c'est une unité tuée par quelqu'un, donner une récompense
+            # Si c'est une unit tuée par quelqu'un, donner une récompense
             elif esper.has_component(entity, ClasseComponent) and attacker_entity is not None:
                 _combat_reward_processor.create_unit_reward(entity, attacker_entity)
             
@@ -100,7 +100,7 @@ def processHealth(entity, damage, attacker_entity=None):
         pass
 
 def entitiesHit(ent1, ent2):
-    # Vérifier si les entités ont des composants d'attaque
+    # Check siles entities ont des components d'attaque
     damage1 = 0
     damage2 = 0
     
@@ -110,7 +110,7 @@ def entitiesHit(ent1, ent2):
     if esper.has_component(ent2, Attack):
         damage2 = esper.component_for_entity(ent2, Attack).hitPoints
     
-    # Appliquer les dégâts seulement si les entités ont des HP
+    # Appliquer les dégâts seulement si les entities ont des HP
     if esper.has_component(ent1, Health) and damage2 > 0:
         processHealth(ent1, damage2, ent2)
         

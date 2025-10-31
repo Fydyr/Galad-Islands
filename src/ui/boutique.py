@@ -90,13 +90,13 @@ class ShopFaction(Enum):
     ENEMY = "enemy"
 
 class ShopCategory(Enum):
-    """Catégories d'items dans la boutique."""
+    """Catégories d'items in la boutique."""
     UNITS = "units"
 
 
 @dataclass
 class ShopItem:
-    """Représente un item dans la boutique."""
+    """Représente un item in la boutique."""
     id: str
     name: str
     description: str
@@ -117,7 +117,7 @@ class UnifiedShop:
         self.screen_height = screen_height
         self.faction = faction
         
-        # Initialiser l'or du joueur en accédant directement au composant
+        # Initialize l'or du joueur en accédant directement au component
         try:
             self.player_gold = self._get_player_gold_direct()
         except Exception:
@@ -188,7 +188,7 @@ class UnifiedShop:
             if team_comp.team_id == team_id:
                 return player_comp
         
-        # Si pas trouvé, créer l'entité joueur
+        # Si pas trouvé, Create l'entity joueur
         from src.constants.gameplay import PLAYER_DEFAULT_GOLD
         entity = esper.create_entity()
         player_comp = PlayerComponent(stored_gold=PLAYER_DEFAULT_GOLD)
@@ -197,12 +197,12 @@ class UnifiedShop:
         return player_comp
     
     def _get_player_gold_direct(self) -> int:
-        """Récupère l'or du joueur directement du composant."""
+        """Récupère l'or du joueur directement the component."""
         player_comp = self._get_player_component()
         return player_comp.get_gold() if player_comp else 0
     
     def _set_player_gold_direct(self, gold: int) -> None:
-        """Définit l'or du joueur directement sur le composant."""
+        """Définit l'or du joueur directement sur le component."""
         player_comp = self._get_player_component()
         if player_comp:
             player_comp.set_gold(gold)
@@ -265,7 +265,7 @@ class UnifiedShop:
     
 
     def _initialize_items(self):
-        """Initialise tous les items de la boutique selon la faction."""
+        """Initialise all items de la boutique selon la faction."""
         if self.faction == ShopFaction.ALLY:
             self._initialize_ally_items()
         else:
@@ -274,16 +274,16 @@ class UnifiedShop:
     def _initialize_ally_items(self):
         """Initialise les items pour la faction alliée."""
         self._populate_unit_items(is_enemy=False)
-        # Les bâtiments ne sont pas disponibles dans la boutique ; l'Architect les construit en jeu
+        # Les bâtiments ne sont pas disponibles in la boutique ; l'Architect les construit en jeu
     
     def _initialize_enemy_items(self):
         """Initialise les items pour la faction ennemie."""
 
         self._populate_unit_items(is_enemy=True)
-        # Les bâtiments ennemis ne sont pas disponibles dans la boutique
+        # Les bâtiments ennemis ne sont pas disponibles in la boutique
     
     def _get_unit_cost(self, unit_type: str) -> int:
-        """Retourne le coût d'une unité basé sur son type, toujours depuis les constantes de gameplay."""
+        """Retourne le coût d'une unit basé sur son type, toujours from les constantes de gameplay."""
         if unit_type == UnitType.SCOUT:
             return UNIT_COST_SCOUT
         elif unit_type == UnitType.MARAUDEUR:
@@ -299,7 +299,7 @@ class UnifiedShop:
         return 0
 
     def _populate_unit_items(self, is_enemy: bool):
-        """Ajoute les unités disponibles en se basant sur le catalogue de la factory."""
+        """adds les units disponibles en se basant sur le catalogue de la factory."""
 
         for unit_type, faction_config in iter_unit_shop_configs(enemy=is_enemy):
             config_data = dict(faction_config.stats)
@@ -336,7 +336,7 @@ class UnifiedShop:
         return PositionComponent(spawn_x, spawn_y)
 
     def _get_game_grid(self):
-        """Retourne la grille du jeu depuis le game_engine si disponible, sinon None."""
+        """Retourne la grille du jeu from le game_engine si disponible, sinon None."""
         try:
             if self.game_engine is not None:
                 return self.game_engine.grid
@@ -345,11 +345,11 @@ class UnifiedShop:
         return None
     
     def _map_boutique_id_to_unit_type(self, unit_id: str):
-        """Mappe un identifiant boutique vers le type d'unité constant exposé par la factory."""
+        """Mappe un identifiant boutique to le type d'unit constant exposé par la factory."""
         return resolve_unit_type_from_shop_id(unit_id)
     
     def _create_stats_description(self, config: Dict) -> str:
-        """Crée une description formatée pour les statistiques d'une unité."""
+        """creates une description formatée pour les statistiques d'une unit."""
         short_desc = f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')}"
         
         if config.get('degats_min'):
@@ -364,8 +364,8 @@ class UnifiedShop:
         return short_desc
     
     def _get_sprite_id_for_unit(self, unit_id: str, is_enemy: bool = False) -> Optional[SpriteID]:
-        """Mappe un ID d'unité de la boutique vers un SpriteID."""
-        # Mapping des unités alliées
+        """Mappe un ID d'unit de la boutique to un SpriteID."""
+        # Mapping des units alliées
         ally_mapping = {
             "zasper": SpriteID.ALLY_SCOUT,
             "barhamus": SpriteID.ALLY_MARAUDEUR,
@@ -375,7 +375,7 @@ class UnifiedShop:
             "kamikaze": SpriteID.ALLY_KAMIKAZE
         }
         
-        # Mapping des unités ennemies
+        # Mapping des units ennemies
         enemy_mapping = {
             "enemy_scout": SpriteID.ENEMY_SCOUT,
             "enemy_warrior": SpriteID.ENEMY_MARAUDEUR,
@@ -394,7 +394,7 @@ class UnifiedShop:
     # car la boutique ne gère plus les constructions.
     
     def _get_sprite_id_for_ui(self, ui_element: str) -> Optional[SpriteID]:
-        """Mappe un élément UI vers un SpriteID."""
+        """Mappe un élément UI to un SpriteID."""
         ui_mapping = {
             "units": SpriteID.UI_SWORDS,
             "gold": SpriteID.UI_BITCOIN
@@ -402,7 +402,7 @@ class UnifiedShop:
         return ui_mapping.get(ui_element)
     
     def _load_icons(self):
-        """Charge les icônes pour tous les items via le gestionnaire de sprites."""
+        """Charge les icônes pour all items via le gestionnaire de sprites."""
         for category in self.shop_items:
             for item in self.shop_items[category]:
                 sprite_id = None
@@ -445,7 +445,7 @@ class UnifiedShop:
                 self.tab_icons[tab_name] = None
     
     def _create_placeholder_icon(self, name: str, category: ShopCategory) -> pygame.Surface:
-        """Crée une icône de remplacement."""
+        """creates une icône de remplacement."""
         icon = pygame.Surface((64, 64), pygame.SRCALPHA)
         
         # Couleur selon la catégorie
@@ -478,10 +478,10 @@ class UnifiedShop:
         return icon
     
     def _create_unit_purchase_callback(self, unit_id: str):
-        """Crée le callback d'achat pour une unité avec spawn réel."""
+        """creates le callback d'achat pour une unit avec spawn réel."""
         def callback():
             try:
-                # Mapper l'ID de la boutique vers le type d'unité
+                # Mapper l'ID de la boutique to le type d'unit
                 unit_type = self._map_boutique_id_to_unit_type(unit_id)
                 if not unit_type:
                     print(f"Erreur: Type d'unité inconnu pour {unit_id}")
@@ -494,15 +494,15 @@ class UnifiedShop:
                 # Calculer la position de spawn près de la base appropriée
                 spawn_position = self._get_base_spawn_position(is_enemy)
                 
-                # Créer l'unité avec la factory
+                # Create l'unit avec la factory
                 entity = UnitFactory(unit_type, is_enemy, spawn_position)
                 
                 if entity:
-                    # Ajouter l'unité à la liste des troupes de la base appropriée
+                    # Add l'unit à la liste des troupes de la base appropriée
                     BaseComponent.add_unit_to_base(entity, is_enemy)
                     
                     faction_name = "ennemie" if is_enemy else "alliée"
-                    unit_name = unit_id  # Par défaut
+                    unit_name = unit_id  # By default
                     # Trouver le bon nom traduit
                     for item in self.shop_items[ShopCategory.UNITS]:
                         if item.id == unit_id:
@@ -581,13 +581,13 @@ class UnifiedShop:
         self.hovered_item_index = -1
         self.hovered_tab_index = -1
         
-        # Vérifier les onglets
+        # Check les onglets
         tab_rects = self._get_tab_rects()
         for i, rect in enumerate(tab_rects):
             if rect.collidepoint(mouse_pos):
                 self.hovered_tab_index = i
         
-        # Vérifier les items
+        # Check les items
         item_rects = self._get_item_rects()
         for i, rect in enumerate(item_rects):
             if rect.collidepoint(mouse_pos):
@@ -595,7 +595,7 @@ class UnifiedShop:
     
     def _handle_mouse_click(self, mouse_pos: Tuple[int, int]) -> bool:
         """Gère les clics de souris."""
-        # Vérifier si le clic est en dehors de la boutique
+        # Check sile clic est en dehors de la boutique
         shop_rect = pygame.Rect(self.shop_x, self.shop_y, self.shop_width, self.shop_height)
         if not shop_rect.collidepoint(mouse_pos):
             self.close()
@@ -674,7 +674,7 @@ class UnifiedShop:
         return rects
     
     def _can_purchase_item(self, item: ShopItem) -> bool:
-        """Vérifie si l'item peut être acheté."""
+        """Check sil'item peut être acheté."""
         player_gold = self.get_player_gold()
         if player_gold < item.cost:
             return False
@@ -712,7 +712,7 @@ class UnifiedShop:
         return True
     
     def get_player_gold(self) -> int:
-        """Retourne l'or courant du joueur en accédant directement au composant."""
+        """Retourne l'or courant du joueur en accédant directement au component."""
         try:
             value = self._get_player_gold_direct()
             self.player_gold = value
@@ -721,7 +721,7 @@ class UnifiedShop:
             return self.player_gold
 
     def set_player_gold(self, gold: int):
-        """Met à jour l'or du joueur directement sur le composant."""
+        """Met à jour l'or du joueur directement sur le component."""
         try:
             self._set_player_gold_direct(gold)
         except Exception as error:
@@ -900,7 +900,7 @@ class UnifiedShop:
             text_x = rect.centerx
             if icon_key in self.tab_icons and self.tab_icons[icon_key]:
                 icon = self.tab_icons[icon_key]
-                if icon:  # Vérifier que l'icône n'est pas None
+                if icon:  # Check quel'icône n'est pas None
                     icon_x = rect.centerx - 12
                     icon_y = rect.y + 8
                     surface.blit(icon, (icon_x, icon_y))
@@ -950,7 +950,7 @@ class UnifiedShop:
             gold_surface = self.font_subtitle.render(gold_str, True, self.theme.GOLD)
             gold_line_width = icon_surface.get_width() + gold_surface.get_width() + 16
         else:
-            # Fallback: utiliser un symbole monétaire générique rendu par la police
+            # Fallback: utiliser un symbole monétaire générique Rendering par la police
             gold_text = f"¤ {gold_str}"
             gold_line_width = self.font_subtitle.size(gold_text)[0]
         
@@ -966,7 +966,7 @@ class UnifiedShop:
             gold_rect = gold_surface.get_rect(midleft=(icon_x + icon_surface.get_width() + 8, gold_y))
             surface.blit(gold_surface, gold_rect)
         else:
-            # Créer le Surface rendu pour l'affichage
+            # Create le Surface Rendering pour l'affichage
             gold_surface = self.font_subtitle.render(gold_text, True, self.theme.GOLD)
             # Ombre du texte
             shadow_surface = self.font_subtitle.render(gold_text, True, (0, 0, 0))
@@ -1025,7 +1025,7 @@ class UnifiedShop:
         
         if item.id in self.icons and self.icons[item.id]:
             icon = self.icons[item.id]
-            if icon:  # Vérifier que l'icône n'est pas None
+            if icon:  # Check quel'icône n'est pas None
                 scaled_icon = pygame.transform.scale(icon, (icon_size, icon_size))
                 surface.blit(scaled_icon, icon_rect.topleft)
         
@@ -1081,7 +1081,7 @@ class UnifiedShop:
         
         # Indication si pas achetable
         if not can_purchase:
-            # Utiliser des symboles de police compatibles pour indiquer l'erreur
+            # Utiliser des symboles de police compatibles pour indiquer l'error
             error_text = "⚠" if self.get_player_gold() < item.cost else "✖"
             error_surface = self.font_normal.render(error_text, True, self.theme.PURCHASE_ERROR)
             error_rect = error_surface.get_rect(bottomright=(rect.right - 5, rect.bottom - 5))
@@ -1104,7 +1104,7 @@ class UnifiedShop:
         # Texte du feedback
         surface.blit(feedback_text, feedback_rect)
 
-# Créer un alias pour la compatibilité
+# Create un alias pour la compatibilité
 Shop = UnifiedShop
 
-# (exemple d'utilisation retiré — placé dans tests/test_boutique_example.py)
+# (exemple d'utilisation retiré — placé in tests/test_boutique_example.py)

@@ -1,4 +1,4 @@
-"""Composants IA pour les entités."""
+"""components IA pour les entities."""
 
 from src.components.ai.aiLeviathanComponent import AILeviathanComponent
 

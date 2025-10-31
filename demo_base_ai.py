@@ -9,7 +9,7 @@ import os
 import time
 from pathlib import Path
 
-# Ajouter le répertoire src au path
+# Add the directory src au path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import esper
@@ -24,11 +24,11 @@ import numpy as np
 
 
 def demo_ai_decisions():
-    """Démontre les décisions de l'IA dans différents scénarios."""
+    """Démontre les décisions de l'IA in différents scénarios."""
     print("🎮 DÉMONSTRATION DE L'IA AVANCÉE DE LA BASE")
     print("=" * 50)
 
-    # Créer l'IA
+    # Create l'IA
     ai = BaseAi(team_id=2)
     print(f"🤖 IA chargée avec modèle: {type(ai.model).__name__}")
 
@@ -62,7 +62,7 @@ def demo_ai_decisions():
             "enemy_units": 2,
             "enemy_base_known": 1,
             "towers_needed": 0,
-            "expected": "Léviathan" # L'IA devrait choisir une unité chère
+            "expected": "Léviathan" # L'IA devrait choisir une unit chère
         },
         {
             "name": "Infériorité numérique - Renforts nécessaires",
@@ -72,7 +72,7 @@ def demo_ai_decisions():
             "enemy_units": 7,
             "enemy_base_known": 1,
             "towers_needed": 1,
-            "expected": "Maraudeur" # Unité de combat efficace pour se renforcer, mais Kamikaze est aussi possible
+            "expected": "Maraudeur" # unit de combat efficace pour se renforcer, mais Kamikaze est aussi possible
         },
         {
             "name": "Contre-attaque rapide - Peu d'or mais besoin de pression",
@@ -105,7 +105,7 @@ def demo_ai_decisions():
             "enemy_units": 6,
             "enemy_base_known": 1,
             "towers_needed": 0,
-            "allied_units_health": 0.3, # Santé moyenne des unités faible
+            "allied_units_health": 0.3, # Santé moyenne des units faible
             "expected": "Druide"
         }
     ]
@@ -120,7 +120,7 @@ def demo_ai_decisions():
         print(f"   - Tours nécessaires: {'Oui' if scenario['towers_needed'] else 'Non'}")
 
         # Prédire l'action
-        enemy_base_health = 1.0  # Par défaut, base ennemie en pleine santé
+        enemy_base_health = 1.0  # By default, base ennemie en pleine santé
         if "enemy_base_health" in scenario:
             enemy_base_health = scenario["enemy_base_health"]
         
@@ -148,7 +148,7 @@ def demo_ai_decisions():
         
         print(f"   => Décision IA: {action_name} (Attendu: {scenario['expected']}) {result_icon}")
 
-        # Vérifier si l'action est faisable (basé sur l'index de l'action)
+        # Check sil'action est faisable (basé sur l'index de l'action)
         can_afford = False
         if best_action_index == 1:  # Éclaireur 
             can_afford = scenario['gold'] >= UNIT_COSTS["scout"] # Pas de réserve pour les scouts

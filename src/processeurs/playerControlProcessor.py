@@ -85,7 +85,7 @@ class PlayerControlProcessor(esper.Processor):
                     base = esper.component_for_entity(entity, BaseComponent)
                     base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
             if controls.is_action_active(controls.ACTION_UNIT_ATTACK, keys, modifiers_state):
-                if radius.cooldown <= 0: # On vérifie le cooldown au moment du tir
+                if radius.cooldown <= 0: # On Check le cooldown au moment du tir
                     esper.dispatch_event("attack_event", entity, "bullet")
                     radius.cooldown = radius.bullet_cooldown
 
@@ -167,7 +167,7 @@ class PlayerControlProcessor(esper.Processor):
         
         affected_units = []
         
-        # Recherche de tous les alliés dans le rayon
+        # Recherche de all alliés in le rayon
         for ent, (pos, team, radius) in esper.get_components(PositionComponent, TeamComponent, RadiusComponent):
             if team.team_id == architect_team.team_id and ent != architect_entity:
                 distance = math.sqrt((pos.x - architect_pos.x)**2 + (pos.y - architect_pos.y)**2)

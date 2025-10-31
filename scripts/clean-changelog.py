@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script pour nettoyer le changelog en supprimant les commits non pertinents pour les utilisateurs
+Script pour Clean up le changelog en supprimant les commits non pertinents pour les utilisateurs
 """
 
 import re
@@ -58,7 +58,7 @@ def clean_changelog():
         if not should_remove:
             cleaned_lines.append(line)
     
-    # Nettoyer les sections vides
+    # Clean up les sections vides
     final_lines = []
     i = 0
     while i < len(cleaned_lines):
@@ -66,7 +66,7 @@ def clean_changelog():
         
         # Si c'est un titre de section (### Feat, ### Fix, etc.)
         if line.strip().startswith('###'):
-            # Vérifier s'il y a du contenu après
+            # Check s'il y a du contenu after
             j = i + 1
             has_content = False
             while j < len(cleaned_lines) and not cleaned_lines[j].strip().startswith('##'):
@@ -96,7 +96,7 @@ def clean_changelog():
     return True
 
 def main():
-    """Fonction principale"""
+    """Main function"""
     print("🧹 Nettoyage du changelog...")
     print("Suppression des commits non pertinents pour les utilisateurs")
     print("-" * 60)

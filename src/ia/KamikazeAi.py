@@ -1,13 +1,13 @@
 """
-Processor pour gérer l'IA des unités individuelles (Kamikaze).
+Processor pour gérer l'IA des units individuelles (Kamikaze).
 Refactorisé pour :
  - corriger des problèmes d'indentation / méthodes hors-classe
- - éviter que les unités foncent dans les murs (évitage local + steering)
+ - avoid que les units foncent in les murs (évitage local + steering)
  - stabiliser le pathfinding et les checks de bords
  - rendre le code plus lisible et maintenable
 
-Remarque : ce fichier assume l'existence des composants/imports utilisés
-dans ton projet (PositionComponent, VelocityComponent, etc.).
+Remarque : ce file assume l'existence des components/imports utilisés
+in ton projet (PositionComponent, VelocityComponent, etc.).
 """
 
 import heapq
@@ -38,10 +38,10 @@ class KamikazeAiProcessor(esper.Processor):
     """Processor d'IA pour les Kamikaze.
 
     Principales améliorations :
-    - méthodes correctement encapsulées dans la classe
+    - méthodes correctement encapsulées in la classe
     - pathfollowing via waypoints A* + steering proportionnel
-    - détection/évitage local pour empêcher d'aller tout droit dans un mur
-    - simulation d'entraînement regroupée dans la classe
+    - détection/évitage local pour empêcher d'aller tout droit in un mur
+    - simulation d'entraînement regroupée in la classe
     """
 
     def __init__(self, world_map: Optional[List[List[int]]] = None):
@@ -51,11 +51,11 @@ class KamikazeAiProcessor(esper.Processor):
         self.inflated_world_map = self._create_inflated_map(world_map) if world_map else None
         self._kamikaze_paths = {}
         self._kamikaze_exploration_targets = {}
-        # Timer de recalcul de chemin par entité
+        # Timer de recalcul de chemin par entity
         self._last_path_request_time = {}
 
     def _create_inflated_map(self, original_map: List[List[int]]) -> List[List[int]]:
-        """Crée une carte où les obstacles sont "gonflés" pour le pathfinding."""
+        """creates une carte où les obstacles sont "gonflés" pour le pathfinding."""
         if not original_map:
             return []
         
@@ -64,7 +64,7 @@ class KamikazeAiProcessor(esper.Processor):
         inflated_map = [row[:] for row in original_map] # Copie la carte
 
         # Rayon de "gonflement" en tuiles. 1 signifie que les tuiles adjacentes sont aussi bloquées.
-        # Cela permet d'éviter que les unités ne se collent aux obstacles.
+        # Cela permet d'avoid que les units ne se collent aux obstacles.
         buffer_radius = 2 # Augmenté à 2 pour une plus grande marge de sécurité
 
         for y in range(max_y):
@@ -94,7 +94,7 @@ class KamikazeAiProcessor(esper.Processor):
         max_y = len(grid)
         max_x = len(grid[0]) if max_y > 0 else 0
 
-        # Vérifier si le départ ou l'arrivée sont des obstacles
+        # Check sile départ ou l'arrivée sont des obstacles
         if not (0 <= start[0] < max_x and 0 <= start[1] < max_y and grid[start[1]][start[0]] not in (2, 3)):
             return [] # Start is an obstacle
         if not (0 <= goal[0] < max_x and 0 <= goal[1] < max_y and grid[goal[1]][goal[0]] not in (2, 3)):
@@ -143,11 +143,11 @@ class KamikazeAiProcessor(esper.Processor):
         # La logique de cooldown a été retirée pour rendre l'IA plus réactive.
         for ent, (ai_comp, pos, vel, team) in esper.get_components(KamikazeAiComponent, PositionComponent, VelocityComponent, TeamComponent):
             if getattr(ai_comp, 'unit_type', None) == UnitType.KAMIKAZE:
-                # S'assurer que l'unité a un composant de steering pour le lissage
+                # S'assurer que l'unit a un component de steering pour le lissage
                 if not esper.has_component(ent, SteeringComponent):
                     esper.add_component(ent, SteeringComponent())
                 
-                # Si l'unité est sélectionnée par le joueur, l'IA ne doit pas la contrôler.
+                # Si l'unit est sélectionnée par le joueur, l'IA ne doit pas la contrôler.
                 # On réinitialise aussi son chemin pour qu'elle ne reparte pas bizarrement.
                 if esper.has_component(ent, PlayerSelectedComponent):
                     continue
@@ -156,18 +156,18 @@ class KamikazeAiProcessor(esper.Processor):
 
     # --------------------------- logique kamikaze ---------------------------
     def kamikaze_logic(self, ent: int, pos: PositionComponent, vel: VelocityComponent, team: TeamComponent) -> None:
-        """Logique de décision et de mouvement pour une unité Kamikaze, combinant pathfinding et évitement local."""
+        """Logique de décision et de mouvement pour une unit Kamikaze, combinant pathfinding et évitement local."""
         
         # Gérer l'étourdissement (stun) dû à un knockback.
-        # Si l'unité est étourdie, on décrémente le timer et on ne fait rien d'autre.
+        # Si l'unit est étourdie, on décrémente le timer et on ne fait rien d'autre.
         if hasattr(vel, 'stun_timer') and vel.stun_timer > 0:
-            # dt est passé par es.process(), mais n'est pas dans la signature de process. On utilise une valeur fixe.
+            # dt est passé par es.process(), mais n'est pas in la signature de process. On utilise une valeur fixe.
             vel.stun_timer -= 0.016 # On suppose un dt de 16ms (60 FPS)
             return
         
         # Vecteur de direction souhaité par le pathfinding
         desired_direction_vector = np.array([0.0, 0.0])
-        desired_direction_angle = pos.direction # Par défaut, la direction actuelle si aucun chemin n'est trouvé
+        desired_direction_angle = pos.direction # By default, la direction actuelle si aucun chemin n'est trouvé
         
         # Cooldown pour la recherche de nouvelle cible (en secondes)
         TARGET_RECALC_COOLDOWN = 2.0
@@ -180,7 +180,7 @@ class KamikazeAiProcessor(esper.Processor):
 
         if not is_base_known:
             # Mode RECHERCHE : la base n'est pas connue, on explore.
-            current_target_id = None # On ne suit pas une entité en exploration
+            current_target_id = None # On ne suit pas une entity en exploration
             if ent not in self._kamikaze_exploration_targets or self._is_close_to_exploration_target(pos, ent):
                 self._kamikaze_exploration_targets[ent] = self._get_new_exploration_target(team.team_id)
             target_pos = self._kamikaze_exploration_targets[ent]
@@ -239,10 +239,10 @@ class KamikazeAiProcessor(esper.Processor):
 
         if path and not recalculate_path:
             waypoint_index = path_info.get('waypoint_index', 0)
-            # Vérifier les 3 prochains waypoints
+            # Check les 3 prochains waypoints
             path_to_check = path[waypoint_index:waypoint_index + 3]
             
-            # Vérifier si un projectile ou un obstacle statique (mine) est sur le chemin
+            # Check siun projectile ou un obstacle statique (mine) est sur le chemin
             all_dangers = threats + obstacles
             if any(math.hypot(wp[0] - danger.x, wp[1] - danger.y) < 2 * TILE_SIZE for wp in path_to_check for danger in all_dangers):
                 # Un danger obstrue le chemin, il faut recalculer
@@ -260,7 +260,7 @@ class KamikazeAiProcessor(esper.Processor):
                 if ent not in self._kamikaze_paths:
                     self._kamikaze_paths[ent] = {}
                 self._kamikaze_paths[ent].update({'path': world_path, 'target': (target_pos.x, target_pos.y), 'waypoint_index': 0, 'target_entity_id': target_id})
-                # Initialiser le timer si c'est la première fois
+                # Initialize le timer si c'est la première fois
                 if 'last_target_recalc_time' not in self._kamikaze_paths[ent]:
                     self._kamikaze_paths[ent]['last_target_recalc_time'] = pygame.time.get_ticks()
             else:
@@ -288,10 +288,10 @@ class KamikazeAiProcessor(esper.Processor):
                 if math.hypot(pos.x - waypoint_pos.x, pos.y - waypoint_pos.y) < TILE_SIZE * 1.5:
                     path_info['waypoint_index'] += 1
 
-                # Calculer la direction vers le waypoint
+                # Calculer la direction to le waypoint
                 desired_direction_angle = self.get_angle_to_target(pos, waypoint_pos)
         else:
-            # Pas de chemin, comportement par défaut (foncer vers la cible)
+            # Pas de chemin, comportement By default (foncer to la cible)
             if target_pos is not None:
                 desired_direction_angle = self.get_angle_to_target(pos, target_pos)
             else:
@@ -304,10 +304,10 @@ class KamikazeAiProcessor(esper.Processor):
         avoidance_vector = np.array([0.0, 0.0])
         total_avoidance_weight = 0.0
 
-        # Éviter les projectiles (menaces)
+        # avoid les projectiles (menaces)
         # Utilise le même rayon que précédemment pour la détection des menaces
         for threat_pos in threats:
-            # Vérifier si la menace est devant et suffisamment proche
+            # Check sila menace est devant et suffisamment proche
             if self.is_in_front(pos, threat_pos, distance_max=4 * TILE_SIZE, angle_cone=90):
                 vec_to_threat = np.array([threat_pos.x - pos.x, threat_pos.y - pos.y])
                 dist_to_threat = np.linalg.norm(vec_to_threat)
@@ -319,7 +319,7 @@ class KamikazeAiProcessor(esper.Processor):
                     avoidance_vector += avoid_vec * weight
                     total_avoidance_weight += weight
 
-        # Éviter les obstacles statiques (îles, mines)
+        # avoid les obstacles statiques (îles, mines)
         # 'obstacles' est déjà calculé plus haut
         for obs_pos in obstacles:
             # Portée augmentée pour l’évitement des îles
@@ -347,7 +347,7 @@ class KamikazeAiProcessor(esper.Processor):
         # --- 3. Combinaison des vecteurs de direction ---
         # Normaliser le vecteur d'évitement s'il est utilisé
         if total_avoidance_weight > 0:
-            # Normalisation prudente pour éviter la division par zéro
+            # Normalisation prudente pour avoid la division par zéro
             norm = np.linalg.norm(avoidance_vector)
             if norm > 0.01:
                 avoidance_vector /= norm
@@ -358,13 +358,13 @@ class KamikazeAiProcessor(esper.Processor):
         # --- 4. Combinaison finale des vecteurs ---
         # Poids pour chaque comportement (ajustables)
         # Le poids de l'évitement est maintenant géré par un "blend_factor"
-        # pour éviter les conflits directs.
+        # pour avoid les conflits directs.
         WEIGHT_PATH = 1.0
         WEIGHT_FLOCKING = 0.5  # Réduit pour prioriser le chemin et l'évitement
 
         # Calcul du "blend_factor" : à quel point on doit se concentrer sur l'évitement.
         # Il est proportionnel au poids total des menaces détectées.
-        # On le limite à 0.9 pour toujours garder un peu de direction vers la cible.
+        # On le limite à 0.9 pour toujours garder un peu de direction to la cible.
         blend_factor = min(0.9, total_avoidance_weight / 3.0) # 3.0 est une valeur d'ajustement
 
         # --- NOUVELLE LOGIQUE DE COMBINAISON ---
@@ -380,10 +380,10 @@ class KamikazeAiProcessor(esper.Processor):
             # Ensuite, on "mélange" avec le vecteur d'évitement
             final_direction_vector = (1.0 - blend_factor) * path_and_flock_vector + blend_factor * avoidance_vector
 
-        # --- NOUVEAU: Lissage de la direction pour éviter la panique ---
+        # --- NOUVEAU: Lissage de la direction pour avoid la panique ---
         steering = esper.component_for_entity(ent, SteeringComponent)
         
-        # Lissage adaptatif : on lisse moins quand on doit éviter un danger.
+        # Lissage adaptatif : on lisse moins quand on doit avoid un danger.
         # Si blend_factor est élevé (danger), le lissage diminue.
         SMOOTHING_BASE = 0.90 # Lissage de base élevé pour des mouvements fluides
         SMOOTHING_FACTOR = SMOOTHING_BASE * (1.0 - blend_factor * 0.5)
@@ -404,26 +404,26 @@ class KamikazeAiProcessor(esper.Processor):
         # Appliquer la direction et la vitesse finales
         if np.linalg.norm(final_direction_vector) > 0:
             # Le MovementProcessor utilise une convention où les angles sont inversés (cos/sin sont soustraits).
-            # Pour compenser, nous inversons le vecteur avant de calculer l'angle.
+            # Pour compenser, nous inversons le vecteur before de calculer l'angle.
             inverted_vector = -final_direction_vector
             pos.direction = math.degrees(math.atan2(inverted_vector[1], inverted_vector[0]))
         vel.currentSpeed = vel.maxUpSpeed # La vitesse reste maximale, l'évitement n'affecte que la direction
 
-        # --- 5. Logique de boost (après toutes les décisions de mouvement) ---
+        # --- 5. Logique de boost (after all décisions de mouvement) ---
         kamikaze_comp = esper.component_for_entity(ent, SpeKamikazeComponent)
         # Utiliser l'angle_diff par rapport à la direction finale pour le boost
-        # Recalculer l'angle_diff par rapport à la direction actuelle de l'unité et la direction finale souhaitée
+        # Recalculer l'angle_diff par rapport à la direction actuelle de l'unit et la direction finale souhaitée
         current_direction_angle = pos.direction
         final_desired_angle = math.degrees(math.atan2(final_direction_vector[1], final_direction_vector[0]))
         angle_diff_for_boost = (final_desired_angle - current_direction_angle + 180) % 360 - 180
 
-        # Condition de base pour le boost : capacité prête et unité bien alignée
+        # Condition de base pour le boost : capacité prête et unit bien alignée
         can_boost_base = kamikaze_comp.can_activate() and abs(angle_diff_for_boost) < 15
 
         # Condition supplémentaire : activer le boost près de la base ennemie
         should_boost_near_base = False
         enemy_base_pos = self.find_enemy_base_position(team.team_id)
-        # Vérifier si la cible actuelle est bien la base ennemie
+        # Check sila cible actuelle est bien la base ennemie
         if target_pos is not None and abs(target_pos.x - enemy_base_pos.x) < 1 and abs(target_pos.y - enemy_base_pos.y) < 1:
             distance_to_base = math.hypot(pos.x - target_pos.x, pos.y - target_pos.y)
             # Si on est à moins de 8 tuiles de la base, on active le boost
@@ -431,7 +431,7 @@ class KamikazeAiProcessor(esper.Processor):
                 should_boost_near_base = True
 
         if can_boost_base and should_boost_near_base:
-            # Vérifier s'il n'y a pas d'obstacle proche devant
+            # Check s'il n'y a pas d'obstacle proche devant
             obstacles_for_boost = self.get_nearby_obstacles(pos, 5 * TILE_SIZE, team.team_id)
             if not any(self.is_in_front(pos, obs, distance_max=5 * TILE_SIZE, angle_cone=45) for obs in obstacles_for_boost):
                 kamikaze_comp.activate()
@@ -513,11 +513,11 @@ class KamikazeAiProcessor(esper.Processor):
         else: # L'équipe 2 est en bas à droite, cherche en haut à gauche
             search_area = (0, 0, map_w_pixels / 2, map_h_pixels / 2)
 
-        # Choisir un point aléatoire dans la zone de recherche
+        # Choisir un point aléatoire in la zone de recherche
         x = random.uniform(search_area[0], search_area[2])
         y = random.uniform(search_area[1], search_area[3])
 
-        # S'assurer que le point n'est pas dans un obstacle
+        # S'assurer que le point n'est pas in un obstacle
         grid_x, grid_y = int(x // TILE_SIZE), int(y // TILE_SIZE)
         if self.world_map and self.world_map[grid_y][grid_x] in (2, 3):
             # Si c'est un obstacle, on réessaye
@@ -526,7 +526,7 @@ class KamikazeAiProcessor(esper.Processor):
         return PositionComponent(x=x, y=y)
 
     def _is_close_to_exploration_target(self, pos: PositionComponent, ent: int) -> bool:
-        """Vérifie si l'unité est arrivée à son point d'exploration."""
+        """Check sil'unit est arrivée à son point d'exploration."""
         if ent not in self._kamikaze_exploration_targets:
             return True # Pas de cible, donc on en a besoin d'une nouvelle
 
@@ -547,7 +547,7 @@ class KamikazeAiProcessor(esper.Processor):
         if enemy_base_entity_id is not None and esper.has_component(enemy_base_entity_id, PositionComponent):
             return esper.component_for_entity(enemy_base_entity_id, PositionComponent)
         
-        # Fallback vers des positions codées en dur si BaseComponent non trouvé ou non initialisé
+        # Fallback to des positions codées en dur si BaseComponent non trouvé ou non initialisé
         BASE_SIZE = 4
         if my_team_id == Team.ALLY: # Si je suis allié (Team 1), l'ennemi est Team 2 (en bas à droite)
             center_x = (MAP_WIDTH - BASE_SIZE / 2) * TILE_SIZE
@@ -567,19 +567,19 @@ class KamikazeAiProcessor(esper.Processor):
         # Seuil pour changer de cible. On ne change que si la nouvelle cible est 15% meilleure.
         STICKINESS_THRESHOLD = 0.85
         # Facteur de pondération : à quel point la santé est plus importante que la distance.
-        # Une valeur de 5 * TILE_SIZE signifie qu'une unité avec 0% de vie a un "bonus" équivalent
+        # Une valeur de 5 * TILE_SIZE signifie qu'une unit avec 0% de vie a un "bonus" équivalent
         # à être 5 cases plus proche.
         HEALTH_WEIGHT = 5 * TILE_SIZE
 
-        # Itérer sur toutes les entités avec les composants de base pour une cible potentielle
+        # Itérer sur all entities avec les components de base pour une cible potentielle
         for ent, (pos, team, health) in esper.get_components(PositionComponent, TeamComponent, HealthComponent):
             if team.team_id == enemy_team_id:
-                # Une cible est prioritaire si c'est une unité lourde OU un autre kamikaze
+                # Une cible est prioritaire si c'est une unit lourde OU un autre kamikaze
                 is_heavy_unit = getattr(health, 'maxHealth', 0) > 200
                 is_kamikaze_unit = esper.has_component(ent, SpeKamikazeComponent)
 
                 if is_heavy_unit or is_kamikaze_unit:
-                    # Cible potentielle (unité lourde ou kamikaze)
+                    # Cible potentielle (unit lourde ou kamikaze)
                     distance = math.hypot(pos.x - my_pos.x, pos.y - my_pos.y)
 
                     if distance < DETECTION_RADIUS:
@@ -616,7 +616,7 @@ class KamikazeAiProcessor(esper.Processor):
         
         # Si aucune cible prioritaire n'est trouvée, cibler la base ennemie.
         enemy_base_pos = self.find_enemy_base_position(my_team_id)
-        return enemy_base_pos, None # Pas d'ID d'entité pour la base
+        return enemy_base_pos, None # Pas d'ID d'entity pour la base
 
     def get_nearby_obstacles(self, my_pos: PositionComponent, radius: float, my_team_id: int) -> List[PositionComponent]:
         obstacles = []
@@ -634,15 +634,15 @@ class KamikazeAiProcessor(esper.Processor):
                         if self.world_map[gy][gx] == 2:
                             obstacles.append(PositionComponent(
                                 x=gx * TILE_SIZE + TILE_SIZE / 2, y=gy * TILE_SIZE + TILE_SIZE / 2))
-        # ajouter mines/entités team_id==0
+        # Add mines/entities team_id==0
         for ent, (pos, team) in esper.get_components(PositionComponent, TeamComponent):
-            # Les entités neutres (team 0) sont des obstacles, SAUF les coffres volants.
+            # Les entities neutres (team 0) sont des obstacles, SAUF les coffres volants.
             if getattr(team, 'team_id', None) == 0 and not esper.has_component(ent, FlyingChestComponent):
                 if math.hypot(pos.x - my_pos.x, pos.y - my_pos.y) < radius:
                     obstacles.append(pos)
-        # ajouter les tours comme obstacles, sauf les bases
+        # Add les tours comme obstacles, sauf les bases
         for ent, (pos, tower) in esper.get_components(PositionComponent, TowerComponent):
-            # On ignore les entités qui sont des bases
+            # On ignore les entities qui sont des bases
             if esper.has_component(ent, BaseComponent):
                 continue
             if math.hypot(pos.x - my_pos.x, pos.y - my_pos.y) < radius * 1.2:  # distance légèrement augmentée
@@ -652,7 +652,7 @@ class KamikazeAiProcessor(esper.Processor):
     def get_nearby_allies(self, my_pos: PositionComponent, my_ent: int, radius: float, my_team_id: int) -> List[Tuple[int, PositionComponent, VelocityComponent]]:
         """Trouve les autres kamikazes alliés à proximité."""
         allies = []
-        # On ne cherche que les entités qui ont aussi une IA de kamikaze
+        # On ne cherche que les entities qui ont aussi une IA de kamikaze
         for ent, (ai_comp, pos, vel, team) in esper.get_components(KamikazeAiComponent, PositionComponent, VelocityComponent, TeamComponent):
             if ent == my_ent or team.team_id != my_team_id:
                 continue
@@ -671,7 +671,7 @@ class KamikazeAiProcessor(esper.Processor):
         return threats
 
     def get_angle_to_target(self, my_pos: PositionComponent, target_pos: PositionComponent) -> float:
-        """Calcule l'angle en degrés de my_pos vers target_pos.
+        """Calcule l'angle en degrés de my_pos to target_pos.
         
         Utilise atan2(y, x) pour une convention standard où 0° est à droite.
         """

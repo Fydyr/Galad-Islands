@@ -1,4 +1,4 @@
-"""Composant de la base et gestionnaire des bases intégré."""
+"""component de la base et gestionnaire des bases intégré."""
 
 import random
 from dataclasses import dataclass as component
@@ -19,7 +19,7 @@ from src.components.core.towerComponent import TowerComponent, TowerType
 from src.settings.localization import t
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
 
-# Import de la constante depuis gameplay.py
+# Import de la constante from gameplay.py
 from src.constants.gameplay import BASE_VISION_RANGE
 
 @component
@@ -30,7 +30,7 @@ class BaseComponent:
         # Index de la troupe actuellement sélectionnée
         self.currentTroop: int = currentTroop
         
-    # Variables de classe pour stocker les entités de bases
+    # Variables de classe pour stocker les entities de bases
     _ally_base_entity: Optional[int] = None
     _enemy_base_entity: Optional[int] = None
     _initialized: bool = False
@@ -44,7 +44,7 @@ class BaseComponent:
 
     @classmethod
     def _bases_are_valid(cls) -> bool:
-        """Vérifie que les entités de bases sont toujours présentes dans l'ECS."""
+        """Check queles entities de bases sont toujours présentes in l'ECS."""
         if cls._ally_base_entity is None or cls._enemy_base_entity is None:
             return False
         try:
@@ -56,7 +56,7 @@ class BaseComponent:
 
     @classmethod
     def initialize_bases(cls, ally_base_pos: Tuple[int, int], enemy_base_pos: Tuple[int, int]):
-        """Crée les entités de base alliée et ennemie si besoin."""
+        """creates les entities de base alliée et ennemie si besoin."""
         if cls._initialized and cls._bases_are_valid():
             return
         if cls._initialized and not cls._bases_are_valid():
@@ -86,7 +86,7 @@ class BaseComponent:
             ))
             esper.add_component(entity, RadiusComponent(
                 radius=BASE_VISION_RANGE * TILE_SIZE,
-                hit_cooldown_duration=3.0 # 1 tir toutes les 3 secondes
+                hit_cooldown_duration=3.0 # 1 tir every 2 seconds
             ))
             width, height = hitbox
             surface = pygame.Surface((width, height), pygame.SRCALPHA)
@@ -141,21 +141,21 @@ class BaseComponent:
 
     @classmethod
     def get_ally_base(cls):
-        """Retourne l'entité de base alliée."""
+        """Retourne l'entity de base alliée."""
         if not cls._initialized:
             raise RuntimeError("Bases not initialized. Call initialize_bases first.")
         return cls._ally_base_entity
     
     @classmethod
     def get_enemy_base(cls):
-        """Retourne l'entité de base ennemie."""
+        """Retourne l'entity de base ennemie."""
         if not cls._initialized:
             raise RuntimeError("Bases not initialized. Call initialize_bases first.")
         return cls._enemy_base_entity
     
     @classmethod
     def add_unit_to_base(cls, unit_entity, is_enemy=False):
-        """Ajoute une unité à la liste des troupes de la base appropriée."""
+        """adds une unit à la liste des troupes de la base appropriée."""
         if not cls._initialized:
             raise RuntimeError("Bases not initialized. Call initialize_bases first.")
         
@@ -207,7 +207,7 @@ class BaseComponent:
     
     @classmethod
     def get_base_units(cls, is_enemy=False):
-        """Retourne la liste des unités d'une base."""
+        """Retourne la liste des units d'une base."""
         if not cls._initialized:
             raise RuntimeError("Bases not initialized. Call initialize_bases first.")
         
@@ -215,6 +215,6 @@ class BaseComponent:
         
         if base_entity and esper.has_component(base_entity, BaseComponent):
             base_component = esper.component_for_entity(base_entity, BaseComponent)
-            return base_component.troopList.copy()  # Copie pour éviter les modifications externes
+            return base_component.troopList.copy()  # Copie pour avoid les modifications externes
         
         return []

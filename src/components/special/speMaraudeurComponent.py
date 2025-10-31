@@ -32,12 +32,12 @@ class SpeMaraudeur:
         self.cooldown_timer: float = cooldown_timer
 
     def can_activate(self):
-        """Vérifie si la capacité peut être activée (pas en cooldown ni déjà active)."""
+        """Check sila capacité peut être activée (pas en cooldown ni déjà active)."""
         return (not self.is_active) and (self.cooldown_timer <= 0)
 
     def activate(self, reduction: Optional[float] = None, duration: Optional[float] = None):
         """
-        Active le bouclier de mana avec une réduction donnée et une durée (ou valeurs par défaut).
+        Active le bouclier de mana avec une réduction donnée et une durée (ou valeurs By default).
         - reduction: pourcentage de réduction (entre reduction_min et reduction_max)
         - duration: durée de la réduction en secondes
         """
@@ -49,7 +49,7 @@ class SpeMaraudeur:
             self.duration = duration if duration is not None else self.duration
             self.timer = self.duration
             self.cooldown_timer = self.cooldown
-            # Activation silencieuse en production — retire les prints de debug
+            # Activation silencieuse in production — retire les prints de debug
             return True
         return False
 
@@ -60,7 +60,7 @@ class SpeMaraudeur:
     def update(self, dt):
         """
         Met à jour le timer, le cooldown et gère l'état du bouclier.
-        - dt: temps écoulé depuis la dernière frame
+        - dt: temps écoulé from la dernière frame
         """
         # Gestion du cooldown
         if self.cooldown_timer > 0:

@@ -134,7 +134,7 @@ class IslandResourceManager:
 
         index = int(self._rng.integers(0, len(self._island_positions)))
         grid_y, grid_x = map(int, self._island_positions[index])
-        # Spawn aléatoirement dans la tuile pour plus de variété et visibilité sur les bords
+        # Spawn aléatoirement in la tuile pour plus de variété et visibilité sur les bords
         world_x = (grid_x + self._rng.random()) * TILE_SIZE
         world_y = (grid_y + self._rng.random()) * TILE_SIZE
         return world_x, world_y
@@ -152,13 +152,13 @@ class IslandResourceManager:
         if sprite_size is None:
             sprite_size = (int(TILE_SIZE * 1.2), int(TILE_SIZE * 1.2))  # Plus gros pour être plus visible
         else:
-            # Augmenter la taille par rapport à la taille par défaut
+            # Augmenter la taille par rapport à la taille By default
             sprite_size = (int(sprite_size[0] * 2.0), int(sprite_size[1] * 2.0))
         
         sprite_component = sprite_manager.create_sprite_component(SpriteID.GOLD_RESOURCE, sprite_size[0], sprite_size[1])
         esper.add_component(entity, sprite_component)
 
-        # Zone de collision standard - la taille plus grande du sprite améliore déjà la collecte
+        # Zone collision standard - la taille plus grande du sprite améliore déjà la collecte
         esper.add_component(entity, CanCollideComponent())
         esper.add_component(entity, TeamComponent(team_id=0))
         esper.add_component(

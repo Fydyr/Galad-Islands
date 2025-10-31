@@ -35,7 +35,7 @@ class AttackState(RapidAIState):
         super().enter(context)
         LOGGER.info("[AI] %s Attack.enter() called", context.entity_id)
         # Nota: on ne cancelle pas la navigation ici, car on peut revenir à Attack
-        # depuis une navigation (GoTo) qui était lancée par Attack
+        # from une navigation (GoTo) qui était lancée par Attack
         # cancel_navigation() sera appelé lors de la sortie de l'état
         objective = context.current_objective
         context.target_entity = objective.target_entity if objective else None
@@ -173,7 +173,7 @@ class AttackState(RapidAIState):
             return context.position
 
         candidates: list[tuple[float, Tuple[float, float]]] = []
-        # Récupérer toutes les positions des unités pour éviter les collisions
+        # Récupérer all positions des units pour avoid les collisions
         occupied_positions = set()
         for ent, pos_comp in esper.get_component(PositionComponent):
             if ent != context.entity_id:
@@ -191,7 +191,7 @@ class AttackState(RapidAIState):
                 continue
             if np.isinf(self.controller.pathfinding._tile_cost(grid)):
                 continue
-            # Éviter les positions occupées par une autre unité (tolérance 32px)
+            # avoid les positions occupées par une autre unit (tolérance 32px)
             rounded_candidate = (round(candidate[0], 1), round(candidate[1], 1))
             collision = any(math.hypot(rounded_candidate[0] - op[0], rounded_candidate[1] - op[1]) < 32.0 for op in occupied_positions)
             if collision:
@@ -218,7 +218,7 @@ class AttackState(RapidAIState):
                     candidates.append((distance_to_unit, candidate))
         
         if not candidates:
-            # Si toujours rien trouvé, retourner la position actuelle
+            # Si toujours rien trouvé, Return la position actuelle
             return context.position
 
         candidates.sort(key=lambda item: item[0])
@@ -241,7 +241,7 @@ class AttackState(RapidAIState):
             return
         try:
             velocity = esper.component_for_entity(context.entity_id, VelocityComponent)
-            # On stoppe immédiatement l'unité pour empêcher un déplacement involontaire pendant le tir.
+            # On stoppe immédiatement l'unit pour empêcher un déplacement involontaire during le tir.
             velocity.currentSpeed = 0.0
         except KeyError:
             pass
@@ -257,7 +257,7 @@ class AttackState(RapidAIState):
         if projectile_target is None:
             projectile_target = fallback_target
         
-        # Orienter vers la cible (ou fallback sur direction actuelle)
+        # Orienter to la cible (ou fallback sur direction actuelle)
         if projectile_target is not None:
             try:
                 pos = esper.component_for_entity(context.entity_id, PositionComponent)

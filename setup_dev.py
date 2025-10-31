@@ -4,7 +4,7 @@ Script d'installation pour l'environnement de développement Galad Islands.
 - Installe Commitizen (pour le versionning et les hooks)
 - Installe les dépendances du projet (requirements.txt)
 
-À lancer une seule fois par chaque développeur, jamais en production ni dans le build final.
+À lancer une seule fois par chaque développeur, jamais in production ni in le build final.
 """
 
 import subprocess
@@ -34,7 +34,7 @@ def prompt_create_venv():
     else:
         print("⚠️  Installation dans l'environnement global (déconseillé)")
 
-# Vérifier la présence d'un venv
+# Check la présence d'un venv
 if not is_venv():
     prompt_create_venv()
 
@@ -92,7 +92,7 @@ except ImportError:
     print("✔️  Environnement de développement prêt !")
 
 
-# Option pour nettoyer l'ancienne installation des hooks avec bump automatique
+# Option pour Clean up l'ancienne installation des hooks avec bump automatique
 def clean_old_bump_hooks():
     print("\nNettoyage des anciennes installations de hooks avec bump automatique...")
     try:

@@ -45,12 +45,12 @@ class GifAnimation:
                 pygame_surface = pygame.image.fromstring(data, size, mode)
                 
                 self.frames.append(pygame_surface)
-                # Durée en millisecondes (par défaut 100ms si non spécifié)
+                # Durée en millisecondes (By default 100ms si non spécifié)
                 duration = gif.info.get('duration', MODAL_DEFAULT_GIF_DURATION)
                 self.durations.append(duration)
         except Exception as e:
             print(f"Erreur lors du chargement du GIF: {e}")
-            # Créer un frame d'erreur
+            # Create un frame d'error
             error_surface = pygame.Surface((MODAL_ERROR_SURFACE_WIDTH, MODAL_ERROR_SURFACE_HEIGHT))
             error_surface.fill((100, 100, 100))
             font = pygame.font.SysFont("Arial", 16)
@@ -79,12 +79,12 @@ class GifAnimation:
 
 def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
     """
-    Affiche une fenêtre modale avec le contenu d'un fichier Markdown.
+    Affiche une window modale avec le contenu d'un file Markdown.
     Supporte les images statiques (PNG, JPG) et les GIF animés.
     
     Args:
         titre (str): Le titre de la modale
-        md_path (str): Le chemin vers le fichier Markdown à afficher
+        md_path (str): Le chemin to le file Markdown à afficher
         bg_original (pygame.Surface, optional): L'image de fond originale
         select_sound (pygame.mixer.Sound, optional): Le son de sélection
     """
@@ -121,7 +121,7 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
         if cache_key in image_cache:
             return image_cache[cache_key]
         
-        # Chercher le fichier
+        # Chercher le file
         if img_path.startswith('/'):
             img_path = img_path[1:]
         
@@ -148,7 +148,7 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
             image_cache[cache_key] = ("static", placeholder)
             return image_cache[cache_key]
         
-        # Vérifier si c'est un GIF
+        # Check sic'est un GIF
         if working_path.lower().endswith('.gif'):
             gif_anim = GifAnimation(working_path, max_width)
             gif_animations.append(gif_anim)
@@ -191,7 +191,7 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
                 elements.append(("media", media_type, media))
                 continue
             
-            # Variables pour le style par défaut des titres
+            # Variables pour le style By default des titres
             default_bold = False
             default_italic = False
             text = line
@@ -270,12 +270,12 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
         
         return wrapped, heights
 
-    # Lecture du fichier markdown
+    # Lecture du file markdown
     try:
         with open(md_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
     except:
-        lines = [f"# Erreur: fichier {md_path} introuvable"]
+        lines = [f"# error: file {md_path} introuvable"]
 
     # Parser et envelopper le contenu
     parsed_elements = parse_markdown(lines)
@@ -356,7 +356,7 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
                     scroll_ratio = my / scrollbar_track.height
                     scroll = -int(max_scroll * max(0, min(1, scroll_ratio)))
 
-        # Rendu
+        # Rendering
         screen.fill((10, 10, 10))
         if bg_original:
             bg_scaled = pygame.transform.scale(bg_original, (WIDTH, HEIGHT))

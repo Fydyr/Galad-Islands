@@ -14,22 +14,22 @@ class RadiusComponent:
         self.cooldown: float = cooldown
         self.bullet_cooldown: float = bullet_cooldown
         
-        # Recent hits tracking pour éviter les dégâts continus
+        # Recent hits tracking pour avoid les dégâts continus
         self.hit_history: dict = {}  # {entity_id: timestamp}
         self.hit_cooldown_duration: float = hit_cooldown_duration
     
     def can_hit(self, entity_id: int) -> bool:
-        """Vérifie si cette entité peut infliger des dégâts à l'entité cible."""
+        """Check sicette entity peut infliger des dégâts à l'entity cible."""
         current_time = time.time()
         last_hit_time = self.hit_history.get(entity_id, 0)
         return (current_time - last_hit_time) >= self.hit_cooldown_duration
     
     def record_hit(self, entity_id: int):
-        """Enregistre qu'un dégât a été infligé à l'entité cible."""
+        """Enregistre qu'un dégât a été infligé à l'entity cible."""
         self.hit_history[entity_id] = time.time()
     
     def cleanup_old_entries(self):
-        """Nettoie les entrées anciennes pour éviter l'accumulation de mémoire."""
+        """Nettoie les entrées anciennes pour avoid l'accumulation de mémoire."""
         current_time = time.time()
         expired_entries = [
             entity_id for entity_id, timestamp in self.hit_history.items()

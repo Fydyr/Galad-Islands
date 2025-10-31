@@ -2,7 +2,7 @@
 """
 Script de pré-entraînement pour l'IA Barhamus (Maraudeur Zeppelin).
 Simule des combats tactiques pour entraîner le modèle de décision.
-Son entrainement en jeu existe toujours mais permet d'avoir une base plus solide et éviter de prendre trop en performance.
+Son entrainement en jeu existe toujours mais permet d'avoir une base plus solide et avoid de prendre trop en performance.
 """
 import sys
 import os
@@ -17,10 +17,10 @@ import pickle
 from sklearn.preprocessing import StandardScaler
 import joblib
 
-# Ajouter le répertoire src au path
+# Add the directory src au path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-# Importer les composants nécessaires
+# Importer les components nécessaires
 from src.ia.ia_barhamus import BarhamusAI
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
@@ -52,7 +52,7 @@ class BarhamusTrainer:
         self.successful_trainings = 0
 
     def create_mock_world(self):
-        """Crée un monde simulé basique pour les tests."""
+        """creates un monde simulé basique pour les tests."""
         class MockWorld:
             def __init__(self, trainer):
                 self.trainer = trainer
@@ -98,7 +98,7 @@ class BarhamusTrainer:
         return MockWorld(self)
 
     def create_barhamus_entity(self, world, x, y, team_id=1):
-        """Crée une entité Barhamus avec tous les composants nécessaires."""
+        """Create an entity Barhamus avec all components nécessaires."""
         entity = world.create_entity()
 
         # Position
@@ -126,7 +126,7 @@ class BarhamusTrainer:
         team.team_id = team_id
         world.components[entity][TeamComponent] = team
 
-        # Composant spécial Maraudeur
+        # component spécial Maraudeur
         spe = SpeMaraudeur()
         spe.is_active = False
         spe.cooldown_timer = 0.0
@@ -135,7 +135,7 @@ class BarhamusTrainer:
         return entity
 
     def create_enemy_entity(self, world, x, y, team_id=2):
-        """Crée une entité ennemie basique."""
+        """Create an entity ennemie basique."""
         entity = world.create_entity()
 
         # Position
@@ -265,7 +265,7 @@ class BarhamusTrainer:
         return scenarios
 
     def _create_real_grid(self):
-        """Crée une vraie grille de jeu avec tous les éléments."""
+        """creates une vraie grille de jeu avec all éléments."""
         grid = creer_grille()  # Grille vide remplie de SEA
         placer_elements(grid)  # Place les bases, îles, mines, nuages
         return grid
@@ -304,14 +304,14 @@ class BarhamusTrainer:
                 print(f"Erreur lors du chargement du fichier autosave : {e}")
 
         try:
-            # Créer une seule IA pour collecter les données
+            # Create une seule IA pour collecter les données
             ai_collector = BarhamusAI(entity=0)
             ai_collector.grid = self._create_real_grid()
             
-            # Restaurer les données depuis l'autosave si elles existent
+            # Restaurer les données from l'autosave si elles existent
             X = [exp['state'] for exp in all_experiences]
             y = [exp['action'] for exp in all_experiences]
-            all_experiences.clear() # Vider pour éviter la redondance mémoire
+            all_experiences.clear() # Vider pour avoid la redondance mémoire
 
             for iteration in range(n_iterations):
                 print(f"\n🔄 Itération {iteration + 1}/{n_iterations}")
@@ -335,7 +335,7 @@ class BarhamusTrainer:
                     
                     state = ai_collector._analyze_situation(world, pos, health, team)
                     
-                    # Utiliser la logique par défaut pour déterminer la "meilleure" action pour ce scénario
+                    # Utiliser la logique By default pour déterminer la "meilleure" action pour ce scénario
                     action = ai_collector._get_default_action(state)
                     
                     X.append(state)
@@ -414,7 +414,7 @@ class BarhamusTrainer:
         scaler = StandardScaler()
         scaler.fit(X_train)
 
-        # Sauvegarder le modèle et le scaler dans un seul fichier compatible avec BarhamusAI
+        # Sauvegarder le modèle et le scaler in un seul file compatible avec BarhamusAI
         os.makedirs(self.models_dir, exist_ok=True)
         model_data = {
             'decision_tree': model,

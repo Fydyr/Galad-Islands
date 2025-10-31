@@ -1,20 +1,20 @@
 """
-Processeur principal pour le contrôle des unités par l'IA.
+Processeur principal pour le contrôle des units par l'IA.
 Ce processeur :
 1.  Observe le monde (via _build_game_state).
 2.  Demande à Minimax de prendre une décision (via minimax.run_minimax).
 3.  Exécute la décision (via _execute_action).
-4.  Gère le suivi de chemin A* (dans process()).
+4.  Gère le suivi de chemin A* (in process()).
 """
 
 import esper
 import math
 from typing import Dict, Any, List, Optional, Tuple
 
-# Composant de l'IA
+# component de l'IA
 from src.components.ai.DruidAiComponent import DruidAiComponent
 
-# Composants Core
+# components Core
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.velocityComponent import VelocityComponent
@@ -22,7 +22,7 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 
-# Composants Spéciaux (Druide)
+# components Spéciaux (Druide)
 from src.components.special.speDruidComponent import SpeDruid
 from src.components.special.isVinedComponent import isVinedComponent
 
@@ -39,7 +39,7 @@ GameState = Dict[str, Any] # Type alias pour l'état du jeu simplifié
 # Constantes et Types
 from src.constants.gameplay import UNIT_COOLDOWN_DRUID
 from src.factory.unitType import UnitType
-# Assurez-vous d'avoir un fichier team.py ou un enum/classe Team quelque part
+# Assurez-vous d'avoir un file team.py ou un enum/classe Team quelque part
 # J'utilise une valeur numérique basée sur unitFactory.py (1=ally, 2=enemy)
 # Si vous avez un enum, importez-le (ex: from src.constants.team import Team)
 from src.settings.settings import TILE_SIZE
@@ -72,7 +72,7 @@ class DruidAIProcessor(esper.Processor):
             TeamComponent,
             VelocityComponent,
             HealthComponent):
-            # Désactivation IA si unité sélectionnée par le joueur
+            # Désactivation IA si unit sélectionnée par le joueur
             if self.world.has_component(ent, PlayerSelectedComponent):
                 continue
             # Gestion du Mouvement
@@ -93,7 +93,7 @@ class DruidAIProcessor(esper.Processor):
                 if dist < (TILE_SIZE / 2):
                     ai.current_path.pop(0)
                     if not ai.current_path:
-                        # print(f"[AI DEBUG 8b] Entité {ent} a atteint la fin du chemin.") Moins de spam
+                        # print(f"[AI DEBUG 8b] entity {ent} a atteint la fin du chemin.") Moins de spam
                         vel.currentSpeed = 0
                         ai.current_action = None
                         continue
@@ -119,10 +119,10 @@ class DruidAIProcessor(esper.Processor):
                 game_state = self._build_game_state(ent, ai, pos, team, health)
 
                 if not game_state:
-                    # print(f"[AI DEBUG 4] ECHEC _build_game_state pour l'entité {ent}.") Moins de spam
+                    # print(f"[AI DEBUG 4] ECHEC _build_game_state pour l'entity {ent}.") Moins de spam
                     continue
 
-                if debug_this_frame: # Afficher l'état seulement toutes les 2s
+                if debug_this_frame: # Afficher l'état seulement all 2s
                     print(f"[AI DEBUG 4] Entité {ent} voit: {len(game_state['allies'])} alliés, {len(game_state['enemies'])} ennemis. Cooldown Special: {game_state['druid']['spec_cooldown']:.2f}")
 
                 best_action, best_score = self.minimax_service(
@@ -134,7 +134,7 @@ class DruidAIProcessor(esper.Processor):
                     is_maximizing_player=True
                 )
 
-                if debug_this_frame: # Afficher décision seulement toutes les 2s
+                if debug_this_frame: # Afficher décision seulement all 2s
                     print(f"[AI DEBUG 5] Entité {ent} a pris une décision: {best_action} (Score: {best_score:.1f})")
 
                 if best_action:
@@ -147,11 +147,11 @@ class DruidAIProcessor(esper.Processor):
             spe_druid = esper.component_for_entity(druid_entity, SpeDruid)
             radius = esper.component_for_entity(druid_entity, RadiusComponent)
         except KeyError:
-            # print(f"Erreur IA: Entité {druid_entity} n'est pas un Druide complet.") Moins de spam
+            # print(f"error IA: entity {druid_entity} n'est pas un Druide complet.") Moins de spam
             return None
 
         # --- DEBUG COOLDOWN ---
-        # Lire la valeur actuelle du cooldown DANS le composant SpeDruid
+        # Lire la valeur actuelle du cooldown in le component SpeDruid
         current_spec_cooldown = getattr(spe_druid, 'cooldown', 999.0) # Lire la valeur réelle
         # --- FIN DEBUG ---
 
@@ -209,7 +209,7 @@ class DruidAIProcessor(esper.Processor):
         """Traduit une décision Minimax en commandes de jeu."""
 
         action_type, target_id = action
-        # print(f"[AI DEBUG 6] L'entité {druid_entity} exécute l'action: {action}") Moins de spam
+        # print(f"[AI DEBUG 6] L'entity {druid_entity} exécute l'action: {action}") Moins de spam
 
         try:
             if action_type == "HEAL":
@@ -224,13 +224,13 @@ class DruidAIProcessor(esper.Processor):
                 spe_druid = esper.component_for_entity(druid_entity, SpeDruid)
                 angle = math.degrees(math.atan2(druid_pos_comp.y - target_pos.y, druid_pos_comp.x - target_pos.x))
                 druid_pos_comp.direction = angle
-                # --- VÉRIFICATION SUPPLÉMENTAIRE ---
-                if spe_druid.can_cast_ivy(): # Vérifier une dernière fois avant de lancer
+                # --- Check SUPPLÉMENTAIRE ---
+                if spe_druid.can_cast_ivy(): # Check une dernière fois before de lancer
                     spe_druid.launch_projectile(druid_entity)
                     print(f"[AI ACTION] Druid {druid_entity} LANCE LIERRE sur {target_id}") # Confirmation
                 else:
                     print(f"[AI WARNING] Druid {druid_entity} voulait lancer lierre mais cooldown pas prêt in extremis!")
-                # --- FIN VÉRIFICATION ---
+                # --- FIN Check ---
                 ai.current_action = None
 
             elif action_type in ["MOVE_TO_ALLY", "MOVE_TO_ENEMY", "FLEE"]:

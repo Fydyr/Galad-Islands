@@ -85,12 +85,12 @@ class ConfigManager:
         self.load_config()
 
     def load_config(self) -> None:
-        """Charge la configuration depuis le fichier JSON."""
+        """Charge la configuration from le file JSON."""
         try:
             if os.path.exists(self.path):
                 with open(self.path, 'r', encoding='utf-8') as f:
                     saved_config = json.load(f)
-                    # Validation et fusion avec la config par défaut
+                    # Validation et fusion avec la config By default
                     for key, value in saved_config.items():
                         if key in self.config:
                             default_value = self.config[key]
@@ -100,7 +100,7 @@ class ConfigManager:
                                 self.config[key] = value
                 print(f"Configuration chargée depuis {self.path}")
             else:
-                # Créer un fichier de config avec les valeurs par défaut
+                # Create un file de config avec les valeurs By default
                 self.save_config()
                 print(f"Fichier de configuration non trouvé, création de {self.path} avec les valeurs par défaut")
         except Exception as e:
@@ -108,7 +108,7 @@ class ConfigManager:
             print("Utilisation des valeurs par défaut")
 
     def save_config(self) -> bool:
-        """Sauvegarde la configuration dans le fichier JSON."""
+        """Sauvegarde la configuration in le file JSON."""
         try:
             with open(self.path, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, indent=4, ensure_ascii=False)
@@ -130,7 +130,7 @@ class ConfigManager:
             print(f"Avertissement: Clé de configuration inconnue: {key}")
 
     def reset_to_defaults(self) -> None:
-        """Remet la configuration aux valeurs par défaut."""
+        """Remet la configuration aux valeurs By default."""
         self.config = deepcopy(DEFAULT_CONFIG)
 
     # Méthodes spécifiques pour les paramètres fréquemment utilisés
@@ -215,7 +215,7 @@ class ConfigManager:
             self.config["key_bindings"][action] = list(bindings)
 
     def _merge_nested_dicts(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-        """Fusionne récursivement deux dictionnaires sans perdre les valeurs par défaut."""
+        """Fusionne récursivement deux dictionnaires sans perdre les valeurs By default."""
         result = deepcopy(base)
         for key, value in override.items():
             if key in result and isinstance(result[key], dict) and isinstance(value, dict):
@@ -354,7 +354,7 @@ def set_audio_volume(volume_type: str, value: float) -> bool:
     return False
 
 def reset_to_defaults() -> bool:
-    """Réinitialise tous les paramètres aux valeurs par défaut et sauvegarde."""
+    """Réinitialise all paramètres aux valeurs By default et sauvegarde."""
     config_manager.reset_to_defaults()
     return config_manager.save_config()
 
@@ -397,7 +397,7 @@ def set_disable_ai_learning(disabled: bool) -> bool:
 
 def get_project_version() -> str:
     """
-    Retourne la version actuelle du projet depuis le fichier version.py.
+    Retourne la version actuelle du projet from le file version.py.
     """
     try:
         return __version__
@@ -423,7 +423,7 @@ def is_dev_mode_enabled() -> bool:
 # =============================================================================
 
 # Propriétés pour la compatibilité avec l'ancien code
-# À terme, il faudrait migrer vers les fonctions get_screen_*() et get_tile_size()
+# À terme, il faudrait migrer to les fonctions get_screen_*() et get_tile_size()
 SCREEN_WIDTH = get_screen_width()
 SCREEN_HEIGHT = get_screen_height()
 TILE_SIZE = get_tile_size()

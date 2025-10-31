@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
 import joblib
-# Ajouter le répertoire src au path
+# Add the directory src au path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 from ia.BaseAi import BaseAi
 from constants.gameplay import UNIT_COSTS
@@ -32,11 +32,11 @@ class UnifiedBaseAiTrainer:
         scenarios = [
             # (gold, base_health, allied_units, enemy_units, enemy_base_known, towers_needed, enemy_base_health, expected_action, repeat, reward_val)            
             # --- NOUVELLE STRATÉGIE : PHASE D'EXPLORATION ---
-            # Si la base ennemie est inconnue, la priorité absolue est de créer des éclaireurs.
+            # Si la base ennemie est inconnue, la priorité absolue est de Create des éclaireurs.
             (100, 1.0, 1, 1, 0, 0, 1.0, 1, 20, 600),  # Exploration nécessaire (Éclaireur), poids augmenté (x20, récompense 600)
             
             # --- NOUVELLE STRATÉGIE : PHASE D'ASSAUT (POST-DÉCOUVERTE) ---
-            # Une fois la base ennemie connue et avec un avantage économique, on investit dans des unités lourdes.
+            # Une fois la base ennemie connue et avec un avantage économique, on investit in des units lourdes.
             (350, 0.9, 10, 2, 1, 0, 1.0, 4, 10, 500),  # Avantage économique -> Léviathan (action 4), poids augmenté (x10)
             
             # --- SCÉNARIOS EXISTANTS ---
@@ -137,7 +137,7 @@ class UnifiedBaseAiTrainer:
             if gold >= UNIT_COSTS["scout"]:
                 return 1  # Éclaireur
 
-        # Soin si les unités sont blessées
+        # Soin si les units sont blessées
         if allied_units_health < 0.5 and allied_units > 3:
             if gold >= UNIT_COSTS["druid"] + self.gold_reserve:
                 return 5 # Druide
@@ -149,13 +149,13 @@ class UnifiedBaseAiTrainer:
 
         # Stratégie générale
         if allied_units < enemy_units:
-            # Renforcer avec des unités de combat
+            # Renforcer avec des units de combat
             if gold >= UNIT_COSTS["maraudeur"] + self.gold_reserve:
                 return 3  # Maraudeur
             if gold >= UNIT_COSTS["kamikaze"] + self.gold_reserve:
                 return 6  # Kamikaze
         elif gold > 300 and allied_units > enemy_units + 3:
-            # Avantage économique et militaire -> unité lourde
+            # Avantage économique et militaire -> unit lourde
             if gold >= UNIT_COSTS["leviathan"] + self.gold_reserve:
                 return 4  # Léviathan
         
@@ -167,10 +167,10 @@ class UnifiedBaseAiTrainer:
 
     def _get_state_for_ai(self, game_state, is_ally=True):
         """Retourne un vecteur d'état pour `decide_action_for_training`.
-        Ajoute en fin la valeur `allied_units_health` pour compatibilité avec la nouvelle signature.
+        adds en fin la valeur `allied_units_health` pour compatibilité avec la nouvelle signature.
         """
         allied_units_health_default = 1.0
-        # NOTE: Le nombre d'architectes n'est pas encore une feature du modèle, donc on ne l'ajoute pas ici.
+        # NOTE: Le nombre d'architectes n'est pas encore une feature du modèle, donc on ne l'adds pas ici.
         if is_ally:
             return [game_state['ally_gold'], game_state['ally_base_health'], game_state['ally_units'], game_state['enemy_units'], game_state['enemy_base_known_ally'], game_state['ally_towers_needed'], game_state['enemy_base_health'], allied_units_health_default]
         else:
@@ -197,7 +197,7 @@ class UnifiedBaseAiTrainer:
             reward += cost / 15 # Récompense proportionnelle au coût
 
             # Gérer la création d'architecte séparément
-            if action == 2: # Action pour créer un Architecte
+            if action == 2: # Action pour Create un Architecte
                 game_state[architects_key] += 1
             else:
                 game_state[units_key] += 1
@@ -209,7 +209,7 @@ class UnifiedBaseAiTrainer:
         return reward
 
     def _evolve_world(self, game_state):
-        # Collecte active : chaque unité alliée rapporte 8 à 15 or par tour
+        # Collecte active : chaque unit alliée rapporte 8 à 15 or par tour
         # --- Simulation de l'Architecte ---
         # 1. Collecte d'or
         for _ in range(game_state['ally_architects']):
@@ -236,7 +236,7 @@ class UnifiedBaseAiTrainer:
 
         game_state['ally_gold'] += sum([random.randint(8, 15) for _ in range(game_state['ally_units'])])
         game_state['enemy_gold'] += sum([random.randint(8, 15) for _ in range(game_state['enemy_units'])])
-        # Si aucune unité, très faible revenu (trésor de base)
+        # Si aucune unit, très faible revenu (trésor de base)
         if game_state['ally_units'] == 0:
             game_state['ally_gold'] += random.randint(1, 3)
         if game_state['enemy_units'] == 0:
@@ -293,7 +293,7 @@ class UnifiedBaseAiTrainer:
             all_states.extend(s_states)
             all_rewards.extend(s_rewards)
             print(f"  Progression: Scénarios stratégiques ({len(all_states)} exemples)")
-            # Sauvegarde auto après scénarios
+            # Auto save after scénarios
             np.savez_compressed(autosave_path, states=np.array(all_states, dtype=object), rewards=np.array(all_rewards, dtype=object))
             # 2. Self-play classique
             ai1 = BaseAi(team_id=1)

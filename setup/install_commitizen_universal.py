@@ -35,7 +35,7 @@ def get_os_info():
     return os_info.get(os_type, os_info['unix'])
 
 def run_command(cmd, description, shell=False):
-    """Exécute une commande avec gestion d'erreurs multi-OS"""
+    """Exécute une commande avec gestion d'errors multi-OS"""
     os_info = get_os_info()
     icon = os_info['icon']
     
@@ -82,10 +82,10 @@ def find_python_executable():
     return sys.executable
 
 def install_commitizen():
-    """Installe commitizen sur tous les OS"""
+    """Installe commitizen sur all OS"""
     python_cmd = find_python_executable()
     
-    # Vérifier si déjà installé
+    # Check sidéjà installé
     try:
         result = subprocess.run([python_cmd, '-m', 'commitizen', '--version'], 
                                capture_output=True, text=True)
@@ -102,7 +102,7 @@ def install_commitizen():
     return run_command(cmd, f"Installation commitizen sur {os_info['name']}")
 
 def create_commitizen_config():
-    """Crée la configuration commitizen universelle"""
+    """creates la configuration commitizen universelle"""
     
     config_content = """[tool.commitizen]
 name = "cz_conventional_commits"
@@ -119,7 +119,7 @@ allowed_types = [
     "style",    # Formatage, espaces, etc.
     "refactor", # Refactorisation du code
     "perf",     # Amélioration des performances
-    "test",     # Ajout ou modification de tests
+    "test",     # add ou modification de tests
     "build",    # Système de build ou dépendances
     "ci",       # Configuration CI
     "chore",    # Maintenance
@@ -138,7 +138,7 @@ build-backend = "setuptools.build_meta"
     config_file = Path('pyproject.toml')
     
     if config_file.exists():
-        # Vérifier si config commitizen existe déjà
+        # Check siconfig commitizen existe déjà
         content = config_file.read_text(encoding='utf-8')
         if '[tool.commitizen]' not in content:
             content += '\n' + config_content
@@ -147,14 +147,14 @@ build-backend = "setuptools.build_meta"
         else:
             print("Configuration commitizen déjà présente")
     else:
-        # Créer nouveau fichier
+        # Create nouveau file
         config_file.write_text(config_content, encoding='utf-8')
         print("Configuration créée: pyproject.toml")
     
     return True
 
 def install_hook_universal():
-    """Installe le hook commit-msg sur tous les OS"""
+    """Installe le hook commit-msg sur all OS"""
     python_cmd = find_python_executable()
     
     # Essayer l'installation automatique commitizen
@@ -167,7 +167,7 @@ def install_hook_universal():
     return create_universal_hook()
 
 def create_universal_hook():
-    """Crée le hook manuellement pour tous les OS"""
+    """creates le hook manuellement pour all OS"""
     
     hook_content = '''#!/usr/bin/env python
 # -*- coding: utf-8 -*-
@@ -188,7 +188,7 @@ def is_windows():
 def validate_commit_msg():
     """Valide le message de commit selon les conventions"""
     
-    # Vérifier les arguments
+    # Check les arguments
     if len(sys.argv) < 2:
         return True
     
@@ -223,7 +223,7 @@ def validate_commit_msg():
             print(f"✅ Commit valide: {first_line}")
         return True
     else:
-        # Messages d'erreur adaptés à l'OS
+        # Messages d'error adaptés à l'OS
         if is_windows():
             print(f"Format invalide: {first_line}")
             print("Format requis: type(scope): description")
@@ -234,7 +234,7 @@ def validate_commit_msg():
             print("🏷️  Types autorisés: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert")
         
         print("\\nExemples valides:")
-        print("  feat: ajouter nouvelle fonctionnalité")
+        print("  feat: Add nouvelle fonctionnalité")
         print("  fix(auth): corriger bug de connexion")  
         print("  ci: configurer pipeline")
         print("  docs: mettre à jour README")
@@ -245,11 +245,11 @@ if __name__ == "__main__":
     sys.exit(0 if validate_commit_msg() else 1)
 '''
     
-    # Créer le dossier hooks
+    # Create le dossier hooks
     hooks_dir = Path('.git/hooks')
     hooks_dir.mkdir(exist_ok=True)
     
-    # Créer le hook
+    # Create le hook
     hook_file = hooks_dir / 'commit-msg'
     hook_file.write_text(hook_content, encoding='utf-8')
     
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     return True
 
 def test_installation():
-    """Teste l'installation sur tous les OS"""
+    """Teste l'installation sur all OS"""
     python_cmd = find_python_executable()
     os_info = get_os_info()
     
@@ -282,13 +282,13 @@ def test_installation():
         warning_icon = "" if detect_os() == 'windows' else "⚠️"
         print(f"{warning_icon} Impossible de tester commitizen")
     
-    # Vérifier le hook
+    # Check le hook
     hook_file = Path('.git/hooks/commit-msg')
     if hook_file.exists():
         success_icon = "" if detect_os() == 'windows' else "✅"
         print(f"{success_icon} Hook commit-msg installé")
         
-        # Vérifier les permissions (Unix seulement)
+        # Check les permissions (Unix seulement)
         if detect_os() != 'windows':
             is_executable = hook_file.stat().st_mode & stat.S_IEXEC
             if is_executable:
@@ -301,7 +301,7 @@ def test_installation():
         print(f"{warning_icon} Hook commit-msg manquant")
 
 def show_universal_usage():
-    """Affiche les instructions pour tous les OS"""
+    """Affiche les instructions pour all OS"""
     os_info = get_os_info()
     python_cmd = find_python_executable()
     
@@ -328,13 +328,13 @@ def show_universal_usage():
     print(f"   {python_cmd} -m commitizen changelog")
 
 def main():
-    """Installation universelle pour tous les OS"""
+    """Installation universelle pour all OS"""
     os_info = get_os_info()
     
     print(f"{os_info['icon']} Installation commitizen sur {os_info['name']}")
     print("="*60)
     
-    # Vérifier qu'on est dans un repo Git
+    # Check qu'on est in un repo Git
     if not Path('.git').exists():
         error_icon = "" if detect_os() == 'windows' else "❌"
         print(f"{error_icon} Erreur: Pas dans un repository Git")
@@ -346,7 +346,7 @@ def main():
     if not install_commitizen():
         success = False
     
-    # 2. Créer la configuration
+    # 2. Create la configuration
     if success:
         create_commitizen_config()
     

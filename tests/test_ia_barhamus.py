@@ -26,10 +26,10 @@ def test_ia_ml():
     """Test basique de l'IA ML"""
     print("=== Test IA Barhamus avec scikit-learn ===")
     
-    # Créer une instance d'IA
+    # Create an instance d'IA
     ai = BarhamusAI(entity=1)
     
-    # Créer des données simulées
+    # Create des données simulées
     mock_health = MockHealth()
     mock_pos = MockPos()
     mock_team = MockTeam()
@@ -52,7 +52,7 @@ def test_ia_ml():
     for strategy, perf in ai.strategy_performance.items():
         print(f"  {strategy}: {perf}")
     
-    # Test 4: Ajout d'expérience
+    # Test 4: add d'expérience
     print("\n4. Test apprentissage:")
     print(f"Expériences avant: {len(ai.experiences)}")
     ai._record_experience(state, action, 3.5, state)  # Bonne récompense

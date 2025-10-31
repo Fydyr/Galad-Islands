@@ -234,7 +234,7 @@ class GoalEvaluator:
         return best_candidate[1] if best_candidate else None
 
     def _select_attack_base(self, context) -> Optional[Objective]:
-        # Vérifier si la base ennemie est connue avant de l'attaquer
+        # Check sila base ennemie est connue before de l'attaquer
         if not enemy_base_registry.is_enemy_base_known(context.team_id):
             return None
 
