@@ -1,47 +1,47 @@
 #!/usr/bin/env python3
 """
-Script pour Clean up le changelog en supprimant les commits non pertinents pour les utilisateurs
+Script to clean up the changelog by removing commits irrelevant to users
 """
 
 import re
 from pathlib import Path
 
 def clean_changelog():
-    """Nettoie le changelog en supprimant les commits non pertinents"""
+    """Cleans the changelog by removing irrelevant commits"""
     
     changelog_path = Path("CHANGELOG.md")
     if not changelog_path.exists():
-        print("❌ CHANGELOG.md non trouvé")
+        print("❌ CHANGELOG.md not found")
         return False
     
-    # Lire le contenu
+    # Read the content
     content = changelog_path.read_text(encoding='utf-8')
     
-    # Types de commits à supprimer (non pertinents pour les utilisateurs)
+    # Types of commits to remove (irrelevant to users)
     excluded_patterns = [
-        r'- \*\*ci\*\*:.*',  # commits ci
-        r'- \*\*build\*\*:.*',  # commits build
-        r'- \*\*chore\*\*:.*',  # commits chore
-        r'- \*\*style\*\*:.*',  # commits style (formatage)
-        r'- \*\*test\*\*:.*',  # commits test
+        r'- \*\*ci\*\*:.*',  # ci commits
+        r'- \*\*build\*\*:.*',  # build commits
+        r'- \*\*chore\*\*:.*',  # chore commits
+        r'- \*\*style\*\*:.*',  # style commits (formatting)
+        r'- \*\*test\*\*:.*',  # test commits
         r'- .*workflow.*',  # workflows
         r'- .*pipeline.*',  # pipelines
         r'- .*github.*actions.*',  # github actions
         r'- .*requirements.*',  # requirements
         r'- .*dependencies.*',  # dependencies
         r'- .*mkdocs.*',  # mkdocs
-        r'- ajuster le workflow.*',  # workflows spécifiques
-        r'- ajouter la configuration.*git.*workflow.*',  # config git workflow
-        r'- corriger le chemin.*PyInstaller.*métadonnées.*',  # config build
-        r'- supprimer le commentaire.*build PyInstaller.*',  # config build
-        r'- \*\*readme\*\*: ajout de mkdocs.*',  # ajouts techniques readme
-        r'- \*\*requirements\*\*: ajout.*',  # ajouts requirements
+        r'- ajuster le workflow.*',  # specific workflows
+        r'- ajouter la configuration.*git.*workflow.*',  # git workflow config
+        r'- corriger le chemin.*PyInstaller.*métadonnées.*',  # build config
+        r'- supprimer le commentaire.*build PyInstaller.*',  # build config
+        r'- \*\*readme\*\*: ajout de mkdocs.*',  # technical readme additions
+        r'- \*\*requirements\*\*: ajout.*',  # requirements additions
     ]
     
-    # Compiler les patterns
+    # Compile the patterns
     compiled_patterns = [re.compile(pattern, re.IGNORECASE) for pattern in excluded_patterns]
     
-    # Supprimer les lignes correspondantes
+    # Remove matching lines
     lines = content.split('\n')
     cleaned_lines = []
     removed_count = 0
@@ -52,21 +52,21 @@ def clean_changelog():
             if pattern.search(line):
                 should_remove = True
                 removed_count += 1
-                print(f"🗑️  Supprimé: {line.strip()}")
+                print(f"🗑️  Removed: {line.strip()}")
                 break
         
         if not should_remove:
             cleaned_lines.append(line)
     
-    # Clean up les sections vides
+    # Clean up empty sections
     final_lines = []
     i = 0
     while i < len(cleaned_lines):
         line = cleaned_lines[i]
         
-        # Si c'est un titre de section (### Feat, ### Fix, etc.)
+        # If it's a section title (### Feat, ### Fix, etc.)
         if line.strip().startswith('###'):
-            # Check s'il y a du contenu after
+            # Check if there's content after
             j = i + 1
             has_content = False
             while j < len(cleaned_lines) and not cleaned_lines[j].strip().startswith('##'):
@@ -74,37 +74,37 @@ def clean_changelog():
                     has_content = True
                     break
                 j += 1
-            
-            # Si la section a du contenu, l'inclure
+
+            # If the section has content, include it
             if has_content:
                 final_lines.append(line)
             else:
-                print(f"🗑️  Section vide supprimée: {line.strip()}")
+                print(f"🗑️  Empty section removed: {line.strip()}")
         else:
             final_lines.append(line)
         
         i += 1
     
-    # Écrire le résultat
+    # Write the result
     cleaned_content = '\n'.join(final_lines)
     changelog_path.write_text(cleaned_content, encoding='utf-8')
     
-    print(f"\n✅ Changelog nettoyé!")
-    print(f"📊 {removed_count} lignes supprimées")
-    print(f"📝 Fichier mis à jour: {changelog_path}")
+    print(f"\n✅ Changelog cleaned!")
+    print(f"📊 {removed_count} lines removed")
+    print(f"📝 File updated: {changelog_path}")
     
     return True
 
 def main():
     """Main function"""
-    print("🧹 Nettoyage du changelog...")
-    print("Suppression des commits non pertinents pour les utilisateurs")
+    print("🧹 Cleaning the changelog...")
+    print("Removing commits irrelevant to users")
     print("-" * 60)
     
     if clean_changelog():
-        print("\n🎉 Nettoyage terminé avec succès!")
+        print("\n🎉 Cleaning completed successfully!")
     else:
-        print("\n❌ Échec du nettoyage")
+        print("\n❌ Cleaning failed")
         return 1
     
     return 0

@@ -1,4 +1,4 @@
-"""Définition immuable des units disponibles et de leurs métadonnées boutique."""
+"""Immutable definition of available units and their shop metadata."""
 
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -17,7 +17,7 @@ UnitKey = str
 
 @dataclass(frozen=True)
 class FactionUnitConfig:
-    """Configuration d'une unit pour une faction donnée."""
+    """Configuration of a unit for a given faction."""
 
     shop_id: str
     name_key: str
@@ -27,7 +27,7 @@ class FactionUnitConfig:
 
 @dataclass(frozen=True)
 class UnitMetadata:
-    """Métadonnées complètes décrivant un type d'unit."""
+    """Complete metadata describing a unit type."""
 
     order: int
     ally: FactionUnitConfig
@@ -35,7 +35,7 @@ class UnitMetadata:
 
 
 class UnitType:
-    """Constantes identifiant chaque type d'unit du jeu."""
+    """Constants identifying each unit type in the game."""
 
     SCOUT: UnitKey = "SCOUT"
     MARAUDEUR: UnitKey = "MARAUDEUR"
@@ -221,7 +221,7 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
         ),
     ),
     
-    # c'est quoi cette partie ? ça sert encore ?
+    # what is this part? is it still used?
     UnitType.HEAL_TOWER: UnitMetadata(
         order=102,
         ally=FactionUnitConfig(
@@ -249,27 +249,27 @@ UNIT_METADATA: Mapping[UnitKey, UnitMetadata] = MappingProxyType(_RAW_UNIT_METAD
 
 
 def get_unit_metadata(unit_type: UnitKey) -> UnitMetadata:
-    """Retourne les métadonnées associées à un type d'unit."""
+    """Return the metadata associated with a unit type."""
 
     return UNIT_METADATA[unit_type]
 
 
 def get_shop_config(unit_type: UnitKey, enemy: bool = False) -> FactionUnitConfig:
-    """Retourne la configuration boutique d'un type d'unit pour une faction."""
+    """Return the shop configuration of a unit type for a faction."""
 
     metadata = get_unit_metadata(unit_type)
     return metadata.enemy if enemy else metadata.ally
 
 
 def iterable_shop_configs(enemy: bool = False) -> Iterable[Tuple[UnitKey, FactionUnitConfig]]:
-    """Itère sur les configurations boutique des units achetables."""
+    """Iterate over the shop configurations of purchasable units."""
 
     for unit_key in UnitType.PURCHASABLE:
         yield unit_key, get_shop_config(unit_key, enemy)
 
 
 def purchasable_units() -> Tuple[UnitKey, ...]:
-    """Retourne l'ordre canonique des units achetables."""
+    """Return the canonical order of purchasable units."""
 
     return UnitType.PURCHASABLE
 
@@ -285,7 +285,7 @@ SHOP_UNIT_ID_INDEX: Dict[str, UnitKey] = {
 
 
 def get_unit_type_from_shop_id(shop_id: str) -> Optional[UnitKey]:
-    """Retrouve le type d'unit associé à un identifiant boutique."""
+    """Retrieve the unit type associated with a shop identifier."""
 
     return SHOP_UNIT_ID_INDEX.get(shop_id)
 

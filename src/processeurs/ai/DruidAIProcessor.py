@@ -1,20 +1,20 @@
 """
-Processeur principal pour le contrôle des units par l'IA.
-Ce processeur :
-1.  Observe le monde (via _build_game_state).
-2.  Demande à Minimax de prendre une décision (via minimax.run_minimax).
-3.  Exécute la décision (via _execute_action).
-4.  Gère le suivi de chemin A* (in process()).
+Main processor for AI-controlled units.
+This processor:
+1.  Observes the world (via _build_game_state).
+2.  Asks Minimax to make a decision (via minimax.run_minimax).
+3.  Executes the decision (via _execute_action).
+4.  Manages A* pathfinding (in process()).
 """
 
 import esper
 import math
 from typing import Dict, Any, List, Optional, Tuple
 
-# component de l'IA
+# AI component
 from src.components.ai.DruidAiComponent import DruidAiComponent
 
-# components Core
+# Core components
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.velocityComponent import VelocityComponent
@@ -22,31 +22,31 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 
-# components Spéciaux (Druide)
+# Special components (Druid)
 from src.components.special.speDruidComponent import SpeDruid
 from src.components.special.isVinedComponent import isVinedComponent
 
-# Algorithmes
-# Assurez-vous que ces chemins d'import correspondent à votre structure
+# Algorithms
+# Make sure these import paths match your structure
 from src.algorithms.astar.aStarPathfinding import a_star_pathfinding, Grid, PositionPixel
 from src.algorithms.minimax.minimax import run_minimax, AI_DEPTH, GameState
 
 
-# Type alias pour la grille (provenant de mapComponent.py)
+# Type alias for grid (from mapComponent.py)
 Grid = List[List[int]]
-GameState = Dict[str, Any] # Type alias pour l'état du jeu simplifié
+GameState = Dict[str, Any]  # Type alias for simplified game state
 
-# Constantes et Types
+# Constants and Types
 from src.constants.gameplay import UNIT_COOLDOWN_DRUID
 from src.factory.unitType import UnitType
-# Assurez-vous d'avoir un file team.py ou un enum/classe Team quelque part
-# J'utilise une valeur numérique basée sur unitFactory.py (1=ally, 2=enemy)
-# Si vous avez un enum, importez-le (ex: from src.constants.team import Team)
+# Make sure you have a team.py file or a Team enum/class somewhere
+# I'm using a numeric value based on unitFactory.py (1=ally, 2=enemy)
+# If you have an enum, import it (e.g.: from src.constants.team import Team)
 from src.settings.settings import TILE_SIZE
 
-# Montant de soin du Druide
+# Druid healing amount
 from src.factory.unitType import get_unit_metadata
-DRUID_HEAL_AMOUNT = get_unit_metadata(UnitType.DRUID).ally.stats.get("soin", 20) #
+DRUID_HEAL_AMOUNT = get_unit_metadata(UnitType.DRUID).ally.stats.get("soin", 20)  #
 
 
 class DruidAIProcessor(esper.Processor):
@@ -72,10 +72,10 @@ class DruidAIProcessor(esper.Processor):
             TeamComponent,
             VelocityComponent,
             HealthComponent):
-            # Désactivation IA si unit sélectionnée par le joueur
+            # Disable AI if unit selected by player
             if self.world.has_component(ent, PlayerSelectedComponent):
                 continue
-            # Gestion du Mouvement
+            # Movement handling
             if ai.current_path:
                 # code mouvement
                 try:

@@ -1,1 +1,1 @@
-"""Module obsolète conservé vide pour compatibilité de chargement."""
+"""Obsolete module kept empty for loading compatibility."""

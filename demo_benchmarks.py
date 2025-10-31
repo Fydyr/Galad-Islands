@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Script de démonstration des benchmarks Galad Islands
+Galad Islands benchmarks demonstration script
 
-Ce script montre comment utiliser les différents benchmarks disponibles :
-- Benchmarks ECS complets (entities, components, processeurs)
-- Benchmark de simulation complète du jeu with game window réelle
+This script shows how to use the different available benchmarks:
+- Complete ECS benchmarks (entities, components, processors)
+- Full game simulation benchmark with real game window
 
-Utilisation :
+Usage:
     python demo_benchmarks.py              # All benchmarks
-    python demo_benchmarks.py --full-game  # Seulement simulation complète
-    python demo_benchmarks.py --quick      # Tests rapides (2 secondes)
+    python demo_benchmarks.py --full-game  # Only full simulation
+    python demo_benchmarks.py --quick      # Quick tests (2 seconds)
 """
 
 import subprocess
@@ -17,7 +17,7 @@ import sys
 import os
 
 def run_command(cmd, description):
-    """Exécute une commande et affiche sa description."""
+    """Executes a command and displays its description."""
     print(f"\n{'='*60}")
     print(f"🚀 {description}")
     print('='*60)
@@ -25,40 +25,40 @@ def run_command(cmd, description):
     return result.returncode == 0
 
 def main():
-    """Main function de démonstration."""
-    print("🎮 Démonstration des Benchmarks Galad Islands")
-    print("Ce script montre les capacités de performance du jeu.\n")
+    """Main demonstration function."""
+    print("🎮 Galad Islands Benchmarks Demonstration")
+    print("This script shows the game's performance capabilities.\n")
 
-    # Benchmark complet (all tests)
+    # Complete benchmark (all tests)
     if run_command("python benchmark.py --duration 3",
-                   "BENCHMARK COMPLET - Tous les tests ECS (3 secondes chacun)"):
-        print("✅ Benchmark complet réussi!")
+                   "COMPLETE BENCHMARK - All ECS tests (3 seconds each)"):
+        print("✅ Complete benchmark successful!")
     else:
-        print("❌ Échec du benchmark complet")
+        print("❌ Complete benchmark failed")
         return 1
 
-    # Benchmark simulation complète du jeu
+    # Full game simulation benchmark
     if run_command("python benchmark.py --full-game-only --duration 5",
-                   "SIMULATION COMPLÈTE - Jeu réel avec fenêtre et mesure FPS (5 secondes)"):
-        print("✅ Simulation complète réussie!")
+                   "FULL SIMULATION - Real game with window and FPS measurement (5 seconds)"):
+        print("✅ Full simulation successful!")
     else:
-        print("❌ Échec de la simulation complète")
+        print("❌ Full simulation failed")
         return 1
 
-    # Benchmark rapide pour comparaison
+    # Quick benchmark for comparison
     if run_command("python benchmark.py --duration 1",
-                   "BENCHMARK RAPIDE - Tests accélérés (1 seconde chacun)"):
-        print("✅ Benchmark rapide réussi!")
+                   "QUICK BENCHMARK - Accelerated tests (1 second each)"):
+        print("✅ Quick benchmark successful!")
     else:
-        print("❌ Échec du benchmark rapide")
+        print("❌ Quick benchmark failed")
         return 1
 
     print(f"\n{'='*60}")
-    print("🎉 Tous les benchmarks ont été exécutés avec succès!")
-    print("📊 Les résultats montrent d'excellentes performances :")
-    print("   • Création d'entités : ~161k ops/sec")
-    print("   • Simulation de jeu réelle : ~31 FPS moyens")
-    print("   • Gestion mémoire ECS efficace")
+    print("🎉 All benchmarks executed successfully!")
+    print("📊 Results show excellent performance:")
+    print("   • Entity creation: ~161k ops/sec")
+    print("   • Real game simulation: ~31 average FPS")
+    print("   • Efficient ECS memory management")
     print('='*60)
 
     return 0

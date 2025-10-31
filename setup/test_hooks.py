@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script de test pour Check l'installation des hooks avec bump automatique
+Test script to check the installation of hooks with automatic bump
 """
 
 import os
@@ -9,103 +9,103 @@ import subprocess
 from pathlib import Path
 
 def test_hook_installation():
-    """Teste que les hooks sont correctement installés"""
-    print("🧪 Test de l'installation des hooks")
-    
-    # Check les fichiers de hooks
+    """Tests that hooks are correctly installed"""
+    print("🧪 Testing hook installation")
+
+    # Check hook files
     hooks_to_check = [
         '.git/hooks/pre-commit',
-        '.git/hooks/commit-msg'  # Optionnel
+        '.git/hooks/commit-msg'  # Optional
     ]
     
     for hook_path in hooks_to_check:
         if Path(hook_path).exists():
-            print(f"✅ {hook_path} trouvé")
-            
-            # Check quele hook est exécutable (sur Unix)
+            print(f"✅ {hook_path} found")
+
+            # Check if the hook is executable (on Unix)
             if os.name != 'nt':
                 if os.access(hook_path, os.X_OK):
-                    print(f"✅ {hook_path} est exécutable")
+                    print(f"✅ {hook_path} is executable")
                 else:
-                    print(f"⚠️  {hook_path} n'est pas exécutable")
+                    print(f"⚠️  {hook_path} is not executable")
         else:
             if 'commit-msg' in hook_path:
-                print(f"ℹ️  {hook_path} non trouvé (optionnel)")
+                print(f"ℹ️  {hook_path} not found (optional)")
             else:
-                print(f"❌ {hook_path} non trouvé")
+                print(f"❌ {hook_path} not found")
 
 def test_commitizen():
-    """Teste que commitizen est accessible"""
-    print("\n🧪 Test de commitizen")
+    """Tests that commitizen is accessible"""
+    print("\n🧪 Testing commitizen")
     
     try:
         result = subprocess.run([sys.executable, '-m', 'commitizen', 'version'], 
                               capture_output=True, text=True)
         if result.returncode == 0:
-            print(f"✅ Commitizen v{result.stdout.strip()} disponible")
+            print(f"✅ Commitizen v{result.stdout.strip()} available")
             return True
         else:
-            print("❌ Commitizen non accessible")
+            print("❌ Commitizen not accessible")
             return False
     except Exception as e:
-        print(f"❌ Erreur lors du test de commitizen: {e}")
+        print(f"❌ Error testing commitizen: {e}")
         return False
 
 def test_git_status():
-    """Teste l'état du repository Git"""
-    print("\n🧪 Test de l'état Git")
-    
+    """Tests the Git repository state"""
+    print("\n🧪 Testing Git state")
+
     try:
-        # Check qu'on est in un repo Git
-        result = subprocess.run(['git', 'status', '--porcelain'], 
+        # Check that we're in a Git repo
+        result = subprocess.run(['git', 'status', '--porcelain'],
                               capture_output=True, text=True)
         if result.returncode == 0:
-            print("✅ Repository Git valide")
-            
-            # Afficher les fichiers modifiés
+            print("✅ Valid Git repository")
+
+            # Display modified files
             if result.stdout.strip():
-                print("ℹ️  Fichiers modifiés détectés:")
+                print("ℹ️  Modified files detected:")
                 for line in result.stdout.strip().split('\n'):
                     print(f"   {line}")
             else:
-                print("ℹ️  Aucun fichier modifié")
+                print("ℹ️  No modified files")
             return True
         else:
-            print("❌ Problème avec le repository Git")
+            print("❌ Problem with Git repository")
             return False
     except Exception as e:
-        print(f"❌ Erreur lors du test Git: {e}")
+        print(f"❌ Error testing Git: {e}")
         return False
 
 def simulate_commit_test():
-    """Simule un test de commit pour Check le hook"""
-    print("\n🧪 Simulation d'un commit de test")
-    
-    # Create un file temporaire
+    """Simulates a test commit to check the hook"""
+    print("\n🧪 Simulating a test commit")
+
+    # Create a temporary file
     test_file = Path('test_hook_simulation.tmp')
     try:
-        test_file.write_text("Test du hook pre-commit\n")
-        
+        test_file.write_text("Testing the pre-commit hook\n")
+
         # Add the file
-        result = subprocess.run(['git', 'add', str(test_file)], 
+        result = subprocess.run(['git', 'add', str(test_file)],
                               capture_output=True, text=True)
-        
+
         if result.returncode != 0:
-            print("⚠️  Impossible d'ajouter le fichier de test")
+            print("⚠️  Unable to add test file")
             return
-        
-        print("ℹ️  Fichier de test ajouté")
-        print("ℹ️  Pour tester le hook, exécutez:")
-        print(f"   git commit -m 'test: test du hook pre-commit'")
-        print("   (puis git reset HEAD~1 pour annuler)")
-        
+
+        print("ℹ️  Test file added")
+        print("ℹ️  To test the hook, execute:")
+        print(f"   git commit -m 'test: testing the pre-commit hook'")
+        print("   (then git reset HEAD~1 to cancel)")
+
         # Clean up
-        subprocess.run(['git', 'reset', 'HEAD', str(test_file)], 
+        subprocess.run(['git', 'reset', 'HEAD', str(test_file)],
                       capture_output=True)
         test_file.unlink()
-        
+
     except Exception as e:
-        print(f"⚠️  Erreur lors de la simulation: {e}")
+        print(f"⚠️  Error during simulation: {e}")
         # Clean up in case of error
         try:
             subprocess.run(['git', 'reset', 'HEAD', str(test_file)], 
@@ -116,25 +116,25 @@ def simulate_commit_test():
             pass
 
 def main():
-    """Main function de test"""
-    print("🔍 TESTS D'INSTALLATION DES HOOKS AVEC BUMP AUTOMATIQUE")
+    """Main test function"""
+    print("🔍 HOOK INSTALLATION TESTS WITH AUTOMATIC BUMP")
     print("="*60)
-    
+
     # Tests
     test_hook_installation()
     cz_ok = test_commitizen()
     git_ok = test_git_status()
-    
+
     if cz_ok and git_ok:
         simulate_commit_test()
-    
+
     print("\n" + "="*60)
     if cz_ok and git_ok:
-        print("✅ TESTS RÉUSSIS - Les hooks devraient fonctionner correctement")
+        print("✅ TESTS PASSED - Hooks should work correctly")
     else:
-        print("⚠️  PROBLÈMES DÉTECTÉS - Vérifiez l'installation")
-    
-    print("\n📖 Pour plus d'informations, consultez:")
+        print("⚠️  PROBLEMS DETECTED - Check the installation")
+
+    print("\n📖 For more information, consult:")
     print("   docs/dev/version-management.md")
 
 if __name__ == "__main__":

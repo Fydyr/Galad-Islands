@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Installation automatique commitizen - Compatible tous OS
+Automatic commitizen installation - Compatible with all OSes
 Windows, Linux, macOS
 """
 
@@ -11,7 +11,7 @@ import stat
 from pathlib import Path
 
 def detect_os():
-    """Détecte le système d'exploitation"""
+    """Detects the operating system"""
     if os.name == 'nt':
         return 'windows'
     elif sys.platform.startswith('darwin'):
@@ -22,7 +22,7 @@ def detect_os():
         return 'unix'
 
 def get_os_info():
-    """Retourne les infos d'OS avec emojis appropriés"""
+    """Returns OS info with appropriate emojis"""
     os_type = detect_os()
     
     os_info = {
@@ -35,7 +35,7 @@ def get_os_info():
     return os_info.get(os_type, os_info['unix'])
 
 def run_command(cmd, description, shell=False):
-    """Exécute une commande avec gestion d'errors multi-OS"""
+    """Executes a command with multi-OS error handling"""
     os_info = get_os_info()
     icon = os_info['icon']
     
@@ -56,9 +56,9 @@ def run_command(cmd, description, shell=False):
         
     except subprocess.CalledProcessError as e:
         error_icon = "" if detect_os() == 'windows' else "❌"
-        print(f"{error_icon} {description} - Erreur")
+        print(f"{error_icon} {description} - Error")
         if e.stderr:
-            print(f"   Erreur: {e.stderr.strip()}")
+            print(f"   Error: {e.stderr.strip()}")
         return False
 
 def find_python_executable():

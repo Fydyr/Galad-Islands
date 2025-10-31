@@ -1,9 +1,9 @@
-"""Processor gérant la connaissance des bases ennemies.
+"""Processor managing knowledge of enemy bases.
 
-Ce processeur stocke, pour chaque équipe, si elle connaît la position de la base
-adverse et fournit une API simple (declare_enemy_base/is_enemy_base_known/get_enemy_base_position)
-consultable par les autres systèmes/IA. an instance singleton `enemy_base_registry`
-est exposée au module pour accès direct.
+This processor stores, for each team, whether it knows the position of the opposing
+base and provides a simple API (declare_enemy_base/is_enemy_base_known/get_enemy_base_position)
+accessible by other systems/AI. A singleton instance `enemy_base_registry`
+is exposed to the module for direct access.
 """
 from typing import Optional, Tuple
 import threading
@@ -11,21 +11,21 @@ import esper
 
 
 class KnownBaseProcessor(esper.Processor):
-    """Processor léger qui maintient un registre thread-safe des bases ennemies connues.
+    """Lightweight processor that maintains a thread-safe registry of known enemy bases.
 
-    Les clés du mapping sont des team_id (int) représentant l'équipe cliente qui connaît
-    l'information. La valeur contient 'known', 'pos' et 'enemy_team'.
+    The mapping keys are team_ids (int) representing the client team that knows
+    the information. The value contains 'known', 'pos' and 'enemy_team'.
     """
 
     def __init__(self):
         super().__init__()
         self._data = {}
         self._lock = threading.Lock()
-        # Flag debug pour afficher les découvertes quand activé
+        # Debug flag to display discoveries when enabled
         self.debug = False
 
     def declare_enemy_base(self, discover_team_id: int, enemy_team_id: int, x: float, y: float):
-        """Déclare que `discover_team_id` a découvert la base de `enemy_team_id` en (x,y)."""
+        """Declares that `discover_team_id` has discovered the base of `enemy_team_id` at (x,y)."""
         with self._lock:
             prev = self._data.get(discover_team_id)
             prev_pos = prev.get('pos') if prev else None
@@ -35,11 +35,11 @@ class KnownBaseProcessor(esper.Processor):
 
         if self.debug:
             if prev is None:
-                print(f"[KNOWN_BASE] team {discover_team_id} a DECOUVERT la base ennemie (team {enemy_team_id}) en {new_pos}")
+                print(f"[KNOWN_BASE] team {discover_team_id} DISCOVERED the enemy base (team {enemy_team_id}) at {new_pos}")
             elif changed:
-                print(f"[KNOWN_BASE] team {discover_team_id} a MIS A JOUR la position de la base ennemie -> {new_pos} (ancienne {prev_pos})")
+                print(f"[KNOWN_BASE] team {discover_team_id} UPDATED the enemy base position -> {new_pos} (previous {prev_pos})")
             else:
-                print(f"[KNOWN_BASE] team {discover_team_id} avait déjà la base ennemie à {new_pos}")
+                print(f"[KNOWN_BASE] team {discover_team_id} already had the enemy base at {new_pos}")
 
     def is_enemy_base_known(self, team_id: int) -> bool:
         with self._lock:
@@ -54,19 +54,19 @@ class KnownBaseProcessor(esper.Processor):
             return None
 
     def set_debug(self, enabled: bool):
-        """Active/désactive le debug pour ce processeur."""
+        """Enables/disables debug for this processor."""
         self.debug = bool(enabled)
 
     def process(self, *args, **kwargs):
-        """Méthode process requise par esper.Processor.
+        """Process method required by esper.Processor.
 
-        Ce processeur n'a pas de logique périodique; on expose une méthode no-op
-        pour satisfaire l'API d'esper et avoid NotImplementedError lors de
-        l'appel global `es.process(...)`.
+        This processor has no periodic logic; we expose a no-op method
+        to satisfy the esper API and avoid NotImplementedError during
+        the global `es.process(...)` call.
         """
         # No periodic work required for the registry
         return
 
 
-# Instance globale prête à être importée
+# Global instance ready to be imported
 enemy_base_registry = KnownBaseProcessor()

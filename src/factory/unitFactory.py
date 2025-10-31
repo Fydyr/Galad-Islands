@@ -1,4 +1,4 @@
-"""Factory de création des entities d'units du jeu et accès au catalogue."""
+"""Factory for creating game unit entities and catalog access."""
 
 from typing import Iterable, Optional, Tuple
 
@@ -17,16 +17,16 @@ from src.factory.unitType import (
 from src.constants.gameplay import (
     # Directions By default
     ALLY_DEFAULT_DIRECTION, ENEMY_DEFAULT_DIRECTION,
-    # Stats des units - KAMIKAZE added
+    # Unit stats - KAMIKAZE added
     UNIT_HEALTH_SCOUT, UNIT_HEALTH_MARAUDEUR, UNIT_HEALTH_LEVIATHAN, UNIT_HEALTH_DRUID, UNIT_HEALTH_ARCHITECT,
     UNIT_SPEED_SCOUT, UNIT_SPEED_MARAUDEUR, UNIT_SPEED_LEVIATHAN, UNIT_SPEED_DRUID, UNIT_SPEED_ARCHITECT,
     UNIT_REVERSE_SPEED_SCOUT, UNIT_REVERSE_SPEED_MARAUDEUR, UNIT_REVERSE_SPEED_LEVIATHAN, UNIT_REVERSE_SPEED_DRUID, UNIT_REVERSE_SPEED_ARCHITECT,
     UNIT_ATTACK_SCOUT, UNIT_ATTACK_MARAUDEUR, UNIT_ATTACK_LEVIATHAN, UNIT_ATTACK_DRUID, UNIT_ATTACK_ARCHITECT,
     UNIT_COOLDOWN_SCOUT, UNIT_COOLDOWN_MARAUDEUR, UNIT_COOLDOWN_LEVIATHAN, UNIT_COOLDOWN_DRUID, UNIT_COOLDOWN_ARCHITECT,
-    # Portées de vision
+    # Vision ranges
     UNIT_VISION_SCOUT, UNIT_VISION_MARAUDEUR, UNIT_VISION_LEVIATHAN, UNIT_VISION_DRUID, UNIT_VISION_ARCHITECT,
     UNIT_HEALTH_KAMIKAZE, UNIT_SPEED_KAMIKAZE, UNIT_REVERSE_SPEED_KAMIKAZE, UNIT_ATTACK_KAMIKAZE, UNIT_COOLDOWN_KAMIKAZE, UNIT_VISION_KAMIKAZE,
-    # Capacités spéciales
+    # Special abilities
     SPECIAL_ABILITY_COOLDOWN, DRUID_IMMOBILIZATION_DURATION, DRUID_PROJECTILE_SPEED,
     ARCHITECT_RADIUS, ARCHITECT_RELOAD_FACTOR, ARCHITECT_DURATION,
 )
@@ -45,7 +45,7 @@ from src.components.core.classeComponent import ClasseComponent
 from src.components.special.speScoutComponent import SpeScout
 from src.components.special.speMaraudeurComponent import SpeMaraudeur
 from src.components.special.speLeviathanComponent import SpeLeviathan
-from src.components.ai.DruidAiComponent import DruidAiComponent # Qu'est que c'est que ce truc là ?
+from src.components.ai.DruidAiComponent import DruidAiComponent # What is this thing?
 from src.components.ai.aiLeviathanComponent import AILeviathanComponent
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
@@ -56,14 +56,14 @@ from src.settings.localization import t
 
 def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: bool = None):
     """
-    Instancie une entity Esper correspondant au type d'unit fourni.
+    Instantiates an Esper entity corresponding to the provided unit type.
 
     Args:
-        unit: Type d'unit à Create
-        enemy: Si True, created une unit ennemie (team 2), sinon alliée (team 1)
-        pos: Position initiale de l'unit
-        enable_ai: Si True/False, force l'activation/désactivation de l'IA.
-                   Si None (default), l'IA est activée uniquement pour les ennemis.
+        unit: Unit type to create
+        enemy: If True, creates an enemy unit (team 2), otherwise ally (team 1)
+        pos: Initial position of the unit
+        enable_ai: If True/False, forces AI activation/deactivation.
+                   If None (default), AI is activated only for enemies.
     """
     entity = None
     match(unit):
@@ -84,7 +84,7 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
                 width, height = size
                 es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
             else:
-                # Fallback to old values si le sprite n'est pas trouvé
+                # Fallback to old values if the sprite is not found
                 es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Scout.png" if not enemy else "assets/sprites/units/enemy/Scout.png", 80, 100))
 
 
@@ -119,9 +119,9 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             es.add_component(entity, SpeLeviathan())
             es.add_component(entity, VisionComponent(UNIT_VISION_LEVIATHAN))
 
-            # Add le component IA pour les Léviathans
-            # By default, IA enabled for all léviathans (alliés et ennemis)
-            # Peut être désactivée avec enable_ai=False
+            # Add the AI component for Leviathans
+            # By default, AI enabled for all leviathans (allies and enemies)
+            # Can be disabled with enable_ai=False
             should_enable_ai = True if enable_ai is None else enable_ai
             if should_enable_ai:
                 es.add_component(entity, AILeviathanComponent(enabled=True))
@@ -198,9 +198,9 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             es.add_component(entity, AttackComponent(UNIT_ATTACK_KAMIKAZE))
             es.add_component(entity, HealthComponent(UNIT_HEALTH_KAMIKAZE, UNIT_HEALTH_KAMIKAZE))
             es.add_component(entity, CanCollideComponent())
-            es.add_component(entity, SpeKamikazeComponent()) # Gère la capacité spéciale et le marqueur d'explosion
+            es.add_component(entity, SpeKamikazeComponent()) # Manages the special ability and explosion marker
             es.add_component(entity, VisionComponent(UNIT_VISION_KAMIKAZE))
-            # add AI component for le Kamikaze (toutes équipes)
+            # add AI component for the Kamikaze (all teams)
             es.add_component(entity, KamikazeAiComponent(unit_type=UnitType.KAMIKAZE))
 
             sprite_id = SpriteID.ALLY_KAMIKAZE if not enemy else SpriteID.ENEMY_KAMIKAZE
@@ -234,19 +234,19 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
 
 
 def iter_unit_shop_configs(enemy: bool = False) -> Iterable[Tuple[UnitKey, FactionUnitConfig]]:
-    """Retourne un générateur sur les configurations boutique connues."""
+    """Returns a generator over known shop configurations."""
 
     yield from iterable_shop_configs(enemy)
 
 
 def resolve_unit_type_from_shop_id(shop_id: str) -> Optional[UnitKey]:
-    """Associe l'identifiant boutique fourni à un type d'unit constant."""
+    """Maps the provided shop identifier to a constant unit type."""
 
     return _catalog_unit_lookup(shop_id)
 
 
 def get_unit_metadata_for(unit: UnitKey) -> UnitMetadata:
-    """Expose les métadonnées détaillées d'un type d'unit."""
+    """Exposes detailed metadata for a unit type."""
 
     return get_unit_metadata(unit)
 

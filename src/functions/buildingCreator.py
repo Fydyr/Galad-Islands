@@ -12,14 +12,14 @@ logger = logging.getLogger(__name__)
 def checkCubeLand(grid, x, y, radius):
     """
     Find the nearest 2x2 block of buildable island tiles within a given radius from a start position.
-    optimized for large grids by limiting search to area around start.
-    
+    Optimized for large grids by limiting search to area around start.
+
     Args:
     - grid: 2D list of lists (e.g., [[0, 1, 1], [0, 1, 1]])
     - y: Starting row index (integer)
     - x: Starting column index (integer)
     - radius: Maximum Manhattan distance (integer)
-    
+
     Returns:
     - Tuple (row, col) of the top-left of the nearest 2x2 block of buildable island tiles, or None if none found.
     """

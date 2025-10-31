@@ -1,4 +1,4 @@
-"""Factory pour la création de bâtiments (tours)"""
+"""Factory for creating buildings (towers)"""
 
 import esper
 import pygame
@@ -24,12 +24,12 @@ def create_defense_tower(x: float, y: float, team_id: int = 1):
     esper.add_component(entity, HealthComponent(currentHealth=300, maxHealth=300))
     esper.add_component(entity, DefenseTowerComponent())
     esper.add_component(entity, ClasseComponent(unit_type="ATTACK_TOWER", shop_id="defense_tower", display_name=t("shop.defense_tower"), is_enemy=False))
-    # Add le TowerComponent unifié pour le TowerProcessor
+    # Add the unified TowerComponent for the TowerProcessor
     esper.add_component(entity, TowerComponent(tower_type=TowerType.DEFENSE, range=350.0, damage=25, attack_speed=1.0))
-    esper.add_component(entity, CanCollideComponent())  # Permet aux tours d'être attaquées
-    esper.add_component(entity, RadiusComponent(hit_cooldown_duration=1.0))  # Cooldown entre les hits (comme les bases)
+    esper.add_component(entity, CanCollideComponent())  # Allows towers to be attacked
+    esper.add_component(entity, RadiusComponent(hit_cooldown_duration=1.0))  # Cooldown between hits (like bases)
 
-    # Utiliser le bon sprite selon la team
+    # Use the correct sprite according to the team
     sprite_id = SpriteID.ALLY_DEFENCE_TOWER if team_id == 1 else SpriteID.ENEMY_DEFENCE_TOWER
     sprite_comp = sprite_manager.create_sprite_component(sprite_id, width=int(TILE_SIZE * 1.0), height=int(TILE_SIZE * 1.0))
     if sprite_comp is None:
@@ -49,12 +49,12 @@ def create_heal_tower(x: float, y: float, team_id: int = 1):
     esper.add_component(entity, HealthComponent(currentHealth=200, maxHealth=200))
     esper.add_component(entity, HealTowerComponent())
     esper.add_component(entity, ClasseComponent(unit_type="HEAL_TOWER", shop_id="heal_tower", display_name=t("shop.heal_tower"), is_enemy=False))
-    # Add le TowerComponent unifié pour le TowerProcessor
+    # Add the unified TowerComponent for the TowerProcessor
     esper.add_component(entity, TowerComponent(tower_type=TowerType.HEAL, range=200.0, heal_amount=10, attack_speed=1.0))
-    esper.add_component(entity, CanCollideComponent())  # Permet aux tours d'être attaquées
-    esper.add_component(entity, RadiusComponent(hit_cooldown_duration=1.0))  # Cooldown entre les hits (comme les bases)
+    esper.add_component(entity, CanCollideComponent())  # Allows towers to be attacked
+    esper.add_component(entity, RadiusComponent(hit_cooldown_duration=1.0))  # Cooldown between hits (like bases)
 
-    # Utiliser le bon sprite selon la team
+    # Use the correct sprite according to the team
     sprite_id = SpriteID.ALLY_HEAL_TOWER if team_id == 1 else SpriteID.ENEMY_HEAL_TOWER
     sprite_comp = sprite_manager.create_sprite_component(sprite_id, width=int(TILE_SIZE * 1.0), height=int(TILE_SIZE * 1.0))
     if sprite_comp is None:

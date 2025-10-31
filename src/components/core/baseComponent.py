@@ -1,4 +1,4 @@
-"""component de la base et gestionnaire des bases intégré."""
+"""Base component and integrated base manager."""
 
 import random
 from dataclasses import dataclass as component
@@ -19,32 +19,32 @@ from src.components.core.towerComponent import TowerComponent, TowerType
 from src.settings.localization import t
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
 
-# Import de la constante from gameplay.py
+# Import constant from gameplay.py
 from src.constants.gameplay import BASE_VISION_RANGE
 
 @component
 class BaseComponent:
     def __init__(self, troopList=[], currentTroop=0):
-        # Liste des troupes disponibles pour le joueur
+        # List of troops available to the player
         self.troopList: list = troopList
-        # Index de la troupe actuellement sélectionnée
+        # Index of the currently selected troop
         self.currentTroop: int = currentTroop
-        
-    # Variables de classe pour stocker les entities de bases
+
+    # Class variables to store base entities
     _ally_base_entity: Optional[int] = None
     _enemy_base_entity: Optional[int] = None
     _initialized: bool = False
 
     @classmethod
     def reset(cls) -> None:
-        """Réinitialise les références pour forcer une recréation propre."""
+        """Resets references to force a clean recreation."""
         cls._ally_base_entity = None
         cls._enemy_base_entity = None
         cls._initialized = False
 
     @classmethod
     def _bases_are_valid(cls) -> bool:
-        """Check queles entities de bases sont toujours présentes in l'ECS."""
+        """Checks that the base entities are still present in the ECS."""
         if cls._ally_base_entity is None or cls._enemy_base_entity is None:
             return False
         try:
@@ -56,7 +56,7 @@ class BaseComponent:
 
     @classmethod
     def initialize_bases(cls, ally_base_pos: Tuple[int, int], enemy_base_pos: Tuple[int, int]):
-        """creates les entities de base alliée et ennemie si besoin."""
+        """Creates allied and enemy base entities if needed."""
         if cls._initialized and cls._bases_are_valid():
             return
         if cls._initialized and not cls._bases_are_valid():
@@ -99,11 +99,11 @@ class BaseComponent:
             ))
             return entity
 
-        # Paramètres de la base alliée
+        # Allied base parameters
         ally_x = ally_base_pos[0] * TILE_SIZE
         ally_y = ally_base_pos[1] * TILE_SIZE
         ally_hitbox = (int(391 * 0.75), int(350 * 0.75))
-        # Centrer la hitbox sur la position (ajustement fin)
+        # Center the hitbox on the position (fine adjustment)
         ally_width, ally_height = ally_hitbox
         ally_centered_x = ally_x + ally_width * 0.4
         ally_centered_y = ally_y + ally_height * 0.4
@@ -118,11 +118,11 @@ class BaseComponent:
             display_name=t("base.ally_name")
         )
 
-        # Paramètres de la base ennemie
+        # Enemy base parameters
         enemy_x = enemy_base_pos[0] * TILE_SIZE
         enemy_y = enemy_base_pos[1] * TILE_SIZE
         enemy_hitbox = (int(477 * 0.60), int(394 * 0.60))
-        # Centrer la hitbox sur la position (ajustement fin)
+        # Center the hitbox on the position (fine adjustment)
         enemy_width, enemy_height = enemy_hitbox
         enemy_centered_x = enemy_x + enemy_width * 0.4
         enemy_centered_y = enemy_y + enemy_height * 0.4
@@ -141,25 +141,25 @@ class BaseComponent:
 
     @classmethod
     def get_ally_base(cls):
-        """Retourne l'entity de base alliée."""
+        """Returns the allied base entity."""
         if not cls._initialized:
             raise RuntimeError("Bases not initialized. Call initialize_bases first.")
         return cls._ally_base_entity
-    
+
     @classmethod
     def get_enemy_base(cls):
-        """Retourne l'entity de base ennemie."""
+        """Returns the enemy base entity."""
         if not cls._initialized:
             raise RuntimeError("Bases not initialized. Call initialize_bases first.")
         return cls._enemy_base_entity
-    
+
     @classmethod
     def add_unit_to_base(cls, unit_entity, is_enemy=False):
-        """adds une unit à la liste des troupes de la base appropriée."""
+        """Adds a unit to the appropriate base's troop list."""
         if not cls._initialized:
             raise RuntimeError("Bases not initialized. Call initialize_bases first.")
-        
-        # Choisir la base selon la faction
+
+        # Choose the base according to faction
         base_entity = cls._enemy_base_entity if is_enemy else cls._ally_base_entity
         
         if base_entity and esper.has_component(base_entity, BaseComponent):
@@ -172,11 +172,11 @@ class BaseComponent:
 
     @classmethod
     def get_spawn_position(cls, base_x: float, base_y: float, is_enemy: bool = False, jitter: float = TILE_SIZE * 0.35) -> Tuple[float, float]:
-        """Retourne une position de spawn praticable à proximité de la base choisie."""
-        # La position passée est déjà le centre de la base
+        """Returns a practical spawn position near the chosen base."""
+        # The passed position is already the center of the base
         base_center_x = base_x
         base_center_y = base_y
-        half_extent = 2 * TILE_SIZE # Demi-largeur de la base
+        half_extent = 2 * TILE_SIZE  # Base half-width
         safety_margin = TILE_SIZE * 1.25
 
         direction = -1 if is_enemy else 1
@@ -207,14 +207,14 @@ class BaseComponent:
     
     @classmethod
     def get_base_units(cls, is_enemy=False):
-        """Retourne la liste des units d'une base."""
+        """Returns the list of units from a base."""
         if not cls._initialized:
             raise RuntimeError("Bases not initialized. Call initialize_bases first.")
-        
+
         base_entity = cls._enemy_base_entity if is_enemy else cls._ally_base_entity
-        
+
         if base_entity and esper.has_component(base_entity, BaseComponent):
             base_component = esper.component_for_entity(base_entity, BaseComponent)
-            return base_component.troopList.copy()  # Copie pour avoid les modifications externes
-        
+            return base_component.troopList.copy()  # Copy to avoid external modifications
+
         return []

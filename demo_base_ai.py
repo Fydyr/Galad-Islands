@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Démonstration de l'IA avancée de la base avec tir automatique.
-Montre comment l'IA prend des décisions stratégiques et tire automatiquement.
+Demonstration of advanced base AI with automatic shooting.
+Shows how the AI makes strategic decisions and shoots automatically.
 """
 
 import sys
@@ -9,7 +9,7 @@ import os
 import time
 from pathlib import Path
 
-# Add the directory src au path
+# Add the src directory to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import esper
@@ -24,103 +24,103 @@ import numpy as np
 
 
 def demo_ai_decisions():
-    """Démontre les décisions de l'IA in différents scénarios."""
-    print("🎮 DÉMONSTRATION DE L'IA AVANCÉE DE LA BASE")
+    """Demonstrates AI decisions in different scenarios."""
+    print("🎮 ADVANCED BASE AI DEMONSTRATION")
     print("=" * 50)
 
-    # Create l'IA
+    # Create AI
     ai = BaseAi(team_id=2)
-    print(f"🤖 IA chargée avec modèle: {type(ai.model).__name__}")
+    print(f"🤖 AI loaded with model: {type(ai.model).__name__}")
 
-    # Scénarios de test
+    # Test scenarios
     scenarios = [
         {
-            "name": "Début de partie - Exploration nécessaire",
+            "name": "Early game - Exploration needed",
             "gold": 100,
             "base_health_ratio": 1.0,
             "allied_units": 1,
             "enemy_units": 1,
-            "enemy_base_known": 0, # <-- Base ennemie inconnue
+            "enemy_base_known": 0, # <-- Enemy base unknown
             "towers_needed": 0,
             "expected": "Éclaireur"
         },
         {
-            "name": "Défense prioritaire - Base très endommagée",
-            "gold": 150, # Assez pour un Maraudeur ou Kamikaze
-            "base_health_ratio": 0.5, # <-- Santé basse
+            "name": "Priority defense - Base heavily damaged",
+            "gold": 150, # Enough for Maraudeur or Kamikaze
+            "base_health_ratio": 0.5, # <-- Low health
             "allied_units": 3,
             "enemy_units": 6,
             "enemy_base_known": 1,
-            "towers_needed": 1, # <-- Tours nécessaires
+            "towers_needed": 1, # <-- Towers needed
             "expected": "Maraudeur"
         },
         {
-            "name": "Avantage économique - Achat d'une unité lourde",
-            "gold": 350, # Largement assez pour un Léviathan (300 + 50 de réserve)
+            "name": "Economic advantage - Heavy unit purchase",
+            "gold": 350, # More than enough for Léviathan (300 + 50 reserve)
             "base_health_ratio": 0.9,
             "allied_units": 10,
             "enemy_units": 2,
             "enemy_base_known": 1,
             "towers_needed": 0,
-            "expected": "Léviathan" # L'IA devrait choisir une unit chère
+            "expected": "Léviathan" # AI should choose expensive unit
         },
         {
-            "name": "Infériorité numérique - Renforts nécessaires",
-            "gold": 150, # Assez pour un Maraudeur (100 + 50 de réserve)
+            "name": "Numerical inferiority - Reinforcements needed",
+            "gold": 150, # Enough for Maraudeur (100 + 50 reserve)
             "base_health_ratio": 0.7,
             "allied_units": 4,
             "enemy_units": 7,
             "enemy_base_known": 1,
             "towers_needed": 1,
-            "expected": "Maraudeur" # unit de combat efficace pour se renforcer, mais Kamikaze est aussi possible
+            "expected": "Maraudeur" # Effective combat unit for reinforcement, but Kamikaze is also possible
         },
         {
-            "name": "Contre-attaque rapide - Peu d'or mais besoin de pression",
-            "gold": 120, # Assez pour un Kamikaze (50 + 50 de réserve)
+            "name": "Quick counter-attack - Low gold but need pressure",
+            "gold": 120, # Enough for Kamikaze (50 + 50 reserve)
             "base_health_ratio": 0.8,
             "allied_units": 2,
-            "enemy_units": 4, # En infériorité
+            "enemy_units": 4, # Inferior
             "enemy_base_known": 1,
             "towers_needed": 0,
-            "enemy_base_health": 0.25, # Base ennemie affaiblie pour justifier Kamikaze
-            "expected": "Kamikaze" # Option agressive et peu coûteuse
+            "enemy_base_health": 0.25, # Weakened enemy base to justify Kamikaze
+            "expected": "Kamikaze" # Aggressive and low-cost option
         },
         {
-            "name": "Coup de grâce - Base ennemie mourante",
-            "gold": 150, # Assez pour un Kamikaze
+            "name": "Finishing blow - Enemy base dying",
+            "gold": 150, # Enough for Kamikaze
             "base_health_ratio": 0.9,
             "allied_units": 3,
             "enemy_units": 2,
             "enemy_base_known": 1,
             "towers_needed": 0,
-            "enemy_base_health": 0.15, # Base ennemie très mourante !
-            "expected": "Kamikaze" # Kamikaze pour finir la base
+            "enemy_base_health": 0.15, # Enemy base almost dead!
+            "expected": "Kamikaze" # Kamikaze to finish the base
         }
         ,
         {
-            "name": "Unités blessées - Acheter un Druide",
-            "gold": 200, # Suffisant pour un Druide + réserve
+            "name": "Injured units - Buy a Druid",
+            "gold": 200, # Sufficient for Druid + reserve
             "base_health_ratio": 0.85,
             "allied_units": 5,
             "enemy_units": 6,
             "enemy_base_known": 1,
             "towers_needed": 0,
-            "allied_units_health": 0.3, # Santé moyenne des units faible
+            "allied_units_health": 0.3, # Low average unit health
             "expected": "Druide"
         }
     ]
 
-    actions_names = ["Rien", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
+    actions_names = ["Nothing", "Éclaireur", "Architecte", "Maraudeur", "Léviathan", "Druide", "Kamikaze"]
 
     for scenario in scenarios:
-        print(f"\n📊 Scénario: {scenario['name']}")
-        print(f"   - Or: {scenario['gold']} | Santé base: {scenario['base_health_ratio']:.0%}")
-        print(f"   - Unités: {scenario['allied_units']} (alliées) vs {scenario['enemy_units']} (ennemies)")
-        print(f"   - Base ennemie connue: {'Oui' if scenario['enemy_base_known'] else 'Non'}")
-        print(f"   - Tours nécessaires: {'Oui' if scenario['towers_needed'] else 'Non'}")
+        print(f"\n📊 Scenario: {scenario['name']}")
+        print(f"   - Gold: {scenario['gold']} | Base health: {scenario['base_health_ratio']:.0%}")
+        print(f"   - Units: {scenario['allied_units']} (allied) vs {scenario['enemy_units']} (enemy)")
+        print(f"   - Enemy base known: {'Yes' if scenario['enemy_base_known'] else 'No'}")
+        print(f"   - Towers needed: {'Yes' if scenario['towers_needed'] else 'No'}")
 
-        # Prédire l'action
-        enemy_base_health = 1.0  # By default, base ennemie en pleine santé
+        # Predict action
+        enemy_base_health = 1.0  # By default, enemy base at full health
         if "enemy_base_health" in scenario:
             enemy_base_health = scenario["enemy_base_health"]
         
@@ -139,43 +139,43 @@ def demo_ai_decisions():
             game_state['allied_units_health'] = scenario.get('allied_units_health', 1.0)
             best_action_index = ai._decide_action(game_state)
         action_name = actions_names[best_action_index]
-        # Comparer avec le résultat attendu (plus flexible)
-        # Pour le scénario "Infériorité numérique", Maraudeur ou Kamikaze sont acceptables
-        if scenario['name'] == "Infériorité numérique - Renforts nécessaires" and action_name in ["Maraudeur", "Kamikaze"]:
+        # Compare with expected result (more flexible)
+        # For "Numerical inferiority" scenario, Maraudeur or Kamikaze are acceptable
+        if scenario['name'] == "Numerical inferiority - Reinforcements needed" and action_name in ["Maraudeur", "Kamikaze"]:
             scenario['expected'] = action_name
         is_correct = (action_name == scenario['expected'])
         result_icon = "✅" if is_correct else "❌"
-        
-        print(f"   => Décision IA: {action_name} (Attendu: {scenario['expected']}) {result_icon}")
 
-        # Check sil'action est faisable (basé sur l'index de l'action)
+        print(f"   => AI decision: {action_name} (Expected: {scenario['expected']}) {result_icon}")
+
+        # Check if action is affordable (based on action index)
         can_afford = False
-        if best_action_index == 1:  # Éclaireur 
-            can_afford = scenario['gold'] >= UNIT_COSTS["scout"] # Pas de réserve pour les scouts
-        elif best_action_index == 2:  # Architecte
+        if best_action_index == 1:  # Scout
+            can_afford = scenario['gold'] >= UNIT_COSTS["scout"] # No reserve for scouts
+        elif best_action_index == 2:  # Architect
             can_afford = scenario['gold'] >= UNIT_COSTS["architect"] + ai.gold_reserve
         elif best_action_index == 3:  # Maraudeur
             can_afford = scenario['gold'] >= UNIT_COSTS["maraudeur"] + ai.gold_reserve
-        elif best_action_index == 4:  # Léviathan
+        elif best_action_index == 4:  # Leviathan
             can_afford = scenario['gold'] >= UNIT_COSTS["leviathan"] + ai.gold_reserve
-        elif best_action_index == 5:  # Druide
+        elif best_action_index == 5:  # Druid
             can_afford = scenario['gold'] >= UNIT_COSTS["druid"] + ai.gold_reserve
         elif best_action_index == 6:  # Kamikaze
             can_afford = scenario['gold'] >= UNIT_COSTS["kamikaze"] + ai.gold_reserve
-        elif best_action_index == 0:  # Rien
+        elif best_action_index == 0:  # Nothing
             can_afford = True
 
-        print(f"      (Action faisable avec l'or disponible: {'Oui' if can_afford else 'Non'})")
+        print(f"      (Action affordable with available gold: {'Yes' if can_afford else 'No'})")
 
     print("\n" + "=" * 50)
-    print("✅ DÉMONSTRATION TERMINÉE")
-    print("\n💡 L'IA prend des décisions stratégiques basées sur:")
-    print("   • L'or disponible et la réserve")
-    print("   • La santé de la base et le besoin de défense")
-    print("   • Le nombre d'unités alliées vs ennemies")
-    print("   • La connaissance de la base ennemie pour l'exploration")
-    print("\n🔫 Le tir automatique est géré séparément par TowerComponent")
-    print("   quand des ennemis sont à portée de vision!")
+    print("✅ DEMONSTRATION COMPLETED")
+    print("\n💡 The AI makes strategic decisions based on:")
+    print("   • Available gold and reserve")
+    print("   • Base health and defense needs")
+    print("   • Number of allied vs enemy units")
+    print("   • Knowledge of enemy base for exploration")
+    print("\n🔫 Automatic shooting is handled separately by TowerComponent")
+    print("   when enemies are within vision range!")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
-"""Module d'intelligence artificielle pour le Léviathan."""
+"""Artificial intelligence module for the Leviathan."""
 
-# Imports pour l'arbre de décision et le pathfinding
+# Imports for decision tree and pathfinding
 from src.ia.leviathan.decision_tree import LeviathanDecisionTree, GameState, DecisionAction
 from src.ia.leviathan.pathfinding import Pathfinder
 

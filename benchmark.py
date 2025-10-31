@@ -105,7 +105,7 @@ class GaladBenchmark:
     def benchmark_component_queries(self) -> BenchmarkResult:
         """Component queries benchmark."""
         if self.verbose:
-            print("🔍 Test de requêtes de composants...")
+            print("🔍 Component query test...")
 
         # Create test entities
         num_entities = 10000
@@ -146,7 +146,7 @@ class GaladBenchmark:
     def benchmark_unit_spawning(self) -> BenchmarkResult:
         """Unit spawning benchmark."""
         if self.verbose:
-            print("⚔️  Test de spawn d'unités...")
+            print("⚔️  Unit spawning test...")
 
         unit_types = [UnitType.SCOUT, UnitType.MARAUDEUR, UnitType.LEVIATHAN,
                      UnitType.DRUID, UnitType.ARCHITECT]
@@ -155,7 +155,7 @@ class GaladBenchmark:
         operations = 0
 
         while time.perf_counter() - start_time < self.duration:
-            # Tenter de Create a unit
+            # Try to create a unit
             unit_type = random.choice(unit_types)
             is_enemy = random.choice([True, False])
             x, y = random.randint(50, 750), random.randint(50, 550)
@@ -184,7 +184,7 @@ class GaladBenchmark:
     def benchmark_combat_simulation(self) -> BenchmarkResult:
         """Combat simulation benchmark."""
         if self.verbose:
-            print("💥 Test de simulation de combat...")
+            print("💥 Combat simulation test...")
 
         # Create units for combat
         num_units = 500
@@ -239,7 +239,7 @@ class GaladBenchmark:
     def benchmark_full_game_simulation(self) -> BenchmarkResult:
         """Benchmark of a complete game simulation with real game window."""
         if self.verbose:
-            print("🎮 Test de simulation complète de partie avec fenêtre...")
+            print("🎮 Full game simulation test with window...")
 
         # Create a real game window
         try:
@@ -253,11 +253,11 @@ class GaladBenchmark:
             game_engine.initialize()  # Initialize the game
 
             if self.verbose:
-                print("✅ Jeu initialisé avec succès")
+                print("✅ Game initialized successfully")
 
         except Exception as e:
             if self.verbose:
-                print(f"❌ Erreur lors de l'initialisation du jeu: {e}")
+                print(f"❌ Error during game initialization: {e}")
             return BenchmarkResult(
                 name="full_game_simulation",
                 duration=self.duration,
@@ -286,7 +286,7 @@ class GaladBenchmark:
                 # Player activity simulation (every 2 seconds)
                 current_time = time.perf_counter() - start_time
                 if current_time - last_unit_spawn > 2.0:
-                    # Simulate a click to Create a unit
+                    # Simulate a click to create a unit
                     try:
                         # Random position on the map
                         click_x = random.randint(100, 700)
@@ -295,21 +295,21 @@ class GaladBenchmark:
                         # Simulate a mouse click
                         pygame.mouse.set_pos((click_x, click_y))
 
-                        # Ici on pourrait appeler les méthodes du jeu to create units
-                        # Mais as it\'s complex, we just count
+                        # Here we could call game methods to create units
+                        # But since it's complex, we just count
                         units_spawned += 1
                         last_unit_spawn = current_time
 
                     except Exception as e:
                         if self.verbose and frame_count % 300 == 0:
-                            print(f"Erreur simulation activité: {e}")
+                            print(f"Activity simulation error: {e}")
 
                 # Game update
                 try:
                     game_engine._update_game(dt)
                 except Exception as e:
                     if self.verbose and frame_count % 300 == 0:
-                        print(f"Erreur mise à jour jeu frame {frame_count}: {e}")
+                        print(f"Game update error frame {frame_count}: {e}")
 
                 # Rendering
                 try:
@@ -317,7 +317,7 @@ class GaladBenchmark:
                     pygame.display.flip()
                 except Exception as e:
                     if self.verbose and frame_count % 300 == 0:
-                        print(f"Erreur rendu frame {frame_count}: {e}")
+                        print(f"Rendering error frame {frame_count}: {e}")
 
                 # Framerate control (60 FPS max)
                 clock.tick(60)
@@ -329,19 +329,19 @@ class GaladBenchmark:
                 if self.verbose and frame_count % 300 == 0:  # every 2 seconds at 60 FPS
                     current_fps = 1.0 / frame_time if frame_time > 0 else 0
                     print(f"Frame {frame_count}: {current_fps:.1f} FPS, "
-                          f"Entités: {len(esper._entities)}, Unités spawnées: {units_spawned}")
+                          f"Entities: {len(esper._entities)}, Spawned units: {units_spawned}")
 
         except KeyboardInterrupt:
             if self.verbose:
-                print("⏹️  Benchmark interrompu par l'utilisateur")
+                print("⏹️  Benchmark interrupted by user")
         except Exception as e:
             if self.verbose:
-                print(f"❌ Erreur pendant la simulation: {e}")
+                print(f"❌ Error during simulation: {e}")
 
         end_time = time.perf_counter()
         duration = end_time - start_time
 
-        # Calculate statistics FPS
+        # Calculate FPS statistics
         if frame_times:
             avg_fps = len(frame_times) / sum(frame_times)
             min_fps = 1.0 / max(frame_times) if frame_times else 0
@@ -350,12 +350,12 @@ class GaladBenchmark:
             avg_fps = min_fps = max_fps = 0
 
         if self.verbose:
-            print(f"🎬 Frames totales: {frame_count}")
-            print(f"🎯 FPS moyens: {avg_fps:.1f}")
-            print(f"📉 FPS minimum: {min_fps:.1f}")
-            print(f"📈 FPS maximum: {max_fps:.1f}")
-            print(f"⚔️  Unités simulées: {units_spawned}")
-            print(f"🏗️  Entités finales: {len(esper._entities)}")
+            print(f"🎬 Total frames: {frame_count}")
+            print(f"🎯 Average FPS: {avg_fps:.1f}")
+            print(f"📉 Minimum FPS: {min_fps:.1f}")
+            print(f"📈 Maximum FPS: {max_fps:.1f}")
+            print(f"⚔️  Simulated units: {units_spawned}")
+            print(f"🏗️  Final entities: {len(esper._entities)}")
 
         # Close properly
         try:
@@ -373,9 +373,9 @@ class GaladBenchmark:
             ops_per_second=avg_fps,
             memory_mb=self._get_memory_usage()
         )
-        """Benchmark des performances of the map avec units et simulation de gameplay."""
+        """Map performance benchmark with units and gameplay simulation."""
         if self.verbose:
-            print("🗺️  Test des performances de la map avec simulation de gameplay...")
+            print("🗺️  Map performance test with gameplay simulation...")
 
         # Initialize the map
         try:
@@ -385,7 +385,7 @@ class GaladBenchmark:
             camera = game_state["camera"]
         except Exception as e:
             if self.verbose:
-                print(f"Erreur lors de l'initialisation de la map: {e}")
+                print(f"Error during map initialization: {e}")
             # Return an empty result in case of error
             return BenchmarkResult(
                 name="map_performance",
@@ -396,16 +396,16 @@ class GaladBenchmark:
             )
 
         # Create units on the map (simple units to avoid errors)
-        num_units = 100  # Plus d'units pour un test plus réaliste
+        num_units = 100  # More units for a more realistic test
         units_created = 0
 
-        # Create basic units directement (sans UnitFactory qui peut échouer)
+        # Create basic units directly (without UnitFactory which can fail)
         for i in range(num_units):
             try:
                 entity = esper.create_entity()
                 x, y = random.randint(50, 750), random.randint(50, 550)
 
-                # components de base pour une unit
+                # Basic components for a unit
                 esper.add_component(entity, PositionComponent(x, y))
                 esper.add_component(entity, HealthComponent(100, 100))
                 esper.add_component(entity, TeamComponent(Team.ALLY.value if i < num_units // 2 else Team.ENEMY.value))
@@ -418,26 +418,26 @@ class GaladBenchmark:
 
                 # Add a sprite if possible
                 try:
-                    # Sprite simple (we avoid errors)
+                    # Simple sprite (we avoid errors)
                     pass
                 except:
-                    pass  # Sprite optionnel
+                    pass  # Optional sprite
 
                 units_created += 1
             except Exception as e:
                 if self.verbose:
-                    print(f"Erreur création unité {i}: {e}")
+                    print(f"Unit creation error {i}: {e}")
                 continue
 
         if self.verbose:
-            print(f"📊 {units_created} unités créées sur la map")
+            print(f"📊 {units_created} units created on the map")
 
-        # Simulate game frames avec logique de gameplay
+        # Simulate game frames with gameplay logic
         start_time = time.perf_counter()
         frame_count = 0
         clock = pygame.time.Clock()
 
-        # Statistiques de simulation
+        # Simulation statistics
         movements_processed = 0
         collisions_checked = 0
         events_spawned = 0
@@ -446,12 +446,12 @@ class GaladBenchmark:
             dt = clock.tick(60) / 1000.0  # 60 FPS max
 
             try:
-                # Simulation de logique de gameplay basique
+                # Basic gameplay logic simulation
 
-                # 1. Mouvement des units (simulation)
+                # 1. Unit movement (simulation)
                 for ent, (pos, vel) in esper.get_components(PositionComponent, VelocityComponent):
-                    # Déplacement simple basé sur la vitesse
-                    direction = random.uniform(0, 2 * 3.14159)  # Direction aléatoire
+                    # Simple movement based on speed
+                    direction = random.uniform(0, 2 * 3.14159)  # Random direction
                     speed = vel.currentSpeed * dt * 30
 
                     pos.x += speed * random.uniform(-1, 1)
@@ -475,7 +475,7 @@ class GaladBenchmark:
                             if distance < 20:  # Collision if < 20 pixels
                                 collisions_checked += 1
 
-                # 3. Spawn d'événements aléatoires (coffres volants)
+                # 3. Spawn random events (flying chests)
                 if random.random() < 0.01:  # 1% chance per frame
                     try:
                         chest_entity = esper.create_entity()
@@ -491,7 +491,7 @@ class GaladBenchmark:
                     except:
                         pass
 
-                # 4. Mise à jour des components volants (FlyingChest)
+                # 4. Update flying components (FlyingChest)
                 for ent, (pos, vel, flying_chest) in esper.get_components(PositionComponent, VelocityComponent, FlyingChestComponent):
                     # Vertical movement
                     pos.y += vel.currentSpeed * dt * 10
@@ -506,21 +506,21 @@ class GaladBenchmark:
 
             except Exception as e:
                 if self.verbose:
-                    print(f"Erreur lors de la simulation frame {frame_count}: {e}")
+                    print(f"Error during simulation frame {frame_count}: {e}")
                 break
 
         end_time = time.perf_counter()
         duration = end_time - start_time
 
-        # Calculer les Average FPS
+        # Calculate average FPS
         avg_fps = frame_count / duration if duration > 0 else 0
 
         if self.verbose:
-            print(f"🎬 Frames simulées: {frame_count}")
-            print(f"🎯 FPS moyens: {avg_fps:.1f}")
-            print(f"🏃 Mouvements traités: {movements_processed}")
-            print(f"💥 Collisions vérifiées: {collisions_checked}")
-            print(f"🎁 Événements spawnés: {events_spawned}")
+            print(f"🎬 Simulated frames: {frame_count}")
+            print(f"🎯 Average FPS: {avg_fps:.1f}")
+            print(f"🏃 Movements processed: {movements_processed}")
+            print(f"💥 Collisions checked: {collisions_checked}")
+            print(f"🎁 Events spawned: {events_spawned}")
 
         # Clean up
         self._cleanup_esper()
@@ -550,7 +550,7 @@ class GaladBenchmark:
                 results.append(result)
                 self.results.append(result)
             except Exception as e:
-                print(f"❌ Erreur dans {benchmark_func.__name__}: {e}")
+                print(f"❌ Error in {benchmark_func.__name__}: {e}")
                 continue
 
         return results
@@ -558,7 +558,7 @@ class GaladBenchmark:
     def print_summary(self):
         """Display a summary of results."""
         print("\n" + "="*70)
-        print("📊 RÉSUMÉ DES BENCHMARKS GALAD ISLANDS")
+        print("📊 GALAD ISLANDS BENCHMARKS SUMMARY")
         print("="*70)
 
         total_ops = 0
@@ -566,21 +566,21 @@ class GaladBenchmark:
 
         for result in self.results:
             print(f"\n🔹 {result.name.upper()}:")
-            print(f"   ⏱️  Durée: {result.duration:.2f}s")
-            print(f"   🔢 Opérations: {result.operations}")
+            print(f"   ⏱️  Duration: {result.duration:.2f}s")
+            print(f"   🔢 Operations: {result.operations}")
             print(f"   ⚡ Ops/sec: {result.ops_per_second:.0f}")
-            print(f"   💾 Mémoire: {result.memory_mb:.2f} MB")
+            print(f"   💾 Memory: {result.memory_mb:.2f} MB")
 
             total_ops += result.operations
             total_time += result.duration
 
         if self.results:
             avg_ops_per_sec = sum(r.ops_per_second for r in self.results) / len(self.results)
-            print(f"\n🎯 MOYENNE GLOBALE: {avg_ops_per_sec:.0f} ops/sec")
-            print(f"📈 TOTAL OPÉRATIONS: {total_ops}")
-            print(f"⏱️  TEMPS TOTAL: {total_time:.2f}s")
+            print(f"\n🎯 GLOBAL AVERAGE: {avg_ops_per_sec:.0f} ops/sec")
+            print(f"📈 TOTAL OPERATIONS: {total_ops}")
+            print(f"⏱️  TOTAL TIME: {total_time:.2f}s")
 
-        print("\n✅ Benchmarks terminés!")
+        print("\n✅ Benchmarks completed!")
 
     def save_results(self, filename: str):
         """Save results."""
@@ -605,25 +605,25 @@ class GaladBenchmark:
 
 def main():
     """Main function."""
-    parser = argparse.ArgumentParser(description="Benchmark simple pour Galad Islands")
+    parser = argparse.ArgumentParser(description="Simple benchmark for Galad Islands")
     parser.add_argument("--duration", "-d", type=int, default=10,
-                       help="Durée de chaque test en secondes (défaut: 10)")
+                       help="Duration of each test in seconds (default: 10)")
     parser.add_argument("--output", "-o", type=str,
-                       help="Fichier de sortie pour les résultats JSON")
+                       help="Output file for JSON results")
     parser.add_argument("--verbose", "-v", action="store_true",
-                       help="Mode verbeux")
+                       help="Verbose mode")
     parser.add_argument("--full-game-only", action="store_true",
-                       help="Exécuter seulement le benchmark de simulation complète du jeu")
+                       help="Run only the full game simulation benchmark")
 
     args = parser.parse_args()
 
-    print("🚀 Démarrage des benchmarks Galad Islands...")
-    print(f"⏱️  Durée par test: {args.duration}s")
+    print("🚀 Starting Galad Islands benchmarks...")
+    print(f"⏱️  Duration per test: {args.duration}s")
 
     benchmark = GaladBenchmark(duration=args.duration, verbose=args.verbose)
-    
+
     if args.full_game_only:
-        print("🎮 Exécution du benchmark de simulation complète du jeu...")
+        print("🎮 Running full game simulation benchmark...")
         results = [benchmark.benchmark_full_game_simulation()]
     else:
         results = benchmark.run_all_benchmarks()
@@ -632,7 +632,7 @@ def main():
 
     if args.output:
         benchmark.save_results(args.output)
-        print(f"\n💾 Résultats sauvegardés dans: {args.output}")
+        print(f"\n💾 Results saved to: {args.output}")
 
 
 if __name__ == "__main__":
