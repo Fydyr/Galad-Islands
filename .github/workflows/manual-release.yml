@@ -56,6 +56,17 @@ jobs:
                       --exclude-module Pillow \
                       --exclude-module sklearn \
                       --exclude-module joblib
+          # Build Marauder AI Cleaner
+          pyinstaller --onefile --windowed tools/maraudeur_ai_cleaner.py --name MaraudeurAiCleaner \
+                      --add-data "assets/locales${SEP}assets/locales" \
+                      --add-data "src${SEP}src" \
+                      --exclude-module esper \
+                      --exclude-module llvmlite \
+                      --exclude-module numba \
+                      --exclude-module numpy \
+                      --exclude-module Pillow \
+                      --exclude-module sklearn \
+                      --exclude-module joblib \
 
 
       - name: Archive build
@@ -64,6 +75,7 @@ jobs:
           mkdir -p galad-islands-windows
           copy dist\galad-islands.exe galad-islands-windows\
           copy dist\galad-config-tool.exe galad-islands-windows\
+          copy dist\MaraudeurAiCleaner.exe galad-islands-windows\
           copy RELEASE_README.md galad-islands-windows\README.md
           mkdir galad-islands-windows\models
             # Les assets et modèles sont inclus dans l'exécutable via --add-data, pas besoin de les copier
@@ -76,11 +88,13 @@ jobs:
           mkdir -p galad-islands-${{ runner.os }}
           cp dist/galad-islands galad-islands-${{ runner.os }}/
           cp dist/galad-config-tool galad-islands-${{ runner.os }}/
+          cp dist/MaraudeurAiCleaner galad-islands-${{ runner.os }}/
           cp RELEASE_README.md galad-islands-${{ runner.os }}/README.md
           mkdir -p galad-islands-${{ runner.os }}/models
             # Les assets et modèles sont inclus dans l'exécutable via --add-data, pas besoin de les copier
           chmod +x galad-islands-${{ runner.os }}/galad-islands
           chmod +x galad-islands-${{ runner.os }}/galad-config-tool
+          chmod +x galad-islands-${{ runner.os }}/MaraudeurAiCleaner
           zip -r galad-islands-${{ runner.os }}.zip galad-islands-${{ runner.os }}
 
       - name: Upload Release Asset
@@ -101,6 +115,7 @@ jobs:
             Chaque archive contient :
             - `galad-islands` : Le jeu principal
             - `galad-config-tool` : Outil de configuration autonome (Tkinter)
+            - `MaraudeurAiCleaner` : Outil de nettoyage des modèles d'IA (Tkinter)
             
             📖 Consultez le fichier `README.md` inclus dans l'archive pour les instructions d'installation.
             

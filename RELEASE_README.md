@@ -12,26 +12,40 @@
 galad-islands/
 ├── galad-islands (ou galad-islands.exe sur Windows)
 ├── galad-config-tool (ou galad-config-tool.exe sur Windows)
-└── assets/
-    ├── image/
-    ├── sounds/
-    ├── sprites/
-    └── ...
+├── MaraudeurAiCleaner (ou MaraudeurAiCleaner.exe sur Windows)
+└── models/ (créé automatiquement si nécessaire)
 ```
 
-## ⚙️ Outil de configuration
+## ⚙️ Outils inclus
 
-Cette release inclut **Galad Config Tool**, un utilitaire pour configurer le jeu sans le lancer :
+Cette release inclut plusieurs utilitaires pour améliorer votre expérience :
+
+### Galad Config Tool
+Configurez le jeu sans le lancer :
 
 - **Lancement** : Double-clic sur `galad-config-tool` 
 - **Fonctions** : Résolutions, audio, contrôles, langue
 - **Avantage** : Configuration avant de jouer
 
-### Guide rapide
+#### Guide rapide
 1. Ouvrir `galad-config-tool`
 2. Modifier les paramètres dans les onglets
 3. Cliquer "Appliquer"
 4. Lancer le jeu
+
+### Maraudeur AI Cleaner
+Gérez les modèles d'apprentissage de l'IA des Maraudeurs :
+
+- **Lancement** : Double-clic sur `MaraudeurAiCleaner`
+- **Fonctions** : 
+  - Visualiser les modèles existants
+  - Supprimer les modèles sélectionnés
+  - Garder uniquement les N plus récents
+  - Supprimer les modèles plus vieux que X jours
+  - Ouvrir le dossier des modèles
+- **Langue** : Suit automatiquement la langue du jeu (FR/EN)
+
+**Note** : Supprimer les modèles est sans risque - l'IA les recréera automatiquement lors du prochain jeu.
 
 ## 🔧 Dépannage
 

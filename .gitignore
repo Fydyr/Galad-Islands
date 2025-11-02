@@ -87,3 +87,4 @@ HOOKS_UNIVERSAL.md
 
 # Fichiers générés par l'IA
 *.npz
+.clean_models_gui.json
