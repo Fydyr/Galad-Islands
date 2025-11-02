@@ -448,7 +448,8 @@ class BarhamusAI:
                     min_radius = 7 * TILE_SIZE  # ne pas entrer à l'intérieur
                     if base_dist < min_radius:
                         # Forcer un éloignement immédiat de la base (prévenir les dégâts)
-                        away = self._angle_to(dx, dy)
+                        # IMPORTANT: le MovementProcessor soustrait le vecteur, donc pour reculer on prend (base - pos)
+                        away = self._angle_to(enemy_base[0] - pos.x, enemy_base[1] - pos.y)
                         vel.currentSpeed = max(vel.maxUpSpeed * 0.6, 3.0)
                         return away
         except Exception:
@@ -1112,11 +1113,24 @@ class BarhamusAI:
                     base_dist = math.hypot(pos.x - enemy_base_pos[0], pos.y - enemy_base_pos[1])
                     if base_dist < min_radius:
                         # S'éloigner de la base
-                        away_angle = self._angle_to(pos.x - enemy_base_pos[0], pos.y - enemy_base_pos[1])
+                        # IMPORTANT: le MovementProcessor soustrait, donc pour reculer => (base - pos)
+                        away_angle = self._angle_to(enemy_base_pos[0] - pos.x, enemy_base_pos[1] - pos.y)
                         pos.direction = self._smooth_turn(pos.direction, away_angle, max_delta=18.0)
                         vel.currentSpeed = 3.2
                         print(f"Barhamus {self.entity}: Trop proche de la base ({base_dist/TILE_SIZE:.1f}t) — recul de sécurité")
                         return
+
+                    # Si on est à portée "safe" de la base et avec une ligne de vue claire, s'arrêter totalement
+                    try:
+                        self._create_navigation_grid()
+                        if min_radius <= base_dist <= safe_radius and self._grid_line_clear((pos.x, pos.y), enemy_base_pos):
+                            hold_angle = self._angle_to(pos.x - enemy_base_pos[0], pos.y - enemy_base_pos[1])
+                            pos.direction = self._smooth_turn(pos.direction, hold_angle, max_delta=15.0)
+                            vel.currentSpeed = 0.0
+                            print(f"Barhamus {self.entity}: À portée de la base — maintien de position")
+                            return
+                    except Exception:
+                        pass
 
                     # Choisir un point de positionnement autour de la base avec LoS
                     standoff = self._compute_standoff_point(enemy_base_pos, (pos.x, pos.y), safe_radius)
@@ -1163,10 +1177,18 @@ class BarhamusAI:
                             print(f"Barhamus {self.entity}: Vers standoff (fallback direct)")
                     else:
                         # Ligne directe vers le standoff
-                        move_angle = self._angle_to(pos.x - standoff[0], pos.y - standoff[1])
-                        pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
-                        vel.currentSpeed = 3.6
-                        print(f"Barhamus {self.entity}: Vers standoff (LoS OK)")
+                        # Si on atteint le standoff (proche) et qu'on a LoS vers la base, arrêter le mouvement
+                        if math.hypot(pos.x - standoff[0], pos.y - standoff[1]) < TILE_SIZE * 1.5 and self._grid_line_clear((standoff[0], standoff[1]), enemy_base_pos):
+                            hold_angle = self._angle_to(pos.x - enemy_base_pos[0], pos.y - enemy_base_pos[1])
+                            pos.direction = self._smooth_turn(pos.direction, hold_angle, max_delta=15.0)
+                            vel.currentSpeed = 0.0
+                            print(f"Barhamus {self.entity}: Arrivé au standoff — maintien de position")
+                            return
+                        else:
+                            move_angle = self._angle_to(pos.x - standoff[0], pos.y - standoff[1])
+                            pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
+                            vel.currentSpeed = 3.6
+                            print(f"Barhamus {self.entity}: Vers standoff (LoS OK)")
                 else:
                     # Pas de base trouvée : patrouiller
                     self._action_patrol(pos, vel)
