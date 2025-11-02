@@ -11,6 +11,7 @@ import pygame
 class LocalizationManager:
     _instance = None
     _translations = {}
+    _tool_translations = {}
     _current_language = "fr"
     
     def __new__(cls):
@@ -39,6 +40,8 @@ class LocalizationManager:
             # Charger le module de traduction
             translation_module = importlib.import_module(module_name)
             self._translations = translation_module.TRANSLATIONS
+            # Invalidate cached tool translations when language changes
+            self._tool_translations = {}
             
             # Use ASCII-only logging to avoid encoding issues in frozen binaries
             print(f"[OK] Translations loaded for language: {self._current_language}")
@@ -95,9 +98,41 @@ class LocalizationManager:
         tips = self.get_all_tips()
         return random.choice(tips) if tips else self.t('system.no_tips_available')
     
-    def translate(self, key, **kwargs):
-        """Traduit une clé en utilisant les paramètres fournis"""
-        translation = self._translations.get(key, key)
+    def _load_tool_translations(self, tool_name: str):
+        """Charge les traductions spécifiques à un outil si disponibles.
+
+        Convention des modules: assets.locales.tools.<tool_name>_<lang>
+        Exemple: assets.locales.tools.clean_models_gui_fr
+        Fallback: essaie la langue actuelle, puis 'fr'. En cas d'échec: dict vide.
+        """
+        lang = self._current_language
+        for candidate_lang in (lang, "fr"):
+            module_name = f"assets.locales.tools.{tool_name}_{candidate_lang}"
+            try:
+                module = importlib.import_module(module_name)
+                translations = getattr(module, "TRANSLATIONS", {})
+                if isinstance(translations, dict):
+                    self._tool_translations[tool_name] = translations
+                    return
+            except ImportError:
+                continue
+        self._tool_translations[tool_name] = {}
+
+    def translate(self, key, tool: str | None = None, default: str | None = None, **kwargs):
+        """Traduit une clé en utilisant les paramètres fournis.
+
+        - tool: nom d'outil (None = dictionnaire du jeu)
+        - default: valeur par défaut si non trouvée
+        """
+        if tool:
+            if tool not in self._tool_translations:
+                self._load_tool_translations(tool)
+            catalog = self._tool_translations.get(tool, {})
+            translation = catalog.get(key, None)
+            if translation is None:
+                translation = self._translations.get(key, key)
+        else:
+            translation = self._translations.get(key, key)
         
         # Remplacer les paramètres in la traduction
         if kwargs:
@@ -106,20 +141,25 @@ class LocalizationManager:
             except (KeyError, ValueError):
                 pass
         
+        if translation == key and default is not None:
+            try:
+                return default.format(**kwargs)
+            except Exception:
+                return default
         return translation
     
-    def t(self, key, **kwargs):
-        """Raccourci pour translate()"""
-        return self.translate(key, **kwargs)
+    def t(self, key, tool: str | None = None, default: str | None = None, **kwargs):
+        """Raccourci pour translate() avec support des outils et valeur par défaut."""
+        return self.translate(key, tool=tool, default=default, **kwargs)
 
 
 # Instance globale du gestionnaire
 _localization_manager = LocalizationManager()
 
 # Fonctions utilitaires globales
-def t(key, **kwargs):
-    """Fonction globale pour traduire"""
-    return _localization_manager.translate(key, **kwargs)
+def t(key, tool: str | None = None, default: str | None = None, **kwargs):
+    """Fonction globale pour traduire (jeu par défaut, outils via 'tool')."""
+    return _localization_manager.translate(key, tool=tool, default=default, **kwargs)
 
 def set_language(language_code):
     """Fonction globale pour changer de langue"""

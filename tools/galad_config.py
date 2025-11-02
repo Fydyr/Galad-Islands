@@ -40,6 +40,19 @@ from src.settings import controls
 import pygame # justte pour que ça se lance
 
 
+# Namespace de localisation spécifique à cet outil
+TOOL_NS = 'galad_config_tool'
+
+
+def _T(key: str, default: str | None = None, **kwargs) -> str:
+    """Traduction via le gestionnaire central pour l'outil Galad Config Tool.
+    - key: clé de traduction
+    - default: valeur anglaise par défaut si la clé n'existe pas
+    - kwargs: paramètres de formatage
+    """
+    return t(key, tool=TOOL_NS, default=default, **kwargs)
+
+
 def load_config():
     try:
         if CONFIG_PATH.exists():
@@ -47,24 +60,18 @@ def load_config():
         else:
             # Afficher un message d'avertissement bilingue (FR + EN) in une popup Tkinter
             try:
-                fr = (
-                    f"Fichier de configuration manquant:\n{CONFIG_PATH}\n\n"
-                    "Un nouveau fichier sera créé automatiquement lors de la première sauvegarde."
+                messagebox.showwarning(
+                    _T('warn.config_missing.title', default='Missing configuration file'),
+                    _T('warn.config_missing.message', default='Configuration file not found:\n{path}\n\nA new file will be created automatically on first save.', path=CONFIG_PATH)
                 )
-                en = (
-                    f"Configuration file not found: {CONFIG_PATH}\n\n"
-                    "A new file will be created automatically on first save."
-                )
-                messagebox.showwarning("Fichier de configuration manquant / Missing configuration file", fr + "\n\n" + en)
             except Exception as e:
                 print(f"Warning popup failed: {e}")  # Log si Tkinter n'est pas initialisé
     except Exception as e:
         try:
-            fr = (f"Erreur lors du chargement de la configuration :\n{str(e)}\n\n"
-                  "Utilisation des valeurs par défaut.")
-            en = (f"Error loading configuration: {str(e)}\n\n"
-                  "Using defaults.")
-            messagebox.showerror("Erreur de configuration / Configuration error", fr + "\n\n" + en)
+            messagebox.showerror(
+                _T('error.config_load.title', default='Configuration error'),
+                _T('error.config_load.message', default='Error loading configuration:\n{error}\n\nUsing defaults.', error=str(e))
+            )
         except Exception as e:
             print(f"Error popup failed: {e}")  # Log si Tkinter n'est pas initialisé
     return {}
@@ -81,7 +88,7 @@ def save_resolutions_list(res_list):
 class GaladConfigApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Galad Config Tool")
+        self.title(_T('window.title', default='Galad Config Tool'))
         self.geometry("700x800")
         self.resizable(True, True)
 
@@ -97,8 +104,8 @@ class GaladConfigApp(tk.Tk):
         except Exception:
             if not RES_PATH.exists():
                 messagebox.showinfo(
-                    "Résolutions personnalisées",
-                    f"Aucun fichier de résolutions personnalisées trouvé.\n\nIl sera créé automatiquement lors de l'ajout de votre première résolution personnalisée.\n\nEmplacement : {RES_PATH.name}"
+                    _T('info.custom_res.title', default='Custom resolutions'),
+                    _T('info.custom_res.message', default='No custom resolutions file found.\n\nIt will be created automatically when you add your first custom resolution.\n\nLocation: {name}', name=RES_PATH.name)
                 )
             self.customs = []
 
@@ -355,7 +362,7 @@ class GaladConfigApp(tk.Tk):
             w = int(self.w_var.get())
             h = int(self.h_var.get())
         except Exception:
-            messagebox.showerror('Erreur', t('options.custom_resolution_invalid'))
+            messagebox.showerror(_T('dialog.error.title', default='Error'), t('options.custom_resolution_invalid'))
             return
         self.customs.append((w,h))
         save_resolutions_list([list(x) for x in self.customs])
@@ -375,7 +382,7 @@ class GaladConfigApp(tk.Tk):
         idx = sel[0]
         w,h,lab = self.res_entries[idx]
         if (w,h) not in self.customs:
-            messagebox.showerror('Erreur', t('options.cannot_remove_builtin_resolution'))
+            messagebox.showerror(_T('dialog.error.title', default='Error'), t('options.cannot_remove_builtin_resolution'))
             return
         self.customs.remove((w,h))
         save_resolutions_list([list(x) for x in self.customs])
@@ -392,7 +399,7 @@ class GaladConfigApp(tk.Tk):
 
     def _on_reset(self):
         reset_to_defaults()
-        messagebox.showinfo('OK', 'Paramètres remis aux valeurs par défaut')
+        messagebox.showinfo(_T('dialog.ok.title', default='OK'), _T('msg.reset_done', default='Settings reset to defaults'))
         self.config_data = load_config()
         self._populate_resolutions()
 
@@ -448,7 +455,7 @@ class GaladConfigApp(tk.Tk):
                 subprocess.Popen([sys.executable] + sys.argv)
                 return
         
-        messagebox.showinfo('OK', 'Paramètres appliqués')
+        messagebox.showinfo(_T('dialog.ok.title', default='OK'), _T('msg.apply_done', default='Settings applied'))
 
     def _build_controls_tab(self, parent):
         """Create editable controls bindings UI: label + combobox for each action."""
@@ -580,8 +587,8 @@ class GaladConfigApp(tk.Tk):
     def _browse_config_file(self):
         """Ouvrir un dialog pour sélectionner le file galad_config.json"""
         filename = filedialog.askopenfilename(
-            title="Sélectionner le fichier de configuration",
-            filetypes=[("Fichiers JSON", "*.json"), ("Tous les fichiers", "*.*")],
+            title=_T('dialog.config.title', default='Select configuration file'),
+            filetypes=[(_T('dialog.filetypes.json', default='JSON files'), "*.json"), (_T('dialog.filetypes.all', default='All files'), "*.*")],
             initialdir=str(CONFIG_PATH.parent),
             initialfile=CONFIG_PATH.name
         )
@@ -591,8 +598,8 @@ class GaladConfigApp(tk.Tk):
     def _browse_res_file(self):
         """Ouvrir un dialog pour sélectionner le file galad_resolutions.json"""
         filename = filedialog.askopenfilename(
-            title="Sélectionner le fichier des résolutions personnalisées",
-            filetypes=[("Fichiers JSON", "*.json"), ("Tous les fichiers", "*.*")],
+            title=_T('dialog.res.title', default='Select custom resolutions file'),
+            filetypes=[(_T('dialog.filetypes.json', default='JSON files'), "*.json"), (_T('dialog.filetypes.all', default='All files'), "*.*")],
             initialdir=str(RES_PATH.parent),
             initialfile=RES_PATH.name
         )
@@ -613,18 +620,18 @@ class GaladConfigApp(tk.Tk):
                 CONFIG_PATH = new_config_path
             elif new_config_path.parent.exists():
                 CONFIG_PATH = new_config_path
-                warnings.append(f"Config: {new_config_path.name} sera créé")
+                warnings.append(_T('apply_paths.warn.config_will_create', default='Config: {name} will be created', name=new_config_path.name))
             else:
-                warnings.append(f"Config: dossier {new_config_path.parent} introuvable")
+                warnings.append(_T('apply_paths.warn.config_dir_missing', default='Config: folder {parent} not found', parent=new_config_path.parent))
                 
             # Check le file des résolutions
             if new_res_path.exists():
                 RES_PATH = new_res_path
             elif new_res_path.parent.exists():
                 RES_PATH = new_res_path
-                warnings.append(f"Résolutions: {new_res_path.name} sera créé")
+                warnings.append(_T('apply_paths.warn.res_will_create', default='Resolutions: {name} will be created', name=new_res_path.name))
             else:
-                warnings.append(f"Résolutions: dossier {new_res_path.parent} introuvable")
+                warnings.append(_T('apply_paths.warn.res_dir_missing', default='Resolutions: folder {parent} not found', parent=new_res_path.parent))
                 
             # Recharger les données avec les nouveaux chemins
             self.config_data = load_config()
@@ -636,13 +643,13 @@ class GaladConfigApp(tk.Tk):
             self._populate_resolutions()
             
             if warnings:
-                msg = "⚠️ Chemins appliqués avec avertissements:\n" + "\n".join(warnings)
+                msg = "⚠️ " + _T('apply_paths.warn.prefix', default='Paths applied with warnings:') + "\n" + "\n".join(warnings)
                 self.info_label.configure(text=msg, foreground="orange")
             else:
-                self.info_label.configure(text="✅ Chemins appliqués avec succès", foreground="green")
+                self.info_label.configure(text="✅ " + _T('apply_paths.ok', default='Paths applied successfully'), foreground="green")
             
         except Exception as e:
-            self.info_label.configure(text=f"❌ Erreur: {str(e)}", foreground="red")
+            self.info_label.configure(text="❌ " + _T('apply_paths.error', default='Error: {error}', error=str(e)), foreground="red")
 
 
 if __name__ == '__main__':
