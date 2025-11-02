@@ -1,5 +1,38 @@
 # 🧾 Changelog
 
+## v0.11.0 (2025-11-02)
+
+### Feat
+
+- ajout de la vérification automatique des mises à jour et de la section correspondante dans les options
+- ajout de la vérification des mises à jour et notification à l'utilisateur
+- ajout de nouveaux scénarios pour l'entraînement de l'IA Barhamus, incluant la navigation et l'évitement d'obstacles
+- mise à jour des traductions pour les sélections d'équipe dans les fichiers anglais et français pour refléter celui du jeu
+- ajout de l'outil GUI Maraudeur AI Cleaner pour gérer le nettoyage des modèles d'IA
+- mise à jour de la gestion des traductions pour que les outils ait leur propre fichier de traduction
+- amélioration des paramètres de sécurité et de la logique d'exploration pour l'IA du Scout
+- ajout de la gestion de la santé des unités pour mieux compter les unités dans le processeur de revenu passif
+- ajout de la gestion des architectes et des priorités de construction dans l'IA de base
+- ajout d'un processeur de revenu passif pour éviter les blocages économiques
+- amélioration de l'IA du Scout, le rendent moins agressif, plus explorateur et à la recherche de ressources
+
+### Fix
+
+- mise à jour des noms pour coller au lore et ajout de classes d'unités dans la boutique
+- réduction des logs au minimum pour la mise en production
+- augmentation de la taille visuelle et de la portée des tempêtes pour un impact renforcé
+- phase finale: mise à jour des tests et réglages de dernière minutes
+- mise à jour du modèle pré-entraîné de Barhamus
+- exclusion explicite des unités alliées et des navires bandits dans le service de prédiction
+- amélioration du pathfinding du Kamikaze
+- amélioration de la logique de recul et de maintien de position pour l'IA Barhamus près de la base ennemie
+- mise à jour de la logique de décision de l'IA de la base pour garantir que l'action est toujours déterminée
+- mise à jour des commentaires en anglais (partiel)
+
+### Refactor
+
+- mise à jour des commentaires en anglais (partiellement fini)
+
 ## v0.10.0 (2025-10-30)
 
 ### ✨ Feat
