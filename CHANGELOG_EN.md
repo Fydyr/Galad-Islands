@@ -1,5 +1,13 @@
 # 🧾 Changelog
 
+## v0.11.1 (2025-11-02)
+
+### Fix
+
+- fix path resolution for documentation files using get_resource_path
+- improve path resolution for galad_resolutions.json in both dev and compiled builds
+- enhance default model folder management to include user data folder in compiled version
+
 ## v0.11.0 (2025-11-02) - Pre-Release 1.0
 
 > **🎯 This version marks the final preparation before the 1.0 release!**  
