@@ -12,6 +12,7 @@ from typing import Tuple
 
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.playerComponent import PlayerComponent
+from src.components.core.healthComponent import HealthComponent
 from src.components.core.baseComponent import BaseComponent
 from src.components.core.towerComponent import TowerComponent
 from src.components.core.projectileComponent import ProjectileComponent
@@ -40,10 +41,13 @@ class PassiveIncomeProcessor(esper.Processor):
             self._give_gold(Team.ENEMY, self.gold_per_tick)
 
     def _count_mobile_units(self) -> Tuple[int, int]:
+        """Compte uniquement les unités mobiles pertinentes (avec santé),
+        en excluant bases, tours, projectiles et entités non-combat (ex: Player).
+        """
         ally_units = 0
         enemy_units = 0
-        for ent, team_comp in esper.get_component(TeamComponent):
-            # Skip non-combat entities
+        for ent, (team_comp, health_comp) in esper.get_components(TeamComponent, HealthComponent):
+            # Skip non-combat entities explicitly
             if esper.has_component(ent, BaseComponent) or esper.has_component(ent, TowerComponent):
                 continue
             if esper.has_component(ent, ProjectileComponent):
