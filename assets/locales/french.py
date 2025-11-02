@@ -24,8 +24,8 @@ TRANSLATIONS = {
     "gamemode.ai_vs_ai": "IA vs IA (Spectateur)",
     
     # Noms des bases
-    "base.ally_name": "Base Alliée",
-    "base.enemy_name": "Base Ennemie",
+    "base.ally_name": "Forteresse d’Eryndor",
+    "base.enemy_name": "Forteresse Barakdur",
     
     # Debug/Développement    
     # Options
@@ -148,13 +148,21 @@ TRANSLATIONS = {
     "controls.zoom": "Zoom avant/arrière",
     "controls.escape": "Quitter la vue carte",
     
-    # Unités
-    "units.zasper": "Zasper (Scout Léger)",
-    "units.barhamus": "Barhamus (Maraudeur Moyen)",
-    "units.draupnir": "Draupnir (Léviathan Lourd)",
-    "units.druid": "Druid",
-    "units.architect": "Architect",
+    # Unités - Flotte de l'Aube (Alliés)
+    "units.zasper": "Zasper",
+    "units.barhamus": "Barhamus",
+    "units.draupnir": "Draupnir",
+    "units.druid": "Druide",
+    "units.architect": "Architecte",
     "units.kamikaze": "Kamikaze",
+    
+    # Unités - Légion des Abysses (Ennemis)
+    "units.enemy_scout": "Rôdeur des Brumes",
+    "units.enemy_warrior": "Pillard Céleste",
+    "units.enemy_brute": "Colosse du Chaos",
+    "units.enemy_shaman": "Chaman des Vents",
+    "units.enemy_engineer": "Forgeur d'Abysses",
+    "units.enemy_kamikaze": "Furie Explosive",
     
     # Interface de jeu
     "game.instructions": "Flèches: Déplacer | Molette: Zoom | F3: Debug | Échap: Quitter",
@@ -270,6 +278,15 @@ TRANSLATIONS = {
     "shop.stats.heal": "SOIN",
     "shop.stats.support": "SUPPORT",
     "shop.stats.range": "Portée",
+    "shop.stats.class": "Classe",
+
+    # Classes d'unités
+    "class.scout": "Scout",
+    "class.marauder": "Maraudeur",
+    "class.leviathan": "Léviathan",
+    "class.druid": "Druide",
+    "class.architect": "Architecte",
+    "class.kamikaze": "Kamikaze",
     
     # Descriptions des unités dans la boutique
     "shop.zasper_desc": "Scout rapide et polyvalent",
@@ -329,21 +346,21 @@ TRANSLATIONS = {
     "mode.attack": "Attaque",
     "mode.normal": "Normal",
     
-    # Boutique ennemie (boutique2.py)
-    "enemy_shop.title": "BOUTIQUE",
-    "enemy_shop.subtitle": "Commandez vos troupes maléfiques",
-    "enemy_shop.scout": "Éclaireur Ennemi",
-    "enemy_shop.scout_desc": "Scout rapide et agressif",
-    "enemy_shop.warrior": "Guerrier Ennemi", 
-    "enemy_shop.warrior_desc": "Combattant robuste et brutal",
-    "enemy_shop.brute": "Brute Ennemie",
-    "enemy_shop.brute_desc": "Unité lourde destructrice",
-    "enemy_shop.shaman": "Chaman Ennemi",
-    "enemy_shop.shaman_desc": "Soigneur et soutien maléfique",
-    "enemy_shop.engineer": "Ingénieur Ennemi",
-    "enemy_shop.engineer_desc": "Constructeur de pièges",
-    "enemy_shop.kamikaze": "Kamikaze Ennemi",
-    "enemy_shop.kamikaze_desc": "Unité rapide et agressive",
+    # Boutique ennemie - Légion des Abysses
+    "enemy_shop.title": "Boutique",
+    "enemy_shop.subtitle": "Invoquez les forces du chaos",
+    "enemy_shop.scout": "Rôdeur des Brumes",
+    "enemy_shop.scout_desc": "Scout rapide et furtif",
+    "enemy_shop.warrior": "Pillard Céleste", 
+    "enemy_shop.warrior_desc": "Combattant brutal des cieux",
+    "enemy_shop.brute": "Colosse du Chaos",
+    "enemy_shop.brute_desc": "Titan destructeur",
+    "enemy_shop.shaman": "Chaman des Vents",
+    "enemy_shop.shaman_desc": "Soigneur mystique",
+    "enemy_shop.engineer": "Forgeur d'Abysses",
+    "enemy_shop.engineer_desc": "Architecte du chaos",
+    "enemy_shop.kamikaze": "Furie Explosive",
+    "enemy_shop.kamikaze_desc": "Sacrifice dévastateur",
     "enemy_shop.attack_tower": "Tour de Défense",
     "enemy_shop.attack_tower_desc": "Tour offensive redoutable",
     "enemy_shop.heal_tower": "Tour de Régénération", 

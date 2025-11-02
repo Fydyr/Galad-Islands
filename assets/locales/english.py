@@ -24,8 +24,8 @@ TRANSLATIONS = {
     "gamemode.ai_vs_ai": "AI vs AI (Spectator)",
     
     # Base names
-    "base.ally_name": "Allied Base",
-    "base.enemy_name": "Enemy Base",
+  "base.ally_name": "Fortress of Eryndor",
+  "base.enemy_name": "Fortress of Barakdur",
     
     # Debug/Developmenttions
     "options.title": "Options",
@@ -147,13 +147,21 @@ TRANSLATIONS = {
     "controls.zoom": "Zoom In/Out",
     "controls.escape": "Exit Map View",
     
-    # Units
-    "units.zasper": "Zasper (Light Scout)",
-    "units.barhamus": "Barhamus (Medium Marauder)",
-    "units.draupnir": "Draupnir (Heavy Leviathan)",
+    # Units - Dawn Fleet (Allies)
+  "units.zasper": "Zasper",
+  "units.barhamus": "Barhamus",
+  "units.draupnir": "Draupnir",
     "units.druid": "Druid",
     "units.architect": "Architect",
     "units.kamikaze": "Kamikaze",
+    
+    # Units - Abyss Legion (Enemies)
+    "units.enemy_scout": "Mist Prowler",
+    "units.enemy_warrior": "Sky Raider",
+    "units.enemy_brute": "Chaos Colossus",
+    "units.enemy_shaman": "Wind Shaman",
+    "units.enemy_engineer": "Abyss Forger",
+    "units.enemy_kamikaze": "Explosive Fury",
     
     # Game interface  
     "game.instructions": "Arrows: Move | Mouse Wheel: Zoom | F3: Debug | Esc: Quit",
@@ -207,7 +215,7 @@ TRANSLATIONS = {
     "debug.feedback.island_resources_spawned": "Island resources spawned successfully",
     "debug.feedback.events_cleared": "Events cleared successfully",
     "debug.feedback.no_valid_position": "No valid position found",
-  "debug.feedback.bandits_spawned": "Bandits spawned successfully",
+    "debug.feedback.bandits_spawned": "Bandits spawned successfully",
     "debug.feedback.bandits_failed": "Failed to spawn bandits",
     "debug.feedback.bandits_unavailable": "Bandits system not available",
     "debug.feedback.unlimited_vision": "Unlimited vision {status}",
@@ -282,6 +290,15 @@ TRANSLATIONS = {
     "shop.stats.heal": "HEAL",
     "shop.stats.support": "SUPPORT",
     "shop.stats.range": "Range",
+  "shop.stats.class": "Class",
+
+  # Unit classes
+  "class.scout": "Scout",
+  "class.marauder": "Marauder",
+  "class.leviathan": "Leviathan",
+  "class.druid": "Druid",
+  "class.architect": "Architect",
+  "class.kamikaze": "Kamikaze",
     
     # Unit descriptions in shop
     "shop.zasper_desc": "Fast and versatile scout",
@@ -343,22 +360,22 @@ TRANSLATIONS = {
     "mode.attack": "Attack",
     "mode.normal": "Normal",
     
-    # Enemy shop (boutique2.py)
+    # Enemy shop - Abyss Legion
     "enemy_shop.title": "SHOP",
-    "enemy_shop.subtitle": "Command your evil troops",
-    "enemy_shop.scout": "Enemy Scout",
-    "enemy_shop.scout_desc": "Fast and aggressive scout",
-    "enemy_shop.warrior": "Enemy Warrior",
-    "enemy_shop.warrior_desc": "Robust and brutal fighter", 
-    "enemy_shop.brute": "Enemy Brute",
-    "enemy_shop.brute_desc": "Heavy destructive unit",
-    "enemy_shop.shaman": "Enemy Shaman",
-    "enemy_shop.shaman_desc": "Healer and evil support",
-    "enemy_shop.engineer": "Enemy Engineer",
+    "enemy_shop.subtitle": "Summon the forces of chaos",
+    "enemy_shop.scout": "Mist Prowler",
+    "enemy_shop.scout_desc": "Fast and stealthy scout",
+    "enemy_shop.warrior": "Sky Raider",
+    "enemy_shop.warrior_desc": "Brutal fighter of the skies", 
+    "enemy_shop.brute": "Chaos Colossus",
+    "enemy_shop.brute_desc": "Destructive titan",
+    "enemy_shop.shaman": "Wind Shaman",
+    "enemy_shop.shaman_desc": "Mystical healer",
+    "enemy_shop.engineer": "Abyss Forger",
     "enemy_shop.q_engineer": "Enemy Q-Engineer", # New unit type
-    "enemy_shop.engineer_desc": "Trap constructor",
-    "enemy_shop.kamikaze": "Enemy Kamikaze",
-    "enemy_shop.kamikaze_desc": "Fast and aggressive unit",
+    "enemy_shop.engineer_desc": "Architect of chaos",
+    "enemy_shop.kamikaze": "Explosive Fury",
+    "enemy_shop.kamikaze_desc": "Devastating sacrifice",
     "enemy_shop.attack_tower": "Defense Tower",
     "enemy_shop.attack_tower_desc": "Formidable offensive tower",
     "enemy_shop.heal_tower": "Regeneration Tower",

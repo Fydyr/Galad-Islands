@@ -305,7 +305,7 @@ class UnifiedShop:
             config_data = dict(faction_config.stats)
             config_data["description_key"] = faction_config.description_key
 
-            short_desc = self._create_stats_description(faction_config.stats)
+            short_desc = self._create_stats_description(faction_config.stats, unit_type)
 
             item = ShopItem(
                 id=faction_config.shop_id,
@@ -348,9 +348,22 @@ class UnifiedShop:
         """Mappe un identifiant boutique to le type d'unit constant exposé par la factory."""
         return resolve_unit_type_from_shop_id(unit_id)
     
-    def _create_stats_description(self, config: Dict) -> str:
-        """creates une description formatée pour les statistiques d'une unit."""
-        short_desc = f"{t('shop.stats.life')}: {config.get('armure_max', 'N/A')}"
+    def _create_stats_description(self, config: Dict, unit_type: str) -> str:
+        """Crée une description formatée pour les statistiques d'une unité, incluant la classe."""
+        # Mappage type -> clé de classe localisée
+        type_to_class_key = {
+            UnitType.SCOUT: "class.scout",
+            UnitType.MARAUDEUR: "class.marauder",
+            UnitType.LEVIATHAN: "class.leviathan",
+            UnitType.DRUID: "class.druid",
+            UnitType.ARCHITECT: "class.architect",
+            UnitType.KAMIKAZE: "class.kamikaze",
+        }
+        class_key = type_to_class_key.get(unit_type, None)
+        class_label = t("shop.stats.class")
+        class_name = t(class_key) if class_key else "?"
+
+        short_desc = f"{class_label}: {class_name} | {t('shop.stats.life')}: {config.get('armure_max', 'N/A')}"
         
         if config.get('degats_min'):
             short_desc += f" | {t('shop.stats.attack')}: {config.get('degats_min')}-{config.get('degats_max')}"
