@@ -3,7 +3,7 @@
 GUI tool to manage Marauder (Barhamus) AI models.
 
 Features:
-- Select the models folder (defaults to <repo>/models)
+- Select the models folder (defaults to user data folder in releases, or <repo>/models in dev)
 - Prompt at startup if the default folder doesn't exist
 - List existing models in the selected folder
 - Delete selected models
@@ -31,7 +31,35 @@ from src.settings.localization import t as game_t # noqa: E402
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_MODELS_DIR = PROJECT_ROOT / "models"
+
+def get_default_models_dir() -> Path:
+    """Resolve the default folder where AI models are stored.
+
+    - In compiled releases (PyInstaller), we use the OS user data folder:
+      - Windows: %APPDATA%/GaladIslands
+      - Linux/macOS: ~/.local/share/GaladIslands
+    - In development, prefer a local repo folder if it exists.
+    """
+    app_name = "GaladIslands"
+    # Compiled executable (PyInstaller)
+    if getattr(sys, "frozen", False):
+        if os.name == "nt":
+            base = Path(os.environ.get("APPDATA", str(Path.home())))
+            return base / app_name
+        else:
+            return Path.home() / ".local" / "share" / app_name
+    # Development: try common locations
+    candidates = [
+        PROJECT_ROOT / "models",
+        PROJECT_ROOT / "src" / "models",
+        PROJECT_ROOT / "src" / "ia" / "models",
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    return PROJECT_ROOT / "models"
+
+DEFAULT_MODELS_DIR = get_default_models_dir()
 CONFIG_PATH = PROJECT_ROOT / ".clean_models_gui.json"
 
 PATTERNS = [
@@ -176,7 +204,7 @@ class CleanerGUI(tk.Tk):
             if res:
                 selected = filedialog.askdirectory(
                     title=self._t("dialog.browse.title", default="Select models folder"),
-                    initialdir=str(PROJECT_ROOT),
+                    initialdir=str(self.models_dir.parent if self.models_dir.parent.exists() else PROJECT_ROOT),
                 )
                 if selected:
                     self.models_dir = Path(selected)
