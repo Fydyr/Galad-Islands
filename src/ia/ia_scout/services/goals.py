@@ -94,27 +94,28 @@ class GoalEvaluator:
 
         base_objective = self._select_attack_base(context)
         if base_objective:
-            # Ajuster la position si elle est infranchissable
-            import math
-            import numpy as np
-            grid_pos = pathfinding.world_to_grid(base_objective.target_position)
-            if pathfinding._in_bounds(grid_pos):
-                tile_cost = pathfinding._tile_cost(grid_pos)
-                if np.isinf(tile_cost):  # Position infranchissable
-                    # Trouver une position alternative à portée de tir
-                    shooting_range = self.settings.shooting_range_tiles * TILE_SIZE
-                    optimal_distance = max(96.0, shooting_range * 0.85)
-                    # Essayer de trouver une position valide autour de la base
-                    for angle in range(0, 360, 45):  # Tester 8 directions
-                        rad_angle = math.radians(angle)
-                        candidate_x = base_objective.target_position[0] + math.cos(rad_angle) * optimal_distance
-                        candidate_y = base_objective.target_position[1] + math.sin(rad_angle) * optimal_distance
-                        candidate_grid = pathfinding.world_to_grid((candidate_x, candidate_y))
-                        if pathfinding._in_bounds(candidate_grid):
-                            candidate_cost = pathfinding._tile_cost(candidate_grid)
-                            if not np.isinf(candidate_cost):  # Position franchissable trouvée
-                                base_objective.target_position = (candidate_x, candidate_y)
-                                break
+            # Ajuster la position si elle est infranchissable (seulement si pathfinding disponible)
+            if pathfinding is not None:
+                import math
+                import numpy as np
+                grid_pos = pathfinding.world_to_grid(base_objective.target_position)
+                if pathfinding._in_bounds(grid_pos):
+                    tile_cost = pathfinding._tile_cost(grid_pos)
+                    if np.isinf(tile_cost):  # Position infranchissable
+                        # Trouver une position alternative à portée de tir
+                        shooting_range = self.settings.shooting_range_tiles * TILE_SIZE
+                        optimal_distance = max(96.0, shooting_range * 0.85)
+                        # Essayer de trouver une position valide autour de la base
+                        for angle in range(0, 360, 45):  # Tester 8 directions
+                            rad_angle = math.radians(angle)
+                            candidate_x = base_objective.target_position[0] + math.cos(rad_angle) * optimal_distance
+                            candidate_y = base_objective.target_position[1] + math.sin(rad_angle) * optimal_distance
+                            candidate_grid = pathfinding.world_to_grid((candidate_x, candidate_y))
+                            if pathfinding._in_bounds(candidate_grid):
+                                candidate_cost = pathfinding._tile_cost(candidate_grid)
+                                if not np.isinf(candidate_cost):  # Position franchissable trouvée
+                                    base_objective.target_position = (candidate_x, candidate_y)
+                                    break
             return base_objective, self._priority_score(base_objective.type)
 
         return Objective("survive", context.position), self._priority_score("survive")
@@ -124,20 +125,51 @@ class GoalEvaluator:
         context,
         pathfinding: Optional["PathfindingService"],
     ) -> Optional[Objective]:
-        best_candidate: Optional[Tuple[float, float, Objective]] = None
+        # Préfiltrer par distance euclidienne pour éviter des calculs lourds
+        prelim: list[Tuple[float, int, Tuple[float, float], float]] = []  # (dist, entity, pos, time_left)
         for entity, (position, chest) in esper.get_components(PositionComponent, FlyingChestComponent):
             if chest.is_sinking or chest.is_collected:
                 continue
-            chest_pos = (position.x, position.y)
-            if pathfinding is not None and pathfinding.is_world_blocked(chest_pos):
+            pos = (position.x, position.y)
+            if pathfinding is not None and pathfinding.is_world_blocked(pos):
                 continue
-            distance = self._distance(context.position, chest_pos)
+            euclid = self._distance(context.position, pos)
             time_left = max(chest.max_lifetime - chest.elapsed_time, 0.0)
-            candidate = Objective("goto_chest", chest_pos, entity)
-            key = (distance, time_left)
-            if best_candidate is None or key < (best_candidate[0], best_candidate[1]):
-                best_candidate = (distance, time_left, candidate)
-        return best_candidate[2] if best_candidate else None
+            prelim.append((euclid, entity, pos, time_left))
+
+        if not prelim:
+            return None
+        prelim.sort(key=lambda t: t[0])
+        candidates = prelim[: min(5, len(prelim))]
+
+        # Évaluer par coût de chemin réel si disponible, sinon euclidien
+        best: Optional[Tuple[float, Objective]] = None
+        start = (int(round(context.position[0])), int(round(context.position[1])))
+        for _, entity, pos, time_left in candidates:
+            path_cost = None
+            if pathfinding is not None:
+                end = (int(round(pos[0])), int(round(pos[1])))
+                path = pathfinding.find_path(start, end)
+                if not path:
+                    continue  # Inatteignable
+                # Coût = longueur du chemin
+                total = 0.0
+                for i in range(1, len(path)):
+                    dx = path[i][0] - path[i - 1][0]
+                    dy = path[i][1] - path[i - 1][1]
+                    total += (dx * dx + dy * dy) ** 0.5
+                path_cost = total
+            else:
+                path_cost = self._distance(context.position, pos)
+
+            # Pénaliser légèrement les coffres avec peu de temps restant (favoriser les urgents)
+            urgency = 0.0 if time_left <= 0 else (1.0 / (1.0 + time_left))
+            score = path_cost + 200.0 * urgency
+            objective = Objective("goto_chest", pos, entity)
+            if best is None or score < best[0]:
+                best = (score, objective)
+
+        return best[1] if best else None
 
     def _select_island_resource(
         self,
@@ -185,9 +217,17 @@ class GoalEvaluator:
         context,
         predicted_targets: Iterable["PredictedEntity"],
     ) -> Optional[Objective]:
-        stationary_targets: List["PredictedEntity"] = [
-            target for target in predicted_targets if abs(target.speed) <= self.STATIONARY_SPEED_THRESHOLD
-        ]
+        from src.constants.gameplay import UNIT_VISION_SCOUT
+        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
+        
+        stationary_targets: List["PredictedEntity"] = []
+        for target in predicted_targets:
+            if abs(target.speed) <= self.STATIONARY_SPEED_THRESHOLD:
+                # Vérifier que la cible est dans le champ de vision
+                distance = self._distance(context.position, target.future_position)
+                if distance <= vision_radius:
+                    stationary_targets.append(target)
+        
         if not stationary_targets:
             return None
         target = min(stationary_targets, key=lambda t: self._distance(context.position, t.future_position))
@@ -198,6 +238,9 @@ class GoalEvaluator:
         context,
         predicted_targets: Iterable["PredictedEntity"],
     ) -> Optional[Objective]:
+        from src.constants.gameplay import UNIT_VISION_SCOUT
+        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
+        
         best_candidate: Optional[Tuple[float, Objective]] = None
         for predicted in predicted_targets:
             if abs(predicted.speed) <= self.STATIONARY_SPEED_THRESHOLD:
@@ -211,7 +254,8 @@ class GoalEvaluator:
             if health.currentHealth > 60.0:
                 continue
             distance = self._distance(context.position, predicted.future_position)
-            if distance > self.FOLLOW_DIE_MAX_DISTANCE:
+            # Vérifier que la cible est dans le champ de vision et à portée acceptable
+            if distance > self.FOLLOW_DIE_MAX_DISTANCE or distance > vision_radius:
                 continue
             candidate = Objective("follow_die", predicted.future_position, predicted.entity_id)
             if best_candidate is None or distance < best_candidate[0]:
@@ -223,11 +267,17 @@ class GoalEvaluator:
         context,
         predicted_targets: Iterable["PredictedEntity"],
     ) -> Optional[Objective]:
+        from src.constants.gameplay import UNIT_VISION_SCOUT
+        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
+        
         best_candidate: Optional[Tuple[float, Objective]] = None
         for predicted in predicted_targets:
             if abs(predicted.speed) <= self.STATIONARY_SPEED_THRESHOLD:
                 continue
             distance = self._distance(context.position, predicted.future_position)
+            # Vérifier que la cible est dans le champ de vision
+            if distance > vision_radius:
+                continue
             candidate = Objective("attack_mobile", predicted.future_position, predicted.entity_id)
             if best_candidate is None or distance < best_candidate[0]:
                 best_candidate = (distance, candidate)

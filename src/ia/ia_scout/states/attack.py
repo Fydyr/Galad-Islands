@@ -59,31 +59,26 @@ class AttackState(RapidAIState):
 
         context.share_channel["attack_anchor"] = anchor
 
-        if self.controller.is_navigation_active(context):
-            self._aim(context, target_position)
-            self._try_shoot(context, fallback_target=target_position)
-            return
-
+        # Toujours utiliser la navigation pour se déplacer vers l'ancre
         distance_anchor = self.distance(context.position, anchor)
-        # Si l'anchor est à la position courante, pas besoin de naviguer
-        if distance_anchor <= 1.0:
+        
+        # Si on est déjà à l'ancre, arrêter le mouvement et tirer
+        if distance_anchor <= self.controller.navigation_tolerance:
             self.controller.cancel_navigation(context)
             self.controller.stop()
             self._aim(context, target_position)
             self._try_shoot(context, fallback_target=target_position)
             return
         
-        if distance_anchor > self.controller.navigation_tolerance:
-            if not self.controller.navigation_target_matches(
-                context,
-                anchor,
-                tolerance=self.controller.navigation_tolerance,
-            ):
-                self.controller.start_navigation(context, anchor, self.name)
-            return
-
-        self.controller.cancel_navigation(context)
-        self.controller.stop()
+        # Sinon, lancer la navigation vers l'ancre via GoTo
+        if not self.controller.navigation_target_matches(
+            context,
+            anchor,
+            tolerance=self.controller.navigation_tolerance,
+        ):
+            self.controller.start_navigation(context, anchor, self.name)
+        
+        # Continuer à viser et tirer pendant le déplacement si possible
         self._aim(context, target_position)
         self._try_shoot(context, fallback_target=target_position)
 

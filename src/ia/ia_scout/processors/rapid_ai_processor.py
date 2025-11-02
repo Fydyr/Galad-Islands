@@ -24,6 +24,7 @@ from src.factory.unitType import UnitType
 from src.constants.team import Team
 from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
+from src.constants.gameplay import UNIT_VISION_SCOUT
 
 from ..config import get_settings
 from ..log import get_logger
@@ -47,6 +48,7 @@ from ..states import (
     FleeState,
     FollowDruidState,
     FollowToDieState,
+    ExploreState,
 )
 
 
@@ -319,6 +321,7 @@ class RapidUnitController:
         attack = AttackState("Attack", self)
         follow = FollowDruidState("FollowDruid", self)
         follow_die = FollowToDieState("FollowToDie", self)
+        explore = ExploreState("Explore", self)
 
         fsm = StateMachine(initial_state=idle)
         self._state_lookup = {
@@ -328,6 +331,7 @@ class RapidUnitController:
             "Attack": attack,
             "FollowDruid": follow,
             "FollowToDie": follow_die,
+            "Explore": explore,
         }
 
         # Global transitions highest priority first
@@ -339,6 +343,10 @@ class RapidUnitController:
         )
         fsm.add_global_transition(
             Transition(condition=self._has_navigation_request, target=goto, priority=70, name="Navigation")
+        )
+        # Exploration prioritaire si la base ennemie n'est pas connue
+        fsm.add_global_transition(
+            Transition(condition=self._should_explore, target=explore, priority=60, name="Explore")
         )
         # Dummy global transition to register GoTo state
         fsm.add_global_transition(
@@ -388,6 +396,12 @@ class RapidUnitController:
         fsm.add_transition(
             follow_die,
             Transition(condition=self._attack_done, target=idle, priority=5)
+        )
+
+        # Explore transitions - sortir de l'exploration si base trouvée ou objectif important
+        fsm.add_transition(
+            explore,
+            Transition(condition=self._exploration_complete, target=idle, priority=10, name="ExplorationDone")
         )
 
         # Dummy transition to register GoTo state in FSM
@@ -560,6 +574,38 @@ class RapidUnitController:
         health_ratio = context.health / max(context.max_health, 1.0)
         return health_ratio < self.settings.follow_druid_health_ratio
 
+    def _should_explore(self, dt: float, context: UnitContext) -> bool:
+        """Détermine si le Scout doit passer en mode exploration."""
+        from src.processeurs.KnownBaseProcessor import enemy_base_registry
+        
+        # Ne pas explorer si la base ennemie est déjà connue
+        if enemy_base_registry.is_enemy_base_known(context.team_id):
+            return False
+        
+        # Ne pas explorer si on est déjà en exploration
+        if self.state_machine.current_state.name == "Explore":
+            return False
+        
+        # Ne pas explorer si on a un objectif important (coffre, ressource d'île)
+        if context.current_objective and context.current_objective.type in {"goto_chest", "goto_island_resource"}:
+            return False
+        
+        # Ne pas explorer s'il y a des ennemis à proximité
+        predicted_targets = list(self.prediction.predict_enemy_positions(context.team_id))
+        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
+        for target in predicted_targets:
+            distance = math.hypot(
+                context.position[0] - target.current_position[0],
+                context.position[1] - target.current_position[1]
+            )
+            if distance <= vision_radius:
+                # Ennemi proche, ne pas explorer, laisser l'IA attaquer
+                return False
+        
+        # Explorer si on n'a pas d'objectif d'attaque ou si on est en Idle
+        current_state = self.state_machine.current_state.name
+        return current_state in ["Idle", "GoTo"] or context.current_objective is None
+
     def _has_goto_objective(self, dt: float, context: UnitContext) -> bool:
         return bool(context.current_objective and context.current_objective.type.startswith("goto"))
 
@@ -593,7 +639,14 @@ class RapidUnitController:
         dx = objective.target_position[0] - context.position[0]
         dy = objective.target_position[1] - context.position[1]
         distance = math.hypot(dx, dy)
-        return distance <= self.waypoint_radius
+        
+        # Pour les coffres et ressources d'îles, utiliser une tolérance plus grande
+        if objective.type in {"goto_chest", "goto_island_resource"}:
+            tolerance = self.waypoint_radius * 1.5  # Tolérance augmentée
+        else:
+            tolerance = self.waypoint_radius
+        
+        return distance <= tolerance
 
     def _attack_done(self, dt: float, context: UnitContext) -> bool:
         """
@@ -642,6 +695,33 @@ class RapidUnitController:
     def _healed(self, dt: float, context: UnitContext) -> bool:
         return context.health / max(context.max_health, 1.0) >= self.settings.follow_druid_health_ratio
 
+    def _exploration_complete(self, dt: float, context: UnitContext) -> bool:
+        """Détermine si l'exploration doit se terminer."""
+        from src.processeurs.KnownBaseProcessor import enemy_base_registry
+        
+        # Terminer si la base ennemie est trouvée
+        if enemy_base_registry.is_enemy_base_known(context.team_id):
+            return True
+        
+        # Terminer si un objectif prioritaire apparaît (coffre, ressource)
+        if context.current_objective and context.current_objective.type in {"goto_chest", "goto_island_resource"}:
+            return True
+        
+        # Terminer s'il y a des ennemis à proximité
+        predicted_targets = list(self.prediction.predict_enemy_positions(context.team_id))
+        from src.constants.gameplay import UNIT_VISION_SCOUT
+        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
+        for target in predicted_targets:
+            distance = math.hypot(
+                context.position[0] - target.current_position[0],
+                context.position[1] - target.current_position[1]
+            )
+            if distance <= vision_radius:
+                # Ennemi proche, sortir de l'exploration pour attaquer
+                return True
+        
+        return False
+
     # Update ----------------------------------------------------------------
     def update(self, dt: float) -> None:
         ctx = self.context_manager.refresh(self.entity_id, dt)
@@ -650,8 +730,13 @@ class RapidUnitController:
         self.context = ctx
         self._tick_attack_cooldown(ctx, dt)
         ctx.danger_level = self.danger_map.sample_world(ctx.position)
-    # Log désactivé
+        # Log désactivé
         self._refresh_objective(ctx)
+
+        # Mettre à jour le groupe toutes les secondes
+        if int(self.context_manager.time) != int(self.context_manager.time - dt):
+            self.coordination.update_group(ctx.team_id, self.context_manager.time)
+
         previous_state = self.state_machine.current_state.name
         self.state_machine.update(dt, ctx)
         current_state = self.state_machine.current_state.name
@@ -683,21 +768,33 @@ class RapidUnitController:
         # Déterminer la cible de tir
         projectile_target = None
         target_entity = None
+        
+        # Obtenir la position du Scout
+        try:
+            scout_pos = esper.component_for_entity(context.entity_id, PositionComponent)
+        except KeyError:
+            return
+        
+        # Définir les rayons de vision et de tir
+        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
+        shooting_radius = self.get_shooting_range(context)
 
-        # Priorité : cible actuelle si elle existe et est un ennemi
+        # Priorité : cible actuelle si elle existe et est un ennemi DANS LE CHAMP DE VISION
         if context.target_entity is not None and esper.entity_exists(context.target_entity):
             try:
                 target_team = esper.component_for_entity(context.target_entity, TeamComponent)
                 # Ne tirer que sur une équipe adverse (pas alliée, pas neutre)
                 if target_team.team_id != context.team_id and target_team.team_id != 0:
                     target_pos = esper.component_for_entity(context.target_entity, PositionComponent)
-                    projectile_target = (target_pos.x, target_pos.y)
-                    target_entity = context.target_entity
+                    distance = math.hypot(scout_pos.x - target_pos.x, scout_pos.y - target_pos.y)
+                    # Vérifier que la cible est dans le champ de vision ET à portée de tir
+                    if distance <= vision_radius and distance <= shooting_radius:
+                        projectile_target = (target_pos.x, target_pos.y)
+                        target_entity = context.target_entity
             except KeyError:
                 pass
 
-
-        # Sinon, utiliser l'objectif actuel uniquement si c'est une entity ennemie
+        # Sinon, utiliser l'objectif actuel uniquement si c'est une entity ennemie DANS LE CHAMP DE VISION
         if projectile_target is None and context.current_objective:
             objective = context.current_objective
             if objective.target_entity and esper.entity_exists(objective.target_entity):
@@ -706,26 +803,17 @@ class RapidUnitController:
                     # Ne tirer que sur une équipe adverse
                     if target_team.team_id != context.team_id and target_team.team_id != 0:
                         target_pos = esper.component_for_entity(objective.target_entity, PositionComponent)
-                        projectile_target = (target_pos.x, target_pos.y)
-                        target_entity = objective.target_entity
+                        distance = math.hypot(scout_pos.x - target_pos.x, scout_pos.y - target_pos.y)
+                        # Vérifier que la cible est dans le champ de vision ET à portée de tir
+                        if distance <= vision_radius and distance <= shooting_radius:
+                            projectile_target = (target_pos.x, target_pos.y)
+                            target_entity = objective.target_entity
                 except KeyError:
                     pass
-            # On ignore objective.target_position si ce n'est pas une entity ennemie
-
-        # Check du radius de tir et de vision
-        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
-        shooting_radius = self.get_shooting_range(context)
-        if projectile_target is not None:
-            try:
-                pos = esper.component_for_entity(context.entity_id, PositionComponent)
-                dx = pos.x - projectile_target[0]
-                dy = pos.y - projectile_target[1]
-                distance = math.hypot(dx, dy)
-                # La cible doit être in le radius de tir ET de vision
-                if (vision_radius > 0.0 and distance > vision_radius) or (shooting_radius > 0.0 and distance > shooting_radius):
-                    return  # Cible hors du champ de vision ou de tir
-            except KeyError:
-                pass
+        
+        # Si aucune cible valide trouvée, ne pas tirer
+        if projectile_target is None or target_entity is None:
+            return
 
 
 
@@ -828,30 +916,45 @@ class RapidUnitController:
         if should_reconsider:
             previous_type = context.current_objective.type if context.current_objective else "aucun"
             previous_target = context.current_objective.target_entity if context.current_objective else None
-            # --- PRIORITÉ COFFRE VOLANT ---
-            chest_entity = None
-            from src.components.events.flyChestComponent import FlyingChestComponent
-            for entity, chest in esper.get_component(FlyingChestComponent):
-                if not chest.is_sinking and not chest.is_collected:
-                    chest_entity = entity
-                    break
-            if chest_entity is not None:
-                # Si un coffre volant est disponible, objectif prioritaire
-                pos_comp = esper.component_for_entity(chest_entity, PositionComponent)
-                objective = Objective("goto_chest", (pos_comp.x, pos_comp.y))
-                score = 100.0
-            else:
-                objective, score = self.goal_evaluator.evaluate(
-                    context,
-                    self.danger_map,
-                    self.prediction,
-                    self.pathfinding,
-                )
+            objective, score = self.goal_evaluator.evaluate(
+                context,
+                self.danger_map,
+                self.prediction,
+                self.pathfinding,
+            )
             if objective.type == "goto_chest" and objective.target_entity is not None:
                 owner = self.coordination.chest_owner(objective.target_entity)
                 if owner not in (None, self.entity_id):
-                    objective = Objective("survive", context.position)
-                    score = 0.0
+                    # Le coffre est déjà pris par un autre: chercher un autre coffre libre et atteignable
+                    from src.components.events.flyChestComponent import FlyingChestComponent
+                    best_alt = None
+                    best_cost = float("inf")
+                    start = (int(round(context.position[0])), int(round(context.position[1])))
+                    for entity, chest in esper.get_component(FlyingChestComponent):
+                        if chest.is_sinking or chest.is_collected:
+                            continue
+                        if self.coordination.chest_owner(entity) not in (None, self.entity_id):
+                            continue
+                        pos_comp = esper.component_for_entity(entity, PositionComponent)
+                        end = (int(round(pos_comp.x)), int(round(pos_comp.y)))
+                        path = self.pathfinding.find_path(start, end)
+                        if not path:
+                            continue
+                        # Coût = longueur du chemin
+                        path_cost = 0.0
+                        for i in range(1, len(path)):
+                            dx = path[i][0] - path[i-1][0]
+                            dy = path[i][1] - path[i-1][1]
+                            path_cost += (dx*dx + dy*dy) ** 0.5
+                        if path_cost < best_cost:
+                            best_cost = path_cost
+                            best_alt = (entity, (pos_comp.x, pos_comp.y))
+                    if best_alt is not None:
+                        objective = Objective("goto_chest", best_alt[1], best_alt[0])
+                        score = 100.0
+                    else:
+                        objective = Objective("survive", context.position)
+                        score = 0.0
                 if (
                     context.assigned_chest_id is not None
                     and context.assigned_chest_id != objective.target_entity
@@ -916,17 +1019,15 @@ class RapidUnitController:
         if current_state == "GoTo" and context.path:
             dist_moved = math.hypot(context.position[0] - self._last_position_check[0], context.position[1] - self._last_position_check[1])
             if dist_moved < TILE_SIZE * 0.5: # Si on a peu bougé
-                self._stuck_timer += dt
+                # Utiliser le temps absolu au lieu de dt
+                if self._stuck_timer == 0.0:
+                    self._stuck_timer = now
+                elif now - self._stuck_timer > 3.0: # Coincé depuis 3 secondes
+                    context.advance_path() # Forcer le passage au waypoint suivant
+                    self._stuck_timer = 0.0
             else:
                 self._stuck_timer = 0.0
                 self._last_position_check = context.position
-
-            if self._stuck_timer > 3.0: # Coincé from 3 secondes
-                context.advance_path() # Forcer le passage au waypoint suivant
-                self._stuck_timer = 0.0
-            context.stuck_state_time = 0.0
-            context.last_state_change = now
-            self.cancel_navigation(context)
 
     # Movement helpers ------------------------------------------------------
     def move_towards(self, target_position) -> None:
@@ -945,9 +1046,36 @@ class RapidUnitController:
 
         avoidance = self.coordination.compute_avoidance_vector(self.entity_id, (pos.x, pos.y), 96.0)
         projectile_avoid = self.prediction.projectile_threat_vector((pos.x, pos.y))
+
+        # Évitement léger des obstacles proches (îles, mines) pour éviter les accrochages
+        obstacle_repulse = (0.0, 0.0)
+        try:
+            samples = []
+            # Échantillons autour du Scout (proche et un peu plus loin)
+            for radius in (TILE_SIZE * 0.6, TILE_SIZE * 1.2):
+                for angle_deg in (0, 45, 90, 135, 180, 225, 270, 315):
+                    rad = math.radians(angle_deg)
+                    sx = pos.x + math.cos(rad) * radius
+                    sy = pos.y + math.sin(rad) * radius
+                    if self.pathfinding.is_world_blocked((sx, sy)):
+                        # Repousser depuis ce point bloqué
+                        dx = pos.x - sx
+                        dy = pos.y - sy
+                        dist = max(1.0, math.hypot(dx, dy))
+                        weight = 1.0 / dist
+                        samples.append((dx * weight, dy * weight))
+            if samples:
+                rx = sum(v[0] for v in samples)
+                ry = sum(v[1] for v in samples)
+                norm = math.hypot(rx, ry)
+                if norm > 1e-3:
+                    obstacle_repulse = (rx / norm, ry / norm)
+        except Exception:
+            pass
+
         adjusted_target = (
-            target_position[0] + avoidance[0] * 48.0 - projectile_avoid[0] * 32.0,
-            target_position[1] + avoidance[1] * 48.0 - projectile_avoid[1] * 32.0,
+            target_position[0] + avoidance[0] * 48.0 - projectile_avoid[0] * 32.0 + obstacle_repulse[0] * 36.0,
+            target_position[1] + avoidance[1] * 48.0 - projectile_avoid[1] * 32.0 + obstacle_repulse[1] * 36.0,
         )
 
         if self.pathfinding.is_world_blocked(adjusted_target):

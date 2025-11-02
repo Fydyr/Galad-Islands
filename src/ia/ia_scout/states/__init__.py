@@ -6,6 +6,7 @@ from .flee import FleeState
 from .attack import AttackState
 from .follow_druid import FollowDruidState
 from .follow_to_die import FollowToDieState
+from .explore import ExploreState
 
 __all__ = [
     "IdleState",
@@ -14,4 +15,5 @@ __all__ = [
     "AttackState",
     "FollowDruidState",
     "FollowToDieState",
+    "ExploreState",
 ]

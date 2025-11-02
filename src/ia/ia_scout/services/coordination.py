@@ -30,6 +30,16 @@ class RoleAssignment:
     timestamp: float
 
 
+@dataclass
+class ScoutGroup:
+    """Représente un groupe de Scouts coordonnés."""
+    leader_id: int
+    members: set[int]
+    formation_center: Tuple[float, float]
+    target: Optional[Tuple[float, float]]
+    timestamp: float
+
+
 class CoordinationService:
     """Keeps track of shared objectives between multiple rapid troops."""
 
@@ -39,6 +49,10 @@ class CoordinationService:
         self._global_danger: float = 0.0
         self._role_index: Dict[str, int] = {}
         self._roles: Dict[str, RoleAssignment] = {}
+        # Système de groupes
+        self._groups: Dict[int, ScoutGroup] = {}  # team_id -> groupe
+        self._group_size: int = 3  # Taille idéale d'un groupe
+        self._formation_spread: float = 80.0  # Distance entre les membres du groupe
 
     def assign_chest(self, entity_id: int, chest_id: int, current_time: float) -> None:
         self._chest_assignments[chest_id] = ChestAssignment(entity_id, chest_id, current_time)
@@ -135,3 +149,125 @@ class CoordinationService:
         self._role_index[role] = index + 1
         self._roles[role] = RoleAssignment(entity_id=chosen, timestamp=timestamp)
         return chosen
+
+    # ========== Système de groupes ==========
+    
+    def update_group(self, team_id: int, timestamp: float) -> None:
+        """Met à jour ou crée un groupe pour une équipe donnée."""
+        # Récupérer tous les Scouts de cette équipe
+        team_units = [
+            (entity_id, state) 
+            for entity_id, state in self._unit_states.items()
+        ]
+        
+        if len(team_units) < 2:
+            # Pas assez d'unités pour former un groupe
+            self._groups.pop(team_id, None)
+            return
+        
+        # Calculer le centre du groupe (position moyenne)
+        center_x = sum(state.position[0] for _, state in team_units) / len(team_units)
+        center_y = sum(state.position[1] for _, state in team_units) / len(team_units)
+        formation_center = (center_x, center_y)
+        
+        # Choisir le leader (l'unité la plus proche du centre)
+        leader_id = min(
+            team_units,
+            key=lambda x: (x[1].position[0] - center_x) ** 2 + (x[1].position[1] - center_y) ** 2
+        )[0]
+        
+        # Créer ou mettre à jour le groupe
+        members = {entity_id for entity_id, _ in team_units}
+        
+        if team_id in self._groups:
+            group = self._groups[team_id]
+            group.leader_id = leader_id
+            group.members = members
+            group.formation_center = formation_center
+            group.timestamp = timestamp
+        else:
+            self._groups[team_id] = ScoutGroup(
+                leader_id=leader_id,
+                members=members,
+                formation_center=formation_center,
+                target=None,
+                timestamp=timestamp
+            )
+    
+    def get_group_formation_position(
+        self, 
+        entity_id: int, 
+        team_id: int
+    ) -> Optional[Tuple[float, float]]:
+        """Calcule la position de formation pour un Scout dans son groupe."""
+        group = self._groups.get(team_id)
+        if not group or entity_id not in group.members:
+            return None
+        
+        if entity_id == group.leader_id:
+            # Le leader est au centre
+            return group.formation_center
+        
+        # Les autres membres se positionnent autour du leader en cercle
+        members_list = sorted(group.members - {group.leader_id})
+        if entity_id not in members_list:
+            return None
+        
+        index = members_list.index(entity_id)
+        count = len(members_list)
+        
+        # Calculer l'angle pour cette position
+        angle = (2 * np.pi * index) / count
+        
+        # Position en formation autour du centre
+        offset_x = self._formation_spread * np.cos(angle)
+        offset_y = self._formation_spread * np.sin(angle)
+        
+        return (
+            group.formation_center[0] + offset_x,
+            group.formation_center[1] + offset_y
+        )
+    
+    def is_group_leader(self, entity_id: int, team_id: int) -> bool:
+        """Vérifie si une unité est le leader de son groupe."""
+        group = self._groups.get(team_id)
+        return group is not None and group.leader_id == entity_id
+    
+    def get_group_target(self, team_id: int) -> Optional[Tuple[float, float]]:
+        """Récupère la cible du groupe."""
+        group = self._groups.get(team_id)
+        return group.target if group else None
+    
+    def set_group_target(
+        self, 
+        team_id: int, 
+        target: Optional[Tuple[float, float]]
+    ) -> None:
+        """Définit la cible du groupe."""
+        group = self._groups.get(team_id)
+        if group:
+            group.target = target
+    
+    def get_group_size(self, team_id: int) -> int:
+        """Retourne la taille du groupe."""
+        group = self._groups.get(team_id)
+        return len(group.members) if group else 0
+    
+    def should_regroup(
+        self, 
+        entity_id: int, 
+        position: Tuple[float, float], 
+        team_id: int
+    ) -> bool:
+        """Détermine si une unité doit rejoindre son groupe."""
+        group = self._groups.get(team_id)
+        if not group or entity_id not in group.members:
+            return False
+        
+        # Calculer la distance au centre du groupe
+        dx = position[0] - group.formation_center[0]
+        dy = position[1] - group.formation_center[1]
+        distance = np.sqrt(dx * dx + dy * dy)
+        
+        # Se regrouper si trop éloigné (plus de 3x la distance de formation)
+        return distance > self._formation_spread * 3.0

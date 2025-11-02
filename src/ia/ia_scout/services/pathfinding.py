@@ -59,6 +59,13 @@ class PathfindingService:
                 next_node = (current[0] + dx, current[1] + dy)
                 if not self._in_bounds(next_node):
                     continue
+                # Interdire les coupes de coins: un déplacement diagonal n'est permis
+                # que si les deux cases cardinales adjacentes sont franchissables.
+                if dx != 0 and dy != 0:
+                    adj_a = (current[0] + dx, current[1])
+                    adj_b = (current[0], current[1] + dy)
+                    if not self._is_passable(adj_a) or not self._is_passable(adj_b):
+                        continue
                 tile_value = self._grid[next_node[1], next_node[0]]
                 if tile_value in self.settings.pathfinding.tile_blacklist:
                     continue

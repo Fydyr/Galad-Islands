@@ -41,12 +41,12 @@ class PathfindingSettings:
     storm_weight: float = 6.0
     danger_weight: float = 4.0
     diagonal_cost: float = 1.4
-    island_perimeter_weight: float = 50.0  # Beaucoup plus élevé pour vraiment avoid les îles
-    island_perimeter_radius: int = 1  # Rayon exprimé en sous-tuiles IA
-    mine_perimeter_radius: int = 1  # Rayon exprimé en sous-tuiles IA
-    blocked_margin_radius: int = 2  # Rayon de sécurité autour des zones bloquées (sous-tuiles)
-    blocked_margin_weight: float = 15.0  # Poids appliqué in la marge pour décoller les chemins
-    map_border_radius: int = 1  # Largeur en sous-tuiles bloquée sur les bords de la carte
+    island_perimeter_weight: float = 999.0  # Poids très élevé pour éviter les îles (quasi-infini)
+    island_perimeter_radius: int = 3  # Augmenté à 3 sous-tuiles pour un périmètre plus large
+    mine_perimeter_radius: int = 3  # Légèrement augmenté pour mieux éviter les mines
+    blocked_margin_radius: int = 3  # Augmenté pour plus de marge de sécurité
+    blocked_margin_weight: float = 20.0  # Augmenté pour mieux éviter les zones bloquées
+    map_border_radius: int = 2  # Augmenté pour éviter les bords de carte
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),
         int(TileType.ENEMY_BASE),
