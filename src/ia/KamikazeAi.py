@@ -54,6 +54,17 @@ class KamikazeAiProcessor(esper.Processor):
         # Timer de recalcul de chemin par entity
         self._last_path_request_time = {}
 
+    # Compatibilité: certaines parties du jeu s'attendent à un attribut `map_grid`.
+    # Propose un alias vers world_map et régénère la carte "gonflée" automatiquement.
+    @property
+    def map_grid(self) -> Optional[List[List[int]]]:
+        return self.world_map
+
+    @map_grid.setter
+    def map_grid(self, grid: Optional[List[List[int]]]) -> None:
+        self.world_map = grid
+        self.inflated_world_map = self._create_inflated_map(grid) if grid else None
+
     def _create_inflated_map(self, original_map: List[List[int]]) -> List[List[int]]:
         """creates une carte où les obstacles sont "gonflés" pour le pathfinding."""
         if not original_map:
@@ -252,7 +263,8 @@ class KamikazeAiProcessor(esper.Processor):
         if recalculate_path and target_pos is not None:
             start_grid = (int(pos.x // TILE_SIZE), int(pos.y // TILE_SIZE))
             goal_grid = (int(target_pos.x // TILE_SIZE), int(target_pos.y // TILE_SIZE))
-            path = self.astar(self.inflated_world_map, start_grid, goal_grid) # Utilise la carte gonflée
+            # Utilise la world_map (ou liste vide si None) ; la méthode astar basculera sur la carte gonflée si disponible
+            path = self.astar(self.world_map or [], start_grid, goal_grid)
             self._last_path_request_time[ent] = now
             if path:
                 # Convertir le chemin de grille en coordonnées mondiales
