@@ -1,10 +1,18 @@
 import json
 from pathlib import Path
 from typing import List, Tuple
+from src.functions.resource_path import get_resource_path
 
-# Resolve repo root: src/settings/resolutions.py -> parents[2] is repository root
-ROOT = Path(__file__).resolve().parents[2]
-GALAD_RES = ROOT / "galad_resolutions.json"
+
+def _custom_resolutions_path() -> Path:
+    """Resolve the path to galad_resolutions.json in both dev and compiled builds.
+
+    Uses the same strategy as other resources:
+    1) next to the executable (for releases)
+    2) PyInstaller's temp folder (_MEIPASS) if bundled
+    3) repository root in development
+    """
+    return Path(get_resource_path("galad_resolutions.json"))
 
 # Default built-in resolutions (example list) — the game's existing resolutions
 BUILTIN = [
@@ -23,10 +31,11 @@ def load_custom_resolutions() -> List[Tuple[int, int]]:
     Returns a list of (width, height) tuples. If file is absent or malformed,
     returns empty list.
     """
-    if not GALAD_RES.exists():
+    res_file = _custom_resolutions_path()
+    if not res_file.exists():
         return []
     try:
-        data = json.loads(GALAD_RES.read_text())
+        data = json.loads(res_file.read_text())
         res = []
         for entry in data:
             if isinstance(entry, (list, tuple)) and len(entry) >= 2:
