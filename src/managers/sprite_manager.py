@@ -7,11 +7,14 @@ sprites by ID rather than file paths. The SpriteManager supports preloading,
 cache management, and retrieval of sprite metadata such as default size and
 description.
 """
+import logging
 import pygame
 import esper
 from typing import Dict, Optional, Tuple
 from enum import Enum, auto
 from src.functions.resource_path import get_resource_path
+
+logger = logging.getLogger(__name__)
 from src.components.core.spriteComponent import SpriteComponent as Sprite
 
 
@@ -211,7 +214,7 @@ class SpriteManager:
         # Get sprite data
         sprite_data = self.get_sprite_data(sprite_id)
         if not sprite_data:
-            print(f"Warning: Sprite ID {sprite_id} not found in registry")
+            logger.warning("Sprite ID %s not found in registry", sprite_id)
             return None
         
         try:
@@ -222,11 +225,12 @@ class SpriteManager:
             # Cache the loaded image
             self._loaded_images[sprite_id] = image
             
-            print(f"Loaded sprite: {sprite_id.value} ({sprite_data.description})")
+            # Trop verbeux en production : mettre en debug
+            logger.debug("Loaded sprite: %s (%s)", sprite_id.value, sprite_data.description)
             return image
             
         except (pygame.error, FileNotFoundError) as e:
-            print(f"Error loading sprite {sprite_id.value} from {sprite_data.file_path}: {e}")
+            logger.error("Error loading sprite %s from %s: %s", sprite_id.value, sprite_data.file_path, e)
             return None
     
     def create_sprite_component(self, sprite_id: SpriteID, width: Optional[int] = None, height: Optional[int] = None):
@@ -235,7 +239,7 @@ class SpriteManager:
         
         sprite_data = self.get_sprite_data(sprite_id)
         if not sprite_data:
-            print(f"Warning: Cannot create SpriteComponent for unknown sprite ID {sprite_id}")
+            logger.warning("Cannot create SpriteComponent for unknown sprite ID %s", sprite_id)
             return None
         
         # Use provided dimensions or default ones
@@ -262,14 +266,14 @@ class SpriteManager:
     
     def preload_sprites(self, sprite_ids: list[SpriteID]):
         """Preload a list of sprites to improve performance."""
-        print(f"Preloading {len(sprite_ids)} sprites...")
+        logger.info("Preloading %d sprites...", len(sprite_ids))
         loaded_count = 0
         
         for sprite_id in sprite_ids:
             if self.load_sprite(sprite_id):
                 loaded_count += 1
         
-        print(f"Successfully preloaded {loaded_count}/{len(sprite_ids)} sprites")
+        logger.info("Successfully preloaded %d/%d sprites", loaded_count, len(sprite_ids))
     
     def preload_all_sprites(self):
         """Preload all registered sprites."""
@@ -279,7 +283,7 @@ class SpriteManager:
     def clear_cache(self):
         """Clear the sprite cache to free memory."""
         self._loaded_images.clear()
-        print("Sprite cache cleared")
+        logger.info("Sprite cache cleared")
     
     def get_sprite_info(self, sprite_id: SpriteID) -> str:
         """Get detailed information about a sprite."""

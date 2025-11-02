@@ -24,6 +24,7 @@ from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
 from src.functions.resource_path import get_resource_path
 from src.settings.settings import config_manager
+from src.ia.ia_barhamus.log import get_logger
 
 def get_app_data_path() -> str:
     """
@@ -51,9 +52,11 @@ class BarhamusAI:
 
     def __init__(self, entity):
         self.entity = entity
+        self.logger = get_logger()
         self.cooldown = 0.0
         self.shield_active = False
         self.grid = None
+        self.debug_mode = False # NOUVEAU: Flag pour contrôler les logs
 
         # Chemin pour les modèles dynamiques
         self.models_dir = get_app_data_path()
@@ -121,16 +124,18 @@ class BarhamusAI:
                 self.decision_tree = model_data.get('decision_tree', self.decision_tree)
                 self.scaler = model_data.get('scaler', self.scaler)
                 self.is_trained = model_data.get('is_trained', False)
-                print(f"Barhamus {self.entity}: Modèle pré-entrainé chargé !")
-        except Exception as e:
-            print(f"Erreur chargement modèle pré-entrainé: {e}")
+                self.logger.debug(f"Barhamus {self.entity}: Modèle pré-entrainé chargé")
+        except (pickle.UnpicklingError, EOFError, KeyError) as e:
+            # Erreurs courantes de déserialisation, non critiques
+            self.logger.debug(f"Erreur chargement modèle pré-entrainé: {e}")
 
     def update(self, world, dt):
         """Mise à jour principale de l'IA avec apprentissage"""
         # Désactiver l'IA si l'unit est sélectionnée par le joueur
         if world.has_component(self.entity, PlayerSelectedComponent):
             # Optionnel : log pour debug
-            # print(f"Barhamus {self.entity}: IA désactivée car unit sélectionnée.")
+            if self.debug_mode:
+                self.logger.debug(f"Barhamus {self.entity}: IA désactivée car unit sélectionnée.")
             return
         try:
             # Définir la variable ici pour qu'elle soit toujours disponible
@@ -144,10 +149,8 @@ class BarhamusAI:
             team = world.component_for_entity(self.entity, TeamComponent) # Correction: pas de AttackComponent ici
             spe = world.component_for_entity(self.entity, SpeMaraudeur) # Correction: pas de AttackComponent ici
             
-            # Ce log est trop verbeux, on le retire pour ne garder que les logs de décision
-            # print(f"Barhamus {self.entity}: components OK - pos={pos.x:.1f},{pos.y:.1f} vel={vel.currentSpeed}")
         except Exception as e:
-            print(f"Erreur composants Barhamus {self.entity}: {e}")
+            self.logger.warning(f"Erreur composants Barhamus {self.entity}: {e}")
             return
 
         # Mettre à jour les statistiques de survie
@@ -194,14 +197,15 @@ class BarhamusAI:
                 self._record_experience(self.last_state, self.last_action, reward, current_state)
             
             action_names = {0: "Approche", 1: "Attaque", 2: "Patrouille", 3: "Évitement", 4: "Bouclier", 5: "Défensif", 6: "Retraite", 7: "Embuscade"}
-            action_name = action_names.get(action, 'Inconnue')
-            print(f"Barhamus {self.entity}: Exécute action {action} ({action_name})")
+            if self.debug_mode:
+                action_name = action_names.get(action, 'Inconnue')
+                print(f"Barhamus {self.entity}: Exécute action {action} ({action_name})")
             
             # Exécuter l'action avec tir en salve si nécessaire
             self._execute_action_with_combat(action, world, pos, vel, health, team, spe)
             
         except Exception as e:
-            print(f"Erreur IA Barhamus {self.entity}: {e}")
+            self.logger.warning(f"Erreur IA Barhamus {self.entity}: {e}")
             # Action By default in case of error majeure
             self._action_patrol(pos, vel)
         
@@ -268,15 +272,16 @@ class BarhamusAI:
         # Utiliser le modèle seulement s'il a été entraîné.
         # Ne pas dépendre de `training_data` qui n'est pas utilisé directement
         if not self.is_trained:
-            # Log utile pour debug apprentissage
-            print(f"Barhamus {self.entity}: Modèle non entraîné -> action par défaut")
+            if self.debug_mode:
+                print(f"Barhamus {self.entity}: Modèle non entraîné -> action par défaut")
             return self._get_default_action(state)
         
         try:
             # Normaliser l'état
             state_scaled = self.scaler.transform([state])
             
-            # Prédire l'action avec l'arbre de décision
+            # Prédire l'action avec l'arbre de décision.
+            # Utiliser predict_proba pour avoir une confiance et ajouter de l'aléatoire si l'IA est incertaine.
             predicted_action = self.decision_tree.predict(state_scaled)[0]
             
             # Add de l'exploration (30% de chance d'action aléatoire pour apprendre plus vite)
@@ -284,7 +289,8 @@ class BarhamusAI:
                 return random.randint(0, 7)  # 8 actions possibles
             
             print(f"Barhamus {self.entity}: Action PRÉDITE par modèle = {predicted_action}")
-            return int(predicted_action)
+            # S'assurer que le type est bien un entier Python natif
+            return int(predicted_action) 
             
         except Exception as e:
             print(f"Erreur prédiction IA: {e}")
@@ -381,8 +387,8 @@ class BarhamusAI:
                 elif i == 1:  # Tir côté droit
                     self._fire_at_angle(world, pos, angle_to_target + 25)
                 elif i == 2:  # Tir côté gauche  
-                    self._fire_at_angle(world, pos, angle_to_target - 25)
-                    
+                    self._fire_at_angle(world, pos, angle_to_target - 25)                    
+            except Exception as e:
                 print(f"Barhamus {self.entity}: Tir en salve #{i+1} to angle {angle_to_target:.0f}°")
                 
             except Exception as e:
@@ -956,8 +962,9 @@ class BarhamusAI:
         }
         self.experiences.append(experience)
         # Log d'appoint pour Check queles expériences s'accumulent
-        if len(self.experiences) % 10 == 0 or len(self.experiences) < 20:
-            print(f"Barhamus {self.entity}: Expérience enregistrée (total={len(self.experiences)})")
+        if self.debug_mode:
+            if len(self.experiences) % 10 == 0 or len(self.experiences) < 20:
+                print(f"Barhamus {self.entity}: Expérience enregistrée (total={len(self.experiences)})")
         
         # Garder seulement les 1000 dernières expériences
         if len(self.experiences) > 1000:
@@ -966,11 +973,13 @@ class BarhamusAI:
     def _retrain_model(self):
         """Réentraîne le modèle avec les nouvelles expériences"""
         if len(self.experiences) < 10:
-            print(f"Barhamus {self.entity}: Pas assez d'expériences pour réentraîner ({len(self.experiences)})")
+            if self.debug_mode:
+                print(f"Barhamus {self.entity}: Pas assez d'expériences pour réentraîner ({len(self.experiences)})")
             return
         
         try:
-            print(f"Barhamus {self.entity}: Démarrage réentraînement avec {len(self.experiences)} expériences")
+            if self.debug_mode:
+                print(f"Barhamus {self.entity}: Démarrage réentraînement avec {len(self.experiences)} expériences")
             # Préparer les données d'entraînement
             X = []
             y = []
@@ -997,7 +1006,8 @@ class BarhamusAI:
             self.training_data = X.tolist() if isinstance(X, np.ndarray) else list(X)
             self.training_labels = y.tolist() if isinstance(y, np.ndarray) else list(y)
 
-            print(f"Modèle IA réentraîné avec {len(X)} expériences (Barhamus {self.entity})")
+            if self.debug_mode:
+                print(f"Modèle IA réentraîné avec {len(X)} expériences (Barhamus {self.entity})")
             
         except Exception as e:
             print(f"Erreur lors du réentraînement: {e}")
@@ -1043,7 +1053,8 @@ class BarhamusAI:
         best_strategy = max(self.strategy_performance.keys(), 
                            key=lambda s: self._get_strategy_success_rate(s))
         if best_strategy != self.current_strategy:
-            print(f"IA Barhamus change de stratégie: {self.current_strategy} -> {best_strategy}")
+            if self.debug_mode:
+                print(f"IA Barhamus change de stratégie: {self.current_strategy} -> {best_strategy}")
             self.current_strategy = best_strategy
     
     # Actions spécifiques
@@ -1061,8 +1072,9 @@ class BarhamusAI:
                 # Ligne de vue dégagée : foncer
                 angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                 pos.direction = angle
-                vel.currentSpeed = 4.5
-                print(f"Barhamus {self.entity}: Approche agressive vers ennemi {target_entity} (directe)")
+                vel.currentSpeed = 4.0 # Vitesse légèrement réduite pour plus de contrôle
+                if self.debug_mode:
+                    print(f"Barhamus {self.entity}: Approche agressive vers ennemi {target_entity} (directe)")
             else:
                 # Ligne de vue bloquée : utiliser le pathfinding pour contourner
                 vel.currentSpeed = 3.5  # Vitesse de contournement
@@ -1087,13 +1099,14 @@ class BarhamusAI:
                     if self.path:
                         angle = self._angle_to(pos.x - next_waypoint[0], pos.y - next_waypoint[1])
                         pos.direction = angle
-                        print(f"Barhamus {self.entity}: Suit chemin vers waypoint (angle={angle:.1f}°, reste {len(self.path)} waypoints)")
+                        if self.debug_mode:
+                            print(f"Barhamus {self.entity}: Suit chemin vers waypoint (angle={angle:.1f}°, reste {len(self.path)} waypoints)")
                     else:
                         # Chemin terminé mais pas encore à la cible : aller direct
                         angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                         pos.direction = angle
                 else:
-                    # Pas de chemin trouvé : essayer d'aller direct (l'évitement gérera)
+                    # Pas de chemin trouvé : essayer d'aller direct (l'évitement gérera)                    
                     angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                     pos.direction = angle
                     print(f"Barhamus {self.entity}: Pas de chemin, tentative directe")
@@ -1116,8 +1129,9 @@ class BarhamusAI:
                         # IMPORTANT: le MovementProcessor soustrait, donc pour reculer => (base - pos)
                         away_angle = self._angle_to(enemy_base_pos[0] - pos.x, enemy_base_pos[1] - pos.y)
                         pos.direction = self._smooth_turn(pos.direction, away_angle, max_delta=18.0)
-                        vel.currentSpeed = 3.2
-                        print(f"Barhamus {self.entity}: Trop proche de la base ({base_dist/TILE_SIZE:.1f}t) — recul de sécurité")
+                        vel.currentSpeed = 3.5 # Augmenté pour un recul plus rapide
+                        if self.debug_mode:
+                            print(f"Barhamus {self.entity}: Trop proche de la base ({base_dist/TILE_SIZE:.1f}t) — recul de sécurité")
                         return
 
                     # Si on est à portée "safe" de la base et avec une ligne de vue claire, s'arrêter totalement
@@ -1126,8 +1140,9 @@ class BarhamusAI:
                         if min_radius <= base_dist <= safe_radius and self._grid_line_clear((pos.x, pos.y), enemy_base_pos):
                             hold_angle = self._angle_to(pos.x - enemy_base_pos[0], pos.y - enemy_base_pos[1])
                             pos.direction = self._smooth_turn(pos.direction, hold_angle, max_delta=15.0)
-                            vel.currentSpeed = 0.0
-                            print(f"Barhamus {self.entity}: À portée de la base — maintien de position")
+                            vel.currentSpeed = 0.5 # Mouvement très lent pour ajustements fins
+                            if self.debug_mode:
+                                print(f"Barhamus {self.entity}: À portée de la base — maintien de position")
                             return
                     except Exception:
                         pass
@@ -1147,8 +1162,9 @@ class BarhamusAI:
                         if chest_distance < 8 * TILE_SIZE and angle_diff < 30:
                             angle = self._angle_to(pos.x - chest_pos.x, pos.y - chest_pos.y)
                             pos.direction = self._smooth_turn(pos.direction, angle, max_delta=18.0)
-                            vel.currentSpeed = 3.4
-                            print(f"Barhamus {self.entity}: Détour coffre sur la route du standoff")
+                            vel.currentSpeed = 3.8 # Vitesse augmentée pour la collecte
+                            if self.debug_mode:
+                                print(f"Barhamus {self.entity}: Détour coffre sur la route du standoff")
                             return
 
                     # Aller vers le standoff en A* si LoS bloquée
@@ -1167,14 +1183,16 @@ class BarhamusAI:
                                     waypoint = self.path[0]
                             move_angle = self._angle_to(pos.x - waypoint[0], pos.y - waypoint[1])
                             pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
-                            vel.currentSpeed = 3.4
-                            print(f"Barhamus {self.entity}: Vers standoff via chemin (reste {len(self.path)} wp)")
+                            vel.currentSpeed = 3.6 # Vitesse de navigation standard
+                            if self.debug_mode:
+                                print(f"Barhamus {self.entity}: Vers standoff via chemin (reste {len(self.path)} wp)")
                         else:
                             # Fallback: avancer direct (évitement fera le reste)
                             move_angle = self._angle_to(pos.x - standoff[0], pos.y - standoff[1])
                             pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
-                            vel.currentSpeed = 3.6
-                            print(f"Barhamus {self.entity}: Vers standoff (fallback direct)")
+                            vel.currentSpeed = 3.8
+                            if self.debug_mode:
+                                print(f"Barhamus {self.entity}: Vers standoff (fallback direct)")
                     else:
                         # Ligne directe vers le standoff
                         # Si on atteint le standoff (proche) et qu'on a LoS vers la base, arrêter le mouvement
@@ -1182,13 +1200,15 @@ class BarhamusAI:
                             hold_angle = self._angle_to(pos.x - enemy_base_pos[0], pos.y - enemy_base_pos[1])
                             pos.direction = self._smooth_turn(pos.direction, hold_angle, max_delta=15.0)
                             vel.currentSpeed = 0.0
-                            print(f"Barhamus {self.entity}: Arrivé au standoff — maintien de position")
+                            if self.debug_mode:
+                                print(f"Barhamus {self.entity}: Arrivé au standoff — maintien de position")
                             return
                         else:
                             move_angle = self._angle_to(pos.x - standoff[0], pos.y - standoff[1])
                             pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
-                            vel.currentSpeed = 3.6
-                            print(f"Barhamus {self.entity}: Vers standoff (LoS OK)")
+                            vel.currentSpeed = 3.8
+                            if self.debug_mode:
+                                print(f"Barhamus {self.entity}: Vers standoff (LoS OK)")
                 else:
                     # Pas de base trouvée : patrouiller
                     self._action_patrol(pos, vel)
@@ -1199,24 +1219,28 @@ class BarhamusAI:
                     chest_pos = world.component_for_entity(closest_chest, PositionComponent)
                     angle = self._angle_to(pos.x - chest_pos.x, pos.y - chest_pos.y)
                     pos.direction = angle
-                    vel.currentSpeed = 3.5
-                    print(f"Barhamus {self.entity}: Collecte de coffre (solo/petit groupe)")
+                    vel.currentSpeed = 3.8
+                    if self.debug_mode:
+                        print(f"Barhamus {self.entity}: Collecte de coffre (solo/petit groupe)")
                 else:
                     # Pas de coffre : patrouiller en attendant des renforts
                     self._action_patrol(pos, vel)
-                    print(f"Barhamus {self.entity}: Patrouille ({allies_nearby} alliés, attente renforts)")
+                    if self.debug_mode:
+                        print(f"Barhamus {self.entity}: Patrouille ({allies_nearby} alliés, attente renforts)")
             enemy_base = self._find_enemy_base(world, team)
             if enemy_base:
                 # IMPORTANT : inverser la direction pour le movementProcessor
                 angle = self._angle_to(pos.x - enemy_base[0], pos.y - enemy_base[1])
                 pos.direction = angle
                 vel.currentSpeed = 4.0
-                print(f"Barhamus {self.entity}: Approche vers base ennemie - angle={angle:.1f}°")
+                if self.debug_mode:
+                    print(f"Barhamus {self.entity}: Approche vers base ennemie - angle={angle:.1f}°")
             else:
                 # Patrouiller
                 vel.currentSpeed = 2.5
                 pos.direction = (pos.direction + 30) % 360
-                print(f"Barhamus {self.entity}: Patrouille défensive")
+                if self.debug_mode:
+                    print(f"Barhamus {self.entity}: Patrouille défensive")
     
     def _action_attack(self, world, pos, vel, team):
         """Action: Attaque si ennemi à portée"""
@@ -1234,7 +1258,8 @@ class BarhamusAI:
                     world.dispatch_event("attack_event", self.entity)
                     self.cooldown = 1.5
                     self.successful_attacks += 1
-                    print(f"Barhamus {self.entity} attaque (IA intelligente)!")
+                    if self.debug_mode:
+                        print(f"Barhamus {self.entity} attaque (IA intelligente)!")
                 except Exception:
                     self.failed_attacks += 1
     
@@ -1244,7 +1269,8 @@ class BarhamusAI:
             self.patrol_direction = random.uniform(0, 360)
         pos.direction = self.patrol_direction
         vel.currentSpeed = 2.5
-        print(f"Barhamus {self.entity}: Patrouille - direction={pos.direction:.1f}°, vitesse={vel.currentSpeed}")
+        if self.debug_mode:
+            print(f"Barhamus {self.entity}: Patrouille - direction={pos.direction:.1f}°, vitesse={vel.currentSpeed}")
     
     def _action_tactical_avoidance(self, world, pos, vel, team):
         """Action: Évitement tactique intelligent"""
@@ -1347,8 +1373,9 @@ class BarhamusAI:
             # IMPORTANT : inverser la direction pour le movementProcessor qui soustrait
             retreat_angle = self._angle_to(enemy_pos.x - pos.x, enemy_pos.y - pos.y)
             pos.direction = retreat_angle
-            vel.currentSpeed = 4.0  # Vitesse de fuite
-            print(f"Barhamus {self.entity}: Fuite de l'ennemi {closest[0]}")
+            vel.currentSpeed = 4.5  # Vitesse de fuite augmentée
+            if self.debug_mode:
+                print(f"Barhamus {self.entity}: Fuite de l'ennemi {closest[0]}")
 
     def _calculate_border_penalty(self, current_state):
         """Calcule la pénalité pour être près des bords de la carte"""
@@ -1731,7 +1758,8 @@ class BarhamusAI:
                 self.strategy_performance = model_data.get('strategy_performance', self.strategy_performance)
                 self.is_trained = model_data.get('is_trained', False)
                 
-                print(f"Modèle IA chargé pour Barhamus {self.entity}")
+                if self.debug_mode:
+                    print(f"Modèle IA chargé pour Barhamus {self.entity}")
         except Exception as e:
             print(f"Erreur chargement modèle: {e}")
     
@@ -1741,7 +1769,8 @@ class BarhamusAI:
         try:
             world.dispatch_event("attack_event", self.entity)
             self.successful_attacks += 1
-            print(f"Barhamus {self.entity} tire (IA scikit-learn)!")
+            if self.debug_mode:
+                print(f"Barhamus {self.entity} tire (IA scikit-learn)!")
         except Exception as e:
             self.failed_attacks += 1
             print(f"Erreur lors du tir Barhamus: {e}")

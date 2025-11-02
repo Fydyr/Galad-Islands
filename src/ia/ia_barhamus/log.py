@@ -1,33 +1,33 @@
-"""Lightweight logging helper for the rapid troop AI."""
+"""Lightweight logging helper for the Barhamus AI."""
 
 from __future__ import annotations
 
 import logging
 from typing import Optional
 
-from .config import get_settings
+from src.settings.settings import config_manager
 
 
 _LOGGER: Optional[logging.Logger] = None
 
 
 def get_logger() -> logging.Logger:
-    """Return the shared logger for the AI namespace."""
+    """Return the shared logger for the Barhamus AI namespace."""
 
     global _LOGGER
     if _LOGGER is not None:
         return _LOGGER
 
-    logger = logging.getLogger("ia_troupe_rapide")
+    logger = logging.getLogger("ia_barhamus")
     if not logger.handlers:
         handler = logging.StreamHandler()
-        formatter = logging.Formatter("[IA][%(levelname)s] %(message)s")
+        formatter = logging.Formatter("[Barhamus AI][%(levelname)s] %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
-    settings = get_settings()
     # Par défaut, réduire le bruit: WARNING si le debug n'est pas activé.
-    logger.setLevel(logging.DEBUG if settings.debug.enabled else logging.WARNING)
+    debug_enabled = config_manager.get("debug", {}).get("enabled", False)
+    logger.setLevel(logging.DEBUG if debug_enabled else logging.WARNING)
     logger.propagate = False
 
     _LOGGER = logger
@@ -37,6 +37,4 @@ def get_logger() -> logging.Logger:
 def set_debug(enabled: bool) -> None:
     """Toggle verbose logging at runtime."""
 
-    settings = get_settings()
-    settings.debug.enabled = enabled
-    get_logger().setLevel(logging.DEBUG if enabled else logging.INFO)
+    get_logger().setLevel(logging.DEBUG if enabled else logging.WARNING)

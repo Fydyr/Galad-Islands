@@ -4,8 +4,6 @@ import pygame
 import sys
 import os
 import logging
-# By default, do not display DEBUG in production
-logging.basicConfig(level=logging.INFO)
 from src.ui.crash_window import show_crash_popup
 from src.managers.display import DisplayManager, LayoutManager, get_display_manager
 from src.managers.audio import AudioManager, VolumeWatcher
@@ -21,6 +19,9 @@ from src.settings.localization import t
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 from src.functions.resource_path import get_resource_path
 from src.settings.settings import get_project_version, is_dev_mode_enabled
+
+# Configure logging level: DEBUG in dev mode, WARNING otherwise (to improve runtime fluidity)
+logging.basicConfig(level=logging.DEBUG if is_dev_mode_enabled() else logging.WARNING)
 
 class MainMenu:
     """Main menu class."""
