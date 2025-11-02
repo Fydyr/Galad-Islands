@@ -336,6 +336,14 @@ TRANSLATIONS = {
     "feedback.dev_gold_given": "500 or ajoutés (mode debug)",
     "feedback.error": "Erreur",
     
+    # Mises à jour
+    "update.available_title": "Mise à jour disponible",
+    "update.available_message": "Une nouvelle version ({version}) est disponible !\nVous utilisez actuellement la version {current_version}.",
+    "update.download_button": "Télécharger",
+    "update.later_button": "Plus tard",
+    "update.checking": "Vérification des mises à jour...",
+    "update.error": "Impossible de vérifier les mises à jour",
+    
     # Camps
     "camp.ally": "Allié",
     "camp.enemy": "Ennemi",

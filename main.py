@@ -4,6 +4,7 @@ import pygame
 import sys
 import os
 import logging
+import threading
 from src.ui.crash_window import show_crash_popup
 from src.managers.display import DisplayManager, LayoutManager, get_display_manager
 from src.managers.audio import AudioManager, VolumeWatcher
@@ -19,6 +20,8 @@ from src.settings.localization import t
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 from src.functions.resource_path import get_resource_path
 from src.settings.settings import get_project_version, is_dev_mode_enabled
+from src.utils.update_checker import check_for_updates
+from src.ui.update_notification import UpdateNotification
 
 # Configure logging level: DEBUG in dev mode, WARNING otherwise (to improve runtime fluidity)
 logging.basicConfig(level=logging.DEBUG if is_dev_mode_enabled() else logging.WARNING)
@@ -62,6 +65,10 @@ class MainMenu:
         # Fonts
         self.menu_font = None
         self.tip_font = None
+        
+        # Update notification
+        self.update_notification = None
+        self._check_for_updates_async()
 
         # Layout initialization
         self._initialize_ui()
@@ -185,6 +192,26 @@ class MainMenu:
     def _on_quit(self):
         """Quits the application."""
         self.state.running = False
+    
+    # ========== Update checking ==========
+    
+    def _check_for_updates_async(self):
+        """Vérifie les mises à jour de manière asynchrone."""
+        def check_updates():
+            update_info = check_for_updates()
+            if update_info:
+                new_version, release_url = update_info
+                current_version = get_project_version()
+                self.update_notification = UpdateNotification(
+                    new_version, 
+                    current_version, 
+                    release_url
+                )
+                # Position will be set during first draw
+                
+        # Lance la vérification dans un thread séparé pour ne pas bloquer le menu
+        thread = threading.Thread(target=check_updates, daemon=True)
+        thread.start()
 
     # ========== Event handling ==========
 
@@ -193,6 +220,10 @@ class MainMenu:
         mouse_pos = pygame.mouse.get_pos()
 
         for event in pygame.event.get():
+            # Laisse la notification gérer l'événement en premier si elle existe
+            if self.update_notification and self.update_notification.handle_event(event):
+                continue
+                
             if event.type == pygame.QUIT:
                 self.state.running = False
 
@@ -261,6 +292,12 @@ class MainMenu:
 
         # Version and dev mode indicator
         self._render_version_info()
+        
+        # Update notification (dessine par-dessus tout le reste)
+        if self.update_notification:
+            width, height = self.display_manager.get_size()
+            self.update_notification.set_position(width, height)
+            self.update_notification.draw(self.surface)
 
         pygame.display.update()
 

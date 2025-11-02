@@ -350,6 +350,14 @@ TRANSLATIONS = {
     "feedback.dev_gold_given": "500 gold added (debug mode)",
     "feedback.error": "Error",
     
+    # Updates
+    "update.available_title": "Update Available",
+    "update.available_message": "A new version ({version}) is available!\nYou are currently using version {current_version}.",
+    "update.download_button": "Download",
+    "update.later_button": "Later",
+    "update.checking": "Checking for updates...",
+    "update.error": "Unable to check for updates",
+    
     # Camps
     "camp.ally": "Ally",
     "camp.enemy": "Enemy",
