@@ -95,7 +95,7 @@ jobs:
           cp dist/galad-config-tool galad-islands-${{ runner.os }}/
           cp dist/MaraudeurAiCleaner galad-islands-${{ runner.os }}/
           cp RELEASE_README.md galad-islands-${{ runner.os }}/README.md
-          mkdir -p galad-islands-${{ runner.os }}/models
+          # mkdir -p galad-islands-${{ runner.os }}/models
           # Les assets et modèles sont inclus dans l'exécutable via --add-data, pas besoin de les copier
           # cp src/models/base_ai_unified_final.pkl galad-islands-${{ runner.os }}/models/
           chmod +x galad-islands-${{ runner.os }}/galad-islands
