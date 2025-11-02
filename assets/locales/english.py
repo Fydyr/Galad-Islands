@@ -420,6 +420,6 @@ TRANSLATIONS = {
     # Team selection
     "team_selection.title": "Choose your team",
     "team_selection.message": "Select your starting side:",
-    "team_selection.team1": "Team 1 (Allies)",
-    "team_selection.team2": "Team 2 (Enemies)",
+    "team_selection.team1": "The Dawn Fleet",
+    "team_selection.team2": "The Abyss Legion",
 }

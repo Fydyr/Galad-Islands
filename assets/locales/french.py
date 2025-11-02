@@ -398,6 +398,6 @@ TRANSLATIONS = {
     # Sélection d'équipe
     "team_selection.title": "Choix de l'équipe",
     "team_selection.message": "Sélectionnez votre camp de départ :",
-    "team_selection.team1": "Team 1 (Alliés)",
-    "team_selection.team2": "Team 2 (Ennemis)",
+    "team_selection.team1": "La Flotte de l'Aube",
+    "team_selection.team2": "La Légion des Abysses",
 }
