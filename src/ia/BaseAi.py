@@ -16,6 +16,7 @@ import numpy as np
 import joblib
 import os
 import time
+import sys
 
 from src.components.core.baseComponent import BaseComponent
 from src.components.core.healthComponent import HealthComponent
@@ -32,6 +33,26 @@ from src.components.core.positionComponent import PositionComponent
 from src.constants.team import Team
 from src.settings.settings import config_manager
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
+from src.functions.resource_path import get_resource_path
+
+
+def _get_app_data_path() -> str:
+    """Chemin de données utilisateur pour la version compilée.
+
+    Windows: %APPDATA%/GaladIslands
+    Linux/macOS: ~/.local/share/GaladIslands
+    Dev: retourne le dossier src/models du repo
+    """
+    app_name = "GaladIslands"
+    if getattr(sys, 'frozen', False):
+        if os.name == 'nt':
+            path = os.path.join(os.environ.get('APPDATA', ''), app_name)
+        else:
+            path = os.path.join(os.path.expanduser('~'), '.local', 'share', app_name)
+        os.makedirs(path, exist_ok=True)
+        return path
+    # En dev, utiliser le dossier du projet
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models'))
 
 
 class BaseAi(esper.Processor):
@@ -80,19 +101,31 @@ class BaseAi(esper.Processor):
         self.debug_mode = config_manager.get('dev_mode', False)
 
     def load_model(self):
-        """Charge le modèle de décision pré-entraîné."""
-        unified_model_path = "src/models/base_ai_unified_final.pkl"
+        """Charge le modèle de décision pré-entraîné (robuste dev/compilé)."""
+        candidates = []
+        # 1) Dossier données utilisateur (priorité pour permettre override par l'utilisateur)
+        user_dir = _get_app_data_path()
+        candidates.append(os.path.join(user_dir, 'base_ai_unified_final.pkl'))
+        # 2) Ressource packagée avec PyInstaller (ou à côté de l'exécutable)
+        # Packagé par PyInstaller via --add-data "src/models:models"
+        candidates.append(get_resource_path(os.path.join('models', 'base_ai_unified_final.pkl')))
+        candidates.append(get_resource_path(os.path.join('src', 'models', 'base_ai_unified_final.pkl')))
+        # 3) Chemin dev relatif (repo)
+        candidates.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models', 'base_ai_unified_final.pkl')))
 
-        if os.path.exists(unified_model_path):
+        for path in candidates:
             try:
-                self.model = joblib.load(unified_model_path)
-                print(f"🤖 Modèle IA chargé pour l'équipe {self.default_team_id}: {type(self.model).__name__}")
+                if os.path.exists(path):
+                    self.model = joblib.load(path)
+                    print(f"🤖 Modèle IA chargé pour l'équipe {self.default_team_id} depuis: {path}")
+                    return
             except Exception as e:
-                print(f"❌ Erreur lors du chargement du modèle IA: {e}")
+                print(f"❌ Erreur lors du chargement du modèle IA ({path}): {e}")
                 self.model = None
-        else:
-            print("❌ Modèle IA non trouvé. L'IA de la base sera inactive.")
-            self.model = None
+                return
+
+        print("❌ Modèle IA non trouvé. L'IA de la base sera inactive.")
+        self.model = None
 
     def process(self, dt: float = 0.016, active_player_team_id=None):
         """Exécute la logique de l'IA de la base à chaque frame."""

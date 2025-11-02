@@ -117,14 +117,21 @@ class BarhamusAI:
     def _load_pretrained_model(self):
         """Charge le modèle/scaler pré-entrainé si disponible (pour démarrer avec une IA compétente)"""
         try:
-            pretrained_path = os.path.join(self.models_dir, "barhamus_pretrained.pkl")
-            if os.path.exists(pretrained_path):
-                with open(pretrained_path, 'rb') as f:
-                    model_data = pickle.load(f)
-                self.decision_tree = model_data.get('decision_tree', self.decision_tree)
-                self.scaler = model_data.get('scaler', self.scaler)
-                self.is_trained = model_data.get('is_trained', False)
-                self.logger.debug(f"Barhamus {self.entity}: Modèle pré-entrainé chargé")
+            candidates = [
+                os.path.join(self.models_dir, "barhamus_pretrained.pkl"),
+                get_resource_path(os.path.join('models', 'barhamus_pretrained.pkl')),
+                get_resource_path(os.path.join('src', 'models', 'barhamus_pretrained.pkl')),
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models', 'barhamus_pretrained.pkl')),
+            ]
+            for pretrained_path in candidates:
+                if pretrained_path and os.path.exists(pretrained_path):
+                    with open(pretrained_path, 'rb') as f:
+                        model_data = pickle.load(f)
+                    self.decision_tree = model_data.get('decision_tree', self.decision_tree)
+                    self.scaler = model_data.get('scaler', self.scaler)
+                    self.is_trained = model_data.get('is_trained', False)
+                    self.logger.debug(f"Barhamus {self.entity}: Modèle pré-entrainé chargé depuis {pretrained_path}")
+                    break
         except (pickle.UnpicklingError, EOFError, KeyError) as e:
             # Erreurs courantes de déserialisation, non critiques
             self.logger.debug(f"Erreur chargement modèle pré-entrainé: {e}")

@@ -45,6 +45,7 @@ jobs:
           pyinstaller --onefile main.py --name galad-islands \
             --add-data "assets${SEP}assets" \
             --add-data "src/models${SEP}models" \
+            --hidden-import sklearn.ensemble._forest
           # Build config tool
           pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
                       --add-data "assets/locales${SEP}assets/locales" \
