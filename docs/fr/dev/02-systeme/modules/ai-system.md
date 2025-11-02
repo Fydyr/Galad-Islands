@@ -645,11 +645,148 @@ esper.add_processor(leviathan_processor)
 - **Compatibilité ECS** : Utilise uniquement les événements et composants ECS, pas de références directes
 - **Désactivation pour contrôle joueur** : L'IA se désactive automatiquement si le composant `PlayerSelectedComponent` est présent
 
-### Autres IA (à venir)
+### IA des Druides (`DruidAIProcessor`)
 
-Des logiques d'IA pourraient être ajoutées pour d'autres unités, par exemple :
+**Fichier** : `src/processeurs/ai/DruidAIProcessor.py`
 
-- **Druides** : Soigner automatiquement les alliés les plus blessés à proximité.
-- **Architectes** : Construire des structures défensives en fonction des menaces détectées.
+Le Druide est une unité de soutien pilotée par une IA à base de Minimax pour la prise de décision et d'A* pour la navigation. Son rôle est de maintenir les alliés en vie, d'entraver les ennemis avec le lierre, et d'adopter des déplacements prudents.
+
+#### Architecture et boucle de décision
+
+- Perception: construction d'un GameState simplifié via `_build_game_state` (alliés/ennemis proches, santé, cooldowns)
+- Décision: appel à `run_minimax(game_state, grid, depth=AI_DEPTH)` pour obtenir la meilleure action
+- Action: `_execute_action` traduit l'action en commandes jeu (soin, lierre, déplacement/fuite)
+- Navigation: chemin A* via `a_star_pathfinding`, suivi de chemin et gestion d'angle/vitesse
+
+#### Actions supportées
+
+- `HEAL` : rend `DRUID_HEAL_AMOUNT` PV à l’allié ciblé et déclenche le cooldown de soin
+- `CAST_IVY` : orientation vers la cible et lancement du projectile de lierre si disponible
+- `MOVE_TO_ALLY` / `MOVE_TO_ENEMY` : A* vers la cible pour se positionner
+- `FLEE` : calcule un point opposé à l’ennemi proche et A* pour s’en éloigner
+- `WAIT` : arrêt et purge du chemin
+
+#### Entrées et paramètres
+
+- Composants requis: `DruidAiComponent`, `SpeDruid`, `Position`, `Velocity`, `Health`, `Team`, `Radius`
+- Désactivation automatique si `PlayerSelectedComponent` est présent (contrôle joueur)
+- Vision: `ai.vision_range` (dans `DruidAiComponent`)
+- Chemin: grille `grid` injectée; tolérance waypoint ≈ `TILE_SIZE/2`
+
+#### Remarques (Druide)
+
+- Le Minimax est évalué périodiquement avec un cooldown (`ai.think_cooldown_current`) pour limiter le coût
+- La fuite vise ~10 tuiles de distance dans la direction opposée à la menace
+- Les unités « enlacées » (isVinedComponent) sont détectées pour enrichir l’évaluation
+
+#### Vecteur d'état (GameState - Druide)
+
+| Catégorie | Clés | Détails |
+|---|---|---|
+| druid | `id`, `pos(x,y)`, `health`, `max_health`, `heal_cooldown`, `spec_cooldown` | `heal_cooldown` lu via `RadiusComponent.cooldown`, `spec_cooldown` via `SpeDruid.cooldown` |
+| allies[] | `id`, `pos`, `health`, `max_health` | Alliés dans `ai.vision_range` (exclut le Druide lui-même) |
+| enemies[] | `id`, `pos`, `health`, `max_health`, `is_vined`, `vine_duration` | Ennemis dans la vision; `is_vined` et durée lierre si présent |
+
+#### Détails décisionnels et heuristiques
+
+- Recherche Minimax avec élagage alpha-bêta: `run_minimax(game_state, grid, depth=AI_DEPTH, alpha=-inf, beta=+inf, is_maximizing=True)`
+- Ensemble d'actions évaluées: {HEAL, CAST_IVY, MOVE_TO_ALLY, MOVE_TO_ENEMY, FLEE, WAIT}
+- Critères usuels d'évaluation (selon implémentation Minimax): priorité au soin d’alliés fortement blessés, opportunisme lierre si disponible et ennemi dans l’arc
+
+#### Pathfinding et mouvement (A*)
+
+- A* sur `grid` (carte tuilée) avec positions monde en pixels; chemin converti et suivi point par point
+- Waypoint atteint si distance < `TILE_SIZE/2`, sinon orientation par `atan2` (axe Y inversé Pygame) et vitesse `vel.maxUpSpeed`
+- Sur calcul de fuite: point cible à ~`10 * TILE_SIZE` opposé à l’ennemi le plus proche
+
+#### Timings et cooldowns
+
+- Décision tempo: `ai.think_cooldown_current` réinitialisé à `ai.think_cooldown_max` après chaque réflexion
+- Soin: `UNIT_COOLDOWN_DRUID` appliqué via `RadiusComponent.cooldown`
+- Lierre: vérification `SpeDruid.can_cast_ivy()` juste avant le tir pour éviter les race conditions
+
+#### Robustesse et erreurs
+
+- Cibles invalides/disparues: exceptions `KeyError` capturées -> purge `ai.current_action` et `ai.current_path`
+- Fin de chemin: on saute le premier point (position actuelle), arrêt propre si liste vide
+
+
+### IA des Architectes (`ArchitectAIProcessor`)
+
+**Fichier** : `src/processeurs/ai/architectAIProcessor.py`
+
+L’Architecte combine Minimax (stratégie) et A* (navigation) pour explorer les îles, construire des tours (attaque/soin) et éviter les menaces. Il maintient des caches pour les îles, mines et chemins, et respecte une réserve d’or minimale.
+
+#### Architecture (Architecte)
+
+- Décision: `ArchitectMinimax.decide(state)` retourne une action stratégique
+- Navigation: `SimplePathfinder.findPath(...)` sur la `map_grid`, avec prise en compte d’ennemis comme obstacles souples
+- Caches: chemins par entité, groupes d’îles, mines; historique de positions pour détection de blocage
+- Économie: lecture/consommation d’or joueur via `PlayerComponent`; réserve d’or configurable (`gold_reserve`)
+
+#### Actions principales (DecisionAction)
+
+- `NAVIGATE_TO_ISLAND` / `CHOOSE_ANOTHER_ISLAND` / `FIND_DISTANT_ISLAND`
+- `NAVIGATE_TO_CHEST` / `NAVIGATE_TO_ISLAND_RESOURCE`
+- `NAVIGATE_TO_ALLY` / `EVADE_ENEMY` / `GET_UNSTUCK` / `MOVE_RANDOMLY`
+- `BUILD_DEFENSE_TOWER` / `BUILD_HEAL_TOWER` (via `createDefenseTower` / `createHealTower`) si or ≥ coût + réserve
+- `ACTIVATE_ARCHITECT_ABILITY` (déclenchement, logique d’effet gérée par le processeur des capacités)
+
+#### Entrées et conditions
+
+- Composants requis: `ArchitectAIComponent`, `SpeArchitect`, `Position`, `Velocity`, `Health`, `Team`
+- Carte: `map_grid` obligatoire; initialisation lazy du `SimplePathfinder` à la première frame
+- Îles: détection par `TileType.is_island_buildable()`, regroupement en clusters; arrêt anticipé si déjà sur une île cible
+- Anti-stuck: historique 3s; action `GET_UNSTUCK` quand déplacement < 0.5 tuile
+
+#### Remarques (Architecte)
+
+- Liste « tabou » de cibles d’îles récentes si pathfinding échoue (évite de boucler)
+- Recalcule de chemin quand la cible change significativement; suivi waypoint avec tolérance ~1.2 tuile
+- S’arrête sur l’île cible et enchaîne une nouvelle recherche/construction
+
+#### GameState (Architecte)
+
+| Catégorie | Clés principales | Détails |
+|---|---|---|
+| Unité | `current_position`, `current_heading`, `current_hp`, `maximum_hp`, `team_id` | Etat instantané |
+| Économie | `player_gold` | Or dispo lu via `PlayerComponent.get_gold()` |
+| Hostiles | `closest_foe_dist`, `closest_foe_bearing`, `closest_foe_team_id`, `nearby_foes_count` | Calcul Euclidien + cap Y inversé |
+| Alliés | `closest_ally_dist`, `closest_ally_bearing`, `nearby_allies_count`, `total_allies_hp`, `total_allies_max_hp` | Exclut bases des totaux |
+| Environnement | `closest_island_dist`, `closest_island_bearing`, `is_on_island`, `closest_chest_dist`, `closest_island_resource_dist`, `is_tower_on_current_island`, `island_groups` | Îles groupées en 8-connexité |
+| Menaces | `closest_mine_dist`, `closest_mine_bearing`, `is_stuck` | Mines pré-indexées, stuck sur 3s |
+| Spécifique Architecte | `architect_ability_available`, `architect_ability_cooldown`, `build_cooldown_active` | Cooldown build et capacité |
+
+#### Décision et temporisation
+
+- La décision est bloquée par `vetoTimeRemaining` pour limiter la fréquence des re-évaluations
+- Les actions de construction déclenchent `build_cooldown_remaining` via `ai_comp.start_build_cooldown()`
+- Journalisation ponctuelle des positions/waypoints pour inspection (logger)
+
+#### Pathfinding A* (détails)
+
+- Initialisation lazy de `SimplePathfinder(self.map_grid, TILE_SIZE)`
+- Recalcul si nouvelle cible distante de > `2 * TILE_SIZE` de l’ancienne
+- Ennemi comme obstacle souple: passage d’une liste `enemy_positions` au pathfinder
+- Suivi: waypoint atteint si distance < `1.2 * TILE_SIZE`, sinon orientation progressive (±15° max/frame) et réduction de vitesse en virage
+- Échec de pathfinding: ajout de la cible à la « liste tabou » (max 5 récentes) avec timestamp pour éviter les boucles
+
+#### Économie et construction
+
+- Réserve d’or: `gold_reserve = 50` conservés avant de déclencher `BUILD_*`
+- Coûts: `UNIT_COST_ATTACK_TOWER`, `UNIT_COST_HEAL_TOWER` (constants gameplay)
+- Placement: fonctions `createDefenseTower(...)` / `createHealTower(...)` sur tuiles `TileType.is_island_buildable()`
+- Après construction: purge chemin et sélection d’une île d’un autre groupe via clustering DFS 8-connexe
+
+#### Anti-stuck et sécurité
+
+- Historique positions glissant (3s); stuck si déplacement < `0.5 * TILE_SIZE` -> action `GET_UNSTUCK`
+- Évasion ennemis: éventail d’angles autour de l’anti-cap (±30°, ±60°), validation par existence de chemin
+
+#### Complexité et performances
+
+- Caches îles/mines/groupes construits à la demande puis réutilisés
+- Décision O(1) amorti (Minimax discret côté architecte) et pathfinding O(n log n) typique
+- Réduction recalculs par veto, seuils de changement de cible, et liste tabou
 
 ---

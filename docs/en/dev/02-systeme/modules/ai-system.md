@@ -638,12 +638,149 @@ esper.add_processor(leviathan_processor)
 - **ECS compatibility**: Uses only ECS events and components, no direct references
 - **Player control deactivation**: AI automatically deactivates if `PlayerSelectedComponent` is present
 
-### Other AIs (coming soon)
+### Druid AI (`DruidAIProcessor`)
 
-AI logic could be added for other units, for example:
+**File**: `src/processeurs/ai/DruidAIProcessor.py`
 
-- **Druids**: Automatically heal the most wounded allies nearby.
-- **Architects**: Build defensive structures based on detected threats.
+The Druid is a support unit driven by a Minimax-based decision layer and A* for navigation. It keeps allies alive, entangles enemies with ivy, and moves conservatively.
+
+#### Architecture (Druid)
+
+- Perception: builds a compact GameState via `_build_game_state` (nearby allies/enemies, health, cooldowns)
+- Decision: calls `run_minimax(game_state, grid, depth=AI_DEPTH)` to get the best action
+- Action: `_execute_action` translates the decision (heal, ivy, move/flee)
+- Navigation: A* path via `a_star_pathfinding`, waypoint following, heading/speed handling
+
+#### Supported actions
+
+- `HEAL`: restore `DRUID_HEAL_AMOUNT` HP to target ally and start heal cooldown
+- `CAST_IVY`: turn toward target and launch ivy projectile if available
+- `MOVE_TO_ALLY` / `MOVE_TO_ENEMY`: A* to position relative to target
+- `FLEE`: choose a point opposite to nearest enemy and A* away
+- `WAIT`: stop and clear current path
+
+#### Inputs and parameters
+
+- Required components: `DruidAiComponent`, `SpeDruid`, `Position`, `Velocity`, `Health`, `Team`, `Radius`
+- Auto-disable if `PlayerSelectedComponent` is present (player control)
+- Vision: `ai.vision_range` (in `DruidAiComponent`)
+- Path: injected `grid`; waypoint tolerance ≈ `TILE_SIZE/2`
+
+#### Notes (Druid)
+
+- Minimax is evaluated periodically with a cooldown (`ai.think_cooldown_current`) to limit cost
+- Fleeing targets a point ~`10 * TILE_SIZE` away opposite to the nearest threat
+- “Vined” enemies (isVinedComponent) are detected and included in the state
+
+#### State Vector (GameState - Druid)
+
+| Category | Keys | Details |
+|---|---|---|
+| druid | `id`, `pos(x,y)`, `health`, `max_health`, `heal_cooldown`, `spec_cooldown` | `heal_cooldown` from `RadiusComponent.cooldown`, `spec_cooldown` from `SpeDruid.cooldown` |
+| allies[] | `id`, `pos`, `health`, `max_health` | Allies within `ai.vision_range` (excludes the druid itself) |
+| enemies[] | `id`, `pos`, `health`, `max_health`, `is_vined`, `vine_duration` | Enemies within vision; ivy info if present |
+
+#### Decision details and heuristics
+
+- Alpha-beta minimax call: `run_minimax(game_state, grid, depth=AI_DEPTH, alpha=-inf, beta=+inf, is_maximizing=True)`
+- Action set evaluated: {HEAL, CAST_IVY, MOVE_TO_ALLY, MOVE_TO_ENEMY, FLEE, WAIT}
+- Typical scoring: prioritize healing low-HP allies, opportunistic ivy if available and target in arc
+
+#### Pathfinding and movement (A*)
+
+- A* on tile `grid` with world pixel positions; follow converted waypoints
+- Waypoint reached if distance < `TILE_SIZE/2`; otherwise `atan2` heading (Pygame inverted Y) and `vel.maxUpSpeed`
+- Flee target computed at ~`10 * TILE_SIZE` away on the opposite bearing
+
+#### Timings and cooldowns
+
+- Decision pacing: `ai.think_cooldown_current` reset to `ai.think_cooldown_max` after each evaluation
+- Heal: `UNIT_COOLDOWN_DRUID` applied through `RadiusComponent.cooldown`
+- Ivy: final `SpeDruid.can_cast_ivy()` check before launch to avoid race conditions
+
+#### Robustness and errors
+
+- Missing/invalid targets: catch `KeyError` → clear `ai.current_action` and `ai.current_path`
+- End of path: skip current position node; stop cleanly if path empties
+
+
+### Architect AI (`ArchitectAIProcessor`)
+
+**File**: `src/processeurs/ai/architectAIProcessor.py`
+
+The Architect combines Minimax (strategy) and A* (navigation) to explore islands, build towers (attack/heal), and avoid threats. It keeps caches for islands, mines and paths, and respects a minimum gold reserve.
+
+#### Architecture (Architect)
+
+- Decision: `ArchitectMinimax.decide(state)` returns a strategic action
+- Navigation: `SimplePathfinder.findPath(...)` on `map_grid`, with enemies considered as soft obstacles
+- Caches: per-entity paths, island groups, mines; position history for stuck detection
+- Economy: read/spend player gold via `PlayerComponent`; configurable reserve (`gold_reserve`)
+
+#### Main actions (DecisionAction)
+
+- `NAVIGATE_TO_ISLAND` / `CHOOSE_ANOTHER_ISLAND` / `FIND_DISTANT_ISLAND`
+- `NAVIGATE_TO_CHEST` / `NAVIGATE_TO_ISLAND_RESOURCE`
+- `NAVIGATE_TO_ALLY` / `EVADE_ENEMY` / `GET_UNSTUCK` / `MOVE_RANDOMLY`
+- `BUILD_DEFENSE_TOWER` / `BUILD_HEAL_TOWER` (via `createDefenseTower` / `createHealTower`) if gold ≥ cost + reserve
+- `ACTIVATE_ARCHITECT_ABILITY` (trigger; effect handled by the abilities processor)
+
+#### Inputs and conditions
+
+- Required components: `ArchitectAIComponent`, `SpeArchitect`, `Position`, `Velocity`, `Health`, `Team`
+- Map: `map_grid` required; lazy initialization of `SimplePathfinder` on first frame
+- Islands: detection via `TileType.is_island_buildable()`, clustered; early stop if already on chosen island
+- Anti-stuck: 3s history; `GET_UNSTUCK` when displacement < 0.5 tile
+
+#### Notes (Architect)
+
+- “Taboo list” of island targets when pathfinding fails (avoid immediate retries)
+- Recompute path when target changes significantly; waypoint tolerance ~`1.2 * TILE_SIZE`
+- Stop on island target and chain to a new search/build
+
+#### GameState (Architect)
+
+| Category | Main keys | Details |
+|---|---|---|
+| Unit | `current_position`, `current_heading`, `current_hp`, `maximum_hp`, `team_id` | Instant state |
+| Economy | `player_gold` | From `PlayerComponent.get_gold()` |
+| Hostiles | `closest_foe_dist`, `closest_foe_bearing`, `closest_foe_team_id`, `nearby_foes_count` | Euclidean with inverted Y for bearings |
+| Allies | `closest_ally_dist`, `closest_ally_bearing`, `nearby_allies_count`, `total_allies_hp`, `total_allies_max_hp` | Bases excluded from totals |
+| Environment | `closest_island_dist`, `closest_island_bearing`, `is_on_island`, `closest_chest_dist`, `closest_island_resource_dist`, `is_tower_on_current_island`, `island_groups` | Islands grouped in 8-connectivity |
+| Threats | `closest_mine_dist`, `closest_mine_bearing`, `is_stuck` | Mines pre-indexed, stuck on 3s window |
+| Architect-specific | `architect_ability_available`, `architect_ability_cooldown`, `build_cooldown_active` | Build and ability cooldowns |
+
+#### Decision pacing
+
+- Decision rate throttled by `vetoTimeRemaining` to reduce re-evaluations
+- Build actions trigger `build_cooldown_remaining` via `ai_comp.start_build_cooldown()`
+- Occasional logging of positions/waypoints for inspection (logger)
+
+#### Pathfinding (A*) details
+
+- Lazy init `SimplePathfinder(self.map_grid, TILE_SIZE)`
+- Recompute if new target is > `2 * TILE_SIZE` from previous target
+- Enemies passed as `enemy_positions` for safer paths
+- Follow: waypoint reached at < `1.2 * TILE_SIZE`; progressive turns (±15° max/frame) and speed reduction when turning
+- Failure: push target to taboo list (keep last 5) with timestamp to avoid loops
+
+#### Economy and building
+
+- Reserve: `gold_reserve = 50` kept prior to `BUILD_*`
+- Costs: `UNIT_COST_ATTACK_TOWER`, `UNIT_COST_HEAL_TOWER`
+- Placement: `createDefenseTower(...)` / `createHealTower(...)` on tiles where `TileType.is_island_buildable()` is true
+- After building: clear path and pick an island from a different group via 8-connected clustering
+
+#### Anti-stuck and safety
+
+- Sliding position history (3s); stuck if movement < `0.5 * TILE_SIZE` → `GET_UNSTUCK`
+- Enemy evasion: fan of angles around the opposite bearing (±30°, ±60°), only keep those with valid paths
+
+#### Complexity and performance
+
+- Island/mine/group caches built on demand and reused
+- Decision O(1) amortized (discrete minimax side), A* typically O(n log n)
+- Recompute reduction by veto window, target-change thresholds, and taboo list
 
 ---
 
