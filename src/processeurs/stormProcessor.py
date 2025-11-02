@@ -20,8 +20,8 @@ class StormProcessor(es.Processor):
     Processor for storm events.
     
     Storm configuration:
-    - Visual size: 3.0 tiles (matches actual sprite dimensions of 100x100 pixels)
-    - Damage radius: 1.5 tiles (half of visual size for proper area coverage)
+    - Visual size: 6.0 tiles (increased to make storms more imposing)
+    - Damage radius: 3.0 tiles (half of visual size for proper area coverage)
     - Damage: 30 HP per attack
     - Movement: 1 tile per second, changes direction every 5 seconds
     - Spawn chance: 5% every 5 seconds
@@ -38,8 +38,9 @@ class StormProcessor(es.Processor):
 
         # Storm configuration
         self.stormDamage = 30
-        self.stormVisualSize = 3.0  # tiles (sprite size - adjusted to match actual sprite dimensions)
-        self.stormRadius = 1.5  # tiles (radius from center - half of visual size for proper coverage)
+        # Visuel et portée agrandis pour des tempêtes plus menaçantes
+        self.stormVisualSize = 6.0  # tiles (diameter of the visual sprite)
+        self.stormRadius = 3.0  # tiles (radius from center - half of visual size for proper coverage)
         self.stormMoveInterval = 5.0  # seconds
         self.stormMoveSpeed = 1.0  # tiles per second
 
@@ -273,34 +274,26 @@ class StormProcessor(es.Processor):
 
             # Storm Configuration Component (tempete_duree, tempete_cooldown)
             es.add_component(stormEntity, Storm(
-                tempete_duree=20.0,    # 20 seconds lifetime
-                tempete_cooldown=3.0   # 3 seconds attack cooldown per entity
+                tempete_duree=20,    # 20 seconds lifetime
+                tempete_cooldown=3   # 3 seconds attack cooldown per entity
             ))
 
             # Sprite (storm visual)
-            stormRadius = self.stormRadius * TILE_SIZE  # Match radius
+            visual_size_px = int(self.stormVisualSize * TILE_SIZE)
             sprite_id = SpriteID.STORM if hasattr(SpriteID, 'STORM') else None
 
             if sprite_id and sprite_manager:
-                size = sprite_manager.get_default_size(sprite_id)
-                if size:
-                    es.add_component(
-                        stormEntity,
-                        sprite_manager.create_sprite_component(sprite_id, size[0], size[1])
-                    )
-                else:
-                    # Fallback: default sprite
-                    es.add_component(stormEntity, SpriteComponent(
-                        "assets/event/storm.png",
-                        stormRadius,
-                        stormRadius
-                    ))
+                # Forcer la taille visuelle désirée
+                es.add_component(
+                    stormEntity,
+                    sprite_manager.create_sprite_component(sprite_id, visual_size_px, visual_size_px)
+                )
             else:
                 # Fallback: default sprite
                 es.add_component(stormEntity, SpriteComponent(
                     "assets/event/storm.png",
-                    stormRadius,
-                    stormRadius
+                    visual_size_px,
+                    visual_size_px
                 ))
 
             # Neutral team (attacks everyone)
