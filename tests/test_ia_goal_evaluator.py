@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Set, Tuple
+from typing import Any, Dict, Iterable, List, Set, Tuple
 
 import sys
 from pathlib import Path
@@ -24,6 +24,7 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.special.speDruidComponent import SpeDruid
 from src.components.core.baseComponent import BaseComponent
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 
 
 @dataclass
@@ -55,11 +56,35 @@ class DummyPathfinding:
 	"""Pathfinding minimaliste contrôlant l'accessibilité des positions."""
 
 	def __init__(self, blocked: Iterable[Tuple[float, float]] = ()) -> None:
-		self._blocked: Set[Tuple[float, float]] = {tuple(pos) for pos in blocked}
+		# Utiliser un set non typé strictement pour éviter les soucis de variance en test
+		self._blocked = {tuple(pos) for pos in blocked}
 
 	def is_world_blocked(self, position: Tuple[float, float]) -> bool:
 		key = (round(position[0], 1), round(position[1], 1))
 		return key in self._blocked
+
+	def find_path(self, start: Tuple[float, float], end: Tuple[float, float]) -> List[Tuple[float, float]]:
+		"""Retourne un chemin trivial start->end si la cible n'est pas bloquée."""
+		end_key = (round(end[0], 1), round(end[1], 1))
+		if end_key in self._blocked:
+			return []
+		return [start, end]
+
+	# Méthodes utilitaires requises par GoalEvaluator lorsqu'un pathfinding est fourni
+	def world_to_grid(self, position: Tuple[float, float]) -> Tuple[int, int]:
+		# Convertit simplement en coordonnées entières en supposant TILE_SIZE constant
+		from src.settings.settings import TILE_SIZE  # import local pour les tests
+		x = int(position[0] / TILE_SIZE)
+		y = int(position[1] / TILE_SIZE)
+		return (max(0, x), max(0, y))
+
+	def _in_bounds(self, _grid_pos: Tuple[int, int]) -> bool:  # type: ignore[override]
+		# Toujours dans les bornes pour ce dummy
+		return True
+
+	def _tile_cost(self, _grid_pos: Tuple[int, int]) -> float:  # type: ignore[override]
+		# Coût fini pour signaler une case franchissable
+		return 1.0
 
 
 def _patch_esper_defaults(monkeypatch: MonkeyPatch) -> None:
@@ -95,7 +120,7 @@ def test_chest_prioritaire_si_accessible(monkeypatch: MonkeyPatch) -> None:
 	prediction_service = DummyPredictionService([])
 	pathfinding = DummyPathfinding()
 
-	objective, score = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
+	objective, score = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "goto_chest"
 	assert objective.target_entity == 42
@@ -136,7 +161,7 @@ def test_coffre_ignore_si_bloque(monkeypatch: MonkeyPatch) -> None:
 	prediction_service = DummyPredictionService([])
 	pathfinding = DummyPathfinding(blocked=[(128.0, 0.0)])
 
-	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
+	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "follow_druid"
 
@@ -166,7 +191,7 @@ def test_cible_stationnaire_prioritaire(monkeypatch: MonkeyPatch) -> None:
 	prediction_service = DummyPredictionService([predicted])
 	pathfinding = DummyPathfinding()
 
-	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
+	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "attack"
 	assert objective.target_entity == 50
@@ -186,7 +211,7 @@ def test_cible_mobile_vulnerable_active_follow_to_die(monkeypatch: MonkeyPatch) 
 		speed=40.0,
 		direction=0.0,
 	)
-	target_health = HealthComponent(currentHealth=40.0, maxHealth=100.0)
+	target_health = HealthComponent(currentHealth=40, maxHealth=100)
 
 	def fake_get_components(*components):
 		return []
@@ -208,7 +233,7 @@ def test_cible_mobile_vulnerable_active_follow_to_die(monkeypatch: MonkeyPatch) 
 	prediction_service = DummyPredictionService([predicted])
 	pathfinding = DummyPathfinding()
 
-	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
+	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "follow_die"
 	assert objective.target_entity == 99
@@ -245,12 +270,14 @@ def test_attack_base_quand_aucune_autre_option(monkeypatch: MonkeyPatch) -> None
 	monkeypatch.setattr(esper, "component_for_entity", fake_component_for_entity)
 	monkeypatch.setattr(BaseComponent, "get_enemy_base", staticmethod(lambda: enemy_base_entity))
 	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: ally_base_entity))
+	# Marquer la base ennemie comme connue pour l'équipe du contexte
+	monkeypatch.setattr(enemy_base_registry, "is_enemy_base_known", lambda _team_id: True)
 
 	danger_map = DummyDangerMap({})
 	prediction_service = DummyPredictionService([])
 	pathfinding = DummyPathfinding()
 
-	objective, score = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
+	objective, score = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "attack_base"
 	assert objective.target_entity == enemy_base_entity
@@ -289,12 +316,14 @@ def test_enemy_units_visent_base_adverse(monkeypatch: MonkeyPatch) -> None:
 	monkeypatch.setattr(esper, "component_for_entity", fake_component_for_entity)
 	monkeypatch.setattr(BaseComponent, "get_enemy_base", staticmethod(lambda: enemy_base_entity))
 	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: ally_base_entity))
+	# Marquer la base ennemie comme connue pour l'équipe du contexte
+	monkeypatch.setattr(enemy_base_registry, "is_enemy_base_known", lambda _team_id: True)
 
 	danger_map = DummyDangerMap({})
 	prediction_service = DummyPredictionService([])
 	pathfinding = DummyPathfinding()
 
-	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)
+	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "attack_base"
 	assert objective.target_entity == ally_base_entity

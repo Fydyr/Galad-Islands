@@ -31,7 +31,7 @@ DEFAULT_CONFIG = {
     "performance_mode": "auto",  # "auto", "high", "medium", "low"
     "disable_particles": False,
     "disable_shadows": False,
-    "disable_ai_learning": False,
+    "disable_ai_learning": True,
     "max_fps": 60,
     "show_fps": False,
     "dev_mode": False,  # Mode développement pour les actions debug
