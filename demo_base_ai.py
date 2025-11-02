@@ -133,11 +133,12 @@ def demo_ai_decisions():
             'towers_needed': scenario['towers_needed'],
             'enemy_base_health_ratio': enemy_base_health
         }
-        # If scenario provides allied_units_health explicitly, call the rule-based
-        # decision function directly so the new Druide rule is exercised.
+        # Si le scénario fournit allied_units_health explicitement, on le passe au game_state.
         if "allied_units_health" in scenario:
             game_state['allied_units_health'] = scenario.get('allied_units_health', 1.0)
-            best_action_index = ai._decide_action(game_state)
+
+        # Toujours décider de l'action via l'IA pour éviter best_action_index non défini
+        best_action_index = ai._decide_action(game_state)
         action_name = actions_names[best_action_index]
         # Compare with expected result (more flexible)
         # For "Numerical inferiority" scenario, Maraudeur or Kamikaze are acceptable
