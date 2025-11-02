@@ -32,6 +32,7 @@ from src.settings.localization import (
 )
 from src.settings import controls
 from src.managers.display import get_display_manager
+from src.utils.update_checker import check_for_updates_force
 from src.constants.key_bindings import (
     BASIC_BINDINGS,
     CAMERA_BINDINGS,
@@ -112,8 +113,11 @@ class OptionsState:
     disable_particles: bool
     disable_shadows: bool
     disable_ai_learning: bool
+    check_updates: bool
     vsync: bool
     max_fps: int
+    checking_update: bool  # Indicateur de vérification en cours
+    update_check_result: Optional[str]  # Résultat de la dernière vérification
     
     @classmethod
     def from_config(cls) -> 'OptionsState':
@@ -150,8 +154,11 @@ class OptionsState:
             disable_particles=get_disable_particles(),
             disable_shadows=get_disable_shadows(),
             disable_ai_learning=get_disable_ai_learning(),
+            check_updates=config_manager.get("check_updates", True),
             vsync=config_manager.get("vsync", True),
             max_fps=int(config_manager.get("max_fps", 60)),
+            checking_update=False,
+            update_check_result=None,
         )
 
 
@@ -249,6 +256,10 @@ class OptionsWindow:
         
         # Section Contrôles
         y_pos = self._create_controls_section(content_surface, y_pos)
+        y_pos += UIConstants.SECTION_SPACING
+        
+        # Section Mises à jour
+        y_pos = self._create_updates_section(content_surface, y_pos)
         y_pos += UIConstants.SECTION_SPACING
         
         # Section Informations
@@ -545,6 +556,69 @@ class OptionsWindow:
         y_pos = self._create_key_binding_section(surface, y_pos)
         
         return y_pos
+    
+    def _create_updates_section(self, surface: pygame.Surface, y_pos: int) -> int:
+        """Crée la section des paramètres de mises à jour."""
+        import threading
+        import webbrowser
+        
+        # Titre de section
+        section_surf = self.font_section.render(t("options.updates_section"), True, Colors.GOLD)
+        surface.blit(section_surf, (0, y_pos))
+        y_pos += 40
+        
+        # Checkbox "Vérifier automatiquement"
+        check_updates_rect = pygame.Rect(0, y_pos, self.modal_width - 60, UIConstants.LINE_HEIGHT)
+        check_updates_checkbox = RadioButton(
+            check_updates_rect,
+            t("options.check_updates"),
+            self.font_normal,
+            "check_updates",
+            selected=self.state.check_updates,
+            callback=lambda x: self._on_check_updates_changed()
+        )
+        self.components.append(check_updates_checkbox)
+        y_pos += UIConstants.LINE_HEIGHT
+        
+        # Description de l'option
+        description_lines = t("options.check_updates_description").split('\n')
+        for line in description_lines:
+            desc_surf = self.font_small.render(line, True, Colors.GRAY)
+            surface.blit(desc_surf, (20, y_pos))
+            y_pos += 20
+        
+        y_pos += 10
+        
+        # Bouton "Vérifier maintenant"
+        check_now_rect = pygame.Rect(0, y_pos, 180, UIConstants.BUTTON_HEIGHT)
+        
+        # Couleur et texte selon l'état
+        if self.state.checking_update:
+            button_color = Colors.GRAY
+            button_text = t("update.checking")
+        else:
+            button_color = Colors.BLUE
+            button_text = t("options.check_now")
+        
+        check_now_button = Button(
+            check_now_rect,
+            button_text,
+            self.font_normal,
+            color=button_color,
+            text_color=Colors.WHITE,
+            callback=self._on_check_now if not self.state.checking_update else lambda: None
+        )
+        self.components.append(check_now_button)
+        y_pos += UIConstants.BUTTON_HEIGHT + 10
+        
+        # Afficher le résultat de la dernière vérification
+        if self.state.update_check_result:
+            result_surf = self.font_small.render(self.state.update_check_result, True, Colors.LIGHT_GRAY)
+            surface.blit(result_surf, (0, y_pos))
+            y_pos += 25
+        
+        y_pos += 20
+        return y_pos
 
     def _create_key_binding_section(self, surface: pygame.Surface, y_pos: int) -> int:
         """creates la liste des raccourcis personnalisables."""
@@ -797,6 +871,50 @@ class OptionsWindow:
         disabled = not self.state.disable_ai_learning  # Inverser l'état
         set_disable_ai_learning(disabled)
         self.state.disable_ai_learning = disabled
+    
+    def _on_check_updates_changed(self) -> None:
+        """Callback pour l'activation/désactivation de la vérification automatique."""
+        enabled = not self.state.check_updates  # Inverser l'état
+        config_manager.set("check_updates", enabled)
+        config_manager.save_config()
+        self.state.check_updates = enabled
+    
+    def _on_check_now(self) -> None:
+        """Callback pour vérifier manuellement les mises à jour."""
+        import threading
+        import webbrowser
+        from src.settings.settings import get_project_version
+        
+        # Marquer comme en cours de vérification
+        self.state.checking_update = True
+        self.state.update_check_result = None
+        
+        def check_in_thread():
+            try:
+                result = check_for_updates_force()
+                if result:
+                    new_version, release_url = result
+                    current_version = get_project_version()
+                    # Mise à jour disponible
+                    self.state.update_check_result = t("update.available_message", version=new_version, current_version=current_version)
+                    # Ouvrir automatiquement la page GitHub
+                    try:
+                        webbrowser.open(release_url)
+                    except Exception as e:
+                        print(f"Erreur lors de l'ouverture du navigateur: {e}")
+                else:
+                    # Pas de mise à jour
+                    self.state.update_check_result = t("update.no_update")
+            except Exception as e:
+                # Erreur de vérification
+                self.state.update_check_result = t("update.check_failed")
+                print(f"Erreur lors de la vérification: {e}")
+            finally:
+                self.state.checking_update = False
+        
+        # Lancer la vérification dans un thread séparé
+        thread = threading.Thread(target=check_in_thread, daemon=True)
+        thread.start()
     
     def _on_reset(self) -> None:
         """Callback pour la réinitialisation des paramètres."""

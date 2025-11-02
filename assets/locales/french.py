@@ -53,6 +53,10 @@ TRANSLATIONS = {
     "options.disable_shadows": "Désactiver les ombres",
     "options.disable_ai_learning": "Désactiver l'apprentissage IA (Maraudeurs)",
     "options.disable_ai_learning_description": "Désactive l'apprentissage en jeu des Maraudeurs pour améliorer les performances.\nL'IA ne pourra plus évoluer et s'adapter pendant la partie.",
+    "options.check_updates": "Vérifier les mises à jour au démarrage",
+    "options.check_updates_description": "Vérifie automatiquement si une nouvelle version est disponible sur GitHub.\nIgnoré en mode développement. Maximum 1 vérification par jour.",
+    "options.check_now": "Vérifier maintenant",
+    "options.updates_section": "Mises à jour",
     "options.vsync": "VSync",
     "options.max_fps": "FPS maximum",
     "options.max_fps_label": "FPS maximum: {fps}",
@@ -342,6 +346,8 @@ TRANSLATIONS = {
     "update.download_button": "Télécharger",
     "update.later_button": "Plus tard",
     "update.checking": "Vérification des mises à jour...",
+    "update.no_update": "Vous utilisez la dernière version !",
+    "update.check_failed": "Impossible de vérifier les mises à jour",
     "update.error": "Impossible de vérifier les mises à jour",
     
     # Camps

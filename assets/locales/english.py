@@ -52,6 +52,10 @@ TRANSLATIONS = {
     "options.disable_shadows": "Disable shadows",
     "options.disable_ai_learning": "Disable AI learning (Marauders)",
     "options.disable_ai_learning_description": "Disables in-game learning for Marauders to improve performance.\nAI will no longer evolve and adapt during gameplay.",
+    "options.check_updates": "Check for updates on startup",
+    "options.check_updates_description": "Automatically checks if a new version is available on GitHub.\nIgnored in development mode. Maximum 1 check per day.",
+    "options.check_now": "Check now",
+    "options.updates_section": "Updates",
     "options.vsync": "VSync",
     "options.max_fps": "Maximum FPS",
     "options.max_fps_label": "Maximum FPS: {fps}",
@@ -356,6 +360,8 @@ TRANSLATIONS = {
     "update.download_button": "Download",
     "update.later_button": "Later",
     "update.checking": "Checking for updates...",
+    "update.no_update": "You are using the latest version!",
+    "update.check_failed": "Unable to check for updates",
     "update.error": "Unable to check for updates",
     
     # Camps

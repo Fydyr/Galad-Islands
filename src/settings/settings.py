@@ -36,6 +36,7 @@ DEFAULT_CONFIG = {
     "show_fps": False,
     "dev_mode": False,  # Mode développement pour les actions debug
     "language": "fr",
+    "check_updates": True,  # Vérification automatique des mises à jour au démarrage
     "camera_sensitivity": 1.0,
     "camera_fast_multiplier": 2.5,
     "key_bindings": {

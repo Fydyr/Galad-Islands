@@ -29,6 +29,8 @@ python setup_dev.py # ou python3 setup_dev.py -- Ce script crée un environnemen
 - [tomli](https://tomli.readthedocs.io/)
 - [scikit-learn](https://scikit-learn.org/)
 - [joblib](https://joblib.readthedocs.io/)
+- [requests](https://requests.readthedocs.io/) - For update checking
+- [packaging](https://packaging.pypa.io/) - For version comparison
 
 ### Development Dependencies
 
@@ -67,6 +69,30 @@ pyinstaller --onefile main.py --name galad-islands --add-data "assets:assets"
 - Procedurally generated islands
 - Basic combat system
 - IA for troops
+ 
+  
+- **Automatic update checking**: The game checks for new versions on GitHub at startup (configurable in Options)
+
+## Configuration
+
+### Update Checking
+
+The game automatically checks for updates on GitHub when launched. This feature:
+
+- **Checks once per day maximum** to avoid spamming the GitHub API
+- **Disabled in development mode** (`dev_mode: true`)
+- **Can be disabled** in the Options menu or in `galad_config.json`:
+
+  ```json
+  {
+    "check_updates": false
+  }
+  ```
+
+- **Displays a notification** in the main menu if a new version is available
+- **Caches results** in `.update_cache.json` to minimize network requests
+
+To manually check for updates at any time, use the "Check now" button in the Options menu.
 
 ## License
 
