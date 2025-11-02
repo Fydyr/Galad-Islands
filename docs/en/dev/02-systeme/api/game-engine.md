@@ -233,24 +233,41 @@ es.set_handler('flying_chest_collision', self.flying_chest_processor.handle_coll
 ## Main Loop
 
 ```python
+from src.settings.settings import config_manager
+
 def run(self) -> None:
     """Main game loop."""
     while self.running:
-        # Calculate delta time
-        dt = self.clock.tick(60) / 1000.0
-        
-        # Process events
+        # Configurable frame cap (CPU-side)
+        max_fps = int(config_manager.get("max_fps", 60))
+        dt = self.clock.tick(max_fps) / 1000.0
+
+        # Events
         self.event_handler.handle_events()
-        
-        # Update managers
+
+        # Updates
         self._update_game(dt)
-        
-        # ECS processing (includes processors)
+
+        # ECS processing
         es.process()
-        
+
         # Rendering
         self.renderer.render_frame(dt)
 ```
+
+### Framerate and VSync
+
+- The `max_fps` parameter limits the target framerate regardless of VSync (CPU cap in the loop).
+- If VSync is enabled (`vsync: true`) and supported by your SDL/Pygame backend, the screen refresh is synchronized to the monitor.
+- VSync is applied when creating the window if available:
+
+```python
+flags = pygame.DOUBLEBUF | pygame.HWSURFACE
+use_vsync = 1 if config_manager.get("vsync", True) else 0
+self.window = pygame.display.set_mode((W, H), flags, vsync=use_vsync)
+```
+
+- Recommendation: keep `vsync=true` to reduce tearing, and adjust `max_fps` to your needs (e.g., 60, 90, 120).
 
 ## Specialized Managers
 

@@ -287,7 +287,7 @@ Example:
 
 **File**: `src/ia/ia_barhamus.py`
 
-#### Architecture and Components
+#### Architecture and Components (Leviathan)
 
 ##### Main Components
 
@@ -351,6 +351,25 @@ The model retrains automatically:
 - When performance drops
 - At the beginning of each game
 
+**Pre-training**:
+
+The Marauder AI can be pre-trained to improve its performance from the first launch:
+
+```bash
+# Basic training (fast, ~1-2 minutes)
+python train_barhamus_ai.py --episodes 100
+
+# Complete training (recommended, ~5-10 minutes)
+python train_barhamus_ai.py --episodes 500 --save-interval 50
+
+# Intensive training (for production)
+python train_barhamus_ai.py --episodes 2000 --save-interval 100
+```
+
+The script generates a pre-trained model in `models/barhamus_ai_pretrained.pkl` which will be loaded automatically at game launch. This allows the AI to start with already acquired base strategies instead of starting from scratch.
+
+**Note**: Pre-training is not mandatory - the AI will learn during gameplay if no model exists. Pre-training simply improves initial performance.
+
 #### Adaptive Strategies
 
 The AI follows 4 main strategies that evolve based on performance:
@@ -390,25 +409,25 @@ Tests show:
 ###### List all Marauder models
 
 ```bash
-python clean_models.py --marauder --list
+python scripts/clean_models.py --marauder --list
 ```
 
 ###### Keep the 5 most recent (recommended)
 
 ```bash
-python clean_models.py --marauder --keep 5
+python scripts/clean_models.py --marauder --keep 5
 ```
 
 ###### Delete ALL Marauder models
 
 ```bash
-python clean_models.py --marauder --all
+python scripts/clean_models.py --marauder --all
 ```
 
 ###### Delete Marauder models older than 7 days
 
 ```bash
-python clean_models.py --marauder --older-than 7
+python scripts/clean_models.py --marauder --older-than 7
 ```
 
 ##### Usage Examples
@@ -416,7 +435,7 @@ python clean_models.py --marauder --older-than 7
 ###### I want to test Marauder AI with fresh learning
 
 ```bash
-python clean_models.py --marauder --all
+python scripts/clean_models.py --marauder --all
 ```
 
 Marauder AI will start learning from scratch.
@@ -424,16 +443,32 @@ Marauder AI will start learning from scratch.
 ###### I have many Marauder models and want to clean up
 
 ```bash
-python clean_models.py --marauder --keep 10
+python scripts/clean_models.py --marauder --keep 10
 ```
 
 Keeps the 10 most recent models, deletes the others.
 
 ##### Recommended Frequency
 
-- **Daily**: `python clean_models.py --marauder --keep 5`
-- **Weekly**: `python clean_models.py --marauder --older-than 7`
-- **Before testing**: `python clean_models.py --marauder --all`
+- **Daily**: `python scripts/clean_models.py --marauder --keep 5`
+- **Weekly**: `python scripts/clean_models.py --marauder --older-than 7`
+- **Before testing**: `python scripts/clean_models.py --marauder --all`
+
+##### Graphical Interface (optional)
+
+
+```bash
+# Use the compiled program (provided in releases)
+./MaraudeurAiCleaner          # Linux/macOS
+MaraudeurAiCleaner.exe        # Windows
+
+# Or for developers with Python
+python tools/maraudeur_ai_cleaner.py
+```
+
+List, delete by selection, keep N most recent, or delete models older than X days without using the command line.
+
+Note: the tool automatically follows the language configured in the game (defined in `galad_config.json`). French by default, with fallback to English if the language is not supported.
 
 ##### Important Notes
 

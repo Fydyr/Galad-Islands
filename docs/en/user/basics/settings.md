@@ -58,6 +58,15 @@ Settings can be accessed in two ways:
 - **Default**: Enabled
 - **Description**: Synchronizes frame rate with monitor refresh rate to prevent screen tearing
 
+### Frame Rate (Max FPS)
+
+- **Options**: 30 / 60 / 90 / 120 / 144 / 240 (or any integer)
+- **Default**: 60
+- **Description**: Caps the CPU-side game loop to the specified maximum frames per second. When VSync is enabled and supported by your system, the effective FPS will also be limited by your monitor refresh rate.
+
+!!! tip
+  For smooth gameplay on most systems: keep VSync Enabled and Max FPS set to 60 or your monitor's refresh (e.g., 120/144). On laptops, lowering Max FPS (e.g., 45–60) can reduce power consumption.
+
 ## Performance Settings
 
 ### Performance Mode
@@ -84,6 +93,25 @@ Settings can be accessed in two ways:
 - **Options**: Enabled / Disabled
 - **Default**: Enabled
 - **Description**: Toggles shadow effects on units and terrain
+
+### Marauder AI Learning
+
+- **Options**: Enabled / Disabled
+- **Default**: Enabled
+- **Description**: When enabled, Marauder (Barhamus) units continuously learn during gameplay and save models to the `models/` folder. This can increase CPU usage and disk writes over long sessions.
+
+!!! info "Managing Marauder models"
+  You can clean up or reset learning models with the provided GUI tool:
+    
+  ```bash
+  # Launch the GUI tool (provided in releases)
+  ./MaraudeurAiCleaner          # Linux/macOS
+  MaraudeurAiCleaner.exe        # Windows
+  ```
+    
+  Deleting models is safe; the AI will recreate them automatically.
+
+  Tip: the MaraudeurAiCleaner tool automatically follows the language configured in the game (`galad_config.json`).
 
 ## Controls Settings
 
@@ -113,11 +141,13 @@ Settings can be accessed in two ways:
 ## Advanced Settings
 
 ### Debug Mode
+
 - **Access**: Press `F3` in-game
 - **Description**: Shows debug information (FPS, coordinates, etc.)
 - **Note**: Intended for developers and troubleshooting
 
 ### Configuration File
+
 - **Location**: `galad_config.json`
 - **Description**: All settings are stored in this file
 - **Tip**: Back up this file before major changes
@@ -125,15 +155,18 @@ Settings can be accessed in two ways:
 ## Troubleshooting
 
 ### Settings Not Saving
+
 - Check that the `galad_config.json` file is not read-only
 - Ensure you have write permissions in the game directory
 
 ### Performance Issues
+
 - Try setting Performance Mode to "Low"
 - Disable VSync if you experience stuttering
 - Lower the resolution if FPS is too low
 
 ### Audio Issues
+
 - Check system audio settings
 - Try different volume levels
 - Restart the game if audio doesn't work
@@ -141,6 +174,7 @@ Settings can be accessed in two ways:
 ## Recommended Settings
 
 ### For Maximum Performance
+
 - Performance Mode: Low
 - VSync: Disabled
 - Particles: Disabled
@@ -148,6 +182,7 @@ Settings can be accessed in two ways:
 - Resolution: 800x600
 
 ### For Best Visual Quality
+
 - Performance Mode: High
 - VSync: Enabled
 - Particles: Enabled
@@ -155,8 +190,10 @@ Settings can be accessed in two ways:
 - Resolution: Highest available
 
 ### For Balanced Experience
+
 - Performance Mode: Auto (or Medium)
 - VSync: Enabled
 - Particles: Enabled
 - Shadows: Enabled
 - Resolution: 1280x720 or higher
+

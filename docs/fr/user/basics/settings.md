@@ -58,6 +58,15 @@ Les paramètres sont accessibles de deux manières :
 - **Par défaut** : Activé
 - **Description** : Synchronise le taux de rafraîchissement avec celui du moniteur pour éviter le tearing
 
+### Fréquence d'images (Max FPS)
+
+- **Options** : 30 / 60 / 90 / 120 / 144 / 240 (ou tout entier)
+- **Par défaut** : 60
+- **Description** : Limite la boucle de jeu côté CPU au nombre d'images par seconde indiqué. Si VSync est activé et supporté, le FPS effectif sera aussi borné par la fréquence de votre moniteur.
+
+!!! tip
+  Pour une expérience fluide: laissez VSync Activé et réglez Max FPS sur 60 ou la fréquence de votre écran (ex: 120/144). Sur portable, descendre à 45–60 peut réduire la consommation.
+
 ## Paramètres de performance
 
 ### Mode de performance
@@ -84,6 +93,25 @@ Les paramètres sont accessibles de deux manières :
 - **Options** : Activées / Désactivées
 - **Par défaut** : Activées
 - **Description** : Active/désactive les effets d'ombre sur les unités et le terrain
+
+### Apprentissage IA Maraudeur (Barhamus)
+
+- **Options** : Activé / Désactivé
+- **Par défaut** : Activé
+- **Description** : Quand activé, les unités Maraudeur (Barhamus) apprennent en continu pendant la partie et sauvegardent des modèles dans le dossier `models/`. Cela peut augmenter l’usage CPU et les écritures disque sur de longues sessions.
+
+!!! info "Gérer les modèles Maraudeur"
+  Vous pouvez nettoyer ou réinitialiser les modèles d'apprentissage avec l'outil graphique fourni :
+    
+  ```bash
+  # Lancez l'outil graphique (fourni dans les releases)
+  ./MaraudeurAiCleaner          # Linux/macOS
+  MaraudeurAiCleaner.exe        # Windows
+  ```
+    
+  Supprimer les modèles est sans risque : l'IA les recréera automatiquement.
+
+  Astuce : l'outil MaraudeurAiCleaner suit automatiquement la langue configurée dans le jeu (`galad_config.json`).
 
 ## Paramètres de contrôles
 

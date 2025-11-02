@@ -357,6 +357,25 @@ Le modèle se retraine automatiquement :
 - Quand la performance chute
 - Au début de chaque partie
 
+**Pré-entraînement** :
+
+L'IA du Maraudeur peut être pré-entraînée pour améliorer ses performances dès le premier lancement :
+
+```bash
+# Entraînement basique (rapide, ~1-2 minutes)
+python train_barhamus_ai.py --episodes 100
+
+# Entraînement complet (recommandé, ~5-10 minutes)
+python train_barhamus_ai.py --episodes 500 --save-interval 50
+
+# Entraînement intensif (pour production)
+python train_barhamus_ai.py --episodes 2000 --save-interval 100
+```
+
+Le script génère un modèle pré-entraîné dans `models/barhamus_ai_pretrained.pkl` qui sera chargé automatiquement au lancement du jeu. Cela permet à l'IA de commencer avec des stratégies de base déjà acquises au lieu de partir de zéro.
+
+**Note** : Le pré-entraînement n'est pas obligatoire - l'IA apprendra pendant le jeu si aucun modèle n'existe. Le pré-entraînement améliore simplement les performances initiales.
+
 #### Stratégies adaptatives
 
 L'IA suit 4 stratégies principales qui évoluent selon la performance :
@@ -396,25 +415,25 @@ Tests effectués montrent :
 ###### Voir tous les modèles Maraudeur
 
 ```bash
-python clean_models.py --marauder --list
+python scripts/clean_models.py --marauder --list
 ```
 
 ###### Garder les 5 plus récents (recommandé)
 
 ```bash
-python clean_models.py --marauder --keep 5
+python scripts/clean_models.py --marauder --keep 5
 ```
 
 ###### Supprimer TOUS les modèles Maraudeur
 
 ```bash
-python clean_models.py --marauder --all
+python scripts/clean_models.py --marauder --all
 ```
 
 ###### Supprimer les modèles de plus de 7 jours
 
 ```bash
-python clean_models.py --marauder --older-than 7
+python scripts/clean_models.py --marauder --older-than 7
 ```
 
 ##### Exemples d'utilisation
@@ -422,7 +441,7 @@ python clean_models.py --marauder --older-than 7
 ###### Je veux tester l'IA Maraudeur avec un apprentissage frais
 
 ```bash
-python clean_models.py --marauder --all
+python scripts/clean_models.py --marauder --all
 ```
 
 L'IA des Maraudeurs recommencera à apprendre depuis zéro.
@@ -430,16 +449,32 @@ L'IA des Maraudeurs recommencera à apprendre depuis zéro.
 ###### J'ai beaucoup de modèles Maraudeur et je veux faire le ménage
 
 ```bash
-python clean_models.py --marauder --keep 10
+python scripts/clean_models.py --marauder --keep 10
 ```
 
 Garde les 10 modèles les plus récents, supprime les autres.
 
 ##### Fréquence recommandée
 
-- **Quotidien** : `python clean_models.py --marauder --keep 5`
-- **Hebdomadaire** : `python clean_models.py --marauder --older-than 7`
-- **Avant un test** : `python clean_models.py --marauder --all`
+- **Quotidien** : `python scripts/clean_models.py --marauder --keep 5`
+- **Hebdomadaire** : `python scripts/clean_models.py --marauder --older-than 7`
+- **Avant un test** : `python scripts/clean_models.py --marauder --all`
+
+##### Interface graphique (optionnelle)
+
+ 
+```bash
+# Utilisez le programme compilé (fourni dans les releases)
+./MaraudeurAiCleaner          # Linux/macOS
+MaraudeurAiCleaner.exe        # Windows
+
+# Ou pour les développeurs avec Python
+python tools/maraudeur_ai_cleaner.py
+```
+ 
+Permet de lister, supprimer par sélection, ne garder que les N plus récents, ou supprimer les modèles plus anciens que X jours, sans ligne de commande.
+
+Note : l'outil suit automatiquement la langue configurée dans le jeu (définie dans `galad_config.json`). Français par défaut, avec fallback sur l'anglais si la langue n'est pas supportée.
 
 ##### Notes importantes
 

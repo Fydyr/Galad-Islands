@@ -19,8 +19,13 @@ src/settings/localization.py    # Main manager
 └── Config integration          # Preferences persistence
 
 assets/locales/                 # Translation files
-├── french.py                   # French translations
-├── english.py                  # English translations
+├── french.py                   # French translations (game)
+├── english.py                  # English translations (game)
+├── tools/                      # GUI tools translations
+│   ├── clean_models_gui_fr.py  # Model cleaner (FR)
+│   ├── clean_models_gui_en.py  # Model cleaner (EN)
+│   ├── galad_config_tool_fr.py # Config tool (FR)
+│   └── galad_config_tool_en.py # Config tool (EN)
 └── [new_language].py           # Future languages
 ```
 
@@ -36,12 +41,31 @@ class LocalizationManager:
     
     def __init__(self):
         self._current_language = "fr"       # Default language
-        self._translations = {}             # Translations cache
+        self._translations = {}             # Game translations cache
+        self._tool_translations = {}        # Tools translations cache
         self._load_translations()           # Initial loading
     
-    def translate(self, key: str, **kwargs) -> str:
-        """Translates a key with optional parameters."""
-        translation = self._translations.get(key, key)
+    def translate(self, key: str, tool: str = None, default: str = None, **kwargs) -> str:
+        """Translates a key with optional parameters.
+        
+        Args:
+            key: Translation key (e.g., "menu.play" or "btn.refresh")
+            tool: Tool namespace (e.g., "clean_models_gui", "galad_config_tool")
+            default: Default value if key doesn't exist
+            **kwargs: Dynamic parameters for translation
+        
+        Returns:
+            Translated text or key/default if not found
+        """
+        # If a tool namespace is specified, search in its translations first
+        if tool:
+            tool_catalog = self._load_tool_translations(tool)
+            translation = tool_catalog.get(key)
+            if translation:
+                return translation.format(**kwargs) if kwargs else translation
+        
+        # Otherwise search in game translations
+        translation = self._translations.get(key, default or key)
         
         # Support for dynamic parameters
         if kwargs:
@@ -49,12 +73,37 @@ class LocalizationManager:
         
         return translation
     
+    def _load_tool_translations(self, tool_name: str) -> dict:
+        """Loads tool-specific translations."""
+        if tool_name in self._tool_translations:
+            return self._tool_translations[tool_name]
+        
+        try:
+            # Try loading the tool module for current language
+            lang = self._current_language
+            module_name = f"assets.locales.tools.{tool_name}_{lang}"
+            tool_module = importlib.import_module(module_name)
+            self._tool_translations[tool_name] = tool_module.TRANSLATIONS
+        except ImportError:
+            # Fallback to French if language doesn't exist
+            try:
+                module_name = f"assets.locales.tools.{tool_name}_fr"
+                tool_module = importlib.import_module(module_name)
+                self._tool_translations[tool_name] = tool_module.TRANSLATIONS
+            except ImportError:
+                # No translation found
+                self._tool_translations[tool_name] = {}
+        
+        return self._tool_translations[tool_name]
+    
     def set_language(self, language_code: str) -> bool:
         """Changes the language and reloads translations."""
         if language_code in ["fr", "en"]:
             self._current_language = language_code
             config_manager.set("language", language_code)
             self._load_translations()
+            # Invalidate tool translations cache
+            self._tool_translations = {}
             return True
         return False
 ```
@@ -65,10 +114,45 @@ class LocalizationManager:
 # Simple import from anywhere
 from src.settings.localization import t, set_language, get_current_language
 
-# Usage in code
+# Usage in game code
 title = t("menu.play")                           # "Jouer" or "Play"
-volume_text = t("Options.volume_music_label", volume=75)  # With parameters
+volume_text = t("options.volume_music_label", volume=75)  # With parameters
+
+# Usage in GUI tool with namespace
+button_text = t("btn.refresh", tool="clean_models_gui", default="Refresh")
+dialog_title = t("dialog.confirm.title", tool="galad_config_tool", default="Confirm")
 ```
+
+### Translations for GUI tools
+
+GUI tools (like `galad-config-tool` or `MaraudeurAiCleaner`) have their own translations separate from the game:
+
+```python
+# assets/locales/tools/clean_models_gui_en.py
+TRANSLATIONS = {
+    "window.title": "Marauder Models Cleaner",
+    "btn.refresh": "Refresh",
+    "btn.choose_folder": "Choose folder…",
+    "btn.delete_selected": "Delete selected",
+    "status.found_in": "Found {count} model file(s) in {path}",
+}
+
+# Usage in the tool
+from src.settings.localization import t as game_t
+
+def _t(key: str, default: str = None, **kwargs) -> str:
+    return game_t(key, tool='clean_models_gui', default=default, **kwargs)
+
+# In the interface
+self.title(self._t("window.title", default="Marauder Models Cleaner"))
+```
+
+**Benefits**:
+
+- Clear separation between game and tool translations
+- Tools automatically follow the game's language
+- Automatic fallback to French then to default value
+- No pollution of game translations with tool text
 
 ## Translation files structure
 
