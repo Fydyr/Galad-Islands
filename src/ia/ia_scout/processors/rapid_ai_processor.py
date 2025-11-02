@@ -1044,7 +1044,8 @@ class RapidUnitController:
         pos = esper.component_for_entity(self.entity_id, PositionComponent)
         vel = esper.component_for_entity(self.entity_id, VelocityComponent)
 
-        avoidance = self.coordination.compute_avoidance_vector(self.entity_id, (pos.x, pos.y), 96.0)
+        # Évitement des alliés proches - augmenté pour réduire les collisions
+        avoidance = self.coordination.compute_avoidance_vector(self.entity_id, (pos.x, pos.y), 128.0)
         projectile_avoid = self.prediction.projectile_threat_vector((pos.x, pos.y))
 
         # Évitement léger des obstacles proches (îles, mines) pour éviter les accrochages
@@ -1074,8 +1075,8 @@ class RapidUnitController:
             pass
 
         adjusted_target = (
-            target_position[0] + avoidance[0] * 48.0 - projectile_avoid[0] * 32.0 + obstacle_repulse[0] * 36.0,
-            target_position[1] + avoidance[1] * 48.0 - projectile_avoid[1] * 32.0 + obstacle_repulse[1] * 36.0,
+            target_position[0] + avoidance[0] * 72.0 - projectile_avoid[0] * 32.0 + obstacle_repulse[0] * 36.0,
+            target_position[1] + avoidance[1] * 72.0 - projectile_avoid[1] * 32.0 + obstacle_repulse[1] * 36.0,
         )
 
         if self.pathfinding.is_world_blocked(adjusted_target):

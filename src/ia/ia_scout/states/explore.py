@@ -1,4 +1,10 @@
-"""Exploration state for mapping the world and finding enemy base."""
+"""Exploration state for mapping the world and finding enemy base.
+
+Simplified logic similar to Kamikaze:
+- Random exploration points when enemy base is unknown
+- Group attack on enemy base when discovered
+- Opportunistic shooting during movement
+"""
 
 from __future__ import annotations
 
@@ -24,78 +30,111 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class ExploreState(RapidAIState):
-    """Navigate the map to discover unexplored areas and find the enemy base."""
+    """Navigate the map to discover unexplored areas and find the enemy base.
+    
+    Behavior:
+    - If enemy base is unknown: move to random exploration points
+    - If enemy base is known: group attack on the base
+    - Always shoot opportunistically at enemies during movement
+    """
 
     def __init__(self, name: str, controller: "RapidUnitController") -> None:
         super().__init__(name, controller)
         self._exploration_target: Optional[Tuple[float, float]] = None
         self._last_target_time: float = 0.0
-        self._visited_zones: set[Tuple[int, int]] = set()
-        self._zone_size = TILE_SIZE * 10  # Zones de 10x10 tuiles
+        # Anti-stuck trackers
+        self._last_progress_pos: Optional[Tuple[float, float]] = None
+        self._stuck_timer: float = 0.0
+        self._repath_timer: float = 0.0
 
     def enter(self, context: "UnitContext") -> None:
         super().enter(context)
         LOGGER.info("[AI] %s Explore.enter() - Starting exploration", context.entity_id)
         self._exploration_target = None
         self._last_target_time = 0.0
+        self._last_progress_pos = context.position
+        self._stuck_timer = 0.0
+        self._repath_timer = 0.0
 
     def update(self, dt: float, context: "UnitContext") -> None:
         now = self.controller.context_manager.time
         
-        # Vérifier si on doit rejoindre le groupe
+        # Track movement progress to detect being stuck
+        if self._last_progress_pos is None:
+            self._last_progress_pos = context.position
+        else:
+            moved = self.distance(self._last_progress_pos, context.position)
+            if moved < TILE_SIZE * 0.3:
+                self._stuck_timer += dt
+            else:
+                self._stuck_timer = 0.0
+                self._last_progress_pos = context.position
+        
+        self._repath_timer += dt
+        
+        # --- Determine target: random exploration or base attack ---
         team_id = context.team_id
-        if self.controller.coordination.should_regroup(context.entity_id, context.position, team_id):
-            # Priorité : revenir vers le centre du groupe
-            formation_pos = self.controller.coordination.get_group_formation_position(
-                context.entity_id, team_id
+        is_base_known = enemy_base_registry.is_enemy_base_known(team_id)
+        
+        if is_base_known:
+            # Mode ATTACK: enemy base is known, group attack
+            base_pos = enemy_base_registry.get_enemy_base_position(team_id)
+            if base_pos:
+                # Leader sets the group target to the enemy base
+                if self.controller.coordination.is_group_leader(context.entity_id, team_id):
+                    self.controller.coordination.set_group_target(team_id, base_pos)
+                
+                # All units move towards the base
+                target = base_pos
+                needs_new_target = False
+                LOGGER.debug("[AI] %s Explore - Base known, attacking at (%.1f, %.1f)", 
+                           context.entity_id, base_pos[0], base_pos[1])
+            else:
+                # Base known but position not available, fallback to random exploration
+                is_base_known = False
+        
+        if not is_base_known:
+            # Mode EXPLORATION: random movement
+            needs_new_target = (
+                self._exploration_target is None
+                or now - self._last_target_time > 12.0  # Change target every 12s
+                or self._is_target_reached(context.position, self._exploration_target)
+                or self._stuck_timer > 3.0  # Force new target if stuck
             )
-            if formation_pos:
-                self.controller.request_path(formation_pos)
-                if context.path:
-                    waypoint = context.peek_waypoint()
-                    if waypoint:
-                        distance_to_waypoint = self.distance(context.position, waypoint)
-                        if distance_to_waypoint <= self.controller.waypoint_radius:
-                            context.advance_path()
-                            waypoint = context.peek_waypoint()
-                        if waypoint:
-                            self.controller.move_towards(waypoint)
+            
+            if needs_new_target:
+                # Leader generates new random target, members follow
+                is_leader = self.controller.coordination.is_group_leader(context.entity_id, team_id)
+                if is_leader:
+                    new_target = self._generate_random_exploration_target(context)
+                    if new_target:
+                        self.controller.coordination.set_group_target(team_id, new_target)
+                        self._exploration_target = new_target
                     else:
-                        self.controller.move_towards(formation_pos)
+                        # Fallback if no valid target found
+                        self._exploration_target = None
                 else:
-                    self.controller.move_towards(formation_pos)
-                # Continuer à tirer pendant le regroupement
-                self.controller._try_continuous_shoot(context)
-                return
-        
-        # Marquer la zone actuelle comme visitée
-        current_zone = self._get_zone(context.position)
-        self._visited_zones.add(current_zone)
-        
-        # Vérifier si on a besoin d'un nouvel objectif d'exploration
-        needs_new_target = (
-            self._exploration_target is None
-            or now - self._last_target_time > 15.0  # Changer de cible toutes les 15s
-            or self._is_target_reached(context.position, self._exploration_target)
-        )
-        
-        if needs_new_target:
-            self._exploration_target = self._select_exploration_target(context)
-            self._last_target_time = now
+                    # Members use leader's target
+                    group_target = self.controller.coordination.get_group_target(team_id)
+                    self._exploration_target = group_target if group_target else self._generate_random_exploration_target(context)
+                
+                self._last_target_time = now
+                if self._exploration_target:
+                    self.controller.request_path(self._exploration_target)
+                    self._stuck_timer = 0.0
+                    self._repath_timer = 0.0
             
-            if self._exploration_target is None:
-                # Aucune zone à explorer, rester sur place
-                self.controller.stop()
-                return
-            
-            # Demander un nouveau chemin vers la cible
-            self.controller.request_path(self._exploration_target)
+            target = self._exploration_target
         
-        # Se déplacer vers la cible d'exploration en suivant le chemin
-        if self._exploration_target:
-            # Vérifier si on a un chemin
+        # --- Move towards target ---
+        if target:
+            # Request path if needed (no path, or stuck too long)
+            if not context.path or self._repath_timer > 2.0:
+                self.controller.request_path(target)
+                self._repath_timer = 0.0
+            
+            # Follow path waypoint by waypoint
             if context.path:
-                # Suivre le chemin waypoint par waypoint
                 waypoint = context.peek_waypoint()
                 if waypoint:
                     distance_to_waypoint = self.distance(context.position, waypoint)
@@ -106,130 +145,83 @@ class ExploreState(RapidAIState):
                     if waypoint:
                         self.controller.move_towards(waypoint)
                     else:
-                        # Plus de waypoints, se déplacer directement vers la cible
-                        self.controller.move_towards(self._exploration_target)
+                        # No more waypoints, move directly to target
+                        self.controller.move_towards(target)
                 else:
-                    # Pas de waypoint, se déplacer directement vers la cible
-                    self.controller.move_towards(self._exploration_target)
+                    # Empty path, move directly
+                    self.controller.move_towards(target)
             else:
-                # Pas de chemin, essayer de se déplacer directement
-                self.controller.move_towards(self._exploration_target)
+                # No path available, try to unstuck or move directly
+                if self._stuck_timer > 2.0:
+                    nudge = self._unstuck_nudge(context.position, target_hint=target)
+                    self.controller.move_towards(nudge or target)
+                else:
+                    self.controller.move_towards(target)
+        else:
+            # No target at all, stop
+            self.controller.stop()
         
-        # IMPORTANT: Permettre les tirs opportunistes pendant l'exploration
-        # Cela permet d'attaquer les ennemis croisés sans quitter l'état Explore
+        # IMPORTANT: Opportunistic shooting during exploration
+        # This allows attacking enemies encountered without leaving Explore state
         self.controller._try_continuous_shoot(context)
 
-    def _get_zone(self, position: Tuple[float, float]) -> Tuple[int, int]:
-        """Convertit une position mondiale en coordonnées de zone."""
-        zone_x = int(position[0] / self._zone_size)
-        zone_y = int(position[1] / self._zone_size)
-        return (zone_x, zone_y)
 
     def _is_target_reached(self, position: Tuple[float, float], target: Optional[Tuple[float, float]]) -> bool:
-        """Vérifie si la cible d'exploration est atteinte."""
+        """Check if exploration target is reached."""
         if target is None:
             return True
         distance = self.distance(position, target)
-        return distance <= self.controller.waypoint_radius * 2.0
+        return distance <= TILE_SIZE * 2.0
 
-    def _select_exploration_target(self, context: "UnitContext") -> Optional[Tuple[float, float]]:
-        """Sélectionne une nouvelle cible d'exploration en évitant les zones dangereuses."""
-        # Si on est le leader, utiliser la cible du groupe si elle existe
-        team_id = context.team_id
-        is_leader = self.controller.coordination.is_group_leader(context.entity_id, team_id)
-        group_target = self.controller.coordination.get_group_target(team_id)
+    def _generate_random_exploration_target(self, context: "UnitContext") -> Optional[Tuple[float, float]]:
+        """Generate a random exploration target position, avoiding blocked areas.
         
-        if is_leader and group_target is None:
-            # Le leader choisit une nouvelle cible et la définit pour le groupe
-            target = self._find_best_exploration_zone(context)
-            if target:
-                self.controller.coordination.set_group_target(team_id, target)
-                return target
-            elif not is_leader and group_target:
-                # Les membres suivent la cible du leader
-                return group_target
-        
-        # Fallback : comportement normal
-        return self._find_best_exploration_zone(context)
-    
-    def _find_best_exploration_zone(self, context: "UnitContext") -> Optional[Tuple[float, float]]:
-        """Trouve la meilleure zone d'exploration."""
-        # Calculer le nombre total de zones sur la carte
-        max_zone_x = int((MAP_WIDTH * TILE_SIZE) / self._zone_size)
-        max_zone_y = int((MAP_HEIGHT * TILE_SIZE) / self._zone_size)
-        
-        # Créer une liste de zones candidates (non visitées)
-        candidates = []
-        for zone_x in range(max_zone_x):
-            for zone_y in range(max_zone_y):
-                zone = (zone_x, zone_y)
-                if zone not in self._visited_zones:
-                    # Convertir la zone en position mondiale (centre de la zone)
-                    world_x = (zone_x + 0.5) * self._zone_size
-                    world_y = (zone_y + 0.5) * self._zone_size
-                    world_pos = (world_x, world_y)
-                    
-                    # Vérifier que la position n'est pas bloquée (mine, île, base)
-                    if self.controller.pathfinding.is_world_blocked(world_pos):
-                        continue
-                    
-                    # Vérifier aussi les positions autour du centre pour éviter les zones partiellement bloquées
-                    offset = self._zone_size * 0.3
-                    safe = True
-                    for dx in [-offset, 0, offset]:
-                        for dy in [-offset, 0, offset]:
-                            test_pos = (world_x + dx, world_y + dy)
-                            if self.controller.pathfinding.is_world_blocked(test_pos):
-                                safe = False
-                                break
-                        if not safe:
-                            break
-                    
-                    if not safe:
-                        continue
-                    
-                    # Évaluer le danger de cette zone
-                    danger = self.controller.danger_map.sample_world(world_pos)
-                    distance = self.distance(context.position, world_pos)
-                    
-                    # Priorité : zones proches et peu dangereuses
-                    # Score = distance + (danger * facteur_danger)
-                    danger_factor = 500.0  # Pénalité pour les zones dangereuses
-                    score = distance + (danger * danger_factor)
-                    
-                    candidates.append((score, world_pos, danger))
-        
-        if not candidates:
-            # Toutes les zones ont été visitées, réinitialiser et explorer à nouveau
-            self._visited_zones.clear()
-            LOGGER.info("[AI] %s Explore - All zones visited, resetting", context.entity_id)
-            return self._select_random_safe_position(context)
-        
-        # Trier par score (les meilleures en premier)
-        candidates.sort(key=lambda x: x[0])
-        
-        # Choisir parmi les 5 meilleures zones pour éviter un comportement trop prévisible
-        top_candidates = candidates[:min(5, len(candidates))]
-        chosen = random.choice(top_candidates)
-        
-        LOGGER.debug("[AI] %s Explore - Target: (%.1f, %.1f), danger: %.2f, score: %.1f",
-                    context.entity_id, chosen[1][0], chosen[1][1], chosen[2], chosen[0])
-        
-        return chosen[1]
-
-    def _select_random_safe_position(self, context: "UnitContext") -> Optional[Tuple[float, float]]:
-        """Sélectionne une position aléatoire sûre sur la carte."""
-        max_attempts = 20
+        Similar to Kamikaze exploration logic.
+        """
+        max_attempts = 30
         for _ in range(max_attempts):
+            # Generate random position with some margin from map edges
             x = random.uniform(TILE_SIZE * 5, (MAP_WIDTH - 5) * TILE_SIZE)
             y = random.uniform(TILE_SIZE * 5, (MAP_HEIGHT - 5) * TILE_SIZE)
             pos = (x, y)
             
+            # Check if position is not blocked (islands, mines, etc.)
             if not self.controller.pathfinding.is_world_blocked(pos):
+                # Optionally check danger level to avoid highly dangerous areas
                 danger = self.controller.danger_map.sample_world(pos)
-                # Accepter seulement les zones peu dangereuses
-                if danger < self.controller.settings.danger.flee_threshold * 0.5:
+                # Accept positions with moderate danger (scouts are fast and can escape)
+                if danger < self.controller.settings.danger.flee_threshold * 0.7:
+                    LOGGER.debug("[AI] %s Explore - Random target: (%.1f, %.1f), danger: %.2f",
+                               context.entity_id, x, y, danger)
                     return pos
         
-        # Si aucune position sûre n'est trouvée, retourner None
+        # If no valid position found after max attempts, return a fallback
+        LOGGER.warning("[AI] %s Explore - Could not find safe random target after %d attempts",
+                      context.entity_id, max_attempts)
+        # Fallback: center of map
+        return ((MAP_WIDTH * TILE_SIZE) / 2.0, (MAP_HEIGHT * TILE_SIZE) / 2.0)
+
+    def _unstuck_nudge(self, position: Tuple[float, float], target_hint: Optional[Tuple[float, float]] = None) -> Optional[Tuple[float, float]]:
+        """Trouve une petite destination accessible proche pour se décoincer.
+        - Si la position actuelle est sur un bloc, cherche la case franchissable la plus proche.
+        - Sinon, tente une position intermédiaire sûre vers la cible.
+        """
+        pf = self.controller.pathfinding
+        # Si on est dans une zone bloquée (bord, île élargie), sortir vers la case accessible la plus proche
+        if pf.is_world_blocked(position):
+            acces = pf.find_accessible_world(position, max_radius_tiles=3.0)
+            if acces is not None:
+                return acces
+        # Sinon, créer un waypoint intermédiaire dans la direction de la cible
+        if target_hint is not None:
+            px, py = position
+            tx, ty = target_hint
+            dx, dy = tx - px, ty - py
+            dist = math.hypot(dx, dy) or 1.0
+            step = min(dist, TILE_SIZE * 4)
+            cand = (px + dx / dist * step, py + dy / dist * step)
+            if not pf.is_world_blocked(cand):
+                return cand
+            acces = pf.find_accessible_world(cand, max_radius_tiles=3.0)
+            return acces
         return None

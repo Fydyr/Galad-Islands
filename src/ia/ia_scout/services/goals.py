@@ -37,7 +37,6 @@ class Objective:
 class GoalEvaluator:
     """Évalue les objectifs en appliquant un arbre de décision déterministe."""
 
-    LOW_HEALTH_THRESHOLD = 0.5
     STATIONARY_SPEED_THRESHOLD = 8.0
     FOLLOW_DIE_MAX_DISTANCE = 360.0
     PRIORITY_SCORES = {
@@ -200,7 +199,8 @@ class GoalEvaluator:
 
     def _select_druid_objective(self, context) -> Optional[Objective]:
         health_ratio = context.health / max(context.max_health, 1.0)
-        if health_ratio >= self.LOW_HEALTH_THRESHOLD:
+        # Utiliser le seuil de la config pour suivre le Druid
+        if health_ratio >= self.settings.follow_druid_health_ratio:
             return None
         druid_entity = self._find_druid(context.team_id)
         if druid_entity is None:
