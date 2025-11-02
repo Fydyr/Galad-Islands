@@ -147,7 +147,8 @@ class CollisionProcessor(esper.Processor):
             rect1 = pygame.Rect(0, 0, width, height)
             rect1.center = (int(pos.x), int(pos.y))
 
-            # Déterminer les cellules à Check             min_x = int((pos.x - width / 2) / CELL_SIZE)
+            # Déterminer les cellules à checker
+            min_x = int((pos.x - width / 2) / CELL_SIZE)
             max_x = int((pos.x + width / 2) / CELL_SIZE)
             min_y = int((pos.y - height / 2) / CELL_SIZE)
             max_y = int((pos.y + height / 2) / CELL_SIZE)

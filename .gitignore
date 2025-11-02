@@ -71,11 +71,12 @@ saves/
 profiles/
 galad_config.json
 galad_resolutions.json
+.clean_models_gui.json
 
 # Fichiers de modèles d'IA (ne pas versionner)
 *.pkl
-!models/base_ai_unified_final.pkl
-!models/barhamus_pretrained.pkl
+!src/models/base_ai_unified_final.pkl
+!src/models/barhamus_pretrained.pkl
 
 
 # documentation hook
@@ -87,4 +88,4 @@ HOOKS_UNIVERSAL.md
 
 # Fichiers générés par l'IA
 *.npz
-.clean_models_gui.json
+

@@ -262,7 +262,85 @@ class BarhamusTrainer:
             }
             scenarios.append(scenario)
 
+        # Scénario 5: Navigation et contournement d'obstacles (NOUVEAU)
+        print("  → Navigation et contournement d'obstacles")
+        for _ in range(n_per_scenario):
+            world = self.create_mock_world()
+            barhamus = self.create_barhamus_entity(world, 300, 300, 1)
+
+            # Placer un ennemi de l'autre côté d'obstacles simulés
+            # Créer une "grille" avec des îles entre le Maraudeur et l'ennemi
+            grid = self._create_grid_with_obstacles()
+            
+            # Ennemi de l'autre côté
+            enemy = self.create_enemy_entity(world, 700, 700, 2)
+            enemies = [enemy]
+
+            scenario = {
+                'world': world,
+                'barhamus': barhamus,
+                'enemies': enemies,
+                'grid': grid,
+                'description': 'navigation_contournement',
+                'expected_strategy': 'tactical'  # Utiliser tactique pour bien contourner
+            }
+            scenarios.append(scenario)
+
+        # Scénario 6: Évitement d'obstacles pendant le combat (NOUVEAU)
+        print("  → Évitement d'obstacles en combat")
+        for _ in range(n_per_scenario):
+            world = self.create_mock_world()
+            # Maraudeur près d'une île
+            barhamus = self.create_barhamus_entity(world, 500, 400, 1)
+
+            grid = self._create_grid_with_obstacles()
+
+            # Ennemis à distance moyenne
+            enemies = []
+            for i in range(random.randint(1, 2)):
+                angle = random.uniform(0, 2 * np.pi)
+                distance = random.uniform(400, 700)
+                x = 500 + distance * np.cos(angle)
+                y = 400 + distance * np.sin(angle)
+                enemy = self.create_enemy_entity(world, x, y, 2)
+                enemies.append(enemy)
+
+            scenario = {
+                'world': world,
+                'barhamus': barhamus,
+                'enemies': enemies,
+                'grid': grid,
+                'description': 'evitement_combat',
+                'expected_strategy': 'balanced'  # Équilibré : combattre tout en évitant obstacles
+            }
+            scenarios.append(scenario)
+
         return scenarios
+
+    def _create_grid_with_obstacles(self):
+        """Crée une grille avec des îles pour tester le contournement."""
+        grid = [[TileType.SEA for _ in range(self.map_width)] for _ in range(self.map_height)]
+        
+        # Placer quelques îles aux positions stratégiques
+        island_positions = [
+            (15, 15, 3),  # (x, y, taille)
+            (35, 35, 3),
+            (25, 15, 2),
+            (15, 35, 2),
+            (25, 25, 4),  # Grosse île au centre
+        ]
+        
+        for island_x, island_y, size in island_positions:
+            for dy in range(-size, size + 1):
+                for dx in range(-size, size + 1):
+                    x, y = island_x + dx, island_y + dy
+                    if 0 <= x < self.map_width and 0 <= y < self.map_height:
+                        # Cercle approximatif
+                        if dx * dx + dy * dy <= size * size:
+                            grid[y][x] = TileType.GENERIC_ISLAND
+        
+        return grid
+
 
     def _create_real_grid(self):
         """creates une vraie grille de jeu avec all éléments."""
@@ -333,9 +411,15 @@ class BarhamusTrainer:
                     health = world.components[barhamus_entity][HealthComponent]
                     team = world.components[barhamus_entity][TeamComponent]
                     
+                    # NOUVEAU: Injecter la grille du scénario si elle existe
+                    if 'grid' in scenario:
+                        ai_collector.grid = scenario['grid']
+                    else:
+                        ai_collector.grid = self._create_real_grid()
+                    
                     state = ai_collector._analyze_situation(world, pos, health, team)
                     
-                    # Utiliser la logique By default pour déterminer la "meilleure" action pour ce scénario
+                    # Utiliser la logique par défaut pour déterminer la "meilleure" action pour ce scénario
                     action = ai_collector._get_default_action(state)
                     
                     X.append(state)

@@ -320,7 +320,8 @@ class BarhamusAI:
         # NOUVEAU: Appliquer l'évitement d'obstacles after all décisions
         final_direction = self._apply_obstacle_avoidance(world, pos, vel)
         if final_direction is not None:
-            pos.direction = final_direction
+            # Limiter la vitesse de rotation pour éviter l'effet "toupie"
+            pos.direction = self._smooth_turn(pos.direction, final_direction, max_delta=15.0)
     
     def _execute_movement_action(self, action, world, pos, vel, team, spe):
         """Execute only la partie mouvement de l'action"""
@@ -422,40 +423,76 @@ class BarhamusAI:
         return True # Ligne de vue dégagée
 
     def _apply_obstacle_avoidance(self, world, pos, vel) -> Optional[float]:
-        """Ajuste la direction pour avoid les obstacles proches."""
+        """Ajuste la direction pour éviter les obstacles proches."""
         if vel.currentSpeed == 0 or not self.grid:
             return None
 
-        # --- 1. Détection de blocage (Stuck Detection) ---
-        # Initialize si nécessaire
+        # Marche arrière temporaire si on vient de se débloquer
+        if not hasattr(self, '_reverse_timer'):
+            self._reverse_timer = 0.0
+        if self._reverse_timer > 0.0:
+            self._reverse_timer = max(0.0, self._reverse_timer - 0.016)
+            # Reculer doucement
+            vel.currentSpeed = max(vel.maxUpSpeed * 0.6, 2.5)
+            return (pos.direction + 180) % 360
+
+        # Distance de sécurité autour de la base ennemie (éviter de s'approcher trop)
+        try:
+            if world and hasattr(self, 'entity') and world.has_component(self.entity, TeamComponent):
+                team = world.component_for_entity(self.entity, TeamComponent)
+                enemy_base = self._find_enemy_base(world, team)
+                if enemy_base:
+                    dx = pos.x - enemy_base[0]
+                    dy = pos.y - enemy_base[1]
+                    base_dist = math.hypot(dx, dy)
+                    min_radius = 7 * TILE_SIZE  # ne pas entrer à l'intérieur
+                    if base_dist < min_radius:
+                        # Forcer un éloignement immédiat de la base (prévenir les dégâts)
+                        away = self._angle_to(dx, dy)
+                        vel.currentSpeed = max(vel.maxUpSpeed * 0.6, 3.0)
+                        return away
+        except Exception:
+            pass
+
+        # --- 1. Détection de blocage (Stuck Detection) - AMÉLIORÉ ---
         if not hasattr(self, '_stuck_check_timer'):
             self._stuck_check_timer = 0.0
             self._last_stuck_check_pos = (pos.x, pos.y)
+            self._stuck_counter = 0  # Compteur de blocages consécutifs
+            self._preferred_avoidance_direction = None  # Mémoriser la direction de contournement
 
-        self._stuck_check_timer += 0.016 # dt approximatif
-        if self._stuck_check_timer > 2.0: # Check every 2 seconds
+        self._stuck_check_timer += 0.016  # dt approximatif
+        if self._stuck_check_timer > 3.0:  # Check toutes les 3 secondes (augmenté)
             dist_moved = math.hypot(pos.x - self._last_stuck_check_pos[0], pos.y - self._last_stuck_check_pos[1])
-            if vel.currentSpeed > 1.0 and dist_moved < TILE_SIZE: # Si on essaie de bouger mais qu'on n'avance pas
-                # Manœuvre de déblocage : marche arrière et virage
-                vel.currentSpeed = -vel.maxReverseSpeed
-                return (pos.direction + 135) % 360
+            if vel.currentSpeed > 1.0 and dist_moved < TILE_SIZE * 0.5:  # Vraiment coincé
+                self._stuck_counter += 1
+                if self._stuck_counter >= 2:  # Coincé 2 fois de suite (6 secondes)
+                    # Nouvelle stratégie: MARCHE ARRIÈRE courte pour se désengorger
+                    self._reverse_timer = 0.8
+                    vel.currentSpeed = max(vel.maxUpSpeed * 0.6, 2.5)
+                    return (pos.direction + 180) % 360
+            else:
+                self._stuck_counter = 0  # Réinitialiser si on bouge
+                self._preferred_avoidance_direction = None  # Réinitialiser la direction préférée
+            
             self._last_stuck_check_pos = (pos.x, pos.y)
             self._stuck_check_timer = 0.0
 
-        # --- 2. Évitement d'obstacles par capteurs ---
-        probe_length = 5.0 * TILE_SIZE  # Regarder ENCORE plus loin pour mieux anticiper
-        # Angles des capteurs : un devant, deux sur les côtés plus larges
-        angles = [-50, 0, 50] # Angle élargi pour mieux détecter les bords d'îles en virage
+        # --- 2. Évitement d'obstacles par capteurs - AMÉLIORÉ ---
+        probe_length = 5.0 * TILE_SIZE  # Plus long pour anticiper les obstacles (unités lourdes)
+        # Angles des capteurs avec meilleure couverture (plus large)
+        angles = [-60, -30, -10, 0, 10, 30, 60]
         direction_rad = math.radians(pos.direction)
 
         steering_force = 0.0
+        obstacle_detected = False
 
         for i, angle_offset in enumerate(angles):
             probe_angle_rad = direction_rad - math.radians(angle_offset)
             
-            # Échantillonner le long du capteur pour détecter l'obstacle le plus proche
-            for step in range(1, 5):
-                dist = probe_length * (step / 4.0)
+            # Échantillonner le long du capteur
+            for step in range(1, 4):
+                dist = probe_length * (step / 3.0)
                 probe_x = pos.x - dist * math.cos(probe_angle_rad)
                 probe_y = pos.y - dist * math.sin(probe_angle_rad)
 
@@ -464,35 +501,109 @@ class BarhamusAI:
 
                 if 0 <= grid_x < len(self.grid[0]) and 0 <= grid_y < len(self.grid):
                     if self.grid[grid_y][grid_x] == TileType.GENERIC_ISLAND:
-                        # Obstacle trouvé. La force de répulsion est inversement proportionnelle à la distance.
-                        repulsion_strength = (1.0 - (dist / probe_length)) * 120.0 # Force de virage augmentée à 120°
+                        obstacle_detected = True
+                        # Force de répulsion progressive et limitée
+                        distance_factor = (1.0 - (dist / probe_length))
+                        repulsion_strength = distance_factor * 60.0  # Réduit de 120 à 60 pour moins d'oscillations
 
-                        if angle_offset == 0: # Capteur central
-                            # Si obstacle droit devant, ralentir et choisir une direction
-                            vel.currentSpeed *= 0.7
-                            # Regarder quel côté a le plus de place
-                            steering_force += repulsion_strength if angles[0] < 0 else -repulsion_strength
-                        else: # Capteurs latéraux
+                        if angle_offset == 0:  # Capteur central
+                            vel.currentSpeed *= 0.8  # Ralentir progressivement
+                            # Utiliser la direction préférée si définie, sinon choisir
+                            if self._preferred_avoidance_direction is None:
+                                self._preferred_avoidance_direction = self._choose_best_avoidance_direction(pos)
+                            steering_force += self._preferred_avoidance_direction
+                        else:  # Capteurs latéraux
+                            # Force opposée à l'angle du capteur
                             steering_force += -math.copysign(repulsion_strength, angle_offset)
                         
-                        break # On a trouvé un obstacle sur ce capteur, on passe au suivant
+                        break  # Obstacle trouvé sur ce capteur
+
+        # Si obstacle détecté, réinitialiser le compteur de stuck (car on évite activement)
+        if obstacle_detected and hasattr(self, '_stuck_counter'):
+            self._stuck_counter = max(0, self._stuck_counter - 1)
 
         if abs(steering_force) > 0.1:
-            # Appliquer la force de virage calculée
+            # Limiter l'amplitude du virage pour éviter les oscillations
+            steering_force = max(-90, min(90, steering_force))  # Limiter à ±90°
             new_direction = (pos.direction + steering_force) % 360
             return new_direction
+        else:
+            # Pas d'obstacle : réinitialiser la direction préférée
+            if hasattr(self, '_preferred_avoidance_direction'):
+                self._preferred_avoidance_direction = None
         
-        return None # Pas d'obstacle, pas de changement
+        return None  # Pas d'obstacle, pas de changement
+
+    def _choose_best_avoidance_direction(self, pos):
+        """Choisit la meilleure direction pour contourner (gauche ou droite)."""
+        if not self.grid:
+            return 60  # Par défaut : droite
+        
+        # Échantillonner les deux côtés pour trouver le plus dégagé
+        left_clear = 0
+        right_clear = 0
+        check_angles = [30, 60, 90]
+        
+        for angle in check_angles:
+            # Côté gauche
+            left_rad = math.radians(pos.direction + angle)
+            left_x = pos.x - 3 * TILE_SIZE * math.cos(left_rad)
+            left_y = pos.y - 3 * TILE_SIZE * math.sin(left_rad)
+            if self._is_position_clear(left_x, left_y):
+                left_clear += 1
+            
+            # Côté droit
+            right_rad = math.radians(pos.direction - angle)
+            right_x = pos.x - 3 * TILE_SIZE * math.cos(right_rad)
+            right_y = pos.y - 3 * TILE_SIZE * math.sin(right_rad)
+            if self._is_position_clear(right_x, right_y):
+                right_clear += 1
+        
+        # Retourner la direction avec le plus d'espace
+        return 60 if left_clear > right_clear else -60
+
+    def _is_position_clear(self, x, y):
+        """Vérifie si une position est dégagée (pas d'île)."""
+        if not self.grid:
+            return True
+        
+        grid_x = int(x // TILE_SIZE)
+        grid_y = int(y // TILE_SIZE)
+        
+        if 0 <= grid_x < len(self.grid[0]) and 0 <= grid_y < len(self.grid):
+            return self.grid[grid_y][grid_x] != TileType.GENERIC_ISLAND
+        return False  # Hors limites = pas clair
+
     
     def _action_retreat(self, world, pos, vel, team):
         """Action: Retraite tactique. Cherche un Druide allié ou fuit l'ennemi."""
         # 1. Chercher un Druide allié à proximité
         for ent, (druid_spec, ally_team, ally_pos) in world.get_components(SpeDruid, TeamComponent, PositionComponent):
             if ally_team.team_id == team.team_id:
-                # Druide trouvé, se diriger to lui
-                angle = self._angle_to(pos.x - ally_pos.x, pos.y - ally_pos.y)
-                pos.direction = angle
-                vel.currentSpeed = 4.0
+                # Druide trouvé, se diriger vers lui en évitant les îles
+                # Si la ligne de vue est claire (nav-grid), on y va direct, sinon on suit un chemin
+                self._create_navigation_grid()
+                if self._grid_line_clear((pos.x, pos.y), (ally_pos.x, ally_pos.y)):
+                    angle = self._angle_to(pos.x - ally_pos.x, pos.y - ally_pos.y)
+                    pos.direction = self._smooth_turn(pos.direction, angle, max_delta=15.0)
+                    vel.currentSpeed = 4.0
+                else:
+                    if not self.path or self.path_recalc_timer <= 0:
+                        self.path = self._find_path(pos, ally_pos)
+                        self.path_recalc_timer = 2.0
+                    if self.path:
+                        waypoint = self.path[0]
+                        if math.hypot(pos.x - waypoint[0], pos.y - waypoint[1]) < TILE_SIZE * 1.5:
+                            self.path.pop(0)
+                            if self.path:
+                                waypoint = self.path[0]
+                        angle = self._angle_to(pos.x - waypoint[0], pos.y - waypoint[1])
+                        pos.direction = self._smooth_turn(pos.direction, angle, max_delta=15.0)
+                        vel.currentSpeed = 3.2
+                    else:
+                        angle = self._angle_to(pos.x - ally_pos.x, pos.y - ally_pos.y)
+                        pos.direction = self._smooth_turn(pos.direction, angle, max_delta=15.0)
+                        vel.currentSpeed = 3.5
                 print(f"Barhamus {self.entity}: Retraite vers Druide allié {ent}")
                 return
 
@@ -519,15 +630,51 @@ class BarhamusAI:
                 # IMPORTANT : inverser direction car movementProcessor soustrait
                 angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
                 vel.currentSpeed = 2.0
+                print(f"Barhamus {self.entity}: Recul (trop proche: {distance/TILE_SIZE:.1f} tiles)")
             elif distance > 8 * TILE_SIZE:  # Trop loin, s'approcher
-                # IMPORTANT : inverser direction
+                # Si la ligne de vue est bloquée, suivre un chemin plutôt que de foncer dans une île
+                if not self._has_line_of_sight(world, pos, enemies[0][0]):
+                    if not self.path or self.path_recalc_timer <= 0:
+                        self.path = self._find_path(pos, target_pos)
+                        self.path_recalc_timer = 2.0
+                    if self.path:
+                        waypoint = self.path[0]
+                        if math.hypot(pos.x - waypoint[0], pos.y - waypoint[1]) < TILE_SIZE * 1.5:
+                            self.path.pop(0)
+                            if self.path:
+                                waypoint = self.path[0]
+                        angle = self._angle_to(pos.x - waypoint[0], pos.y - waypoint[1])
+                        vel.currentSpeed = 3.2
+                        print(f"Barhamus {self.entity}: Approche via chemin (reste {len(self.path)} waypoints)")
+                    else:
+                        # Pas de chemin: fallback direct (l'évitement gérera)
+                        angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
+                        vel.currentSpeed = 3.5
+                        print(f"Barhamus {self.entity}: Approche directe (pas de chemin)")
+                else:
+                    # IMPORTANT : inverser direction
+                    angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
+                    vel.currentSpeed = 3.5
+                    print(f"Barhamus {self.entity}: Approche (trop loin: {distance/TILE_SIZE:.1f} tiles)")
+            else:  # Distance parfaite, maintenir position stable
+                # FIX TOUPIE: Ne pas ajouter constamment +90°, juste maintenir orientation vers cible
                 angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
-                vel.currentSpeed = 3.5
-            else:  # Distance parfaite, cercler
-                angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y) + 90
-                vel.currentSpeed = 2.5
+                # Mouvement latéral léger pour éviter les tirs ennemis
+                if not hasattr(self, '_strafe_direction'):
+                    self._strafe_direction = random.choice([-1, 1])  # -1 = gauche, 1 = droite
+                    self._strafe_timer = 0.0
                 
-            pos.direction = angle
+                self._strafe_timer += 0.016  # dt approximatif
+                if self._strafe_timer > 3.0:  # Changer direction toutes les 3 secondes
+                    self._strafe_direction *= -1
+                    self._strafe_timer = 0.0
+                
+                # Légère déviation pour esquiver (±15° au lieu de ±90°)
+                angle = (angle + self._strafe_direction * 15) % 360
+                vel.currentSpeed = 2.0  # Vitesse réduite pour position stable
+                
+            # Lisser la rotation pour éviter les oscillations
+            pos.direction = self._smooth_turn(pos.direction, angle, max_delta=12.0)
             print(f"Barhamus {self.entity}: Position d'attaque - distance {distance/TILE_SIZE:.1f} tiles")
     
     def _default_defense_behavior(self, world, pos, vel, team):
@@ -900,7 +1047,7 @@ class BarhamusAI:
     
     # Actions spécifiques
     def _action_aggressive_approach(self, world, pos, vel, team):
-        """Action: Approche agressive to l'ennemi ou base ennemie"""
+        """Action: Approche agressive vers l'ennemi ou base ennemie (si force suffisante)"""
         enemies = self._find_nearby_enemies(world, pos, team)
 
         if enemies:
@@ -908,7 +1055,7 @@ class BarhamusAI:
             target_entity = enemies[0][0]
             target_pos = world.component_for_entity(target_entity, PositionComponent)
 
-            # Check sila ligne de vue est dégagée
+            # Check si la ligne de vue est dégagée
             if self._has_line_of_sight(world, pos, target_entity):
                 # Ligne de vue dégagée : foncer
                 angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
@@ -916,27 +1063,126 @@ class BarhamusAI:
                 vel.currentSpeed = 4.5
                 print(f"Barhamus {self.entity}: Approche agressive vers ennemi {target_entity} (directe)")
             else:
-                # Ligne de vue bloquée : utiliser l'évitement pour contourner
-                # On ne définit PAS de direction ici. On laisse _apply_obstacle_avoidance
-                # prendre le contrôle total de la direction pour avoid les conflits.
-                # L'évitement essaiera de contourner l'obstacle tout en se rapprochant de la cible.
-                vel.currentSpeed = 3.5 # Vitesse de contournement
-                print(f"Barhamus {self.entity}: Approche agressive vers ennemi {target_entity} (contournement via évitement)")
+                # Ligne de vue bloquée : utiliser le pathfinding pour contourner
+                vel.currentSpeed = 3.5  # Vitesse de contournement
                 
-                # NOUVEAU: Logique de pathfinding pour le contournement
+                # AMÉLIORATION: Pathfinding avec recalcul intelligent
                 if not self.path or self.path_recalc_timer <= 0:
                     self.path = self._find_path(pos, target_pos)
-                    self.path_recalc_timer = 2.0 # Recalculer all 2s max
+                    self.path_recalc_timer = 2.5  # Recalculer toutes les 2.5s (augmenté pour stabilité)
 
-                if self.path:
-                    # Suivre le chemin
+                if self.path and len(self.path) > 0:
+                    # Suivre le chemin - prendre le premier waypoint non atteint
                     next_waypoint = self.path[0]
-                    angle = self._angle_to(pos.x - next_waypoint[0], pos.y - next_waypoint[1])
+                    waypoint_dist = math.hypot(pos.x - next_waypoint[0], pos.y - next_waypoint[1])
+                    
+                    # Avancer au waypoint suivant si assez proche
+                    if waypoint_dist < TILE_SIZE * 2.0:  # Augmenté de 1.5 à 2.0 pour éviter oscillations
+                        self.path.pop(0)
+                        if self.path:  # S'il reste des waypoints
+                            next_waypoint = self.path[0]
+                    
+                    # Se diriger vers le waypoint (l'évitement d'obstacles ajustera si nécessaire)
+                    if self.path:
+                        angle = self._angle_to(pos.x - next_waypoint[0], pos.y - next_waypoint[1])
+                        pos.direction = angle
+                        print(f"Barhamus {self.entity}: Suit chemin vers waypoint (angle={angle:.1f}°, reste {len(self.path)} waypoints)")
+                    else:
+                        # Chemin terminé mais pas encore à la cible : aller direct
+                        angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
+                        pos.direction = angle
+                else:
+                    # Pas de chemin trouvé : essayer d'aller direct (l'évitement gérera)
+                    angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                     pos.direction = angle
-                    if math.hypot(pos.x - next_waypoint[0], pos.y - next_waypoint[1]) < TILE_SIZE * 1.5:
-                        self.path.pop(0) # Atteint le waypoint, passer au suivant
+                    print(f"Barhamus {self.entity}: Pas de chemin, tentative directe")
         else:
-            # Pas d'ennemi, aller to la base ennemie
+            # Pas d'ennemi visible : comportement tactique selon la force disponible
+            allies_nearby = self._count_nearby_allies(world, pos, team)
+            
+            # Assault coordonné seulement si force suffisante (3+ alliés Maraudeurs)
+            if allies_nearby >= 3:
+                # Assez d'unités pour un assault : attaquer la base de façon prudente (distance de sécurité)
+                enemy_base_pos = self._find_enemy_base(world, team)
+                if enemy_base_pos:
+                    safe_radius = 9 * TILE_SIZE  # distance de sécurité minimale autour de la base
+                    min_radius = 7 * TILE_SIZE  # ne jamais entrer dans ce rayon
+
+                    # Si trop près de la base: reculer d'abord
+                    base_dist = math.hypot(pos.x - enemy_base_pos[0], pos.y - enemy_base_pos[1])
+                    if base_dist < min_radius:
+                        # S'éloigner de la base
+                        away_angle = self._angle_to(pos.x - enemy_base_pos[0], pos.y - enemy_base_pos[1])
+                        pos.direction = self._smooth_turn(pos.direction, away_angle, max_delta=18.0)
+                        vel.currentSpeed = 3.2
+                        print(f"Barhamus {self.entity}: Trop proche de la base ({base_dist/TILE_SIZE:.1f}t) — recul de sécurité")
+                        return
+
+                    # Choisir un point de positionnement autour de la base avec LoS
+                    standoff = self._compute_standoff_point(enemy_base_pos, (pos.x, pos.y), safe_radius)
+                    # Option coffre seulement s'il est sur la route vers le standoff
+                    closest_chest = self._find_nearby_chest(world, pos)
+                    if closest_chest:
+                        chest_pos = world.component_for_entity(closest_chest, PositionComponent)
+                        angle_to_standoff = self._angle_to(pos.x - standoff[0], pos.y - standoff[1])
+                        angle_to_chest = self._angle_to(pos.x - chest_pos.x, pos.y - chest_pos.y)
+                        angle_diff = abs(angle_to_standoff - angle_to_chest)
+                        if angle_diff > 180:
+                            angle_diff = 360 - angle_diff
+                        chest_distance = math.hypot(pos.x - chest_pos.x, pos.y - chest_pos.y)
+                        if chest_distance < 8 * TILE_SIZE and angle_diff < 30:
+                            angle = self._angle_to(pos.x - chest_pos.x, pos.y - chest_pos.y)
+                            pos.direction = self._smooth_turn(pos.direction, angle, max_delta=18.0)
+                            vel.currentSpeed = 3.4
+                            print(f"Barhamus {self.entity}: Détour coffre sur la route du standoff")
+                            return
+
+                    # Aller vers le standoff en A* si LoS bloquée
+                    self._create_navigation_grid()
+                    if not self._grid_line_clear((pos.x, pos.y), standoff):
+                        if not self.path or self.path_recalc_timer <= 0:
+                            # Calculer un chemin jusqu'au standoff
+                            dummy = type('obj', (), {'x': standoff[0], 'y': standoff[1]})
+                            self.path = self._find_path(pos, dummy)
+                            self.path_recalc_timer = 2.0
+                        if self.path:
+                            waypoint = self.path[0]
+                            if math.hypot(pos.x - waypoint[0], pos.y - waypoint[1]) < TILE_SIZE * 1.5:
+                                self.path.pop(0)
+                                if self.path:
+                                    waypoint = self.path[0]
+                            move_angle = self._angle_to(pos.x - waypoint[0], pos.y - waypoint[1])
+                            pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
+                            vel.currentSpeed = 3.4
+                            print(f"Barhamus {self.entity}: Vers standoff via chemin (reste {len(self.path)} wp)")
+                        else:
+                            # Fallback: avancer direct (évitement fera le reste)
+                            move_angle = self._angle_to(pos.x - standoff[0], pos.y - standoff[1])
+                            pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
+                            vel.currentSpeed = 3.6
+                            print(f"Barhamus {self.entity}: Vers standoff (fallback direct)")
+                    else:
+                        # Ligne directe vers le standoff
+                        move_angle = self._angle_to(pos.x - standoff[0], pos.y - standoff[1])
+                        pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
+                        vel.currentSpeed = 3.6
+                        print(f"Barhamus {self.entity}: Vers standoff (LoS OK)")
+                else:
+                    # Pas de base trouvée : patrouiller
+                    self._action_patrol(pos, vel)
+            else:
+                # Pas assez d'alliés : chercher des coffres ou patrouiller (priorité coffres)
+                closest_chest = self._find_nearby_chest(world, pos)
+                if closest_chest:
+                    chest_pos = world.component_for_entity(closest_chest, PositionComponent)
+                    angle = self._angle_to(pos.x - chest_pos.x, pos.y - chest_pos.y)
+                    pos.direction = angle
+                    vel.currentSpeed = 3.5
+                    print(f"Barhamus {self.entity}: Collecte de coffre (solo/petit groupe)")
+                else:
+                    # Pas de coffre : patrouiller en attendant des renforts
+                    self._action_patrol(pos, vel)
+                    print(f"Barhamus {self.entity}: Patrouille ({allies_nearby} alliés, attente renforts)")
             enemy_base = self._find_enemy_base(world, team)
             if enemy_base:
                 # IMPORTANT : inverser la direction pour le movementProcessor
@@ -1046,6 +1292,30 @@ class BarhamusAI:
         
         return closest_chest
 
+    def _count_nearby_allies(self, world, pos, team):
+        """Compte le nombre d'alliés Maraudeurs à proximité."""
+        ally_count = 0
+        search_radius = 15 * TILE_SIZE  # 15 tiles de rayon
+        
+        try:
+            for ent, (ally_spe, ally_team, ally_pos) in world.get_components(SpeMaraudeur, TeamComponent, PositionComponent):
+                # Ignorer soi-même
+                if ent == self.entity:
+                    continue
+                
+                # Vérifier que c'est un allié
+                if ally_team.team_id != team.team_id:
+                    continue
+                
+                # Vérifier la distance
+                dist = math.hypot(pos.x - ally_pos.x, pos.y - ally_pos.y)
+                if dist <= search_radius:
+                    ally_count += 1
+        except Exception as e:
+            print(f"Erreur comptage alliés: {e}")
+        
+        return ally_count
+
     def _flee_from_closest_enemy(self, world, pos, vel, team):
         """Logique de fuite de base : s'éloigner de l'ennemi le plus proche."""
         enemies = self._find_nearby_enemies(world, pos, team)
@@ -1103,7 +1373,8 @@ class BarhamusAI:
         
         # Le rayon de 'gonflement' en tuiles. 1 signifie qu'on bloque les 8 tuiles autour d'une île.
         # Pour une unit large comme le Maraudeur, 1 est un bon début.
-        inflation_radius = 2 # Augmenté pour les Maraudeurs plus gros
+        # Augmenté encore pour les Maraudeurs (grands et lourds) afin d'éviter les couloirs trop étroits
+        inflation_radius = 3
 
         for r in range(grid_h):
             for c in range(grid_w):
@@ -1118,9 +1389,11 @@ class BarhamusAI:
                                     self.nav_grid[nr][nc] = TileType.GENERIC_ISLAND
 
     def _find_path(self, start_pos, end_pos):
-        """Implémentation simplifiée de A* pour le Maraudeur."""
+        """Implémentation A* adaptée (clearance + anti-corner-cut + lissage)."""
+        # Toujours (re)générer la grille de navigation gonflée pour garantir la clearance
+        self._create_navigation_grid()
         # Utiliser la grille de navigation gonflée si elle existe, sinon la grille normale
-        grid_to_use = self.nav_grid if self.nav_grid else self.grid
+        grid_to_use = self.nav_grid if hasattr(self, 'nav_grid') and self.nav_grid else self.grid
         if not grid_to_use:
             return []
 
@@ -1148,6 +1421,10 @@ class BarhamusAI:
             for dx, dy in [(0,1), (0,-1), (1,0), (-1,0), (1,1), (1,-1), (-1,1), (-1,-1)]:
                 neighbor = (current[0] + dx, current[1] + dy)
                 if is_valid(neighbor):
+                    # Éviter le "corner cutting": en diagonale, vérifier que les adjacents sont libres
+                    if dx != 0 and dy != 0:
+                        if not (is_valid((current[0] + dx, current[1])) and is_valid((current[0], current[1] + dy))):
+                            continue
                     new_cost = cost_so_far[current] + (1.414 if dx != 0 and dy != 0 else 1)
                     if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
                         cost_so_far[neighbor] = new_cost
@@ -1161,7 +1438,105 @@ class BarhamusAI:
             path.append(((node[0] + 0.5) * TILE_SIZE, (node[1] + 0.5) * TILE_SIZE))
             node = came_from[node]
         path.reverse()
+        # Lisser le chemin pour réduire les zigzags et mieux négocier les passages larges
+        if path:
+            path = self._smooth_path(path)
         return path
+
+    def _smooth_path(self, path_points):
+        """Lisse la liste de waypoints en supprimant les points inutiles (line-of-sight sur nav_grid)."""
+        if not path_points or len(path_points) <= 2 or not hasattr(self, 'nav_grid'):
+            return path_points
+
+        smoothed = [path_points[0]]
+        last_kept = path_points[0]
+        for i in range(2, len(path_points)):
+            candidate = path_points[i]
+            # Si la ligne est claire entre last_kept et candidate, on peut sauter le point i-1
+            if self._grid_line_clear(last_kept, candidate):
+                continue
+            else:
+                # Garder le point précédent car on ne peut pas aller directement
+                smoothed.append(path_points[i-1])
+                last_kept = path_points[i-1]
+        # Ajouter le dernier point
+        smoothed.append(path_points[-1])
+        return smoothed
+
+    def _grid_line_clear(self, p1, p2):
+        """Vérifie si le segment p1->p2 traverse une île dans nav_grid."""
+        try:
+            if not hasattr(self, 'nav_grid') or not self.nav_grid:
+                return False
+            x1, y1 = p1
+            x2, y2 = p2
+            dx = x2 - x1
+            dy = y2 - y1
+            dist = max(1.0, math.hypot(dx, dy))
+            steps = int(dist // (TILE_SIZE * 0.5))  # échantillonnage tous les 0.5 tuile
+            for s in range(1, steps + 1):
+                t = s / float(steps)
+                sx = x1 + dx * t
+                sy = y1 + dy * t
+                gx = int(sx // TILE_SIZE)
+                gy = int(sy // TILE_SIZE)
+                if 0 <= gy < len(self.nav_grid) and 0 <= gx < len(self.nav_grid[0]):
+                    if self.nav_grid[gy][gx] == TileType.GENERIC_ISLAND:
+                        return False
+                else:
+                    return False
+            return True
+        except Exception:
+            return False
+
+    def _compute_standoff_point(self, base_pos, current_xy, radius):
+        """Choisit un point sur un cercle autour de la base avec ligne de vue depuis ce point vers la base.
+        Préférence pour la direction approximative du Barhamus actuel.
+        """
+        bx, by = base_pos
+        cx, cy = current_xy
+        # Direction de base -> unité
+        vx, vy = cx - bx, cy - by
+        base_angle = math.degrees(math.atan2(vy, vx)) % 360
+        # Liste d'angles candidats autour de la base (priorité proche base_angle)
+        candidates_deg = [0, 20, -20, 40, -40, 60, -60, 90, -90, 120, -120, 150, -150, 180]
+        candidates_deg = [((base_angle + d) % 360) for d in candidates_deg]
+
+        best = None
+        best_score = float('inf')
+        self._create_navigation_grid()
+        grid_to_use = self.nav_grid if hasattr(self, 'nav_grid') and self.nav_grid else self.grid
+
+        for ang in candidates_deg:
+            rad = math.radians(ang)
+            tx = bx + math.cos(rad) * radius
+            ty = by + math.sin(rad) * radius
+            # 1) Le point doit être dans la carte et praticable
+            gx = int(tx // TILE_SIZE)
+            gy = int(ty // TILE_SIZE)
+            if not grid_to_use:
+                # Pas de grille: accepter le point
+                return (tx, ty)
+            if not (0 <= gy < len(grid_to_use) and 0 <= gx < len(grid_to_use[0])):
+                continue
+            if grid_to_use[gy][gx] == TileType.GENERIC_ISLAND:
+                continue
+            # 2) Doit avoir LoS du point vers la base
+            if not self._grid_line_clear((tx, ty), (bx, by)):
+                continue
+            # 3) Si possible, ligne claire depuis la position courante jusqu'au point
+            los_from_current = self._grid_line_clear((cx, cy), (tx, ty))
+            dist = math.hypot(cx - tx, cy - ty)
+            score = dist - (200 if los_from_current else 0)  # Favoriser les points accessibles direct
+            if score < best_score:
+                best_score = score
+                best = (tx, ty)
+
+        # Fallback : point le plus proche sur l'angle actuel même sans LoS
+        if best is None:
+            rad = math.radians(base_angle)
+            best = (bx + math.cos(rad) * radius, by + math.sin(rad) * radius)
+        return best
     
     # Méthodes utilitaires et d'analyse
     def _analyze_nearby_obstacles(self, pos):
@@ -1367,3 +1742,16 @@ class BarhamusAI:
 
     def _angle_to(self, dx, dy):
         return math.degrees(math.atan2(dy, dx)) % 360
+
+    def _smooth_turn(self, current_dir: float, target_dir: float, max_delta: float = 15.0) -> float:
+        """Tourne progressivement vers la direction cible (limite de rotation par frame).
+        - current_dir, target_dir en degrés [0..360)
+        - max_delta: variation angulaire max autorisée
+        """
+        # Calcul du plus petit écart angulaire signé (-180..180]
+        diff = (target_dir - current_dir + 540.0) % 360.0 - 180.0
+        if diff > max_delta:
+            diff = max_delta
+        elif diff < -max_delta:
+            diff = -max_delta
+        return (current_dir + diff) % 360.0
