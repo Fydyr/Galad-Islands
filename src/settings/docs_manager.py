@@ -5,6 +5,7 @@ Gestionnaire de documentation multilingue pour Galad Islands
 
 import os
 from src.settings.localization import get_current_language
+from src.functions.resource_path import get_resource_path
 
 def get_doc_path(doc_name: str) -> str:
     """
@@ -27,11 +28,11 @@ def get_doc_path(doc_name: str) -> str:
         # By default français (ou si la langue n'est pas supportée)
         filename = f"{doc_name}.md"
     
-    full_path = os.path.join(base_path, filename)
+    full_path = get_resource_path(os.path.join(base_path, filename))
     
     # Check sile file existe, sinon utiliser la version française By default
     if not os.path.exists(full_path):
-        default_path = os.path.join(base_path, f"{doc_name}.md")
+        default_path = get_resource_path(os.path.join(base_path, f"{doc_name}.md"))
         if os.path.exists(default_path):
             return default_path
     
