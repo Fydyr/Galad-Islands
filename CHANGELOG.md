@@ -1,5 +1,12 @@
 # 🧾 Changelog
 
+## v0.11.2 (2025-11-02)
+
+### Fix
+
+- ajouter la gestion des chemins et d'un import caché pour les modèles pré-entraînés dans BaseAi et BarhamusAI pour la version compilé
+- suppresion de la dépendance pygame pour éviter que les outils qui l'importe doivent l'embarquer
+
 ## v0.11.1 (2025-11-02)
 
 ### Fix
