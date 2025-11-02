@@ -1,5 +1,13 @@
 # 🧾 Changelog
 
+## v0.11.1 (2025-11-02)
+
+### Fix
+
+- corriger la résolution des chemins pour les fichiers de documentation en utilisant get_resource_path
+- améliorer la résolution du chemin pour galad_resolutions.json dans les builds développés et compilés
+- amélioration de la gestion du dossier des modèles par défaut pour inclure le dossier de données utilisateur en version compilée
+
 ## v0.11.0 (2025-11-02) - Pré-release 1.0
 
 > **🎯 Cette version marque la préparation finale avant la sortie de la 1.0 !**  
