@@ -8,6 +8,7 @@ import sys
 import os
 import time
 import random
+import math
 import numpy as np
 from pathlib import Path
 from sklearn.model_selection import train_test_split
@@ -384,11 +385,13 @@ class BarhamusTrainer:
         try:
             # Create une seule IA pour collecter les données
             ai_collector = BarhamusAI(entity=0)
-            ai_collector.grid = self._create_real_grid()
+            ai_collector.grid = self._create_real_grid()  # type: ignore
             
             # Restaurer les données from l'autosave si elles existent
             X = [exp['state'] for exp in all_experiences]
             y = [exp['action'] for exp in all_experiences]
+            # Poids associés aux échantillons (par défaut 1.0 pour les expériences restaurées)
+            weights_list = [1.0 for _ in all_experiences]
             all_experiences.clear() # Vider pour avoid la redondance mémoire
 
             for iteration in range(n_iterations):
@@ -413,9 +416,9 @@ class BarhamusTrainer:
                     
                     # NOUVEAU: Injecter la grille du scénario si elle existe
                     if 'grid' in scenario:
-                        ai_collector.grid = scenario['grid']
+                        ai_collector.grid = scenario['grid']  # type: ignore
                     else:
-                        ai_collector.grid = self._create_real_grid()
+                        ai_collector.grid = self._create_real_grid()  # type: ignore
                     
                     state = ai_collector._analyze_situation(world, pos, health, team)
                     
@@ -424,6 +427,34 @@ class BarhamusTrainer:
                     
                     X.append(state)
                     y.append(action)
+
+                    # Pénalité d'entraînement: proche de la base ennemie => réduire le poids si action risquée
+                    sample_weight = 1.0
+                    try:
+                        enemy_base = ai_collector._find_enemy_base(world, team)
+                        if enemy_base:
+                            base_dist = math.hypot(pos.x - enemy_base[0], pos.y - enemy_base[1])
+                            min_radius = 7 * TILE_SIZE  # rayon interdit (collision/base damage)
+                            warn_radius = 9 * TILE_SIZE  # zone d'avertissement/standoff
+                            # Actions: 0=Approche, 1=Attaque, 5=Position défensive, 6=Retraite
+                            if base_dist < min_radius:
+                                # Très proche: décourager fortement l'approche/attaque, favoriser retraite/defensif
+                                if action in (0, 1):
+                                    sample_weight = 0.05
+                                elif action in (6, 5):
+                                    sample_weight = 1.5
+                                else:
+                                    sample_weight = 0.5
+                            elif base_dist < warn_radius:
+                                # À l'intérieur de la couronne de sécurité: réduire un peu l'approche directe
+                                if action in (0, 1):
+                                    sample_weight = 0.3
+                                elif action in (6, 5):
+                                    sample_weight = 1.2
+                    except Exception:
+                        # En cas de problème, ne pas modifier le poids
+                        pass
+                    weights_list.append(sample_weight)
                     
                     # Sauvegarde périodique
                     if len(X) % 5000 == 0 and len(X) > 0:
@@ -467,8 +498,12 @@ class BarhamusTrainer:
         X = np.array(X)
         y = np.array(y)
 
-        # Calculer les poids basés sur les récompenses
-        weights = np.ones(len(X))  # Poids uniformes, car nous n'utilisons plus de récompenses complexes
+        # Calculer les poids d'échantillons (avec pénalités proches de la base)
+        # Si aucun poids n'a été collecté (cas de reprise sans nouvelles données), utiliser des poids uniformes
+        if 'weights_list' in locals() and len(weights_list) == len(X):
+            weights = np.array(weights_list, dtype=float)
+        else:
+            weights = np.ones(len(X), dtype=float)
 
         print(f"  Dimensions: {X.shape[0]} échantillons, {X.shape[1]} features")
 
