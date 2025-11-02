@@ -37,7 +37,7 @@ from src.settings.localization import (
 from src.settings.resolutions import load_custom_resolutions
 from src.constants.key_bindings import KEY_BINDING_GROUPS
 from src.settings import controls
-import pygame # justte pour que ça se lance
+import pygame  # just to make it run
 
 
 # Namespace de localisation spécifique à cet outil
