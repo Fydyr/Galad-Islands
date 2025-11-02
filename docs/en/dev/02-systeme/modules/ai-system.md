@@ -356,14 +356,14 @@ The model retrains automatically:
 The Marauder AI can be pre-trained to improve its performance from the first launch:
 
 ```bash
-# Basic training (fast, ~1-2 minutes)
-python train_barhamus_ai.py --episodes 100
+# Quick training (fast, ~1-2 minutes)
+python train_barhamus_ai.py --n_scenarios 500 --n_iterations 3
 
 # Complete training (recommended, ~5-10 minutes)
-python train_barhamus_ai.py --episodes 500 --save-interval 50
+python train_barhamus_ai.py --n_scenarios 2000 --n_iterations 5
 
 # Intensive training (for production)
-python train_barhamus_ai.py --episodes 2000 --save-interval 100
+python train_barhamus_ai.py --n_scenarios 5000 --n_iterations 10
 ```
 
 The script generates a pre-trained model in `models/barhamus_ai_pretrained.pkl` which will be loaded automatically at game launch. This allows the AI to start with already acquired base strategies instead of starting from scratch.

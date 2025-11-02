@@ -362,14 +362,14 @@ Le modèle se retraine automatiquement :
 L'IA du Maraudeur peut être pré-entraînée pour améliorer ses performances dès le premier lancement :
 
 ```bash
-# Entraînement basique (rapide, ~1-2 minutes)
-python train_barhamus_ai.py --episodes 100
+# Entraînement rapide (~1-2 minutes)
+python train_barhamus_ai.py --n_scenarios 500 --n_iterations 3
 
 # Entraînement complet (recommandé, ~5-10 minutes)
-python train_barhamus_ai.py --episodes 500 --save-interval 50
+python train_barhamus_ai.py --n_scenarios 2000 --n_iterations 5
 
 # Entraînement intensif (pour production)
-python train_barhamus_ai.py --episodes 2000 --save-interval 100
+python train_barhamus_ai.py --n_scenarios 5000 --n_iterations 10
 ```
 
 Le script génère un modèle pré-entraîné dans `models/barhamus_ai_pretrained.pkl` qui sera chargé automatiquement au lancement du jeu. Cela permet à l'IA de commencer avec des stratégies de base déjà acquises au lieu de partir de zéro.
