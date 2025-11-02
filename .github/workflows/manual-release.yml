@@ -67,6 +67,8 @@ jobs:
                       --exclude-module Pillow \
                       --exclude-module sklearn \
                       --exclude-module joblib \
+                      --exclude-module pygame
+
 
 
       - name: Archive build
