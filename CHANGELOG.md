@@ -1,79 +1,112 @@
 # 🧾 Changelog
 
-## v0.11.0 (2025-11-02)
+## v0.11.0 (2025-11-02) - Pré-release 1.0
 
-### Feat
+> **🎯 Cette version marque la préparation finale avant la sortie de la 1.0 !**  
+> Toutes les fonctionnalités principales sont désormais complètes et polies. Le jeu est fonctionnellement complet et prêt pour la production.
 
-- ajout de la vérification automatique des mises à jour et de la section correspondante dans les options
-- ajout de la vérification des mises à jour et notification à l'utilisateur
-- ajout de nouveaux scénarios pour l'entraînement de l'IA Barhamus, incluant la navigation et l'évitement d'obstacles
-- mise à jour des traductions pour les sélections d'équipe dans les fichiers anglais et français pour refléter celui du jeu
-- ajout de l'outil GUI Maraudeur AI Cleaner pour gérer le nettoyage des modèles d'IA
-- mise à jour de la gestion des traductions pour que les outils ait leur propre fichier de traduction
-- amélioration des paramètres de sécurité et de la logique d'exploration pour l'IA du Scout
-- ajout de la gestion de la santé des unités pour mieux compter les unités dans le processeur de revenu passif
-- ajout de la gestion des architectes et des priorités de construction dans l'IA de base
-- ajout d'un processeur de revenu passif pour éviter les blocages économiques
-- amélioration de l'IA du Scout, le rendent moins agressif, plus explorateur et à la recherche de ressources
+### ✨ Nouvelles fonctionnalités
 
-### Fix
+- **🔄 Vérificateur de mises à jour automatique** : Le jeu vérifie désormais les nouvelles versions sur GitHub au démarrage
+  - Notification discrète en haut à droite du menu lorsqu'une mise à jour est disponible
+  - Système de cache intelligent (maximum 1 vérification par 24 heures)
+  - Entièrement configurable dans le menu Options
+  - Vérification manuelle disponible à tout moment via le menu Options
+  - Désactivation automatique en mode développement
 
-- mise à jour des noms pour coller au lore et ajout de classes d'unités dans la boutique
-- réduction des logs au minimum pour la mise en production
-- augmentation de la taille visuelle et de la portée des tempêtes pour un impact renforcé
-- phase finale: mise à jour des tests et réglages de dernière minutes
-- mise à jour du modèle pré-entraîné de Barhamus
-- exclusion explicite des unités alliées et des navires bandits dans le service de prédiction
-- amélioration du pathfinding du Kamikaze
-- amélioration de la logique de recul et de maintien de position pour l'IA Barhamus près de la base ennemie
-- mise à jour de la logique de décision de l'IA de la base pour garantir que l'action est toujours déterminée
-- mise à jour des commentaires en anglais (partiel)
+- **🤖 Amélioration de l'entraînement de l'IA Barhamus** : Ajout de nouveaux scénarios d'entraînement
+  - Navigation avancée et évitement d'obstacles
+  - Prise de décision tactique améliorée
+  - Meilleur pathfinding dans les situations complexes
 
-### Refactor
+- **🧹 Outil Maraudeur AI Cleaner** : Nouvel outil GUI pour la gestion des modèles d'IA
+  - Nettoyage facile des modèles d'IA obsolètes
+  - Meilleure organisation des fichiers d'entraînement
+  - Fichiers de traduction dédiés pour les outils
 
-- mise à jour des commentaires en anglais (partiellement fini)
+- **⚔️ Améliorations de l'IA Scout** : Refonte majeure du comportement du Scout
+  - Moins agressif, plus axé sur l'exploration
+  - Meilleure recherche de ressources
+  - Paramètres de sécurité et logique d'exploration améliorés
 
-## v0.10.0 (2025-10-30)
+- **🏗️ Améliorations de l'IA Architecte** : Gestion de construction plus intelligente
+  - Meilleur système de priorités de construction
+  - Gestion des ressources améliorée
 
-### ✨ Feat
+- **💰 Processeur de revenu passif** : Évite les blocages économiques
+  - Génération automatique de ressources pour éviter les impasses
+  - Comptage des unités basé sur la santé pour une distribution équitable des revenus
 
-- placement dynamique des bases, refactorisation de la gestion des positions de base pour une meilleure flexibilité et intégration dans le système de spawn
-- amélioration de la gestion des erreurs avec des messages localisés dans la fenêtre de crash
-- ajustement des intervalles de génération des ressources et ajout de la collecte de ressources d'île pour l'IA
-- implémentation d'une nouvelle stratégie d'entraînement en deux phases (exploration, assaut) pour l'IA et ajustement des constantes de jeu
-- ajout de la collecte de ressources et de la gestion de l'or pour l'IA Architecte
-- ajout d'un script de pré-entraînement pour l'IA Barhamus avec simulations de combats tactiques
-- ajout de l'option de désactivation de l'apprentissage IA du Maraudeur pour améliorer les performances
-- ajout d'options de VSync et de FPS maximum dans les paramètres du jeu
+### 🐛 Corrections de bugs
 
-### 🐞 Fix
+- **🎭 Cohérence du lore** : Mise à jour des noms et classes d'unités dans la boutique pour correspondre au lore du jeu
+- **📊 Prêt pour la production** : Réduction des logs au minimum pour la version de release
+- **⚡ Système de tempêtes** : Augmentation de la taille visuelle et de la portée des tempêtes pour un meilleur impact
+- **🎯 Peaufinage final** : Mise à jour des tests et ajustements de dernière minute pour la stabilité
+- **🤖 IA Barhamus** : Mise à jour du modèle pré-entraîné avec de meilleures performances
+- **🎯 Service de prédiction** : Exclusion explicite des unités alliées et des navires bandits du ciblage
+- **💥 Pathfinding Kamikaze** : Navigation et acquisition de cible améliorées
+- **🏠 Positionnement Barhamus** : Meilleure logique de recul et maintien de position près de la base ennemie
+- **🧠 Logique de l'IA de base** : Action toujours déterminée dans la prise de décision
+- **📝 Commentaires de code** : Migration partielle des commentaires vers l'anglais
 
-- correction du chemin d'importation des modèles dans les workflows de build
-- correction de la position de spawn des unités en utilisant les coordonnées de la base alliée et ennemie
-- centrage de la hitbox des bases alliées et ennemies et ajustement des positions de spawn dans mapComponent.py
-- correction du chemin d'importation de AIControlledComponent et remplacement par DruidAiComponent dans DruidAIProcessor.py
-- correction du chemin d'importation de ArchitectAIComponent dans architectAIProcessor.py
-- correction du chemin d'importation de ArchitectAIComponent dans unitFactory.py
-- amélioration de l'affichage du traceback dans la fenêtre de crash en ajoutant un message par défaut si aucun traceback n'est disponible
-- remplacement de la valeur de l'or stocké par défaut des joueurs par une constante
-- suppression des fichiers de modèles d'IA pré-entraînés obsolètes du .gitignore
-- ajustement du taux de génération des îles à 0.7%
-- tentative d'amélioration du pathfinding du Scout (encore des choses à revoir)
-- suppression des logs du Scout et amélioration du pathfinding
-- **BaseAi** : ajout d'un bonus pour le Scout et exclusion du Kamikaze si la base ennemie n'est pas connue
-- désactivation de l'IA pour les unités sélectionnées par le joueur dans plusieurs processeurs d'IA
-- mise à jour de la gestion des chemins d'accès pour l'IA du Maraudeur pour les versions compilées et non compilées de l'application
-- recalcul du chemin lors de l'assignation d'un nouvel objectif et conversion des coordonnées pour le pathfinding
-- correction du chemin d'importation pour BarhamusAI dans game.py
-- mise à jour des chemins d'accès pour les ressources dans les scripts de construction pour une compatibilité multiplateforme
-- mise à jour de la gestion des binaires dans le fichier build.spec pour inclure les bibliothèques Python selon le système d'exploitation
-- ajout de la gestion du chemin d'accès pour les modèles dynamiques dans BarhamusAI pour la version compilée
-- ajout de la gestion du cooldown dans DruidAIProcessor et mise à jour des signatures de méthode
-- mise à jour de la version de Python à 3.13 et ajustement de la construction avec PyInstaller
-- correction du chemin d'importation pour DruidAIProcessor
-- correction des chemins d'archive pour les builds Windows et Linux/Mac
+### 🔧 Améliorations techniques
 
-### 🧹 Refactor
+- **🌍 Système de traduction** : Les outils ont désormais leurs propres fichiers de traduction dédiés
+- **📚 Documentation du code** : Migration en cours des commentaires vers l'anglais
+- **🎯 Sélection d'équipe** : Mise à jour des traductions pour correspondre à la terminologie en jeu
+
+---
+
+## v0.10.0 (2025-10-30) - Mise à jour majeure IA & Systèmes
+
+### ✨ Nouvelles fonctionnalités
+
+- **🗺️ Placement dynamique des bases** : Système de positionnement des bases complètement refactorisé
+  - Gestion flexible des points d'apparition
+  - Meilleure intégration avec la génération de carte
+
+- **💥 Améliorations de la fenêtre de crash** : Gestion des erreurs améliorée
+  - Messages d'erreur localisés
+  - Meilleur retour utilisateur lors des crashes
+
+- **💎 Gestion des ressources** : Système de ressources d'îles amélioré
+  - Intervalles d'apparition des ressources ajustés
+  - L'IA collecte désormais les ressources des îles
+  - Gestion de l'or pour l'IA Architecte
+
+- **🤖 Entraînement IA en deux phases** : Nouveau système d'entraînement stratégique
+  - Phase 1 : Exploration et apprentissage de la carte
+  - Phase 2 : Assaut et tactiques de combat
+  - Constantes de jeu ajustées pour de meilleures performances IA
+
+- **🎓 Pré-entraînement Barhamus** : Nouveau script de pré-entraînement
+  - Simulations de combat tactique
+  - Meilleures performances de base
+
+- **⚙️ Options de performance** : Nouveaux paramètres graphiques
+  - Option de basculement VSync
+  - Limiteur de FPS maximum
+  - Option pour désactiver l'apprentissage IA du Maraudeur pour de meilleures performances
+
+### 🐛 Corrections de bugs
+
+- **📦 Système de build** : Correction des chemins d'importation des modèles dans les workflows de build
+- **📍 Apparition des unités** : Correction des positions d'apparition utilisant les coordonnées des bases alliées et ennemies
+- **🎯 Hitboxes des bases** : Centrage des hitboxes pour les bases alliées et ennemies
+- **📝 Chemins d'importation** : Correction de divers chemins d'importation de composants IA
+- **💰 Économie** : Remplacement de l'or par défaut du joueur par une constante appropriée
+- **🗑️ Nettoyage de modèles** : Suppression des fichiers de modèles IA pré-entraînés obsolètes du .gitignore
+- **🏝️ Génération d'îles** : Ajustement du taux d'apparition des îles à 0.7%
+- **🔍 Pathfinding Scout** : Navigation améliorée (encore en cours de raffinement)
+- **🚫 Logique Kamikaze** : Exclusion du Kamikaze lorsque la base ennemie est inconnue
+- **🎮 Contrôle joueur** : Désactivation de l'IA pour les unités sélectionnées par le joueur
+- **📂 Chemins de fichiers** : Mise à jour des chemins IA Maraudeur pour les versions compilées et non compilées
+- **🔄 Pathfinding** : Recalcul du chemin lors de l'assignation de nouveaux objectifs
+- **🐍 Python 3.13** : Mise à jour vers Python 3.13 avec ajustements PyInstaller
+- **🏗️ Système de build** : Correction des chemins d'archive pour les builds Windows et Linux/Mac
+
+### 🔧 Refactorisation
 
 - remplacement de AIControlledComponent par DruidAiComponent et correction du chemin d'importation d'ArchitectAIComponent
 - tri dans les processeurs et composants des IA

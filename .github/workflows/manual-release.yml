@@ -105,22 +105,45 @@ jobs:
           prerelease: ${{ github.event.inputs.branch == 'unstable' }}
           name: "Galad Islands v${{ github.event.inputs.version }}${{ github.event.inputs.branch == 'unstable' && ' (pre-release)' || '' }}"
           body: |
-            🎮 **Galad Islands - Version v${{ github.event.inputs.version }}${{ github.event.inputs.branch == 'unstable' && ' (pre-release)' || '' }}** (Release manuelle)
+            🎮 **Galad Islands - Version v${{ github.event.inputs.version }}${{ github.event.inputs.branch == 'unstable' && ' (pre-release)' || '' }}** (Manual Release)
             
-            Téléchargez le jeu pour votre plateforme :
+            📥 **Download the game for your platform:**
+            - **Windows**: `galad-islands-windows.zip`
+            - **Linux**: `galad-islands-Linux.zip` 
+            - **macOS**: `galad-islands-macOS.zip`
+            
+            📦 **Each archive contains:**
+            - `galad-islands`: The main game
+            - `galad-config-tool`: Standalone configuration tool (Tkinter)
+            - `MaraudeurAiCleaner`: AI model cleanup tool (Tkinter)
+            
+            📖 See the included `README.md` file for installation instructions.
+            
+            🔗 **Links:**
+            - [Complete Documentation](https://fydyr.github.io/Galad-Islands/)
+            - [Changelog (French)](https://github.com/Fydyr/Galad-Islands/blob/main/CHANGELOG.md)
+            - [Changelog (English)](https://github.com/Fydyr/Galad-Islands/blob/main/CHANGELOG_EN.md)
+            
+            ---
+            
+            🎮 **Galad Islands - Version v${{ github.event.inputs.version }}${{ github.event.inputs.branch == 'unstable' && ' (pré-version)' || '' }}** (Release manuelle)
+            
+            📥 **Téléchargez le jeu pour votre plateforme :**
             - **Windows** : `galad-islands-windows.zip`
             - **Linux** : `galad-islands-Linux.zip` 
             - **macOS** : `galad-islands-macOS.zip`
             
-            Chaque archive contient :
+            📦 **Chaque archive contient :**
             - `galad-islands` : Le jeu principal
             - `galad-config-tool` : Outil de configuration autonome (Tkinter)
             - `MaraudeurAiCleaner` : Outil de nettoyage des modèles d'IA (Tkinter)
             
             📖 Consultez le fichier `README.md` inclus dans l'archive pour les instructions d'installation.
             
-            🔗 [Documentation complète](https://fydyr.github.io/Galad-Islands/)
-            🔗 [Changelog](https://github.com/Fydyr/Galad-Islands/blob/main/CHANGELOG.md)
+            🔗 **Liens :**
+            - [Documentation complète](https://fydyr.github.io/Galad-Islands/)
+            - [Changelog (Français)](https://github.com/Fydyr/Galad-Islands/blob/main/CHANGELOG.md)
+            - [Changelog (English)](https://github.com/Fydyr/Galad-Islands/blob/main/CHANGELOG_EN.md)
           files: |
             galad-islands-*.zip
         env:
