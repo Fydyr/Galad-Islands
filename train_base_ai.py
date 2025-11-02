@@ -38,6 +38,11 @@ class UnifiedBaseAiTrainer:
             # --- NOUVELLE STRATÉGIE : PHASE D'ASSAUT (POST-DÉCOUVERTE) ---
             # Une fois la base ennemie connue et avec un avantage économique, on investit in des units lourdes.
             (350, 0.9, 10, 2, 1, 0, 1.0, 4, 10, 500),  # Avantage économique -> Léviathan (action 4), poids augmenté (x10)
+
+            # --- CONSTRUCTION DE TOURS : PRIORISER ARCHITECTE ---
+            # Tours nécessaires, aucun architecte: produire Architecte
+            (150, 0.55, 3, 6, 1, 1, 1.0, 2, 15, 600),  # Architecte prioritaire
+            (200, 0.65, 5, 7, 1, 1, 1.0, 2, 10, 550),  # Variante plus riche
             
             # --- SCÉNARIOS EXISTANTS ---
             # Défense prioritaire raffinée : base très basse ET forte infériorité numérique
@@ -47,6 +52,8 @@ class UnifiedBaseAiTrainer:
             (150, 0.7, 4, 7, 1, 1, 1.0, 3, 1, 120),   # Infériorité numérique (Maraudeur)
             (120, 0.8, 2, 4, 1, 0, 1.0, 6, 1, 120),   # Contre-attaque rapide (Kamikaze)
             (150, 0.9, 3, 2, 1, 0, 0.1, 6, 1, 120),   # Coup de grâce (Kamikaze)
+            # Blessures alliées importantes -> Druide
+            (200, 0.6, 6, 6, 1, 0, 1.0, 5, 12, 600),   # Renfort de soins (Druide)
             (10, 0.8, 2, 2, 1, 0, 1.0, 0, 1, 120),    # Pénurie d'or, IA doit économiser (Rien)
         ]
         states, actions, rewards = [], [], []
@@ -59,7 +66,12 @@ class UnifiedBaseAiTrainer:
                 ebk = enemy_base_known if np.random.rand() > 0.1 else 1 - enemy_base_known
                 tn = towers_needed if np.random.rand() > 0.1 else 1 - towers_needed
                 ebh = np.clip(enemy_base_health + np.random.normal(0, 0.05), 0.05, 1.0)
-                allied_health = bh if au > 0 else 1.0
+                # Santé moyenne des alliés: indépendante de la vie de la base avec une légère corrélation
+                if expected_action == 5 and tn == 0:
+                    # Scénarios Druide: forcer une santé alliée basse
+                    allied_health = float(np.clip(np.random.normal(0.35, 0.12), 0.1, 0.6))
+                else:
+                    allied_health = float(np.clip(bh + np.random.normal(0, 0.08), 0.2, 1.0)) if au > 0 else 1.0
                 state_action = [g, bh, au, eu, ebk, tn, ebh, allied_health, expected_action]
                 for _ in range(repeat):
                     states.append(state_action)
@@ -71,7 +83,14 @@ class UnifiedBaseAiTrainer:
                         for _ in range(repeat):
                             states.append(wrong_state_action)
                             actions.append(wrong_action)
-                            rewards.append(-100 if expected_action in (1,2) else -30)
+                            # Pénalités plus fortes quand Architecte/Druide sont la bonne réponse
+                            if expected_action in (2, 5):
+                                penalties = -120
+                            elif expected_action in (1, 4, 6):
+                                penalties = -60
+                            else:
+                                penalties = -40
+                            rewards.append(penalties)
         return states, actions, rewards
 
     def simulate_self_play_game(self, ai1, ai2, bonus_victory=200):

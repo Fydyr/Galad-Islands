@@ -52,6 +52,7 @@ def demo_ai_decisions():
             "enemy_units": 6,
             "enemy_base_known": 1,
             "towers_needed": 1, # <-- Towers needed
+            "ally_architects": 1, # We already have architects; reinforce with Maraudeur
             "expected": "Maraudeur"
         },
         {
@@ -107,6 +108,17 @@ def demo_ai_decisions():
             "towers_needed": 0,
             "allied_units_health": 0.3, # Low average unit health
             "expected": "Druide"
+        },
+        {
+            "name": "Build towers - No Architects present",
+            "gold": 150,
+            "base_health_ratio": 0.5,
+            "allied_units": 3,
+            "enemy_units": 6,
+            "enemy_base_known": 1,
+            "towers_needed": 1,
+            "ally_architects": 0,
+            "expected": "Architecte"
         }
     ]
 

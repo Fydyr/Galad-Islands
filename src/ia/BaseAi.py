@@ -2,6 +2,12 @@
 IA de la base utilisant un modèle de Machine Learning pré-entraîné.
 Ce processeur charge un modèle et l'utilise pour prendre des décisions stratégiques,
 comme la production d'units.
+
+Note sur l'économie: un revenu passif minimal peut être accordé par
+`PassiveIncomeProcessor` lorsque l'équipe n'a plus d'unités. Ce mécanisme
+ne sert qu'à débloquer le jeu. L'IA en tient compte en priorisant la
+création d'un Éclaireur dès que possible et en raccourcissant son délai
+de décision lorsqu'elle attend ce revenu passif.
 """
 
 import esper
@@ -16,11 +22,12 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.playerComponent import PlayerComponent
 from src.components.core.positionComponent import PositionComponent
+from src.components.core.classeComponent import ClasseComponent
 from src.components.core.towerComponent import TowerComponent
 from src.components.core.projectileComponent import ProjectileComponent
 from src.constants.gameplay import UNIT_COSTS
 from src.factory.unitFactory import UnitFactory
-from src.factory.unitType import UnitType
+from src.factory.unitType import UnitType, UnitKey
 from src.components.core.positionComponent import PositionComponent
 from src.constants.team import Team
 from src.settings.settings import config_manager
@@ -152,6 +159,7 @@ class BaseAi(esper.Processor):
             enemy_units = 0
             allied_health_total = 0.0
             allied_health_count = 0
+            allied_architects = 0
 
             for ent, (team_comp, health_comp) in esper.get_components(TeamComponent, HealthComponent):
                 if esper.has_component(ent, BaseComponent) or esper.has_component(ent, TowerComponent):
@@ -161,6 +169,14 @@ class BaseAi(esper.Processor):
 
                 if team_comp.team_id == ai_team_id:
                     allied_units += 1
+                    # Compter les architectes alliés
+                    try:
+                        if esper.has_component(ent, ClasseComponent):
+                            classe = esper.component_for_entity(ent, ClasseComponent)
+                            if getattr(classe, 'unit_type', None) == UnitType.ARCHITECT:
+                                allied_architects += 1
+                    except Exception:
+                        pass
                     # collecter santé moyenne des units alliées (exclure la base/tours)
                     try:
                         if hasattr(health_comp, 'currentHealth') and hasattr(health_comp, 'maxHealth') and health_comp.maxHealth > 0:
@@ -194,7 +210,9 @@ class BaseAi(esper.Processor):
                 'towers_needed': towers_needed,
                 'enemy_base_health_ratio': enemy_base_health_ratio,
                 # santé moyenne (0.0 - 1.0) des units alliées; 1.0 si aucune unit
-                'allied_units_health': (allied_health_total / allied_health_count) if allied_health_count > 0 else 1.0
+                'allied_units_health': (allied_health_total / allied_health_count) if allied_health_count > 0 else 1.0,
+                # nombre d'architectes alliés actifs (pour construire des tours)
+                'ally_architects': allied_architects,
             }
 
         except Exception as e:
@@ -228,6 +246,44 @@ class BaseAi(esper.Processor):
                 if action == 1 and game_state['enemy_base_known'] == 0:
                     q_value += 10.0
                 q_values.append(q_value)
+
+            # Heuristiques légères pour corriger des cas stratégiques fréquents
+            base_hp = game_state.get('base_health_ratio', 1.0)
+            towers_needed = game_state.get('towers_needed', 0)
+            ally_architects = game_state.get('ally_architects', 0)
+            allies = game_state.get('allied_units', 0)
+            enemies = game_state.get('enemy_units', 0)
+            avg_ally_hp = game_state.get('allied_units_health', 1.0)
+            gold = game_state.get('gold', 0)
+
+            # Bootstrapping: si aucune unité et assez d'or pour un Scout, prioriser l'exploration
+            scout_total_cost = self.ACTION_MAPPING[1]['cost'] + self.ACTION_MAPPING[1]['reserve']
+            if allies == 0:
+                if gold >= scout_total_cost:
+                    return 1
+                else:
+                    # Attendre le revenu passif pour débloquer la partie (ne rien faire, mais décider plus souvent)
+                    # Ce comportement s'appuie sur PassiveIncomeProcessor
+                    # pour remonter graduellement l'or jusqu'au coût d'un scout.
+                    self.action_cooldown = 2.5  # accélérer la cadence des décisions pendant l'attente
+                    if self.debug_mode:
+                        print(f"[BaseAI] Team {self.default_team_id}: en attente du revenu passif (or={gold}/{scout_total_cost}) pour produire un Éclaireur.")
+                    return 0
+
+            # Si des tours sont nécessaires et aucun architecte n'est présent, prioriser Architecte
+            if towers_needed == 1 and ally_architects == 0:
+                q_values[2] += 20.0  # Architecte
+                q_values[6] -= 10.0  # Kamikaze moins pertinent en défense
+                q_values[3] += 5.0   # Maraudeur utile en défense
+
+            # Si les unités alliées sont très blessées, prioriser Druide
+            if avg_ally_hp < 0.5:
+                q_values[5] += 12.0  # Druide
+
+            # Pression rapide à faible/moyen or quand on est en infériorité: favoriser Kamikaze
+            if towers_needed == 0 and enemies > allies and gold >= self.ACTION_MAPPING[6]['cost'] + self.ACTION_MAPPING[6]['reserve']:
+                q_values[6] += 8.0   # Kamikaze
+                q_values[1] -= 5.0   # Réduire Scout dans ce contexte
 
             # Filtrer les actions possibles en fonction de l'or disponible
             affordable_actions = [
@@ -303,7 +359,7 @@ class BaseAi(esper.Processor):
             print(f"Erreur dans _execute_action: {e}")
             return False
 
-    def _spawn_unit(self, unit_type: UnitType, ai_team_id: int):
+    def _spawn_unit(self, unit_type: UnitKey, ai_team_id: int):
         """Fait apparaître une unit from la base."""
         try:
             base_pos_comp = None
