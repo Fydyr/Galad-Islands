@@ -82,7 +82,53 @@ Pour en savoir plus, consultez le [guide dédié](../tools/galad-config-tool.md)
 
 ## Mise à jour du jeu
 
-Le jeu ne dispose pas encore d'un système de mise à jour automatique. Pour mettre à jour le jeu, il faut  le retélécharger depuis [la page officielle](https://fydyr.github.io/Galad-Islands/releases/) puis resuivez les étapes d'installation sans supprimer le fichier de configuration `galad_config.json` pour conserver vos réglages.
+Le jeu vérifie automatiquement si une nouvelle version est disponible sur GitHub au démarrage.
+
+### Vérification automatique
+
+- 🔍 **Au démarrage** : Le jeu vérifie en arrière-plan si une nouvelle version existe
+- ⏱️ **Fréquence** : Maximum 1 vérification par 24 heures
+- 🔕 **Mode développeur** : La vérification est désactivée automatiquement en mode dev
+- 🔔 **Notification** : Une notification apparaît en haut à droite du menu si une mise à jour est disponible
+
+### Désactiver la vérification automatique
+
+Si vous souhaitez désactiver cette fonctionnalité :
+
+#### Méthode 1 : Via le menu Options
+
+1. Lancez le jeu
+2. Ouvrez le menu **Options**
+3. Dans la section **Mises à jour** :
+   - Décochez "Vérifier les mises à jour au démarrage"
+   - Cliquez sur **Appliquer**
+
+#### Méthode 2 : Via le fichier de configuration
+
+1. Ouvrez le fichier `galad_config.json` (à la racine du jeu)
+2. Modifiez `"check_updates": true` en `"check_updates": false`
+3. Sauvegardez et relancez le jeu
+
+### Vérifier manuellement
+
+Vous pouvez forcer une vérification des mises à jour à tout moment :
+
+1. Ouvrez le menu **Options**
+2. Dans la section **Mises à jour**, cliquez sur **Vérifier maintenant**
+3. Le résultat s'affichera immédiatement
+
+### Installer une mise à jour
+
+Lorsqu'une notification de mise à jour apparaît :
+
+1. Cliquez sur **"Télécharger"** pour ouvrir la page GitHub de la release
+2. Téléchargez l'archive correspondant à votre système d'exploitation
+3. Extrayez l'archive
+4. **Important** : Sauvegardez votre fichier `galad_config.json` pour conserver vos paramètres
+5. Remplacez les anciens fichiers par les nouveaux
+6. Replacez votre `galad_config.json` sauvegardé
+
+> 💡 **Astuce** : Le numéro de version actuel s'affiche en bas à droite du menu principal.
 
 ## Désinstallation
 

@@ -88,7 +88,53 @@ For more information, consult the [dedicated guide](../tools/galad-config-tool.m
 
 ## Game Updates
 
-The game does not yet have an automatic update system. To update the game, you need to redownload it from [the official page](https://fydyr.github.io/Galad-Islands/releases/) then follow the installation steps without deleting the configuration file `galad_config.json` to keep your settings.
+The game automatically checks if a new version is available on GitHub at startup.
+
+### Automatic Checking
+
+- 🔍 **At startup**: The game checks in the background if a new version exists
+- ⏱️ **Frequency**: Maximum 1 check per 24 hours
+- 🔕 **Developer mode**: Checking is automatically disabled in dev mode
+- 🔔 **Notification**: A notification appears in the top-right corner of the menu if an update is available
+
+### Disable Automatic Checking
+
+If you want to disable this feature:
+
+#### Method 1: Via the Options Menu
+
+1. Launch the game
+2. Open the **Options** menu
+3. In the **Updates** section:
+   - Uncheck "Check for updates on startup"
+   - Click **Apply**
+
+#### Method 2: Via Configuration File
+
+1. Open the `galad_config.json` file (at the game's root)
+2. Change `"check_updates": true` to `"check_updates": false`
+3. Save and restart the game
+
+### Manual Check
+
+You can force an update check at any time:
+
+1. Open the **Options** menu
+2. In the **Updates** section, click **Check now**
+3. The result will be displayed immediately
+
+### Install an Update
+
+When an update notification appears:
+
+1. Click **"Download"** to open the GitHub release page
+2. Download the archive for your operating system
+3. Extract the archive
+4. **Important**: Backup your `galad_config.json` file to keep your settings
+5. Replace old files with new ones
+6. Restore your backed up `galad_config.json`
+
+> 💡 **Tip**: The current version number is displayed in the bottom-right corner of the main menu.
 
 ## Uninstallation
 

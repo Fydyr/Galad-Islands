@@ -50,7 +50,86 @@ The game uses a `galad_config.json` file to store user preferences:
   "fullscreen": false,
   "resolution": [1280, 720],
   "volume": 0.7,
-  "dev_mode": false
+  "dev_mode": false,
+  "check_updates": true
+}
+```
+
+### Available Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `screen_width` | int | 1168 | Window width in pixels |
+| `screen_height` | int | 629 | Window height in pixels |
+| `window_mode` | string | "fullscreen" | Display mode: "windowed" or "fullscreen" |
+| `volume_master` | float | 0.8 | Master volume (0.0 - 1.0) |
+| `volume_music` | float | 0.5 | Music volume (0.0 - 1.0) |
+| `volume_effects` | float | 0.7 | Sound effects volume (0.0 - 1.0) |
+| `language` | string | "fr" | Language: "fr" or "en" |
+| `dev_mode` | boolean | false | Enables developer mode |
+| `check_updates` | boolean | true | Enables automatic update checking |
+| `vsync` | boolean | true | Enables vertical synchronization |
+| `performance_mode` | string | "auto" | Performance mode: "auto", "high", "medium", "low" |
+| `disable_particles` | boolean | false | Disables particles |
+| `disable_shadows` | boolean | false | Disables shadows |
+| `disable_ai_learning` | boolean | true | Disables AI learning for Marauders |
+| `max_fps` | int | 60 | Maximum FPS (0 = unlimited) |
+| `show_fps` | boolean | false | Shows FPS counter |
+
+### Automatic Update Checking
+
+The `check_updates` parameter controls automatic checking for new versions on GitHub.
+
+**Behavior**:
+
+- ✅ Checks on game startup if a new version is available
+- ⏱️ Maximum **1 check per 24 hours** (local cache in `.update_cache.json`)
+- 🚫 **Automatically disabled in developer mode** (`dev_mode: true`)
+- 🔔 Displays a discreet notification in the main menu if an update exists
+- 🌐 Uses GitHub API: `https://api.github.com/repos/Fydyr/Galad-Islands/releases/latest`
+
+**Configuration**:
+
+```json
+{
+  "check_updates": true  // or false to disable
+}
+```
+
+**Manual Check**:
+
+To force a check (ignores cache and dev mode):
+
+```python
+from src.utils.update_checker import check_for_updates_force
+
+result = check_for_updates_force()
+if result:
+    new_version, release_url = result
+    print(f"New version available: {new_version}")
+    print(f"URL: {release_url}")
+else:
+    print("You are using the latest version")
+```
+
+**Cache**:
+
+The `.update_cache.json` file stores:
+
+- Last check date
+- Result (update available or not)
+- Detected version and release URL
+- Current game version
+
+**Cache Structure**:
+
+```json
+{
+  "last_check": "2025-11-02T18:04:52.652667",
+  "update_available": false,
+  "new_version": null,
+  "release_url": null,
+  "current_version": "0.10.0"
 }
 ```
 

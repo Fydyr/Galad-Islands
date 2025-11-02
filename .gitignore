@@ -89,3 +89,4 @@ HOOKS_UNIVERSAL.md
 # Fichiers générés par l'IA
 *.npz
 
+.update_cache.json

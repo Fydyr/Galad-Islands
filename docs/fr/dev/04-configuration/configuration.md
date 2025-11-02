@@ -48,7 +48,86 @@ Le jeu utilise un fichier `galad_config.json` pour stocker les préférences uti
   "fullscreen": false,
   "resolution": [1280, 720],
   "volume": 0.7,
-  "dev_mode": false
+  "dev_mode": false,
+  "check_updates": true
+}
+```
+
+### Paramètres disponibles
+
+| Paramètre | Type | Défaut | Description |
+|-----------|------|--------|-------------|
+| `screen_width` | int | 1168 | Largeur de la fenêtre en pixels |
+| `screen_height` | int | 629 | Hauteur de la fenêtre en pixels |
+| `window_mode` | string | "fullscreen" | Mode d'affichage: "windowed" ou "fullscreen" |
+| `volume_master` | float | 0.8 | Volume principal (0.0 - 1.0) |
+| `volume_music` | float | 0.5 | Volume de la musique (0.0 - 1.0) |
+| `volume_effects` | float | 0.7 | Volume des effets sonores (0.0 - 1.0) |
+| `language` | string | "fr" | Langue: "fr" ou "en" |
+| `dev_mode` | boolean | false | Active le mode développeur |
+| `check_updates` | boolean | true | Active la vérification automatique des mises à jour |
+| `vsync` | boolean | true | Active la synchronisation verticale |
+| `performance_mode` | string | "auto" | Mode de performance: "auto", "high", "medium", "low" |
+| `disable_particles` | boolean | false | Désactive les particules |
+| `disable_shadows` | boolean | false | Désactive les ombres |
+| `disable_ai_learning` | boolean | true | Désactive l'apprentissage IA des Maraudeurs |
+| `max_fps` | int | 60 | FPS maximum (0 = illimité) |
+| `show_fps` | boolean | false | Affiche le compteur FPS |
+
+### Vérification automatique des mises à jour
+
+Le paramètre `check_updates` contrôle la vérification automatique des nouvelles versions sur GitHub.
+
+**Comportement** :
+
+- ✅ Vérifie au démarrage du jeu si une nouvelle version est disponible
+- ⏱️ Maximum **1 vérification par 24h** (cache local dans `.update_cache.json`)
+- 🚫 **Désactivé automatiquement en mode développeur** (`dev_mode: true`)
+- 🔔 Affiche une notification discrète dans le menu principal si une mise à jour existe
+- 🌐 Utilise l'API GitHub : `https://api.github.com/repos/Fydyr/Galad-Islands/releases/latest`
+
+**Configuration** :
+
+```json
+{
+  "check_updates": true  // ou false pour désactiver
+}
+```
+
+**Vérification manuelle** :
+
+Pour forcer une vérification (ignore le cache et le mode dev) :
+
+```python
+from src.utils.update_checker import check_for_updates_force
+
+result = check_for_updates_force()
+if result:
+    new_version, release_url = result
+    print(f"Nouvelle version disponible: {new_version}")
+    print(f"URL: {release_url}")
+else:
+    print("Vous utilisez la dernière version")
+```
+
+**Cache** :
+
+Le fichier `.update_cache.json` stocke :
+
+- Date de la dernière vérification
+- Résultat (mise à jour disponible ou non)
+- Version détectée et URL de release
+- Version actuelle du jeu
+
+**Structure du cache** :
+
+```json
+{
+  "last_check": "2025-11-02T18:04:52.652667",
+  "update_available": false,
+  "new_version": null,
+  "release_url": null,
+  "current_version": "0.10.0"
 }
 ```
 

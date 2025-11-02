@@ -67,6 +67,7 @@ plugins:
               - 2. Description du système:
                 - Architecture ECS: dev/02-systeme/architecture.md
                 - Système de tours: dev/02-systeme/tower-system-implementation.md
+                - Système de mises à jour: dev/02-systeme/update-system.md
                 - API:
                   - Moteur de jeu: dev/02-systeme/api/game-engine.md
                   - Interface utilisateur: dev/02-systeme/api/ui-system.md
@@ -124,6 +125,7 @@ plugins:
               - 2. System Description:
                 - ECS Architecture: dev/02-systeme/architecture.md
                 - Tower System: dev/02-systeme/tower-system-implementation.md
+                - Update System: dev/02-systeme/update-system.md
                 - API:
                   - Game Engine: dev/02-systeme/api/game-engine.md
                   - UI System: dev/02-systeme/api/ui-system.md
