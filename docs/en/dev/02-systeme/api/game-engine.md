@@ -55,6 +55,7 @@ class GameEngine:
 | `game_over` | `bool` | Game over state |
 | `winning_team` | `Team` | Winning team |
 | `chest_spawn_timer` | `float` | Timer for chest spawning |
+| `passive_income_processor` | `PassiveIncomeProcessor` | Passive income anti-stalemate (gold +1/2s if no units) |
 
 #### Public Methods
 
@@ -209,12 +210,15 @@ def _initialize_ecs(self) -> None:
     self.collision_processor = CollisionProcessor(graph=self.grid)
     self.player_controls = PlayerControlProcessor()
     self.tower_processor = TowerProcessor()
+    # Economy — Passive income to avoid stalemates
+    self.passive_income_processor = PassiveIncomeProcessor(gold_per_tick=1, interval=2.0)
     
     # Add with priorities
     es.add_processor(self.collision_processor, priority=2)
     es.add_processor(self.movement_processor, priority=3)
     es.add_processor(self.player_controls, priority=4)
     es.add_processor(self.tower_processor, priority=5)
+    es.add_processor(self.passive_income_processor, priority=10)
 ```
 
 ### ECS Event Handlers

@@ -56,6 +56,7 @@ class GameEngine:
 | `game_over` | `bool` | État de fin de partie |
 | `winning_team` | `Team` | Équipe gagnante |
 | `chest_spawn_timer` | `float` | Timer d'apparition des coffres |
+| `passive_income_processor` | `PassiveIncomeProcessor` | Revenu passif anti-blocage (or +1/2s si aucune unité) |
 
 #### Méthodes publiques principales
 
@@ -210,12 +211,15 @@ def _initialize_ecs(self) -> None:
     self.collision_processor = CollisionProcessor(graph=self.grid)
     self.player_controls = PlayerControlProcessor()
     self.tower_processor = TowerProcessor()
+    # Économie — Revenu passif anti-blocage
+    self.passive_income_processor = PassiveIncomeProcessor(gold_per_tick=1, interval=2.0)
     
     # Ajout avec priorités
     es.add_processor(self.collision_processor, priority=2)
     es.add_processor(self.movement_processor, priority=3)
     es.add_processor(self.player_controls, priority=4)
     es.add_processor(self.tower_processor, priority=5)
+    es.add_processor(self.passive_income_processor, priority=10)
 ```
 
 ### Gestionnaires d'événements ECS

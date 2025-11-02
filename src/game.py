@@ -41,6 +41,7 @@ from src.ia.BaseAi import BaseAi
 from src.processeurs.ai.DruidAIProcessor import DruidAIProcessor
 from src.processeurs.towerProcessor import TowerProcessor
 from src.ia.ia_scout.processors.rapid_ai_processor import RapidTroopAIProcessor
+from src.processeurs.economy.passiveIncomeProcessor import PassiveIncomeProcessor
 
 
 # Component imports
@@ -1043,6 +1044,8 @@ class GameEngine:
         self.lifetime_processor = LifetimeProcessor()
         self.architect_ai_processor = ArchitectAIProcessor()
         self.event_processor = EventProcessor(15, 5, 10, 25)
+        # Passive income to prevent stalemates when a team has zero units
+        self.passive_income_processor = PassiveIncomeProcessor(gold_per_tick=1, interval=2.0)
 
         # AI - Initialize the AI processor with the grid
         self.druid_ai_processor = DruidAIProcessor(self.grid, es)
@@ -1071,6 +1074,7 @@ class GameEngine:
         es.add_processor(self.collision_processor, priority=4)
         es.add_processor(self.movement_processor, priority=5)
         es.add_processor(self.player_controls, priority=6)
+        es.add_processor(self.passive_income_processor, priority=10)
         #es.add_processor(self.tower_processor, priority=5)
         #es.add_processor(self.lifetime_processor, priority=10)
 

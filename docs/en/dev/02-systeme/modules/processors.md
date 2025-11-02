@@ -21,6 +21,7 @@ Processors contain the game's business logic and act on Entities having certain 
 | `StormProcessor` | X | Storm event management |
 | `FlyingChestProcessor` | X | Flying chest spawning and collection |
 | `LifetimeProcessor` | 10 | Removal of temporary Entities |
+| `PassiveIncomeProcessor` | 10 | Passive income to avoid stalemates (adds gold when a team has no units) |
 | `TowerProcessor` | 15 | Logic of defensive towers (attack/heal) |
 
 ### Rendering processor
@@ -180,6 +181,33 @@ def process(self, dt=0.016):
             esper.delete_entity(ent)
 ```
 
+### PassiveIncomeProcessor
+
+**File:** `src/processeurs/economy/passiveIncomeProcessor.py`
+
+**Responsibility:** Avoids economic stalemates. Grants a tiny passive income to a team only when it has zero units on the field, so it can rebuild minimal gold and resume gameplay.
+
+**Behavior:**
+
+- Activates only if a team's unit count is 0 (bases, towers and projectiles are excluded from the count).
+- By default adds `+1` gold every `2.0s` to the affected team.
+
+**Configuration:**
+
+- `gold_per_tick` (int, default: 1) — amount of gold added per interval.
+- `interval` (float, default: 2.0) — interval in seconds between two additions.
+
+**ECS Integration:**
+Added in `GameEngine._initialize_ecs()` with priority `10` (low impact, after core gameplay).
+
+```python
+from src.processeurs.economy.passiveIncomeProcessor import PassiveIncomeProcessor
+
+# ...
+self.passive_income_processor = PassiveIncomeProcessor(gold_per_tick=1, interval=2.0)
+es.add_processor(self.passive_income_processor, priority=10)
+```
+
 ### TowerProcessor
 
 **File:** `src/Processors/towerProcessor.py`
@@ -263,6 +291,7 @@ Processors execute according to their priority (smaller = higher priority):
 3. **PlayerControlProcessor** (priority 4) - Processes inputs
 4. **CapacitiesSpecialesProcessor** (priority 5) - Updates abilities
 5. **LifetimeProcessor** (priority 10) - Cleans expired Entities
+6. **PassiveIncomeProcessor** (priority 10) - Passive income if no units
 
 The `RenderingProcessor` is called separately in the rendering loop.
 

@@ -21,6 +21,7 @@ Les processeurs contiennent la logique métier du jeu et agissent sur les entit�
 | `StormProcessor` | X | Gestion des événements tempêtes  |
 | `FlyingChestProcessor` | X | Apparition et collecte des coffres volants |
 | `LifetimeProcessor` | 10 | Suppression des entités temporaires |
+| `PassiveIncomeProcessor` | 10 | Revenu passif anti-blocage (ajoute de l'or si l'équipe n'a plus d'unités) |
 | `TowerProcessor` | 15 | Logique des tours défensives (attaque/soin) |
 
 ### Processeur de rendu
@@ -180,6 +181,33 @@ def process(self, dt=0.016):
             esper.delete_entity(ent)
 ```
 
+### PassiveIncomeProcessor
+
+**Fichier :** `src/processeurs/economy/passiveIncomeProcessor.py`
+
+**Responsabilité :** Évite les situations de point mort économiques. Accorde un faible revenu passif à une équipe uniquement lorsqu'elle n'a plus aucune unité sur le terrain, afin de lui permettre de reconstituer un minimum d'or et de relancer la partie.
+
+**Comportement :**
+
+- Ne s'active que si le nombre d'unités d'une équipe est égal à 0 (les bases, tours et projectiles sont exclus du comptage).
+- Ajoute par défaut `+1` or toutes les `2.0s` à l'équipe concernée.
+
+**Configuration :**
+
+- `gold_per_tick` (int, défaut: 1) — montant d'or ajouté par intervalle.
+- `interval` (float, défaut: 2.0) — intervalle en secondes entre deux ajouts.
+
+**Intégration ECS :**
+Ajouté dans `GameEngine._initialize_ecs()` avec priorité `10` (faible impact, après le cœur du gameplay).
+
+```python
+from src.processeurs.economy.passiveIncomeProcessor import PassiveIncomeProcessor
+
+# ...
+self.passive_income_processor = PassiveIncomeProcessor(gold_per_tick=1, interval=2.0)
+es.add_processor(self.passive_income_processor, priority=10)
+```
+
 ### TowerProcessor
 
 **Fichier :** `src/processeurs/towerProcessor.py`
@@ -263,6 +291,7 @@ Les processeurs s'exécutent selon leur priorité (plus petit = priorité plus h
 3. **PlayerControlProcessor** (priorité 4) - Traite les inputs
 4. **CapacitiesSpecialesProcessor** (priorité 5) - Met à jour les capacités
 5. **LifetimeProcessor** (priorité 10) - Nettoie les entités expirées
+6. **PassiveIncomeProcessor** (priorité 10) - Revenu passif si aucune unité
 
 Le `RenderingProcessor` est appelé séparément dans la boucle de rendu.
 
