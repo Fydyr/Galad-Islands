@@ -36,8 +36,7 @@ class PredictionService:
 
         for entity, (pos, vel, team) in esper.get_components(PositionComponent, VelocityComponent, TeamComponent):
             # Exclure explicitement les unités de la même équipe et les alliés joueurs
-            # Dans nos tests, on souhaite ne conserver que les menaces « neutres » lorsque team_id=ENEMY
-            if team.team_id == team_id or team.team_id == Team.ALLY:
+            if team.team_id == team_id:
                 continue
             if esper.has_component(entity, Bandits):
                 continue  # Ignorer les navires bandits pour avoid les tirs

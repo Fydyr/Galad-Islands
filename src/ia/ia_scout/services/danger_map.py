@@ -98,8 +98,10 @@ class DangerMapService:
         return self._field
 
     def update(self, dt: float) -> None:
-        decay = self.settings.danger.decay_per_second ** dt
-        self._field *= decay
+        decay = np.float32(self.settings.danger.decay_per_second ** dt)
+        # Clamp decay to prevent overflow
+        decay = np.clip(decay, 0.0, 1.0)
+        self._field = np.multiply(self._field, decay, dtype=np.float32)
         np.maximum(self._field, self._static, out=self._field)
         self._inject_dynamic_sources()
         self._apply_impulses()
