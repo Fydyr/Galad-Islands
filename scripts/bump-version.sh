@@ -18,7 +18,7 @@ cd "$(dirname "$0")/.."
 # Vérifier que l'environnement virtuel est activé
 if [[ "$VIRTUAL_ENV" == "" ]]; then
     echo -e "${YELLOW}⚠️  Activation de l'environnement virtuel...${NC}"
-    source venv/bin/activate
+    source .venv/bin/activate
 fi
 
 # Vérifier que commitizen est installé
