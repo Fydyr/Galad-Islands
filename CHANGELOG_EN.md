@@ -1,5 +1,12 @@
 # 🧾 Changelog
 
+## v0.11.3 (2025-11-04)
+
+### Fix
+
+- updated recoil and direction after a collision (responsible for collision and pathfinding bugs)
+- **ScoutAi**: improved decay handling in DangerMapService and fixed entity filtering in PredictionService
+
 ## v0.11.2 (2025-11-02)
 
 ### Fix

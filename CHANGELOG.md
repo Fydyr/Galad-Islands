@@ -1,22 +1,22 @@
-# 🧾 Changelog
+# 🧾 Notes de mise à jour
 
 ## v0.11.3 (2025-11-04)
 
-### Fix
+### 🐛 Corrections de bugs
 
-- recoil and direction update after collision
+- mise à jour du recul et de la direction après une collision (responsable des bugs de collision et de pathfinding)
 - **ScoutAi**: améliorer la gestion de la décadence dans DangerMapService et réparation du filtrage des entités dans PredictionService
 
 ## v0.11.2 (2025-11-02)
 
-### Fix
+### 🐛 Corrections de bugs
 
 - ajouter la gestion des chemins et d'un import caché pour les modèles pré-entraînés dans BaseAi et BarhamusAI pour la version compilé
 - suppresion de la dépendance pygame pour éviter que les outils qui l'importe doivent l'embarquer
 
 ## v0.11.1 (2025-11-02)
 
-### Fix
+### 🐛 Corrections de bugs
 
 - corriger la résolution des chemins pour les fichiers de documentation en utilisant get_resource_path
 - améliorer la résolution du chemin pour galad_resolutions.json dans les builds développés et compilés
@@ -84,7 +84,7 @@
 
 ### ✨ Nouvelles fonctionnalités
 
-- **🗺️ Placement dynamique des bases** : Système de positionnement des bases complètement refactorisé
+- **🗺️ Placement dynamique des bases** : Système de positionnement des bases complètement 🔧 Refactorisationisé
   - Gestion flexible des points d'apparition
   - Meilleure intégration avec la génération de carte
 
@@ -138,38 +138,38 @@
 
 ## v0.9.1 (2025-10-28)
 
-### Feat
+### ✨ Nouvelles fonctionnalités
 
 - ajout d'une popup graphique pour signaler les erreurs de crash en jeu
 - ajout de la journalisation des performances et mise en cache des chemins dans le processeur IA du Scout
 - ajout des tours comme obstacles dans le processeur d'IA Kamikaze
 - ajout d'une fenêtre modale de sélection d'équipe pour le mode Joueur vs IA
 
-### Fix
+### 🐛 Corrections de bugs
 
 - ajout de la gestion des collisions pour éviter les positions occupées par d'autres unités
 - le message de crash s'affiche bien si le jeu plante maintenant
 - correction des IA pour les empecher de tirer n'importe où
 - amélioration de la logique d'évitement pour les obstacles dans le processeur IA Kamikaze
 
-### Refactor
+### 🔧 Refactorisation
 
 - mise à jour de la version dans le message de rapport de crash
 - ajout d'un timer pour le recalcul de chemin par entité dans le processeur IA Kamikaze
 
 ## v0.9.0 (2025-10-27)
 
-### Feat
+### ✨ Nouvelles fonctionnalités
 
 - désactiver le brouillard de guerre en mode IA vs IA pour voir tout la carte
 
-### Fix
+### 🐛 Corrections de bugs
 
 - correction du chemin d'importation pour DruidAIProcessor
 
-### Refactor
+### 🔧 Refactorisation
 
-- début du refactoring et nettoyage des IA
+- début du 🔧 Refactorisationing et nettoyage des IA
 
 ## v0.8.0 (2025-10-27)
 
@@ -179,7 +179,7 @@ Cette version marque une avancée majeure dans le développement des intelligenc
 
 Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’adapter à de nombreuses situations de jeu.
 
-### ✨ Feat
+### ✨ ✨ Nouvelles fonctionnalités
 
 - **IA** : Intégration de plusieurs modèles d'IA pour enrichir l'expérience de jeu avec des comportements et stratégies variés.
 - **IA** : Amélioration du pathfinding, de la prise de décision et ajout de capacités spécifiques (esquive des mines, tir latéral, placement de tours).
@@ -206,7 +206,7 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 - **IA** : Déplacement des fichiers d'IA vers `src` et modification du pathfinding pour un meilleur raisonnement de l'Architecte.
 - **IA** : Ajout de la documentation finale pour l'IA.
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
 - **Dépendances** : Ajout des dépendances manquantes dans le `README.md`.
 - **Unités** : Ajout de la vérification du rayon de vision pour le tir des unités.
@@ -231,7 +231,7 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 - **Général** : Suppression du dossier `sklearn` (inutile et encombrant).
 - **Général** : Réparation des explosions de sprites.
 
-### 🧹 Refactor
+### 🧹 🔧 Refactorisation
 
 - **Structure** : Déplacement de fichiers et renommage du processeur du Druide.
 - **Assets** : Correction du nom de l'image de la tour de défense ennemie.
@@ -245,14 +245,14 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.7.1 (2025-10-13)
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
 - Changement de la manière d'obtenir le numéro de version pour corriger le "vunknown" dans les versions compilées
 - Correction de la description du composant de base
 
 ## v0.7.0 (2025-10-12)
 
-### ✨ Feat
+### ✨ ✨ Nouvelles fonctionnalités
 
 - Ajout du système de récompenses de combat
 - Améliorations de performance et système de caméra
@@ -261,14 +261,14 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 - Ajout de la construction de tours pour l'Architecte
 - Ajout du système de vision et du brouillard de guerre avec gestion de la visibilité des unités
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
 - Les nuages réapparaissent désormais sur la carte, les ressources apparaissent sur les bords des îles, et la fenêtre debug tient sur l'écran
 - Correction du tir multiple sur les côtés et l'avant
 - Fin de l'inflation des prix des unités dans la faction ennemie
 - Le brouillard de guerre est réinitialisé quand on relance une partie et le bouton continuer du menu quitter fonctionne correctement
 
-### 🧹 Refactor
+### 🧹 🔧 Refactorisation
 
 - Amélioration de la lisibilité et de la structure du code des bandits
 - Ajout des fonctionnalités bandits et triche de vision illimitée en mode debug
@@ -284,11 +284,11 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.6.0 (2025-10-06)
 
-### ✨ Feat
+### ✨ ✨ Nouvelles fonctionnalités
 
 - Ajout d’un menu en jeu avec options **Reprendre**, **Paramètres** et **Quitter**.
 
-### 🧹 Refactor
+### 🧹 🔧 Refactorisation
 
 - Correction de l’indentation de la clé `spawn_bandits` dans les fichiers de traduction.
 
@@ -296,7 +296,7 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.5.1 (2025-10-06)
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
 - Création automatique d’un fichier de configuration avec valeurs par défaut si manquant.  
 - Correction du fichier de localisation qui pouvait casser **Galad Settings Tool** sur Windows.  
@@ -306,7 +306,7 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.5.0 (2025-10-05)
 
-### ✨ Feat
+### ✨ ✨ Nouvelles fonctionnalités
 
 - Changement de l’unité de départ : **Druide → Éclaireur**.  
 - Ajout de descriptions aux tours dans l’**Action Bar**.  
@@ -322,9 +322,9 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 - Implémentation du **système d’affichage centralisé** (résolutions, fenêtres).  
 - Ajout du fichier `help_en.md` et de traductions supplémentaires pour la fin de partie.
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
-- Nombreux correctifs sur les collisions, projectiles, mines, événements et affichage.  
+- Nombreux 🐛 Corrections de bugss sur les collisions, projectiles, mines, événements et affichage.  
 - Les projectiles traversent les îles, explosent à l’impact et disparaissent à la limite de la carte.  
 - Les mines interagissent désormais correctement avec toutes les factions.  
 - Correction du zoom par défaut, des cooldowns d’UI et de l’affichage de l’or.  
@@ -334,11 +334,11 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 - Correction des traductions (`options.custom_marker`, messages de fin de partie, etc.).  
 - Fenêtre à nouveau redimensionnable et ajustement du zoom caméra.
 
-### 🧹 Refactor
+### 🧹 🔧 Refactorisation
 
-- Refactorisation du système de **BaseManager** (fusionné dans `BaseComponent`).  
+- 🔧 Refactorisationisation du système de **BaseManager** (fusionné dans `BaseComponent`).  
 - Réorganisation complète des composants pour plus de clarté.  
-- Refactor du **gold management**, intégration dans `playerComponent`.  
+- 🔧 Refactorisation du **gold management**, intégration dans `playerComponent`.  
 - Suppression des anciens composants et du code de test.  
 - Nettoyage général du code, constantes gameplay unifiées.  
 - Amélioration du **UI handling**, des key bindings et du système d’options.
@@ -347,7 +347,7 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.4.5 (2025-10-02)
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
 - Correction de l’initialisation de `affected_unit_ids` dans le constructeur.
 
@@ -355,7 +355,7 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.4.4 (2025-10-02)
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
 - Les projectiles ne disparaissent plus lorsqu’ils touchent une île.
 
@@ -363,11 +363,11 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.4.3 (2025-10-02)
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
 - Les mines ne peuvent plus être détruites par les projectiles.
 
-### 🧹 Refactor
+### 🧹 🔧 Refactorisation
 
 - Intégration du gestionnaire de sprites pour le chargement des images de terrain et ajout de constantes de sprite.
 
@@ -375,17 +375,17 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.4.2 (2025-10-02)
 
-### 🧹 Refactor
+### 🧹 🔧 Refactorisation
 
 - Centralisation des constantes de **modales**, **santé des bases**, **boutique** et **gameplay**.  
 - Ajout d’un système de gestion des sprites avec initialisation et préchargement.  
-- Refactorisation complète de l’architecture **ECS** pour une meilleure maintenance.
+- 🔧 Refactorisationisation complète de l’architecture **ECS** pour une meilleure maintenance.
 
 ---
 
 ## v0.4.1 (2025-10-01)
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
 - Suppression d’un fichier de test après vérification des hooks.
 
@@ -393,11 +393,11 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.4.0 (2025-10-01)
 
-### ✨ Feat
+### ✨ ✨ Nouvelles fonctionnalités
 
 - Implémentation du **système de gestion de bases** et intégration au gameplay.
 
-### 🧹 Refactor
+### 🧹 🔧 Refactorisation
 
 - Modularisation de `game.py` en plusieurs classes.  
 - Conversion des fichiers audio de **WAV → OGG** pour qualité et taille optimisées.
@@ -406,7 +406,7 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.2.1 (2025-10-01)
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
 - Ajout du support du chemin PyInstaller pour les builds Windows.
 
@@ -414,11 +414,11 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.2.0 (2025-10-01)
 
-### ✨ Feat
+### ✨ ✨ Nouvelles fonctionnalités
 
 - Ajout du retour d’entité dans `unitFactory`.
 
-### 🧹 Refactor
+### 🧹 🔧 Refactorisation
 
 - **Options** : désactivation temporaire des résolutions personnalisées.  
 - Mise à jour des conseils de résolution pour éviter les erreurs d’affichage.
@@ -427,7 +427,7 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 
 ## v0.1.2 (2025-10-01)
 
-### ✨ Feat
+### ✨ ✨ Nouvelles fonctionnalités
 
 - Ajout du **logo** dans l’interface principale.  
 - Création de la **documentation technique** et début de la **doc utilisateur**.  
@@ -439,17 +439,17 @@ Ces ajouts rendent l’IA plus performante, plus réactive et capable de s’ada
 - Début du **système de Vignes** pour le druide.  
 - Création du **mouvement**, des collisions, des projectiles et des entités de base.
 
-### 🐞 Fix
+### 🐞 🐛 Corrections de bugs
 
 - Correction de nombreux bugs d’affichage, collisions, audio et configuration.  
 - Ajustements sur les traductions, résolutions et paramètres de la fenêtre.  
 - Correction du centrage caméra, des modales et de l’aide multilingue.  
 - Nettoyage des imports, suppression de fichiers inutiles et correctifs mineurs sur le gameplay.
 
-### 🧹 Refactor
+### 🧹 🔧 Refactorisation
 
 - Externalisation des composants UI (`settings_ui_component.py`).  
-- Refactorisation de la configuration (`settings.py`) et de la caméra (`Camera`).  
+- 🔧 Refactorisationisation de la configuration (`settings.py`) et de la caméra (`Camera`).  
 - Nettoyage général, renommage cohérent des fichiers et suppression des variables globales.  
 - Passage des options Tkinter → modale Pygame.  
 - Réorganisation de la documentation et des assets.  
