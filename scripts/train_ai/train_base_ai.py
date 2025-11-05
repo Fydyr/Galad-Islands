@@ -13,8 +13,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
 import joblib
-# Add the directory src au path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Correction import : ajoute la racine du projet au sys.path pour trouver le package top-level `src`
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 from ia.BaseAi import BaseAi
 from constants.gameplay import UNIT_COSTS
 
