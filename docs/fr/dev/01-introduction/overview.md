@@ -62,10 +62,10 @@ python main.py
 Pour analyser les performances du jeu, utilisez l'outil de profilage intégré :
 
 ```bash
-python profile_game.py
+python benchmark.py --full-game-only --profile --export-csv
 ```
 
-Cet outil utilise `cProfile` pour analyser les goulots d'étranglement pendant une vraie session de jeu. Pour plus de détails, consultez la [section profilage de la maintenance](../06-maintenance/maintenance.md#profilage-des-performances-avec-cprofile).
+Cet outil utilise un système de profilage intégré pour analyser les performances de chaque système du jeu en temps réel. Pour plus de détails, consultez la [section benchmark de la maintenance](../06-maintenance/maintenance.md#système-de-benchmark-et-profilage-des-performances).
 
 ### 🔧 Outils disponibles
 

@@ -6,7 +6,7 @@ Veuillez noter que certains tests peuvent échouer mais en réalité, le jeu fon
 
 ## Structure des Tests
 
-```
+```yaml
 tests/
 ├── conftest.py              # Configuration commune et fixtures
 ├── test_processors.py       # Tests des processeurs ECS
@@ -14,10 +14,14 @@ tests/
 ├── test_utils.py           # Tests des utilitaires
 ├── test_integration.py     # Tests d'intégration
 ├── test_performance.py     # Tests de performance
-├── profile_game.py         # Profil du jeu complet (existant)
 ├── test_AI.py             # Tests IA (existant)
 ├── test_boutique_unified.py # Tests boutique (existant)
-└── test_tips.py           # Tests tips (existant)
+├── test_tips.py           # Tests tips (existant)
+scripts/
+└── benchmark/             # Dossier contenant les benchmarks
+    ├── benchmark.py       # Système de benchmark et profilage
+    ├── demo_benchmarks.py # Démos des benchmarks
+    └── read_benchmark_csv.py # Lecture des résultats de benchmarks
 ```
 
 ## Installation des Dépendances
@@ -27,6 +31,7 @@ pip install -r requirements-dev.txt
 ```
 
 Les dépendances de test incluent :
+
 - `pytest` : Framework de test
 - `pytest-cov` : Couverture de code
 - `pytest-mock` : Mocking pour les tests
@@ -77,19 +82,25 @@ python run_tests.py --no-capture
 ## Types de Tests
 
 ### Tests Unitaires (`--unit`)
+
 Tests isolés pour les composants individuels :
+
 - **Composants** : PositionComponent, HealthComponent, TeamComponent, etc.
 - **Processeurs** : CombatRewardProcessor, FlyingChestProcessor, etc.
 - **Utilitaires** : sprite_utils, version_utils
 
 ### Tests d'Intégration (`--integration`)
+
 Tests des interactions entre composants :
+
 - Système de combat complet
 - Création et gestion des entités
 - Requêtes de composants ECS
 
 ### Tests de Performance (`--performance`)
+
 Tests pour identifier les goulots d'étranglement :
+
 - Création d'entités en masse
 - Requêtes de composants
 - Traitement des récompenses de combat
@@ -128,10 +139,11 @@ python run_tests.py --coverage --html-report
 ## Tests Existants
 
 La suite inclut les tests existants :
+
 - `test_AI.py` : Tests du système d'IA
 - `test_boutique_unified.py` : Tests de la boutique unifiée
 - `test_tips.py` : Tests du système de tips traduites
-- `profile_game.py` : Profil de performance du jeu complet
+- `benchmark/` : Système de benchmark et profilage des performances
 
 ## Bonnes Pratiques
 
@@ -211,6 +223,7 @@ Pour intégrer dans un pipeline CI/CD :
 ## Support
 
 En cas de problème avec les tests :
+
 1. Vérifier que toutes les dépendances sont installées
 2. S'assurer que pygame est correctement initialisé
 3. Vérifier les imports relatifs depuis le dossier `src/`

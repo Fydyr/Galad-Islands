@@ -62,10 +62,10 @@ python main.py
 To analyze game performance, use the integrated profiling tool:
 
 ```bash
-python profile_game.py
+python benchmark.py --full-game-only --profile --export-csv
 ```
 
-This tool uses `cProfile` to analyze bottlenecks during a real game session. For more details, see the [performance profiling section in maintenance](../06-maintenance/maintenance.md#performance-profiling-with-cprofile).
+This tool uses an integrated profiling system to analyze the performance of each game system in real-time. For more details, see the [benchmark section in maintenance](../06-maintenance/maintenance.md#benchmark-system-and-performance-profiling).
 
 ### 🔧 Available tools
 

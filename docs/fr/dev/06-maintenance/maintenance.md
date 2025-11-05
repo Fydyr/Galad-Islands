@@ -62,67 +62,145 @@ Cette page décrit les bonnes pratiques et procédures pour assurer la pérennit
 
 ---
 
-## 📊 Profilage des performances avec cProfile
+## 📊 Système de Benchmark et Profilage des Performances
 
-Le projet inclut un outil de profilage intégré utilisant `cProfile` pour analyser les performances du jeu en temps réel.
+Le projet inclut un système complet de benchmarking et de profilage pour analyser les performances du jeu en temps réel et identifier les goulots d'étranglement.
 
-### 🚀 Utilisation du profiler
+### 🚀 Types de Benchmarks Disponibles
 
-Pour profiler une session de jeu complète :
+#### 🎮 Simulation Complète de Jeu
 
-```bash
-python profile_game.py
-```
-
-Le profiler :
-- **Enregistre** toutes les performances pendant votre partie
-- **Analyse** les fonctions les plus lentes automatiquement
-- **Génère** un rapport détaillé des 30 fonctions les plus gourmandes
-- **Sauvegarde** les résultats complets dans `profile_results.prof`
-
-### 📈 Interprétation des résultats
-
-Le rapport affiche :
-- **`cumulative`** : Temps total passé dans la fonction et ses sous-fonctions
-- **`percall`** : Temps moyen par appel de fonction
-- **`ncalls`** : Nombre d'appels à la fonction
-
-!!! tip "Conseils d'optimisation"
-    - Concentrez-vous sur les fonctions avec le plus haut temps `cumulative`
-    - Vérifiez les appels fréquents (haut `ncalls`)
-    - Optimisez les boucles et calculs mathématiques intensifs
-
-### 🔧 Analyse avancée
-
-Pour une analyse interactive des résultats sauvegardés :
+Teste les performances dans des conditions réelles de jeu :
 
 ```bash
-python -m pstats profile_results.prof
+# Benchmark rapide avec 1 équipe IA
+python benchmark.py --full-game-only --num-ai 1
+
+# Test intensif avec 2 équipes IA
+python benchmark.py --full-game-only --num-ai 2 --duration 30
+
+# Avec profilage détaillé activé
+python benchmark.py --full-game-only --num-ai 2 --profile
+
+# Avec export des résultats en CSV
+python benchmark.py --full-game-only --num-ai 2 --profile --export-csv
 ```
 
-Commandes utiles dans l'interpréteur pstats :
-- `sort cumulative` : Trier par temps cumulé
-- `sort tottime` : Trier par temps propre à la fonction
-- `stats 20` : Afficher les 20 premières fonctions
+#### 🧠 Benchmark Maraudeur (Apprentissage IA)
 
-!!! info "Bonnes pratiques de profilage"
-    - Profilez des sessions de jeu réalistes (2-5 minutes)
-    - Comparez les résultats avant/après optimisation
-    - Utilisez le profilage pour identifier les goulots d'étranglement
+Compare l'impact de l'apprentissage machine sur les performances :
 
----
+```bash
+# Comparaison ML activé vs désactivé avec export CSV
+python benchmark.py --maraudeur-benchmark --export-csv
+```
 
-## 🧪 Suite de Tests et Benchmarks
+Ce benchmark compare :
 
-Le projet inclut une suite complète de tests et de benchmarking pour assurer la qualité du code et le suivi des performances.
+- **Configuration par défaut** : Apprentissage ML désactivé (config standard)
+- **Configuration ML** : Apprentissage activé pour mesurer l'impact
 
-### 🧪 Tests Automatisés
+#### 🔧 Benchmarks Techniques
+
+Tests ciblés sur des composants spécifiques :
+
+```bash
+# Tous les benchmarks techniques
+python benchmark.py
+
+# Benchmarks individuels disponibles :
+# - Création d'entités ECS (~160k ops/sec)
+# - Requêtes de composants
+# - Spawn d'unités avec progression
+# - Système de combat
+```
+
+### 📈 Profilage Détaillé avec GameProfiler
+
+Le système intègre un profiler personnalisé qui mesure les performances de chaque système du jeu :
+
+#### Sections Profilées Automatiquement
+
+- **game_update** : Mise à jour logique du jeu
+- **rendering** : Rendu graphique
+- **display_flip** : Mise à jour de l'affichage
+- **IA par type** : maraudeur_ai, druid_ai, architect_ai, etc.
+
+#### Interprétation des Résultats de Profilage
+
+```text
+⚡ TOP SYSTÈMES LES PLUS COÛTEUX:
+• game_update: 26.0%      ← Logique principale du jeu
+• rendering: 20.0%        ← Rendu graphique
+• display_flip: 2.3%      ← Mise à jour écran
+• rapid_ai: 2.1%          ← IA des unités rapides
+• leviathan_ai: 0.1%      ← IA des Léviathans
+```
+
+### � Export et Analyse des Données
+
+#### Export CSV avec Informations Système
+
+Le système peut exporter les résultats en CSV avec :
+
+```bash
+# Export automatique des métriques système
+python benchmark.py --full-game-only --profile --export-csv
+```
+
+**Contenu du CSV exporté :**
+
+- Informations système (OS, CPU, mémoire)
+- Métriques de performance (FPS, frames, durée)
+- Statistiques détaillées par IA
+- Analyse des systèmes les plus coûteux
+
+#### Lecture des Résultats
+
+```bash
+# Lire le dernier fichier CSV généré
+python read_benchmark_csv.py --latest
+
+# Afficher tous les fichiers disponibles
+python read_benchmark_csv.py --all
+```
+
+### 🎯 Utilisation Pratique
+
+#### Pour le Développement
+
+```bash
+# Test rapide des performances actuelles
+python benchmark.py --full-game-only --num-ai 1
+
+# Analyse approfondie avec export pour documentation
+python benchmark.py --full-game-only --num-ai 2 --profile --export-csv
+```
+
+#### Pour l'Optimisation
+
+```bash
+# Mesurer l'impact de l'IA Maraudeur
+python benchmark.py --maraudeur-benchmark --export-csv
+
+# Comparer avant/après optimisation
+python benchmark.py --profile --export-csv
+```
+
+#### Pour les Tests de Performance
+
+```bash
+# Test de charge avec spawn progressif
+python benchmark.py --full-game-only --num-ai 2 --duration 60
+```
+
+### 🧪 Suite de Tests Automatisés
 
 Le projet utilise `pytest` pour les tests automatisés avec trois catégories de tests :
 
 #### Catégories de Tests
 
-- **Tests Unitaires** (`--unit`) : Testent les composants et fonctions individuels
+- **Tests Unitaires** (`--unit`) : Testent les composants et fonctions individuels  
 - **Tests d'Intégration** (`--integration`) : Testent les interactions entre composants
 - **Tests de Performance** (`--performance`) : Testent les performances du système sous charge
 
@@ -146,7 +224,7 @@ python run_tests.py --verbose
 
 #### Structure des Tests
 
-```
+```text
 tests/
 ├── conftest.py              # Fixtures communes et configuration
 ├── test_components.py       # Tests unitaires des composants ECS
@@ -155,34 +233,6 @@ tests/
 ├── test_integration.py     # Tests d'intégration
 ├── test_performance.py     # Tests de performance
 └── run_tests.py           # Script d'exécution des tests
-```
-
-### 📊 Benchmarking de Performance
-
-Le projet inclut un programme de benchmarking dédié pour mesurer les performances réelles.
-
-#### Types de Benchmarks
-
-- **Création d'Entités** : Mesure la vitesse de création d'entités ECS (~160k ops/sec)
-- **Requêtes de Composants** : Mesure les performances des requêtes de composants
-- **Spawn d'Unités** : Simule la création et le spawn d'unités
-- **Simulation de Combat** : Teste les performances du système de combat
-- **Simulation Complète** : Vraie fenêtre pygame avec mesure FPS (~31 FPS)
-
-#### Exécution des Benchmarks
-
-```bash
-# Exécuter tous les benchmarks (10 secondes chacun)
-python benchmark.py
-
-# Exécuter seulement le benchmark de simulation complète
-python benchmark.py --full-game-only --duration 30
-
-# Exécuter avec durée personnalisée et sauvegarder les résultats
-python benchmark.py --duration 5 --output benchmark_results.json
-
-# Exécuter le script de démonstration
-python demo_benchmarks.py
 ```
 
 #### Résultats des Benchmarks

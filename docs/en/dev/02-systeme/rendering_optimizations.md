@@ -123,13 +123,17 @@ elif val == TileType.ALLY_BASE and (i, j) not in processed_bases:
 
 ### Performance Profiling
 
-The project includes an integrated profiling tool using `cProfile`:
+The project includes an integrated benchmark and profiling system:
 
 ```bash
-python profile_game.py
+# Benchmark with detailed profiling
+python benchmark.py --full-game-only --profile --export-csv
+
+# Specific rendering analysis
+python benchmark.py --full-game-only --num-ai 2 --profile
 ```
 
-This tool analyzes performance in real-time during a normal game session and generates a detailed report of the slowest functions. See the [maintenance documentation](../06-maintenance/maintenance.md#performance-profiling-with-cprofile) for more details.
+This tool analyzes the performance of each game system in real-time and generates detailed reports with CSV export. See the [maintenance documentation](../06-maintenance/maintenance.md#benchmark-system-and-performance-profiling) for more details.
 
 ## References
 

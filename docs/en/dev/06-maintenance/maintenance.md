@@ -62,59 +62,141 @@ This page describes the best practices and procedures to ensure the longevity an
 
 ---
 
-## 📊 Performance Profiling with cProfile
+## 📊 Benchmark System and Performance Profiling
 
-The project includes an integrated profiling tool using `cProfile` to analyze game performance in real-time.
+The project includes a comprehensive benchmarking and profiling system to analyze game performance in real-time and identify bottlenecks.
 
-### 🚀 Using the Profiler
+### 🚀 Available Benchmark Types
 
-To profile a complete game session:
+#### 🎮 Full Game Simulation
 
-```bash
-python profile_game.py
-```
-
-The profiler:
-- **Records** all performance data during your gameplay
-- **Analyzes** the slowest functions automatically
-- **Generates** a detailed report of the top 30 most resource-intensive functions
-- **Saves** complete results in `profile_results.prof`
-
-### 📈 Interpreting Results
-
-The report displays:
-- **`cumulative`**: Total time spent in the function and its sub-functions
-- **`percall`**: Average time per function call
-- **`ncalls`**: Number of calls to the function
-
-!!! tip "Optimization Tips"
-    - Focus on functions with the highest `cumulative` time
-    - Check frequently called functions (high `ncalls`)
-    - Optimize loops and intensive mathematical calculations
-
-### 🔧 Advanced Analysis
-
-For interactive analysis of saved results:
+Tests performance under realistic game conditions:
 
 ```bash
-python -m pstats profile_results.prof
+# Quick benchmark with 1 AI team
+python benchmark.py --full-game-only --num-ai 1
+
+# Intensive test with 2 AI teams
+python benchmark.py --full-game-only --num-ai 2 --duration 30
+
+# With detailed profiling enabled
+python benchmark.py --full-game-only --num-ai 2 --profile
+
+# With CSV results export
+python benchmark.py --full-game-only --num-ai 2 --profile --export-csv
 ```
 
-Useful commands in the pstats interpreter:
-- `sort cumulative`: Sort by cumulative time
-- `sort tottime`: Sort by function's own time
-- `stats 20`: Display the top 20 functions
+#### 🧠 Marauder Benchmark (AI Learning)
 
-!!! info "Profiling Best Practices"
-    - Profile realistic game sessions (2-5 minutes)
-    - Compare results before/after optimization
-    - Use profiling to identify performance bottlenecks
+Compares the impact of machine learning on performance:
 
----
+```bash
+# ML enabled vs disabled comparison with CSV export
+python benchmark.py --maraudeur-benchmark --export-csv
+```
 
-## 🧪 Testing and Benchmarking Suite
+This benchmark compares:
 
-The project includes a comprehensive testing and benchmarking suite to ensure code quality and performance monitoring.
+- **Default configuration**: ML learning disabled (standard config)
+- **ML configuration**: Learning enabled to measure impact
+
+#### 🔧 Technical Benchmarks
+
+Targeted tests on specific components:
+
+```bash
+# All technical benchmarks
+python benchmark.py
+
+# Available individual benchmarks:
+# - ECS entity creation (~160k ops/sec)
+# - Component queries
+# - Progressive unit spawning
+# - Combat system
+```
+
+### 📈 Detailed Profiling with GameProfiler
+
+The system integrates a custom profiler that measures the performance of each game system:
+
+#### Automatically Profiled Sections
+
+- **game_update**: Game logic update
+- **rendering**: Graphics rendering
+- **display_flip**: Display update
+- **AI by type**: maraudeur_ai, druid_ai, architect_ai, etc.
+
+#### Interpreting Profiling Results
+
+```text
+⚡ TOP MOST EXPENSIVE SYSTEMS:
+• game_update: 26.0%      ← Main game logic
+• rendering: 20.0%        ← Graphics rendering
+• display_flip: 2.3%      ← Screen update
+• rapid_ai: 2.1%          ← Rapid units AI
+• leviathan_ai: 0.1%      ← Leviathans AI
+```
+
+### � Data Export and Analysis
+
+#### CSV Export with System Information
+
+The system can export results to CSV with:
+
+```bash
+# Automatic system metrics export
+python benchmark.py --full-game-only --profile --export-csv
+```
+
+**Exported CSV content:**
+
+- System information (OS, CPU, memory)
+- Performance metrics (FPS, frames, duration)
+- Detailed AI statistics
+- Analysis of most expensive systems
+
+#### Reading Results
+
+```bash
+# Read the latest generated CSV file
+python read_benchmark_csv.py --latest
+
+# Display all available files
+python read_benchmark_csv.py --all
+```
+
+### 🎯 Practical Usage
+
+#### For Development
+
+```bash
+# Quick current performance test
+python benchmark.py --full-game-only --num-ai 1
+
+# In-depth analysis with export for documentation
+python benchmark.py --full-game-only --num-ai 2 --profile --export-csv
+```
+
+#### For Optimization
+
+```bash
+# Measure Marauder AI impact
+python benchmark.py --maraudeur-benchmark --export-csv
+
+# Compare before/after optimization
+python benchmark.py --profile --export-csv
+```
+
+#### For Performance Testing
+
+```bash
+# Load testing with progressive spawning
+python benchmark.py --full-game-only --num-ai 2 --duration 60
+```
+
+### 🧪 Automated Testing Suite
+
+The project uses `pytest` for automated testing with three test categories:
 
 ### 🧪 Automated Testing
 
@@ -146,7 +228,7 @@ python run_tests.py --verbose
 
 #### Test Structure
 
-```
+```text
 tests/
 ├── conftest.py              # Common test fixtures and setup
 ├── test_components.py       # Unit tests for ECS components
