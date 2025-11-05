@@ -72,6 +72,7 @@ profiles/
 galad_config.json
 galad_resolutions.json
 .clean_models_gui.json
+.update_cache.json
 
 # Fichiers de modèles d'IA (ne pas versionner)
 *.pkl
@@ -89,4 +90,8 @@ HOOKS_UNIVERSAL.md
 # Fichiers générés par l'IA
 *.npz
 
-.update_cache.json
+# Fichiers générés par le benchmark
+benchmark_results_*.csv
+maraudeur_comparison_*.csv
+
+
