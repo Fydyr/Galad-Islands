@@ -288,6 +288,7 @@ class BaseAi(esper.Processor):
             enemies = game_state.get('enemy_units', 0)
             avg_ally_hp = game_state.get('allied_units_health', 1.0)
             gold = game_state.get('gold', 0)
+            enemy_base_hp = game_state.get('enemy_base_health_ratio', 1.0)
 
             # Bootstrapping: si aucune unité et assez d'or pour un Scout, prioriser l'exploration
             scout_total_cost = self.ACTION_MAPPING[1]['cost'] + self.ACTION_MAPPING[1]['reserve']
@@ -303,19 +304,31 @@ class BaseAi(esper.Processor):
                         print(f"[BaseAI] Team {self.default_team_id}: en attente du revenu passif (or={gold}/{scout_total_cost}) pour produire un Éclaireur.")
                     return 0
 
-            # Si des tours sont nécessaires et aucun architecte n'est présent, prioriser Architecte
+            # Si des tours sont nécessaires et aucun architecte n'est présent, FORCER Architecte
             if towers_needed == 1 and ally_architects == 0:
-                q_values[2] += 20.0  # Architecte
-                q_values[6] -= 10.0  # Kamikaze moins pertinent en défense
-                q_values[3] += 5.0   # Maraudeur utile en défense
+                # Bonus massif pour Architecte dans ce cas
+                q_values[2] += 50.0  # Architecte (augmenté de 20 à 50)
+                q_values[6] -= 15.0  # Kamikaze moins pertinent en défense (augmenté de 10 à 15)
+                q_values[3] += 2.0   # Maraudeur légèrement utile mais pas prioritaire
 
             # Si les unités alliées sont très blessées, prioriser Druide
-            if avg_ally_hp < 0.5:
-                q_values[5] += 12.0  # Druide
+            if avg_ally_hp < 0.5 and allies > 3:
+                q_values[5] += 15.0  # Druide (augmenté de 12 à 15)
 
-            # Pression rapide à faible/moyen or quand on est en infériorité: favoriser Kamikaze
-            if towers_needed == 0 and enemies > allies and gold >= self.ACTION_MAPPING[6]['cost'] + self.ACTION_MAPPING[6]['reserve']:
-                q_values[6] += 8.0   # Kamikaze
+            # Défense prioritaire: base très endommagée ET forte infériorité numérique
+            # -> Préférer Maraudeur (défensif) plutôt que Kamikaze (offensif)
+            if base_hp < 0.4 and enemies > allies + 2:
+                q_values[3] += 40.0  # Maraudeur pour défense robuste (augmenté de 25 à 40)
+                q_values[6] -= 20.0  # Kamikaze fortement pénalisé en défense pure (augmenté de 5 à 20)
+
+            # Coup de grâce ou pression rapide avec base ennemie affaiblie
+            if enemy_base_hp < 0.3:
+                q_values[6] += 15.0  # Kamikaze pour finir rapidement
+                
+            # Pression rapide à faible/moyen or quand on est en infériorité légère: favoriser Kamikaze
+            # MAIS uniquement si notre base n'est PAS critique
+            if towers_needed == 0 and base_hp > 0.5 and enemies > allies and gold >= self.ACTION_MAPPING[6]['cost'] + self.ACTION_MAPPING[6]['reserve']:
+                q_values[6] += 12.0  # Kamikaze (augmenté de 8 à 12)
                 q_values[1] -= 5.0   # Réduire Scout dans ce contexte
 
             # Filtrer les actions possibles en fonction de l'or disponible
