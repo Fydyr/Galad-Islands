@@ -86,6 +86,7 @@ from src.functions.handleHealth import entitiesHit
 from src.functions.afficherModale import afficher_modale
 from src.components.core.baseComponent import BaseComponent
 from src.components.core.towerComponent import TowerComponent
+from src.components.core.projectileComponent import ProjectileComponent
 from src.components.globals.mapComponent import is_tile_island
 
 # AI imports
@@ -94,6 +95,7 @@ from src.ia.ia_barhamus import BarhamusAI
 # UI imports
 from src.ui.action_bar import ActionBar, UnitInfo
 from src.ui.ingame_menu_modal import InGameMenuModal
+from src.ui.victory_modal import VictoryModal
 from src.ui.notification_system import get_notification_system
 from src.ia.ia_scout import ensure_ai_processors
 
@@ -156,7 +158,20 @@ class EventHandler:
             if event.type == pygame.USEREVENT and getattr(event, 'subtype', None) == 'confirmed_quit':
                 self._handle_quit()
                 continue
+            
+            # Replay game event from victory/defeat modal
+            if event.type == pygame.USEREVENT and getattr(event, 'subtype', None) == 'replay_game':
+                self._handle_replay()
+                continue
 
+            # If a victory/defeat modal is open, it takes priority
+            if getattr(self.game_engine, 'victory_modal', None) is not None and self.game_engine.victory_modal.is_active():
+                if event.type == pygame.VIDEORESIZE:
+                    self._handle_resize(event)
+                else:
+                    target_surface = self.game_engine.window or pygame.display.get_surface()
+                    self.game_engine.victory_modal.handle_event(event, target_surface)
+                continue
             if self.game_engine.exit_modal.is_active():
                 if event.type == pygame.VIDEORESIZE:
                     self._handle_resize(event)
@@ -175,6 +190,14 @@ class EventHandler:
     def _handle_quit(self):
         """Handles the window closure."""
         self.game_engine._quit_game()
+    
+    def _handle_replay(self):
+        """Handles the replay game request."""
+        # Close the victory modal if open
+        if getattr(self.game_engine, 'victory_modal', None) is not None:
+            self.game_engine.victory_modal.close()
+        # Reset the game
+        self.game_engine.reset_game()
 
     def _handle_keydown(self, event):
         """Handles key press events."""
@@ -318,8 +341,12 @@ class GameRenderer:
         if self.game_engine.exit_modal.is_active():
             self.game_engine.exit_modal.render(window)
 
-        # Display the game over message
-        if self.game_engine.game_over and self.game_engine.game_over_timer > 0:
+        # Render victory/defeat modal if active
+        if getattr(self.game_engine, 'victory_modal', None) is not None and self.game_engine.victory_modal.is_active():
+            self.game_engine.victory_modal.render(window)
+
+        # Display the old game over message only if no modal is active
+        if self.game_engine.game_over and self.game_engine.game_over_timer > 0 and (not getattr(self.game_engine, 'victory_modal', None) or not self.game_engine.victory_modal.is_active()):
             self._render_game_over_message(window)
 
         pygame.display.flip()
@@ -875,6 +902,7 @@ class GameEngine:
         self.event_handler = EventHandler(self)
         self.renderer = GameRenderer(self)
         self.exit_modal = InGameMenuModal()
+        self.victory_modal = VictoryModal()
 
         # Timer for chest spawning
         self.chest_spawn_timer = 0.0
@@ -902,6 +930,26 @@ class GameEngine:
         self.self_play_mode = False
         # Restore normal AI activation via _update_base_ai_activation on next tick
         self._update_base_ai_activation(self.selection_team_filter)
+    
+    def reset_game(self):
+        """Resets the game to initial state for replay."""
+        # Clear all entities
+        es.clear_database()
+        
+        # Reset game state
+        self.game_over = False
+        self.winning_team = None
+        self.game_over_message = ""
+        self.game_over_timer = 0.0
+        self.selected_unit_id = None
+        self.camera_follow_enabled = False
+        self.camera_follow_target_id = None
+        self.control_groups = {}
+        self.chest_spawn_timer = 0.0
+        self.maraudeur_ais = {}
+        
+        # Re-initialize the game
+        self.initialize()
 
     def initialize(self):
         """Initializes all game components."""
@@ -1950,19 +1998,77 @@ class GameEngine:
         return any(controls.is_action_active(action, keys, modifiers_state) for action in monitored_actions)
 
     def _handle_game_over(self, defeated_team_id):
-        """Handle game over when a base is destroyed."""
+        """Handle game over when a base is destroyed (opens a modal window)."""
         print(t("game_over.debug_message", team_id=defeated_team_id))
 
         # Determine the winning team (the opposite of the one that lost)
         self.winning_team = Team.ENEMY if defeated_team_id == Team.ALLY else Team.ALLY
         self.game_over = True
-        self.game_over_timer = 3.0  # Display the message for 3 seconds
+        self.game_over_timer = 0.0  # replaced by modal
 
-        # Prepare the game over message
-        if self.winning_team == Team.ALLY:
-            self.game_over_message = t("game_over.victory")
+        # Collect simple end-of-game stats
+        try:
+            ally_gold = 0
+            enemy_gold = 0
+            ally_units = 0
+            enemy_units = 0
+            ally_towers = 0
+            enemy_towers = 0
+
+            for ent, (p_comp, t_comp) in es.get_components(PlayerComponent, TeamComponent):
+                if t_comp.team_id == Team.ALLY:
+                    ally_gold = p_comp.get_gold()
+                elif t_comp.team_id == Team.ENEMY:
+                    enemy_gold = p_comp.get_gold()
+
+            for ent, (t_comp, h_comp) in es.get_components(TeamComponent, HealthComponent):
+                if es.has_component(ent, BaseComponent) or es.has_component(ent, TowerComponent) or es.has_component(ent, ProjectileComponent):
+                    continue
+                if t_comp.team_id == Team.ALLY:
+                    ally_units += 1
+                elif t_comp.team_id == Team.ENEMY:
+                    enemy_units += 1
+
+            for ent, (t_comp, tower_comp) in es.get_components(TeamComponent, TowerComponent):
+                if t_comp.team_id == Team.ALLY:
+                    ally_towers += 1
+                elif t_comp.team_id == Team.ENEMY:
+                    enemy_towers += 1
+
+            stats_lines = [
+                f"Alliés — unités: {ally_units}, tours: {ally_towers}, or: {ally_gold}",
+                f"Ennemis — unités: {enemy_units}, tours: {enemy_towers}, or: {enemy_gold}",
+            ]
+        except Exception:
+            stats_lines = []
+
+        # Configure and open the end-of-game modal
+        if getattr(self, 'victory_modal', None) is None:
+            self.victory_modal = VictoryModal()
+
+        # En mode IA vs IA, afficher un message neutre indiquant quelle équipe a gagné
+        if getattr(self, 'self_play_mode', False):
+            if self.winning_team == Team.ALLY:
+                self.victory_modal.modal.title_key = "game.ai_victory_modal.ally_wins_title"
+                self.victory_modal.modal.message_key = "game.ai_victory_modal.ally_wins_message"
+            else:
+                self.victory_modal.modal.title_key = "game.ai_victory_modal.enemy_wins_title"
+                self.victory_modal.modal.message_key = "game.ai_victory_modal.enemy_wins_message"
         else:
-            self.game_over_message = t("game_over.defeat")
+            # En mode joueur vs IA, victoire/défaite dépend de la faction active du joueur
+            active_team = getattr(self, 'selection_team_filter', Team.ALLY)
+            player_won = (self.winning_team == active_team)
+            
+            if player_won:
+                self.victory_modal.modal.title_key = "game.victory_modal.title"
+                self.victory_modal.modal.message_key = "game.victory_modal.message"
+            else:
+                self.victory_modal.modal.title_key = "game.defeat_modal.title"
+                self.victory_modal.modal.message_key = "game.defeat_modal.message"
+
+        self.victory_modal.set_stats_lines(stats_lines)
+        target_surface = self.window or pygame.display.get_surface()
+        self.victory_modal.open(target_surface)
     
     def try_place_tower_at_position(self, world_x: float, world_y: float) -> bool:
         """

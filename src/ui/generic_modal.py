@@ -9,7 +9,8 @@ class GenericModal:
 
     def __init__(self, title_key: str, message_key: str, buttons: List[Tuple[str, str]], 
                  callback: Optional[Callable[[str], None]] = None, 
-                 vertical_layout: bool = False) -> None:
+                 vertical_layout: bool = False,
+                 extra_lines: Optional[List[str]] = None) -> None:
         """
         Initialise un modal générique.
         
@@ -25,6 +26,7 @@ class GenericModal:
         self.button_actions = buttons
         self.callback = callback
         self.vertical_layout = vertical_layout
+        self.extra_lines: List[str] = extra_lines or []
         
         self.active = False
         self.selected_index = 0
@@ -45,6 +47,10 @@ class GenericModal:
     def is_active(self) -> bool:
         """Indique si la modale est visible."""
         return self.active
+
+    def set_extra_lines(self, lines: Optional[List[str]]) -> None:
+        """Met à jour les lignes supplémentaires à afficher sous le message principal."""
+        self.extra_lines = list(lines or [])
 
     def open(self, surface: Optional[pygame.Surface] = None) -> None:
         """Affiche la modale et prépare la mise en page."""
@@ -131,9 +137,18 @@ class GenericModal:
         title = self.font_title.render(t(self.title_key), True, (255, 255, 255))
         panel.blit(title, ((panel.get_width() - title.get_width()) // 2, 24))
 
-        # Message
+        # Message principal
+        y_cursor = 90
         message = self.font_message.render(t(self.message_key), True, (220, 220, 230))
-        panel.blit(message, ((panel.get_width() - message.get_width()) // 2, 90))
+        panel.blit(message, ((panel.get_width() - message.get_width()) // 2, y_cursor))
+        y_cursor += 40
+
+        # Lignes supplémentaires (stats, détails, etc.)
+        if self.extra_lines:
+            for line in self.extra_lines[:8]:  # limiter l'affichage pour éviter le débordement
+                txt = self.font_message.render(str(line), True, (200, 200, 210))
+                panel.blit(txt, (40, y_cursor))
+                y_cursor += 28
 
         # Boutons
         for index, rect in enumerate(self.button_rects):
@@ -169,16 +184,18 @@ class GenericModal:
 
         width, height = size
         
+        extra_count = len(self.extra_lines) if self.extra_lines else 0
+        extra_height = 28 * min(extra_count, 8)
         if self.vertical_layout:
             # Layout vertical : plus grand en hauteur pour plus de boutons
             panel_width = max(400, min(580, int(width * 0.5)))
             button_count = len(self.button_actions)
-            panel_height = max(250, 140 + button_count * 50)  # Hauteur dynamique réduite
+            panel_height = max(250, 140 + button_count * 50 + extra_height)  # Hauteur dynamique réduite
         else:
             # Layout horizontal classique — augmenter la largeur pour les menus
             # Utiliser une proportion plus large et des bornes supérieures/inférieures accrues
             panel_width = max(480, min(760, int(width * 0.6)))
-            panel_height = 240
+            panel_height = 240 + extra_height
             
         self.modal_rect = pygame.Rect(0, 0, panel_width, panel_height)
         self.modal_rect.center = (width // 2, height // 2)

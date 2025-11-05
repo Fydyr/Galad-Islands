@@ -184,6 +184,25 @@ TRANSLATIONS = {
     "game.menu.settings": "Paramètres",
     "game.menu.quit": "Quitter",
     
+    # Fenêtre de victoire/défaite
+    "game.victory_modal.title": "🎉 VICTOIRE !",
+    "game.victory_modal.message": "Vous avez détruit la base ennemie !",
+    "game.victory_modal.stay": "Continuer",
+    "game.victory_modal.replay": "Rejouer",
+    "game.victory_modal.quit": "Quitter",
+    
+    "game.defeat_modal.title": "💀 DÉFAITE",
+    "game.defeat_modal.message": "Votre base a été détruite...",
+    "game.defeat_modal.stay": "Continuer",
+    "game.defeat_modal.replay": "Rejouer",
+    "game.defeat_modal.quit": "Quitter",
+    
+    # Fenêtre de fin de partie IA vs IA
+    "game.ai_victory_modal.ally_wins_title": "🏆 Équipe Alliée Victorieuse",
+    "game.ai_victory_modal.ally_wins_message": "La Forteresse d'Eryndor a détruit la base ennemie !",
+    "game.ai_victory_modal.enemy_wins_title": "🏆 Équipe Ennemie Victorieuse",
+    "game.ai_victory_modal.enemy_wins_message": "La Forteresse Barakdur a détruit la base alliée !",
+    
     # Debug modal
     "debug.modal.title": "Menu de Debug",
     "debug.modal.message": "Sélectionnez une action de debug :",

@@ -190,6 +190,25 @@ TRANSLATIONS = {
     "game.menu.settings": "Settings",
     "game.menu.quit": "Quit",
     
+    # Victory/Defeat window
+    "game.victory_modal.title": "🎉 VICTORY!",
+    "game.victory_modal.message": "You destroyed the enemy base!",
+    "game.victory_modal.stay": "Continue",
+    "game.victory_modal.replay": "Play Again",
+    "game.victory_modal.quit": "Quit",
+    
+    "game.defeat_modal.title": "💀 DEFEAT",
+    "game.defeat_modal.message": "Your base has been destroyed...",
+    "game.defeat_modal.stay": "Continue",
+    "game.defeat_modal.replay": "Play Again",
+    "game.defeat_modal.quit": "Quit",
+    
+    # AI vs AI game over window
+    "game.ai_victory_modal.ally_wins_title": "🏆 Allied Team Victorious",
+    "game.ai_victory_modal.ally_wins_message": "The Fortress of Eryndor destroyed the enemy base!",
+    "game.ai_victory_modal.enemy_wins_title": "🏆 Enemy Team Victorious",
+    "game.ai_victory_modal.enemy_wins_message": "The Fortress of Barakdur destroyed the allied base!",
+    
     # Debug modal
     "debug.modal.title": "Debug Menu",
     "debug.modal.message": "Select a debug action:",
