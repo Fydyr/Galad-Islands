@@ -337,9 +337,14 @@ class BaseAi(esper.Processor):
                 for action, details in self.ACTION_MAPPING.items()
                 if game_state['gold'] >= details['cost'] + details['reserve']
             ]
-            # Exclure Kamikaze si la base ennemie n'est pas connue
+            # Exclure certaines actions si la base ennemie n'est pas connue
             if game_state['enemy_base_known'] == 0:
-                affordable_actions = [a for a in affordable_actions if a != 6]
+                # Bloquer Kamikaze (6) et Léviathan (4) si la base ennemie n'est pas découverte
+                # Si Léviathan était abordable mais bloqué, favoriser un fallback Maraudeur
+                if 4 in affordable_actions and (game_state['gold'] >= self.ACTION_MAPPING[3]['cost'] + self.ACTION_MAPPING[3]['reserve']):
+                    # Petit coup de pouce au Maraudeur comme alternative raisonnable
+                    q_values[3] += 8.0
+                affordable_actions = [a for a in affordable_actions if a not in (4, 6)]
 
             if not affordable_actions:
                 return 0
