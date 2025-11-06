@@ -10,6 +10,14 @@ i18n:
 
 Le système d'IA de Galad Islands est conçu pour offrir un adversaire crédible et des comportements autonomes pour les unités. Il combine des modèles de Machine Learning pour les décisions stratégiques de haut niveau (comme la `BaseAi`) et des logiques plus simples pour les comportements individuels des unités (comme le `KamikazeAiProcessor`).
 
+### Architecture ECS et optimisation
+
+Le système d'IA utilise le pattern **Entity-Component-System (ECS)** via la bibliothèque `esper`. Les comportements d'IA sont implémentés sous forme de **processeurs** qui s'exécutent chaque frame pour traiter les entités ayant les composants correspondants.
+
+**Optimisation majeure** : Le **AI Processor Manager** (`src/processeurs/ai/ai_processor_manager.py`) active et désactive dynamiquement les processeurs d'IA en fonction de la présence d'entités. Cela évite l'exécution inutile de processeurs lorsqu'aucune unité ne nécessite leur traitement, économisant jusqu'à **83% d'overhead CPU** dans les scénarios sans IA.
+
+📖 **Voir aussi** : [AI Processor Manager](ai-processor-manager.md) - Documentation complète de l'optimisation des processeurs IA.
+
 ## IA de la Base (`BaseAi`)
 
 **Fichier** : `src/ia/BaseAI.py`

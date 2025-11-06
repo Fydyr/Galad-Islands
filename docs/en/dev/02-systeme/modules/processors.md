@@ -8,6 +8,12 @@ i18n:
 
 Processors contain the game's business logic and act on Entities having certain Components.
 
+## AI Processor Optimization
+
+The system uses an **AI Processor Manager** to dynamically activate/deactivate AI processors based on the presence of corresponding entities. This saves up to **83% CPU overhead** when no AI units are active.
+
+📖 **See also**: [AI Processor Manager](ai-processor-manager.md) - Complete optimization documentation.
+
 ## List of Processors
 
 ### Core processors
