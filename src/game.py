@@ -1116,6 +1116,7 @@ class GameEngine:
         self.rapid_ai_processor_enemy = RapidTroopAIProcessor(self.grid)
 
         # Add processors in order
+        es.add_processor(self.capacities_processor, priority=0)  # Cooldowns FIRST
         es.add_processor(self.druid_ai_processor, priority=1)
         es.add_processor(self.rapid_ai_processor_ally, priority=2)
         es.add_processor(self.rapid_ai_processor_enemy, priority=3)
