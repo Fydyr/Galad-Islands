@@ -220,15 +220,23 @@ class SpriteManager:
         try:
             # Load the image
             full_path = get_resource_path(sprite_data.file_path)
-            image = pygame.image.load(full_path).convert_alpha()
-            
+            image = pygame.image.load(full_path)
+
+            # Try to convert the image for better performance, but only if display is initialized
+            # This prevents "cannot convert without pygame.display initialized" errors
+            try:
+                image = image.convert_alpha()
+            except pygame.error:
+                # Display not initialized yet - use the unconverted image
+                logger.debug("Display not initialized for %s, using unconverted image", sprite_id.value)
+
             # Cache the loaded image
             self._loaded_images[sprite_id] = image
-            
+
             # Trop verbeux en production : mettre en debug
             logger.debug("Loaded sprite: %s (%s)", sprite_id.value, sprite_data.description)
             return image
-            
+
         except (pygame.error, FileNotFoundError) as e:
             logger.error("Error loading sprite %s from %s: %s", sprite_id.value, sprite_data.file_path, e)
             return None
