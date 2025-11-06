@@ -41,11 +41,11 @@ class PathfindingSettings:
     storm_weight: float = 6.0
     danger_weight: float = 4.0
     diagonal_cost: float = 1.4
-    island_perimeter_weight: float = 999.0  # Poids très élevé pour éviter les îles (quasi-infini)
-    island_perimeter_radius: int = 6  # Zone de sécurité de 3 tuiles autour des îles (6 sous-tuiles)
+    island_perimeter_weight: float = 999.0  # Quasi-infini pour éviter complètement les îles
+    island_perimeter_radius: int = 2  # Réduire de 3 à 2 (1 tuile au lieu de 1.5 tuiles)
     mine_perimeter_radius: int = 4  # Zone de sécurité de 2 tuiles autour des mines
-    blocked_margin_radius: int = 4  # Marge de sécurité augmentée pour zones bloquées
-    blocked_margin_weight: float = 20.0  # Augmenté pour mieux éviter les zones bloquées
+    blocked_margin_radius: int = 1  # Réduire encore de 2 à 1 
+    blocked_margin_weight: float = 8.0  # Réduire de 10.0 à 8.0
     map_border_radius: int = 2  # Augmenté pour éviter les bords de carte
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),
@@ -53,7 +53,7 @@ class PathfindingSettings:
     )
     tile_soft_block: tuple[int, ...] = (int(TileType.MINE),)
     recompute_distance_min: float = 64.0
-    waypoint_reached_radius_factor: float = 0.5  # Facteur relatif à TILE_SIZE
+    waypoint_reached_radius_factor: float = 1.2  # Augmenter de 0.5 à 1.2 pour éviter micro-mouvements
 
 
 @dataclass
@@ -69,7 +69,7 @@ class ObjectiveWeights:
 
 @dataclass
 class DebugSettings:
-    enabled: bool = False
+    enabled: bool = True  # Activer les logs par défaut
     log_state_changes: bool = True
     log_objectives: bool = False
     overlay_enabled: bool = False
