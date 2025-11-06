@@ -48,7 +48,7 @@ from src.ia.KamikazeAi import KamikazeAiProcessor
 from src.processeurs.ai.DruidAIProcessor import DruidAIProcessor
 from src.processeurs.ai.architectAIProcessor import ArchitectAIProcessor
 from src.processeurs.ai.aiLeviathanProcessor import AILeviathanProcessor
-from src.ia.ia_barhamus import BarhamusAI
+from src.ia.ia_maraudeur import MaraudeurAI
 
 
 # Global variables to store original AI processor methods and stats

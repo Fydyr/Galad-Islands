@@ -4,7 +4,7 @@ Test simple de l'IA Barhamus avec machine learning
 """
 
 import numpy as np
-from ia.ia_barhamus import BarhamusAI
+from ia.ia_maraudeur import MaraudeurAI
 
 # Classes simulées pour le test
 class MockHealth:
@@ -27,7 +27,7 @@ def test_ia_ml():
     print("=== Test IA Barhamus avec scikit-learn ===")
     
     # Create an instance d'IA
-    ai = BarhamusAI(entity=1)
+    ai = MaraudeurAI(entity=1)
     
     # Create des données simulées
     mock_health = MockHealth()

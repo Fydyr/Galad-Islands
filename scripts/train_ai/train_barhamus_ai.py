@@ -22,7 +22,7 @@ import joblib
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Importer les components nécessaires
-from src.ia.ia_barhamus import BarhamusAI
+from src.ia.ia_maraudeur import MaraudeurAI
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.healthComponent import HealthComponent
@@ -32,7 +32,7 @@ from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
 from src.components.globals.mapComponent import creer_grille, placer_elements
 from src.functions.resource_path import get_resource_path
-from src.ia.ia_barhamus import get_app_data_path
+from src.ia.ia_maraudeur import get_app_data_path
 
 class BarhamusTrainer:
     """Entraîneur pour l'IA Barhamus avec simulation de combats tactiques."""
@@ -384,7 +384,7 @@ class BarhamusTrainer:
 
         try:
             # Create une seule IA pour collecter les données
-            ai_collector = BarhamusAI(entity=0)
+            ai_collector = MaraudeurAI(entity=0)
             ai_collector.grid = self._create_real_grid()  # type: ignore
             
             # Restaurer les données from l'autosave si elles existent
@@ -533,7 +533,7 @@ class BarhamusTrainer:
         scaler = StandardScaler()
         scaler.fit(X_train)
 
-        # Sauvegarder le modèle et le scaler in un seul file compatible avec BarhamusAI
+        # Sauvegarder le modèle et le scaler in un seul file compatible avec MaraudeurAI
         os.makedirs(self.models_dir, exist_ok=True)
         model_data = {
             'decision_tree': model,

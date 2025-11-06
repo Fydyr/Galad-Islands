@@ -90,7 +90,7 @@ from src.components.core.projectileComponent import ProjectileComponent
 from src.components.globals.mapComponent import is_tile_island
 
 # AI imports
-from src.ia.ia_barhamus import BarhamusAI
+from src.ia.ia_maraudeur import MaraudeurAI
 
 # UI imports
 from src.ui.action_bar import ActionBar, UnitInfo
@@ -867,7 +867,7 @@ class GameEngine:
         self.combat_reward_processor = CombatRewardProcessor()
 
         # AI manager for all Maraudeurs
-        self.maraudeur_ais = {}  # entity_id -> BarhamusAI
+        self.maraudeur_ais = {}  # entity_id -> MaraudeurAI
         self.player = None
         self.notification_system = get_notification_system()
 
@@ -2179,7 +2179,7 @@ class GameEngine:
 
             # If this Marauder doesn't have an AI yet, create one
             if entity not in self.maraudeur_ais:
-                self.maraudeur_ais[entity] = BarhamusAI(entity)
+                self.maraudeur_ais[entity] = MaraudeurAI(entity)
                 team_comp = es.component_for_entity(entity, TeamComponent)
                 team_name = "allié" if team_comp.team_id == 1 else "ennemi"
                 print(f"🤖 IA créée pour Maraudeur {team_name} {entity}")

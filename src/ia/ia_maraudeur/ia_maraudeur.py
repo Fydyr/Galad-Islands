@@ -24,7 +24,7 @@ from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
 from src.functions.resource_path import get_resource_path
 from src.settings.settings import config_manager
-from src.ia.ia_barhamus.log import get_logger
+from src.ia.ia_maraudeur.log import get_logger
 
 def get_app_data_path() -> str:
     """
@@ -47,8 +47,8 @@ def get_app_data_path() -> str:
         os.makedirs(path, exist_ok=True)
         return path
 
-class BarhamusAI:
-    """IA pour la troupe Barhamus (Maraudeur Zeppelin) utilisant scikit-learn"""
+class MaraudeurAI:
+    """IA pour la troupe Maraudeur (Maraudeur Zeppelin) utilisant scikit-learn"""
 
     def __init__(self, entity):
         self.entity = entity
@@ -118,10 +118,10 @@ class BarhamusAI:
         """Charge le modèle/scaler pré-entrainé si disponible (pour démarrer avec une IA compétente)"""
         try:
             candidates = [
-                os.path.join(self.models_dir, "barhamus_pretrained.pkl"),
-                get_resource_path(os.path.join('models', 'barhamus_pretrained.pkl')),
-                get_resource_path(os.path.join('src', 'models', 'barhamus_pretrained.pkl')),
-                os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models', 'barhamus_pretrained.pkl')),
+                os.path.join(self.models_dir, "maraudeur_pretrained.pkl"),
+                get_resource_path(os.path.join('models', 'maraudeur_pretrained.pkl')),
+                get_resource_path(os.path.join('src', 'models', 'maraudeur_pretrained.pkl')),
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models', 'maraudeur_pretrained.pkl')),
             ]
             for pretrained_path in candidates:
                 if pretrained_path and os.path.exists(pretrained_path):
@@ -130,7 +130,7 @@ class BarhamusAI:
                     self.decision_tree = model_data.get('decision_tree', self.decision_tree)
                     self.scaler = model_data.get('scaler', self.scaler)
                     self.is_trained = model_data.get('is_trained', False)
-                    self.logger.debug(f"Barhamus {self.entity}: Modèle pré-entrainé chargé depuis {pretrained_path}")
+                    self.logger.debug(f"Maraudeur {self.entity}: Modèle pré-entrainé chargé depuis {pretrained_path}")
                     break
         except (pickle.UnpicklingError, EOFError, KeyError) as e:
             # Erreurs courantes de déserialisation, non critiques
@@ -142,7 +142,7 @@ class BarhamusAI:
         if world.has_component(self.entity, PlayerSelectedComponent):
             # Optionnel : log pour debug
             if self.debug_mode:
-                self.logger.debug(f"Barhamus {self.entity}: IA désactivée car unit sélectionnée.")
+                self.logger.debug(f"Maraudeur {self.entity}: IA désactivée car unit sélectionnée.")
             return
         try:
             # Définir la variable ici pour qu'elle soit toujours disponible
@@ -157,7 +157,7 @@ class BarhamusAI:
             spe = world.component_for_entity(self.entity, SpeMaraudeur) # Correction: pas de AttackComponent ici
             
         except Exception as e:
-            self.logger.warning(f"Erreur composants Barhamus {self.entity}: {e}")
+            self.logger.warning(f"Erreur composants Maraudeur {self.entity}: {e}")
             return
 
         # Mettre à jour les statistiques de survie
@@ -206,13 +206,13 @@ class BarhamusAI:
             action_names = {0: "Approche", 1: "Attaque", 2: "Patrouille", 3: "Évitement", 4: "Bouclier", 5: "Défensif", 6: "Retraite", 7: "Embuscade"}
             if self.debug_mode:
                 action_name = action_names.get(action, 'Inconnue')
-                print(f"Barhamus {self.entity}: Exécute action {action} ({action_name})")
+                print(f"Maraudeur {self.entity}: Exécute action {action} ({action_name})")
             
             # Exécuter l'action avec tir en salve si nécessaire
             self._execute_action_with_combat(action, world, pos, vel, health, team, spe)
             
         except Exception as e:
-            self.logger.warning(f"Erreur IA Barhamus {self.entity}: {e}")
+            self.logger.warning(f"Erreur IA Maraudeur {self.entity}: {e}")
             # Action By default in case of error majeure
             self._action_patrol(pos, vel)
         
@@ -280,7 +280,7 @@ class BarhamusAI:
         # Ne pas dépendre de `training_data` qui n'est pas utilisé directement
         if not self.is_trained:
             if self.debug_mode:
-                print(f"Barhamus {self.entity}: Modèle non entraîné -> action par défaut")
+                print(f"Maraudeur {self.entity}: Modèle non entraîné -> action par défaut")
             return self._get_default_action(state)
         
         try:
@@ -295,7 +295,7 @@ class BarhamusAI:
             if not config_manager.get("disable_ai_learning", False) and random.random() < 0.3:
                 return random.randint(0, 7)  # 8 actions possibles
             
-            print(f"Barhamus {self.entity}: Action PRÉDITE par modèle = {predicted_action}")
+            print(f"Maraudeur {self.entity}: Action PRÉDITE par modèle = {predicted_action}")
             # S'assurer que le type est bien un entier Python natif
             return int(predicted_action) 
             
@@ -396,7 +396,7 @@ class BarhamusAI:
                 elif i == 2:  # Tir côté gauche  
                     self._fire_at_angle(world, pos, angle_to_target - 25)                    
             except Exception as e:
-                print(f"Barhamus {self.entity}: Tir en salve #{i+1} to angle {angle_to_target:.0f}°")
+                print(f"Maraudeur {self.entity}: Tir en salve #{i+1} to angle {angle_to_target:.0f}°")
                 
             except Exception as e:
                 print(f"Erreur tir salve: {e}")
@@ -618,7 +618,7 @@ class BarhamusAI:
                         angle = self._angle_to(pos.x - ally_pos.x, pos.y - ally_pos.y)
                         pos.direction = self._smooth_turn(pos.direction, angle, max_delta=15.0)
                         vel.currentSpeed = 3.5
-                print(f"Barhamus {self.entity}: Retraite vers Druide allié {ent}")
+                print(f"Maraudeur {self.entity}: Retraite vers Druide allié {ent}")
                 return
 
         # 2. Si pas de Druide, fuir l'ennemi le plus proche (comportement original)
@@ -644,7 +644,7 @@ class BarhamusAI:
                 # IMPORTANT : inverser direction car movementProcessor soustrait
                 angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
                 vel.currentSpeed = 2.0
-                print(f"Barhamus {self.entity}: Recul (trop proche: {distance/TILE_SIZE:.1f} tiles)")
+                print(f"Maraudeur {self.entity}: Recul (trop proche: {distance/TILE_SIZE:.1f} tiles)")
             elif distance > 8 * TILE_SIZE:  # Trop loin, s'approcher
                 # Si la ligne de vue est bloquée, suivre un chemin plutôt que de foncer dans une île
                 if not self._has_line_of_sight(world, pos, enemies[0][0]):
@@ -659,17 +659,17 @@ class BarhamusAI:
                                 waypoint = self.path[0]
                         angle = self._angle_to(pos.x - waypoint[0], pos.y - waypoint[1])
                         vel.currentSpeed = 3.2
-                        print(f"Barhamus {self.entity}: Approche via chemin (reste {len(self.path)} waypoints)")
+                        print(f"Maraudeur {self.entity}: Approche via chemin (reste {len(self.path)} waypoints)")
                     else:
                         # Pas de chemin: fallback direct (l'évitement gérera)
                         angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                         vel.currentSpeed = 3.5
-                        print(f"Barhamus {self.entity}: Approche directe (pas de chemin)")
+                        print(f"Maraudeur {self.entity}: Approche directe (pas de chemin)")
                 else:
                     # IMPORTANT : inverser direction
                     angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                     vel.currentSpeed = 3.5
-                    print(f"Barhamus {self.entity}: Approche (trop loin: {distance/TILE_SIZE:.1f} tiles)")
+                    print(f"Maraudeur {self.entity}: Approche (trop loin: {distance/TILE_SIZE:.1f} tiles)")
             else:  # Distance parfaite, maintenir position stable
                 # FIX TOUPIE: Ne pas ajouter constamment +90°, juste maintenir orientation vers cible
                 angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
@@ -689,7 +689,7 @@ class BarhamusAI:
                 
             # Lisser la rotation pour éviter les oscillations
             pos.direction = self._smooth_turn(pos.direction, angle, max_delta=12.0)
-            print(f"Barhamus {self.entity}: Position d'attaque - distance {distance/TILE_SIZE:.1f} tiles")
+            print(f"Maraudeur {self.entity}: Position d'attaque - distance {distance/TILE_SIZE:.1f} tiles")
     
     def _default_defense_behavior(self, world, pos, vel, team):
         """Comportement de défense By default in case of error"""
@@ -700,7 +700,7 @@ class BarhamusAI:
                 angle = self._angle_to(pos.x - base_pos[0], pos.y - base_pos[1])
                 pos.direction = angle
                 vel.currentSpeed = 3.0
-                print(f"Barhamus {self.entity}: Retour défensif vers la base")
+                print(f"Maraudeur {self.entity}: Retour défensif vers la base")
         except:
             # En dernier recours, patrouiller
             vel.currentSpeed = 2.0
@@ -743,7 +743,7 @@ class BarhamusAI:
                 if t_team.team_id != team.team_id:  # Ennemi
                     distance = math.sqrt((t_pos.x - base_pos[0])**2 + (t_pos.y - base_pos[1])**2)
                     if distance <= threat_radius:
-                        print(f"Barhamus {self.entity}: Ennemi {ent} détecté à {distance/TILE_SIZE:.1f} tiles de la base!")
+                        print(f"Maraudeur {self.entity}: Ennemi {ent} détecté à {distance/TILE_SIZE:.1f} tiles de la base!")
                         return True
         except Exception as e:
             print(f"Erreur détection ennemis base: {e}")
@@ -779,7 +779,7 @@ class BarhamusAI:
             if enemy_base:
                 base_distance = math.sqrt((pos.x - enemy_base[0])**2 + (pos.y - enemy_base[1])**2)
                 if base_distance > 6 * TILE_SIZE:  # Loin de la base ennemie
-                    print(f"Barhamus {self.entity}: Attaque de la base ennemie à {base_distance/TILE_SIZE:.1f} tiles")
+                    print(f"Maraudeur {self.entity}: Attaque de la base ennemie à {base_distance/TILE_SIZE:.1f} tiles")
                     return 0  # Approche to la base ennemie
                 else:
                     return 1  # Attaque la base ennemie
@@ -917,7 +917,7 @@ class BarhamusAI:
             if health.currentHealth <= 0 and not getattr(self, 'death_penalized', False):
                 reward -= self.death_penalty
                 self.death_penalized = True
-                print(f"Barhamus {self.entity}: MORT - Pénalité appliquée: -{self.death_penalty}")
+                print(f"Maraudeur {self.entity}: MORT - Pénalité appliquée: -{self.death_penalty}")
         except Exception:
             pass
         
@@ -971,7 +971,7 @@ class BarhamusAI:
         # Log d'appoint pour Check queles expériences s'accumulent
         if self.debug_mode:
             if len(self.experiences) % 10 == 0 or len(self.experiences) < 20:
-                print(f"Barhamus {self.entity}: Expérience enregistrée (total={len(self.experiences)})")
+                print(f"Maraudeur {self.entity}: Expérience enregistrée (total={len(self.experiences)})")
         
         # Garder seulement les 1000 dernières expériences
         if len(self.experiences) > 1000:
@@ -981,12 +981,12 @@ class BarhamusAI:
         """Réentraîne le modèle avec les nouvelles expériences"""
         if len(self.experiences) < 10:
             if self.debug_mode:
-                print(f"Barhamus {self.entity}: Pas assez d'expériences pour réentraîner ({len(self.experiences)})")
+                print(f"Maraudeur {self.entity}: Pas assez d'expériences pour réentraîner ({len(self.experiences)})")
             return
         
         try:
             if self.debug_mode:
-                print(f"Barhamus {self.entity}: Démarrage réentraînement avec {len(self.experiences)} expériences")
+                print(f"Maraudeur {self.entity}: Démarrage réentraînement avec {len(self.experiences)} expériences")
             # Préparer les données d'entraînement
             X = []
             y = []
@@ -1014,7 +1014,7 @@ class BarhamusAI:
             self.training_labels = y.tolist() if isinstance(y, np.ndarray) else list(y)
 
             if self.debug_mode:
-                print(f"Modèle IA réentraîné avec {len(X)} expériences (Barhamus {self.entity})")
+                print(f"Modèle IA réentraîné avec {len(X)} expériences (Maraudeur {self.entity})")
             
         except Exception as e:
             print(f"Erreur lors du réentraînement: {e}")
@@ -1061,7 +1061,7 @@ class BarhamusAI:
                            key=lambda s: self._get_strategy_success_rate(s))
         if best_strategy != self.current_strategy:
             if self.debug_mode:
-                print(f"IA Barhamus change de stratégie: {self.current_strategy} -> {best_strategy}")
+                print(f"IA Maraudeur change de stratégie: {self.current_strategy} -> {best_strategy}")
             self.current_strategy = best_strategy
     
     # Actions spécifiques
@@ -1081,7 +1081,7 @@ class BarhamusAI:
                 pos.direction = angle
                 vel.currentSpeed = 4.0 # Vitesse légèrement réduite pour plus de contrôle
                 if self.debug_mode:
-                    print(f"Barhamus {self.entity}: Approche agressive vers ennemi {target_entity} (directe)")
+                    print(f"Maraudeur {self.entity}: Approche agressive vers ennemi {target_entity} (directe)")
             else:
                 # Ligne de vue bloquée : utiliser le pathfinding pour contourner
                 vel.currentSpeed = 3.5  # Vitesse de contournement
@@ -1107,7 +1107,7 @@ class BarhamusAI:
                         angle = self._angle_to(pos.x - next_waypoint[0], pos.y - next_waypoint[1])
                         pos.direction = angle
                         if self.debug_mode:
-                            print(f"Barhamus {self.entity}: Suit chemin vers waypoint (angle={angle:.1f}°, reste {len(self.path)} waypoints)")
+                            print(f"Maraudeur {self.entity}: Suit chemin vers waypoint (angle={angle:.1f}°, reste {len(self.path)} waypoints)")
                     else:
                         # Chemin terminé mais pas encore à la cible : aller direct
                         angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
@@ -1116,7 +1116,7 @@ class BarhamusAI:
                     # Pas de chemin trouvé : essayer d'aller direct (l'évitement gérera)                    
                     angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                     pos.direction = angle
-                    print(f"Barhamus {self.entity}: Pas de chemin, tentative directe")
+                    print(f"Maraudeur {self.entity}: Pas de chemin, tentative directe")
         else:
             # Pas d'ennemi visible : comportement tactique selon la force disponible
             allies_nearby = self._count_nearby_allies(world, pos, team)
@@ -1138,7 +1138,7 @@ class BarhamusAI:
                         pos.direction = self._smooth_turn(pos.direction, away_angle, max_delta=18.0)
                         vel.currentSpeed = 3.5 # Augmenté pour un recul plus rapide
                         if self.debug_mode:
-                            print(f"Barhamus {self.entity}: Trop proche de la base ({base_dist/TILE_SIZE:.1f}t) — recul de sécurité")
+                            print(f"Maraudeur {self.entity}: Trop proche de la base ({base_dist/TILE_SIZE:.1f}t) — recul de sécurité")
                         return
 
                     # Si on est à portée "safe" de la base et avec une ligne de vue claire, s'arrêter totalement
@@ -1149,7 +1149,7 @@ class BarhamusAI:
                             pos.direction = self._smooth_turn(pos.direction, hold_angle, max_delta=15.0)
                             vel.currentSpeed = 0.5 # Mouvement très lent pour ajustements fins
                             if self.debug_mode:
-                                print(f"Barhamus {self.entity}: À portée de la base — maintien de position")
+                                print(f"Maraudeur {self.entity}: À portée de la base — maintien de position")
                             return
                     except Exception:
                         pass
@@ -1171,7 +1171,7 @@ class BarhamusAI:
                             pos.direction = self._smooth_turn(pos.direction, angle, max_delta=18.0)
                             vel.currentSpeed = 3.8 # Vitesse augmentée pour la collecte
                             if self.debug_mode:
-                                print(f"Barhamus {self.entity}: Détour coffre sur la route du standoff")
+                                print(f"Maraudeur {self.entity}: Détour coffre sur la route du standoff")
                             return
 
                     # Aller vers le standoff en A* si LoS bloquée
@@ -1192,14 +1192,14 @@ class BarhamusAI:
                             pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
                             vel.currentSpeed = 3.6 # Vitesse de navigation standard
                             if self.debug_mode:
-                                print(f"Barhamus {self.entity}: Vers standoff via chemin (reste {len(self.path)} wp)")
+                                print(f"Maraudeur {self.entity}: Vers standoff via chemin (reste {len(self.path)} wp)")
                         else:
                             # Fallback: avancer direct (évitement fera le reste)
                             move_angle = self._angle_to(pos.x - standoff[0], pos.y - standoff[1])
                             pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
                             vel.currentSpeed = 3.8
                             if self.debug_mode:
-                                print(f"Barhamus {self.entity}: Vers standoff (fallback direct)")
+                                print(f"Maraudeur {self.entity}: Vers standoff (fallback direct)")
                     else:
                         # Ligne directe vers le standoff
                         # Si on atteint le standoff (proche) et qu'on a LoS vers la base, arrêter le mouvement
@@ -1208,14 +1208,14 @@ class BarhamusAI:
                             pos.direction = self._smooth_turn(pos.direction, hold_angle, max_delta=15.0)
                             vel.currentSpeed = 0.0
                             if self.debug_mode:
-                                print(f"Barhamus {self.entity}: Arrivé au standoff — maintien de position")
+                                print(f"Maraudeur {self.entity}: Arrivé au standoff — maintien de position")
                             return
                         else:
                             move_angle = self._angle_to(pos.x - standoff[0], pos.y - standoff[1])
                             pos.direction = self._smooth_turn(pos.direction, move_angle, max_delta=18.0)
                             vel.currentSpeed = 3.8
                             if self.debug_mode:
-                                print(f"Barhamus {self.entity}: Vers standoff (LoS OK)")
+                                print(f"Maraudeur {self.entity}: Vers standoff (LoS OK)")
                 else:
                     # Pas de base trouvée : patrouiller
                     self._action_patrol(pos, vel)
@@ -1228,12 +1228,12 @@ class BarhamusAI:
                     pos.direction = angle
                     vel.currentSpeed = 3.8
                     if self.debug_mode:
-                        print(f"Barhamus {self.entity}: Collecte de coffre (solo/petit groupe)")
+                        print(f"Maraudeur {self.entity}: Collecte de coffre (solo/petit groupe)")
                 else:
                     # Pas de coffre : patrouiller en attendant des renforts
                     self._action_patrol(pos, vel)
                     if self.debug_mode:
-                        print(f"Barhamus {self.entity}: Patrouille ({allies_nearby} alliés, attente renforts)")
+                        print(f"Maraudeur {self.entity}: Patrouille ({allies_nearby} alliés, attente renforts)")
             enemy_base = self._find_enemy_base(world, team)
             if enemy_base:
                 # IMPORTANT : inverser la direction pour le movementProcessor
@@ -1241,13 +1241,13 @@ class BarhamusAI:
                 pos.direction = angle
                 vel.currentSpeed = 4.0
                 if self.debug_mode:
-                    print(f"Barhamus {self.entity}: Approche vers base ennemie - angle={angle:.1f}°")
+                    print(f"Maraudeur {self.entity}: Approche vers base ennemie - angle={angle:.1f}°")
             else:
                 # Patrouiller
                 vel.currentSpeed = 2.5
                 pos.direction = (pos.direction + 30) % 360
                 if self.debug_mode:
-                    print(f"Barhamus {self.entity}: Patrouille défensive")
+                    print(f"Maraudeur {self.entity}: Patrouille défensive")
     
     def _action_attack(self, world, pos, vel, team):
         """Action: Attaque si ennemi à portée"""
@@ -1266,7 +1266,7 @@ class BarhamusAI:
                     self.cooldown = 1.5
                     self.successful_attacks += 1
                     if self.debug_mode:
-                        print(f"Barhamus {self.entity} attaque (IA intelligente)!")
+                        print(f"Maraudeur {self.entity} attaque (IA intelligente)!")
                 except Exception:
                     self.failed_attacks += 1
     
@@ -1277,7 +1277,7 @@ class BarhamusAI:
         pos.direction = self.patrol_direction
         vel.currentSpeed = 2.5
         if self.debug_mode:
-            print(f"Barhamus {self.entity}: Patrouille - direction={pos.direction:.1f}°, vitesse={vel.currentSpeed}")
+            print(f"Maraudeur {self.entity}: Patrouille - direction={pos.direction:.1f}°, vitesse={vel.currentSpeed}")
     
     def _action_tactical_avoidance(self, world, pos, vel, team):
         """Action: Évitement tactique intelligent"""
@@ -1382,7 +1382,7 @@ class BarhamusAI:
             pos.direction = retreat_angle
             vel.currentSpeed = 4.5  # Vitesse de fuite augmentée
             if self.debug_mode:
-                print(f"Barhamus {self.entity}: Fuite de l'ennemi {closest[0]}")
+                print(f"Maraudeur {self.entity}: Fuite de l'ennemi {closest[0]}")
 
     def _calculate_border_penalty(self, current_state):
         """Calcule la pénalité pour être près des bords de la carte"""
@@ -1547,7 +1547,7 @@ class BarhamusAI:
 
     def _compute_standoff_point(self, base_pos, current_xy, radius):
         """Choisit un point sur un cercle autour de la base avec ligne de vue depuis ce point vers la base.
-        Préférence pour la direction approximative du Barhamus actuel.
+        Préférence pour la direction approximative du Maraudeur actuel.
         """
         bx, by = base_pos
         cx, cy = current_xy
@@ -1746,7 +1746,7 @@ class BarhamusAI:
                 'is_trained': self.is_trained
             }
             
-            with open(os.path.join(self.models_dir, f"barhamus_ai_{self.entity}.pkl"), 'wb') as f:
+            with open(os.path.join(self.models_dir, f"maraudeur_ai_{self.entity}.pkl"), 'wb') as f:
                 pickle.dump(model_data, f)
         except Exception as e:
             print(f"Erreur sauvegarde modèle: {e}")
@@ -1754,7 +1754,7 @@ class BarhamusAI:
     def _load_model(self):
         """Charge un modèle sauvegardé"""
         try:
-            model_path = os.path.join(self.models_dir, f"barhamus_ai_{self.entity}.pkl")
+            model_path = os.path.join(self.models_dir, f"maraudeur_ai_{self.entity}.pkl")
             if os.path.exists(model_path):
                 with open(model_path, 'rb') as f:
                     model_data = pickle.load(f)
@@ -1766,7 +1766,7 @@ class BarhamusAI:
                 self.is_trained = model_data.get('is_trained', False)
                 
                 if self.debug_mode:
-                    print(f"Modèle IA chargé pour Barhamus {self.entity}")
+                    print(f"Modèle IA chargé pour Maraudeur {self.entity}")
         except Exception as e:
             print(f"Erreur chargement modèle: {e}")
     
@@ -1777,10 +1777,10 @@ class BarhamusAI:
             world.dispatch_event("attack_event", self.entity)
             self.successful_attacks += 1
             if self.debug_mode:
-                print(f"Barhamus {self.entity} tire (IA scikit-learn)!")
+                print(f"Maraudeur {self.entity} tire (IA scikit-learn)!")
         except Exception as e:
             self.failed_attacks += 1
-            print(f"Erreur lors du tir Barhamus: {e}")
+            print(f"Erreur lors du tir Maraudeur: {e}")
 
     def _activate_shield(self, spe):
         spe.mana_shield_active = True
