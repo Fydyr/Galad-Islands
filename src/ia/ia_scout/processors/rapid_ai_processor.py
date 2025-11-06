@@ -346,7 +346,7 @@ class RapidUnitController:
             Transition(condition=self._should_flee, target=flee, priority=100, name="Danger")
         )
         fsm.add_global_transition(
-            Transition(condition=self._should_follow_druid, target=follow, priority=80, name="FollowDruid")
+            Transition(condition=self._should_follow_druid, target=follow, priority=30, name="FollowDruid")
         )
         fsm.add_global_transition(
             Transition(condition=self._has_navigation_request, target=goto, priority=70, name="Navigation")
@@ -573,13 +573,17 @@ class RapidUnitController:
         return should_start_flee
 
     def _should_follow_druid(self, dt: float, context: UnitContext) -> bool:
+        # Ne jamais forcer FollowDruid, privilégier la retraite (Flee) à la place
+        # FollowDruid n'est activé QUE si :
+        # 1. Un Druide existe
+        # 2. Le Scout a déjà un objectif explicite de type "follow_druid"
         if not self.goal_evaluator.has_druid(context.team_id):
             return False
         objective = context.current_objective
         if objective and objective.type == "follow_druid":
             return True
-        health_ratio = context.health / max(context.max_health, 1.0)
-        return health_ratio < self.settings.follow_druid_health_ratio
+        # Sinon, même si la santé est basse, on laisse Flee gérer la situation
+        return False
 
     def _should_explore(self, dt: float, context: UnitContext) -> bool:
         """Détermine si le Scout doit passer en mode exploration."""
@@ -597,6 +601,10 @@ class RapidUnitController:
         if context.current_objective and context.current_objective.type in {"goto_chest", "goto_island_resource"}:
             return False
         
+        # Ne JAMAIS interrompre une navigation active (évite l'oscillation GoTo ↔ Explore)
+        if self.is_navigation_active(context):
+            return False
+        
         # Assouplir la condition : permettre l'exploration même avec des ennemis distants
         # Seulement bloquer si ennemis TRÈS proches (moins de la moitié de la vision)
         predicted_targets = list(self.prediction.predict_enemy_positions(context.team_id))
@@ -612,7 +620,7 @@ class RapidUnitController:
         
         # Explorer si on n'a pas d'objectif d'attaque ou si on est en Idle ou GoTo
         current_state = self.state_machine.current_state.name
-        # Permettre l'exploration depuis plus d'états
+        # Permettre l'exploration depuis plus d'états, sauf si navigation active
         return current_state in ["Idle", "GoTo", "Attack"] or context.current_objective is None
 
     def _has_goto_objective(self, dt: float, context: UnitContext) -> bool:
