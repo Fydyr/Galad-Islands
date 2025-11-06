@@ -66,6 +66,10 @@ class CapacitiesSpecialesProcessor(esper.Processor):
                  pass
 
             if radius.cooldown > 0:
+                old_cooldown = radius.cooldown
                 radius.cooldown -= dt  # Utiliser dt, c'est plus précis
                 if radius.cooldown < 0:
                     radius.cooldown = 0
+                # Log for Leviathan only (entity with SpeLeviathan component)
+                if esper.has_component(ent, SpeLeviathan) and int(old_cooldown) != int(radius.cooldown):
+                    print(f"[DEBUG] CapacitiesSpecialesProcessor - Entity {ent} radius.cooldown: {old_cooldown:.1f} -> {radius.cooldown:.1f} (dt={dt:.3f})")

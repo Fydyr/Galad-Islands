@@ -23,6 +23,7 @@ class PlayerControlProcessor(esper.Processor):
         self.fire_event = False  # Initialisation de l'état de l'événement de tir
         self.slowing_down = False  # Indique si le frein est activé
         self.change_mode_cooldown = 0
+        self.special_ability_cooldown = 0  # Cooldown pour éviter les activations multiples
         self.enabled = True
 
     def process(self, **kwargs):
@@ -37,6 +38,11 @@ class PlayerControlProcessor(esper.Processor):
                 self.change_mode_cooldown -= 0.0016
             else:
                 self.change_mode_cooldown = 0
+
+            if self.special_ability_cooldown > 0:
+                self.special_ability_cooldown -= 0.0016
+            else:
+                self.special_ability_cooldown = 0
 
             if not esper.has_component(entity, RadiusComponent):
                 continue
@@ -85,9 +91,17 @@ class PlayerControlProcessor(esper.Processor):
                     base = esper.component_for_entity(entity, BaseComponent)
                     base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
             if controls.is_action_active(controls.ACTION_UNIT_ATTACK, keys, modifiers_state):
+                print(f"[DEBUG] PlayerControlProcessor - Attack key pressed, radius.cooldown: {radius.cooldown}, bullet_cooldown: {radius.bullet_cooldown}")
                 if radius.cooldown <= 0: # On Check le cooldown au moment du tir
+                    print(f"[DEBUG] PlayerControlProcessor - Player attacking with entity {entity}")
+                    if esper.has_component(entity, SpeLeviathan):
+                        spe_lev = esper.component_for_entity(entity, SpeLeviathan)
+                        print(f"[DEBUG] PlayerControlProcessor - Leviathan attacking, pending: {spe_lev.pending}, is_active: {spe_lev.is_active}")
                     esper.dispatch_event("attack_event", entity, "bullet")
                     radius.cooldown = radius.bullet_cooldown
+                    print(f"[DEBUG] PlayerControlProcessor - Cooldown set to: {radius.cooldown}")
+                else:
+                    print(f"[DEBUG] PlayerControlProcessor - Cannot attack, cooldown remaining: {radius.cooldown}")
 
             # Changement du mode d'attaque avec Tab
             if controls.is_action_active(controls.ACTION_UNIT_ATTACK_MODE, keys, modifiers_state) and self.change_mode_cooldown == 0:
@@ -100,13 +114,16 @@ class PlayerControlProcessor(esper.Processor):
                         radius.lateral_shooting = not radius.lateral_shooting
     
             # GESTION DE LA CAPACITÉ SPÉCIALE
-            if controls.is_action_active(controls.ACTION_UNIT_SPECIAL, keys, modifiers_state):
+            if controls.is_action_active(controls.ACTION_UNIT_SPECIAL, keys, modifiers_state) and self.special_ability_cooldown == 0:
+                # Définir le cooldown pour éviter les activations multiples
+                self.special_ability_cooldown = 0.3  # 300ms de cooldown entre les activations
+
                 # Capacité du Druid
                 if esper.has_component(entity, SpeDruid):
                     spe_druid = esper.component_for_entity(entity, SpeDruid)
                     if spe_druid.can_cast_ivy():
                         self._activate_druid_ability(entity, spe_druid)
-                
+
                 # Capacité de l'Architect
                 elif esper.has_component(entity, SpeArchitect):
                     spe_architect = esper.component_for_entity(entity, SpeArchitect)
@@ -117,32 +134,45 @@ class PlayerControlProcessor(esper.Processor):
                     spe_scout = esper.component_for_entity(entity, SpeScout)
                     if spe_scout.can_activate():
                         spe_scout.activate()
+                        print(f"Capacité spéciale Scout activée - invincibilité temporaire")
                     else:
-                        pass
+                        print(f"Capacité Scout en cooldown")
 
                 # Capacité du Maraudeur (bouclier de mana)
                 elif esper.has_component(entity, SpeMaraudeur):
                     spe_maraudeur = esper.component_for_entity(entity, SpeMaraudeur)
                     if spe_maraudeur.can_activate():
                         spe_maraudeur.activate()
+                        print(f"Capacité spéciale Maraudeur activée - bouclier de mana")
                     else:
-                        pass
+                        print(f"Capacité Maraudeur en cooldown")
 
-                # Capacité du Leviathan (seconde salve)
+                # Capacité du Leviathan (tir omnidirectionnel)
                 elif esper.has_component(entity, SpeLeviathan):
                     spe_lev = esper.component_for_entity(entity, SpeLeviathan)
+                    print(f"[DEBUG] Leviathan - can_activate: {spe_lev.can_activate()}, available: {spe_lev.available}, cooldown_timer: {spe_lev.cooldown_timer}")
                     if spe_lev.can_activate():
-                        spe_lev.activate()
+                        # Activer la capacité (démarre le cooldown)
+                        activated = spe_lev.activate()
+                        print(f"[DEBUG] Leviathan - activate() returned: {activated}, pending: {spe_lev.pending}, is_active: {spe_lev.is_active}")
+                        if activated:
+                            # Tirer immédiatement en mode omnidirectionnel
+                            print(f"Capacité spéciale Leviathan activée - tir omnidirectionnel!")
+                            esper.dispatch_event("attack_event", entity, "leviathan")
+                            # Réinitialiser le flag après le tir
+                            spe_lev.is_active = False
+                            spe_lev.pending = False
                     else:
-                        pass
+                        print(f"Capacité Leviathan en cooldown (timer: {spe_lev.cooldown_timer:.2f}s)")
 
                 # Capacité du Kamikaze (boost de vitesse)
                 elif esper.has_component(entity, SpeKamikazeComponent):
                     spe_kamikaze = esper.component_for_entity(entity, SpeKamikazeComponent)
                     if spe_kamikaze.can_activate():
                         spe_kamikaze.activate()
+                        print(f"Capacité spéciale Kamikaze activée - boost de vitesse")
                     else:
-                        pass
+                        print(f"Capacité Kamikaze en cooldown")
 
             if esper.has_component(entity, SpeArchitect):
                 if controls.is_action_active(controls.ACTION_BUILD_DEFENSE_TOWER, keys, modifiers_state):

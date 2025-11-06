@@ -12,6 +12,7 @@ from src.components.special.VineComponent import VineComponent
 from src.components.core.lifetimeComponent import LifetimeComponent
 from src.components.special.speArchitectComponent import SpeArchitect
 from src.components.special.speDruidComponent import SpeDruid
+from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.constants.gameplay import (
     PROJECTILE_SPEED, PROJECTILE_DAMAGE, PROJECTILE_HEALTH,
     PROJECTILE_WIDTH, PROJECTILE_HEIGHT, DRUID_IMMOBILIZATION_DURATION,
@@ -29,6 +30,9 @@ def create_projectile(entity, type: str = "bullet"):
     team_id = team.team_id
     druidMaxX = 150
     druidMaxY = 150
+
+    # Debug log for projectile creation
+    print(f"[DEBUG] create_projectile - entity: {entity}, type: {type}")
 
     if not esper.has_component(entity, SpeArchitect) and not esper.has_component(entity, SpeDruid):
         # Récupère le radius pour savoir si on tire sur les côtés
