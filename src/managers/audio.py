@@ -5,10 +5,20 @@ Centralized audio manager for music and sound effects.
 import pygame
 import os
 import json
+import sys
 from typing import Optional
 from src.settings import settings
 from src.settings.localization import t
 from src.functions.resource_path import get_resource_path
+
+# Force UTF-8 encoding for console output on Windows
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except AttributeError:
+        # Python < 3.7
+        import codecs
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
 
 
 class AudioManager:
@@ -33,7 +43,7 @@ class AudioManager:
             self.update_music_volume()
             pygame.mixer.music.play(-1)  # Infinite loop
             self.music_loaded = True
-            print(f"🎵 Music loaded")
+            print("🎵 Music loaded")
         except Exception as e:
             print(t("system.music_load_error", error=e))
             self.music_loaded = False
@@ -127,7 +137,7 @@ class VolumeWatcher:
             self.last_effects_volume = new_effects
             self.last_master_volume = new_master
             self.audio_manager.update_all_volumes()
-            print(f"🎚️ Volumes updated")
+            print("🎚️ Volumes updated")
 
         return changed
     
@@ -147,8 +157,8 @@ class VolumeWatcher:
             pygame.mixer.music.set_volume(final_music_volume)
 
             # Appliquer le volume aux effets sonores si disponible
+            final_effects_volume = volume_effects * volume_master
             if self.audio_manager.select_sound:
-                final_effects_volume = volume_effects * volume_master
                 self.audio_manager.select_sound.set_volume(
                     final_effects_volume)
 
