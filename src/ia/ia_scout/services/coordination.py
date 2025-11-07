@@ -7,6 +7,7 @@ from typing import Dict, Iterable, Optional, Tuple
 
 import numpy as np
 
+from src.settings.settings import TILE_SIZE
 
 @dataclass
 class ChestAssignment:
@@ -53,6 +54,9 @@ class CoordinationService:
         self._groups: Dict[int, ScoutGroup] = {}  # team_id -> groupe
         self._group_size: int = 3  # Taille idéale d'un groupe
         self._formation_spread: float = 80.0  # Distance entre les membres du groupe
+        # Distance maximale avant de se regrouper
+        self._max_spread_distance: float = TILE_SIZE * 8.0  # 8 tuiles de dispersion max
+        self._cohesion_range: float = TILE_SIZE * 4.0  # Se rapprocher si > 4 tuiles du centre
 
     def assign_chest(self, entity_id: int, chest_id: int, current_time: float) -> None:
         self._chest_assignments[chest_id] = ChestAssignment(entity_id, chest_id, current_time)
@@ -99,21 +103,38 @@ class CoordinationService:
     def compute_avoidance_vector(
         self, entity_id: int, position: Tuple[float, float], min_distance: float
     ) -> Tuple[float, float]:
+        """Calcule un vecteur d'évitement basé sur les alliés TRÈS proches.
+        
+        IMPORTANT: Seulement repousser si VRAIMENT trop proche (collision imminente).
+        Éviter les oscillations causées par des évitements trop larges.
+        """
         if not self._unit_states:
             return (0.0, 0.0)
+        
         accum = np.zeros(2, dtype=np.float32)
-        min_distance_sq = max(min_distance * min_distance, 1.0)
+        # Réduire drastiquement la distance d'évitement - seulement pour éviter les collisions
+        collision_distance = min_distance * 0.4  # Seulement 40% de la distance originale
+        collision_distance_sq = max(collision_distance * collision_distance, 1.0)
+        
         for state in self._unit_states.values():
             if state.entity_id == entity_id:
                 continue
             dx = position[0] - state.position[0]
             dy = position[1] - state.position[1]
             dist_sq = dx * dx + dy * dy
-            if dist_sq >= min_distance_sq or dist_sq < 1e-3:
+            
+            # Seulement repousser si TRÈS proche (collision imminente)
+            if dist_sq >= collision_distance_sq or dist_sq < 1e-3:
                 continue
-            weight = min_distance / np.sqrt(dist_sq)
+            
+            # Poids exponentiel : plus proche = plus fort
+            dist = np.sqrt(dist_sq)
+            weight = (collision_distance - dist) / collision_distance  # 0 à 1
+            weight = weight * weight  # Exponentiel pour renforcer l'effet à courte distance
+            
             accum[0] += dx * weight
             accum[1] += dy * weight
+        
         if np.allclose(accum, 0.0):
             return (0.0, 0.0)
         norm = np.linalg.norm(accum)
@@ -153,7 +174,10 @@ class CoordinationService:
     # ========== Système de groupes ==========
     
     def update_group(self, team_id: int, timestamp: float) -> None:
-        """Met à jour ou crée un groupe pour une équipe donnée."""
+        """Met à jour ou crée un groupe pour une équipe donnée.
+        
+        Calcule le centre du groupe et désigne un leader.
+        """
         # Récupérer tous les Scouts de cette équipe
         team_units = [
             (entity_id, state) 
@@ -193,6 +217,71 @@ class CoordinationService:
                 target=None,
                 timestamp=timestamp
             )
+    
+    def get_group_center(self, team_id: int) -> Optional[Tuple[float, float]]:
+        """Retourne le centre du groupe (barycentre des positions)."""
+        group = self._groups.get(team_id)
+        return group.formation_center if group else None
+    
+    def should_regroup(
+        self, 
+        entity_id: int, 
+        position: Tuple[float, float], 
+        team_id: int
+    ) -> bool:
+        """Détermine si un Scout est trop loin et doit se rapprocher du groupe.
+        
+        Returns:
+            True si le Scout doit activement rejoindre le groupe
+            False si le Scout peut continuer son objectif actuel
+        """
+        group = self._groups.get(team_id)
+        if not group or entity_id not in group.members:
+            return False
+        
+        # Calculer la distance au centre du groupe
+        dx = position[0] - group.formation_center[0]
+        dy = position[1] - group.formation_center[1]
+        distance = np.sqrt(dx * dx + dy * dy)
+        
+        # Se regrouper seulement si VRAIMENT trop éloigné
+        return distance > self._max_spread_distance
+    
+    def get_cohesion_vector(
+        self, 
+        entity_id: int, 
+        position: Tuple[float, float], 
+        team_id: int
+    ) -> Tuple[float, float]:
+        """Calcule un vecteur de cohésion vers le centre du groupe.
+        
+        Ce vecteur n'est actif que si le Scout est à distance moyenne du groupe.
+        Il permet un rapprochement doux sans forcer un regroupement strict.
+        
+        Returns:
+            Vecteur normalisé (0, 0) si pas besoin de cohésion, 
+            ou vecteur vers le centre avec intensité basée sur la distance
+        """
+        group = self._groups.get(team_id)
+        if not group or entity_id not in group.members:
+            return (0.0, 0.0)
+        
+        dx = group.formation_center[0] - position[0]
+        dy = group.formation_center[1] - position[1]
+        distance = np.sqrt(dx * dx + dy * dy)
+        
+        # Pas de cohésion si très proche (< 2 tuiles) ou très loin (sera géré par should_regroup)
+        if distance < TILE_SIZE * 2.0 or distance > self._max_spread_distance:
+            return (0.0, 0.0)
+        
+        # Cohésion progressive : plus on est loin, plus on est attiré
+        # Entre 2 et 8 tuiles : attraction proportionnelle
+        if distance > self._cohesion_range:
+            strength = min(1.0, (distance - self._cohesion_range) / (self._max_spread_distance - self._cohesion_range))
+            norm = max(distance, 1e-3)
+            return (dx / norm * strength, dy / norm * strength)
+        
+        return (0.0, 0.0)
     
     def get_group_formation_position(
         self, 
@@ -252,22 +341,3 @@ class CoordinationService:
         """Retourne la taille du groupe."""
         group = self._groups.get(team_id)
         return len(group.members) if group else 0
-    
-    def should_regroup(
-        self, 
-        entity_id: int, 
-        position: Tuple[float, float], 
-        team_id: int
-    ) -> bool:
-        """Détermine si une unité doit rejoindre son groupe."""
-        group = self._groups.get(team_id)
-        if not group or entity_id not in group.members:
-            return False
-        
-        # Calculer la distance au centre du groupe
-        dx = position[0] - group.formation_center[0]
-        dy = position[1] - group.formation_center[1]
-        distance = np.sqrt(dx * dx + dy * dy)
-        
-        # Se regrouper si trop éloigné (plus de 3x la distance de formation)
-        return distance > self._formation_spread * 3.0

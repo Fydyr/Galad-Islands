@@ -253,12 +253,23 @@ class AttackState(RapidAIState):
             projectile_target = fallback_target
         
         # Orienter to la cible (ou fallback sur direction actuelle)
+        # Ajouter une variation d'angle pour éviter que les projectiles se détruisent mutuellement
         if projectile_target is not None:
             try:
                 pos = esper.component_for_entity(context.entity_id, PositionComponent)
                 dx = pos.x - projectile_target[0]
                 dy = pos.y - projectile_target[1]
-                pos.direction = (degrees(atan2(dy, dx)) + 360.0) % 360.0
+                base_angle = (degrees(atan2(dy, dx)) + 360.0) % 360.0
+                
+                # Obtenir le compteur de tirs et alterner l'angle
+                shot_counter = context.share_channel.get("shot_counter", 0)
+                context.share_channel["shot_counter"] = shot_counter + 1
+                
+                # Variation d'angle : alterner entre -5°, 0°, +5° pour varier les trajectoires
+                angle_variations = [-5.0, 0.0, 5.0, -3.0, 3.0]
+                angle_offset = angle_variations[int(shot_counter) % len(angle_variations)]
+                
+                pos.direction = (base_angle + angle_offset) % 360.0
             except KeyError:
                 pass
         

@@ -43,6 +43,7 @@ def get_app_data_path() -> str:
     else:
         # Version non compilée : stocker in src/models du projet
         path = os.path.join(os.path.dirname(__file__), '..', 'models')
+        path = os.path.join(os.path.dirname(__file__), '..', '..', 'models')
         path = os.path.abspath(path)
         os.makedirs(path, exist_ok=True)
         return path
@@ -443,10 +444,20 @@ class MaraudeurAI:
         # Marche arrière temporaire si on vient de se débloquer
         if not hasattr(self, '_reverse_timer'):
             self._reverse_timer = 0.0
+            self._new_direction_after_reverse = None
+            
         if self._reverse_timer > 0.0:
             self._reverse_timer = max(0.0, self._reverse_timer - 0.016)
-            # Reculer doucement
-            vel.currentSpeed = max(vel.maxUpSpeed * 0.6, 2.5)
+            
+            # FIN de la marche arrière : appliquer le nouvel angle de contournement
+            if self._reverse_timer <= 0.0 and hasattr(self, '_new_direction_after_reverse') and self._new_direction_after_reverse is not None:
+                pos.direction = self._new_direction_after_reverse
+                self._new_direction_after_reverse = None  # Réinitialiser
+                vel.currentSpeed = max(vel.maxUpSpeed * 0.8, 3.5)  # Reprendre vitesse normale
+                return pos.direction
+            
+            # Pendant la marche arrière : reculer doucement
+            vel.currentSpeed = max(vel.maxUpSpeed * 0.7, 3.0)
             return (pos.direction + 180) % 360
 
         # Distance de sécurité autour de la base ennemie (éviter de s'approcher trop)
@@ -474,17 +485,25 @@ class MaraudeurAI:
             self._last_stuck_check_pos = (pos.x, pos.y)
             self._stuck_counter = 0  # Compteur de blocages consécutifs
             self._preferred_avoidance_direction = None  # Mémoriser la direction de contournement
+            self._new_direction_after_reverse = None  # Nouvelle direction après marche arrière
 
         self._stuck_check_timer += 0.016  # dt approximatif
-        if self._stuck_check_timer > 3.0:  # Check toutes les 3 secondes (augmenté)
+        if self._stuck_check_timer > 2.0:  # Check toutes les 2 secondes (réduit pour réaction plus rapide)
             dist_moved = math.hypot(pos.x - self._last_stuck_check_pos[0], pos.y - self._last_stuck_check_pos[1])
-            if vel.currentSpeed > 1.0 and dist_moved < TILE_SIZE * 0.5:  # Vraiment coincé
+            if vel.currentSpeed > 1.0 and dist_moved < TILE_SIZE * 0.8:  # Vraiment coincé (seuil augmenté)
                 self._stuck_counter += 1
-                if self._stuck_counter >= 2:  # Coincé 2 fois de suite (6 secondes)
-                    # Nouvelle stratégie: MARCHE ARRIÈRE courte pour se désengorger
-                    self._reverse_timer = 0.8
-                    vel.currentSpeed = max(vel.maxUpSpeed * 0.6, 2.5)
-                    return (pos.direction + 180) % 360
+                if self._stuck_counter >= 1:  # Réagir DÈS le premier blocage (au lieu de 2)
+                    # STRATÉGIE AMÉLIORÉE: MARCHE ARRIÈRE + CHANGEMENT D'ANGLE
+                    self._reverse_timer = 1.8  # Marche arrière plus longue (1.8s au lieu de 0.8s)
+                    
+                    # Choisir un nouvel angle de contournement intelligent
+                    best_angle = self._choose_best_avoidance_direction(pos)
+                    # Appliquer un changement d'angle significatif (60-90°)
+                    angle_change = best_angle + random.randint(-20, 20)  # Ajouter de l'aléatoire
+                    self._new_direction_after_reverse = (pos.direction + angle_change) % 360
+                    
+                    vel.currentSpeed = max(vel.maxUpSpeed * 0.7, 3.0)  # Vitesse modérée pour la marche arrière
+                    return (pos.direction + 180) % 360  # Marche arrière immédiate
             else:
                 self._stuck_counter = 0  # Réinitialiser si on bouge
                 self._preferred_avoidance_direction = None  # Réinitialiser la direction préférée

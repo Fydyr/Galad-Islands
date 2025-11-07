@@ -58,13 +58,15 @@ class ExploreState(RapidAIState):
 
     def update(self, dt: float, context: "UnitContext") -> None:
         now = self.controller.context_manager.time
+        team_id = context.team_id
         
-        # Track movement progress to detect being stuck
+        # Track movement progress to detect being stuck - ASSOUPLIR les seuils
         if self._last_progress_pos is None:
             self._last_progress_pos = context.position
         else:
             moved = self.distance(self._last_progress_pos, context.position)
-            if moved < TILE_SIZE * 0.3:
+            # Réduire le seuil de mouvement minimum et augmenter le temps avant détection de blocage
+            if moved < TILE_SIZE * 0.2:  # Seuil plus bas (0.2 au lieu de 0.3)
                 self._stuck_timer += dt
             else:
                 self._stuck_timer = 0.0
@@ -97,13 +99,13 @@ class ExploreState(RapidAIState):
             # Mode EXPLORATION: random movement
             needs_new_target = (
                 self._exploration_target is None
-                or now - self._last_target_time > 12.0  # Change target every 12s
+                or now - self._last_target_time > 15.0  # Augmenter de 12s à 15s
                 or self._is_target_reached(context.position, self._exploration_target)
-                or self._stuck_timer > 3.0  # Force new target if stuck
+                or self._stuck_timer > 4.5  # Augmenter de 3.0s à 4.5s pour éviter les changements trop fréquents
             )
             
             if needs_new_target:
-                # Leader generates new random target, members follow
+                # Leader generates new random target, members follow the SAME target (cohesion handled in move_towards)
                 is_leader = self.controller.coordination.is_group_leader(context.entity_id, team_id)
                 if is_leader:
                     new_target = self._generate_random_exploration_target(context)
@@ -114,7 +116,7 @@ class ExploreState(RapidAIState):
                         # Fallback if no valid target found
                         self._exploration_target = None
                 else:
-                    # Members use leader's target
+                    # Members use leader's target EXACTLY (no offset - cohesion gérée par move_towards)
                     group_target = self.controller.coordination.get_group_target(team_id)
                     self._exploration_target = group_target if group_target else self._generate_random_exploration_target(context)
                 
@@ -128,8 +130,8 @@ class ExploreState(RapidAIState):
         
         # --- Move towards target ---
         if target:
-            # Request path if needed (no path, or stuck too long)
-            if not context.path or self._repath_timer > 2.0:
+            # Request path if needed (no path, or stuck too long) - AUGMENTER le délai de repathing
+            if not context.path or self._repath_timer > 3.5:  # Augmenter de 2.0s à 3.5s
                 self.controller.request_path(target)
                 self._repath_timer = 0.0
             
@@ -152,7 +154,8 @@ class ExploreState(RapidAIState):
                     self.controller.move_towards(target)
             else:
                 # No path available, try to unstuck or move directly
-                if self._stuck_timer > 2.0:
+                # AUGMENTER le délai avant de considérer comme coincé
+                if self._stuck_timer > 3.5:  # Augmenter de 2.0s à 3.5s
                     nudge = self._unstuck_nudge(context.position, target_hint=target)
                     self.controller.move_towards(nudge or target)
                 else:

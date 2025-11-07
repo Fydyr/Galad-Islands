@@ -11,7 +11,7 @@ Ce module fournit la logique de décision pour l'IA :
 import math
 import copy
 from typing import List, Tuple, Dict, Any, Optional
-from src.algorithms.astar.aStarPathfinding import a_star_pathfinding, Grid, PositionPixel, PositionTile
+from src.ia.ia_druid.astar.aStarPathfinding import a_star_pathfinding, Grid, PositionPixel, PositionTile
 from src.factory.unitType import UnitType
 from src.constants.gameplay import (
     UNIT_COOLDOWN_DRUID, 

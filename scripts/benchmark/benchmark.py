@@ -27,8 +27,9 @@ import psutil
 from datetime import datetime
 from contextlib import contextmanager
 
-# Add src directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# Add project root directory to path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, project_root)
 
 import esper
 import pygame
@@ -464,8 +465,8 @@ class GaladBenchmark:
         if self.verbose:
             print("💥 Combat simulation test...")
 
-        # Create units for combat
-        num_units = 500
+        # Create units for combat (réduit de 500 à 100 pour éviter OOM)
+        num_units = 100
         units = []
         for i in range(num_units):
             entity = esper.create_entity()
@@ -1169,7 +1170,7 @@ class GaladBenchmark:
             memory_mb=self._get_memory_usage()
         )
 
-    def run_all_benchmarks(self) -> List[BenchmarkResult]:
+    def run_all_benchmarks(self, export_csv: bool = False, enable_profiling: bool = False) -> List[BenchmarkResult]:
         """Execute all benchmarks."""
         benchmarks = [
             self.benchmark_entity_creation,
@@ -1184,8 +1185,26 @@ class GaladBenchmark:
                 result = benchmark_func()
                 results.append(result)
                 self.results.append(result)
+                
+                # Export CSV si demandé
+                if export_csv:
+                    try:
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        csv_filename = f"{result.name}_{timestamp}.csv"
+                        self.export_to_csv(result, filename=csv_filename)
+                        print(f"   💾 CSV exporté: {csv_filename}")
+                    except Exception as e:
+                        if self.verbose:
+                            print(f"   ⚠️  Erreur export CSV: {e}")
+                
+                # Nettoyage agressif de mémoire entre tests
+                gc.collect()
+                
             except Exception as e:
                 print(f"❌ Error in {benchmark_func.__name__}: {e}")
+                import traceback
+                if self.verbose:
+                    traceback.print_exc()
                 continue
 
         return results
@@ -1372,7 +1391,7 @@ def main():
         print(f"🎮 Running full game simulation with {num_ai} AI team(s)...")
         results = [benchmark.benchmark_full_game_simulation(num_ai_teams=num_ai, enable_profiling=args.profile, export_csv=args.export_csv)]
     else:
-        results = benchmark.run_all_benchmarks()
+        results = benchmark.run_all_benchmarks(export_csv=args.export_csv, enable_profiling=args.profile)
 
     benchmark.print_summary()
 

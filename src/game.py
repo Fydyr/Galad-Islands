@@ -42,6 +42,7 @@ from src.processeurs.ai.DruidAIProcessor import DruidAIProcessor
 from src.processeurs.towerProcessor import TowerProcessor
 from src.ia.ia_scout.processors.rapid_ai_processor import RapidTroopAIProcessor
 from src.processeurs.economy.passiveIncomeProcessor import PassiveIncomeProcessor
+from src.processeurs.ai.ai_processor_manager import AIProcessorManager
 
 
 # Component imports
@@ -68,6 +69,8 @@ from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 
 # AI - Import of the new component
 from src.components.ai.DruidAiComponent import DruidAiComponent
+from src.components.core.KamikazeAiComponent import KamikazeAiComponent
+from src.components.ai.architectAIComponent import ArchitectAIComponent
 
 # import event
 from src.components.events.banditsComponent import Bandits
@@ -1095,30 +1098,43 @@ class GameEngine:
         # Passive income to prevent stalemates when a team has zero units
         self.passive_income_processor = PassiveIncomeProcessor(gold_per_tick=1, interval=2.0)
 
-        # AI - Initialize the AI processor with the grid
+        # AI - Initialize the AI processors with the grid
         self.druid_ai_processor = DruidAIProcessor(self.grid, es)
+        self.rapid_ai_processor_ally = RapidTroopAIProcessor(self.grid)
+        self.rapid_ai_processor_enemy = RapidTroopAIProcessor(self.grid)
 
         # Tower processor (manages defense/heal towers)
         self.tower_processor = TowerProcessor()
         # Storm processor (manages storms)
         self.storm_processor = StormProcessor()
+        
         # Leviathan AI
         self.ai_leviathan_processor = AILeviathanProcessor()
-        es.add_processor(self.ai_leviathan_processor, priority=9)
+        
         # Kamikaze AI
         if self.kamikaze_ai_processor is not None and self.grid is not None:
             self.kamikaze_ai_processor.map_grid = self.grid
-        es.add_processor(self.kamikaze_ai_processor, priority=6)
-        # Allied and enemy base AI
+        
+        # ===== NOUVEAU: AI PROCESSOR MANAGER =====
+        # Gère l'activation/désactivation dynamique des processeurs IA
+        # Les processeurs ne sont ajoutés que quand les entités correspondantes existent
+        self.ai_manager = AIProcessorManager(es)
+        
+        # Enregistrer les processeurs IA standards (component_type, processor, priority)
+        # Ils seront activés automatiquement quand les entités spawn
+        self.ai_manager.register_ai_processor(DruidAiComponent, self.druid_ai_processor, priority=1)
+        self.ai_manager.register_ai_processor(SpeScout, self.rapid_ai_processor_ally, priority=2)
+        self.ai_manager.register_ai_processor(SpeScout, self.rapid_ai_processor_enemy, priority=3)
+        self.ai_manager.register_ai_processor(KamikazeAiComponent, self.kamikaze_ai_processor, priority=6)
+        # Note: ArchitectAIProcessor a une signature différente (process(grid)), géré manuellement
+        self.ai_manager.register_ai_processor(SpeLeviathan, self.ai_leviathan_processor, priority=9)
+        
+        # Allied and enemy base AI - toujours actifs
         es.add_processor(self.ally_base_ai, priority=7)
-        es.add_processor(self.enemy_base_ai, priority=8)        
-        self.rapid_ai_processor_ally = RapidTroopAIProcessor(self.grid)
-        self.rapid_ai_processor_enemy = RapidTroopAIProcessor(self.grid)
+        es.add_processor(self.enemy_base_ai, priority=8)
 
-        # Add processors in order
-        es.add_processor(self.druid_ai_processor, priority=1)
-        es.add_processor(self.rapid_ai_processor_ally, priority=2)
-        es.add_processor(self.rapid_ai_processor_enemy, priority=3)
+        # Add core processors (always active)
+        es.add_processor(self.capacities_processor, priority=0)  # Cooldowns FIRST
         es.add_processor(self.collision_processor, priority=4)
         es.add_processor(self.movement_processor, priority=5)
         es.add_processor(self.player_controls, priority=6)
@@ -1903,6 +1919,9 @@ class GameEngine:
         if hasattr(self, 'enemy_base_ai'):
             self.enemy_base_ai.active_player_team_id = self.selection_team_filter
             self.enemy_base_ai.self_play_mode = getattr(self, 'self_play_mode', False)
+
+        # Update AI processor manager (active/désactive les processeurs IA dynamiquement)
+        self.ai_manager.update(dt)
 
         # Process ECS logic (without dt for other processors)
         es.process(dt=dt)

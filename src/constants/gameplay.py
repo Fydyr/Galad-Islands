@@ -239,7 +239,7 @@ BASE_ATTACK_COOLDOWN = 3.0  # Cooldown entre tirs de base (secondes)
 # Cooldowns d'attaque des units (en secondes)
 UNIT_COOLDOWN_SCOUT = 2
 UNIT_COOLDOWN_MARAUDEUR = 4
-UNIT_COOLDOWN_LEVIATHAN = 60  # 1 seconde (60 frames at 60 FPS)
+UNIT_COOLDOWN_LEVIATHAN = 1.5  # 1.5 secondes entre chaque attaque
 UNIT_COOLDOWN_DRUID = 4
 UNIT_COOLDOWN_KAMIKAZE = 0.5 # Cooldown très court, car il meurt after l'attaque
 UNIT_COOLDOWN_ARCHITECT = 4

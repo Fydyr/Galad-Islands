@@ -115,6 +115,12 @@ class RapidTroopAIProcessor(esper.Processor):
         self._cleanup_dead_entities()
         self._refresh_services(dt)
         self._push_env_events()
+        
+        # Mettre à jour les groupes pour toutes les équipes
+        teams_to_update = set()
+        for state in self.coordination.shared_states():
+            teams_to_update.add(state.entity_id)  # Approximation - on utilisera team_id plus tard
+        
         collect_debug = self.settings.debug.enabled and self.settings.debug.overlay_enabled
         if collect_debug:
             self._debug_overlay.clear()
@@ -292,8 +298,9 @@ class RapidUnitController:
         waypoint_radius = TILE_SIZE * self.settings.pathfinding.waypoint_reached_radius_factor
         if getattr(self.pathfinding, "sub_tile_factor", 1) > 1:
             waypoint_radius /= self.pathfinding.sub_tile_factor
-        self._waypoint_radius = max(32.0, waypoint_radius)
-        self._navigation_tolerance = max(24.0, self._waypoint_radius * 0.75)
+        # Augmenter significativement le rayon de waypoint pour éviter les micro-mouvements
+        self._waypoint_radius = max(TILE_SIZE * 1.5, waypoint_radius)
+        self._navigation_tolerance = max(TILE_SIZE, self._waypoint_radius * 0.8)
         self.state_machine = self._build_state_machine()
         self.last_objective_refresh = -999.0
         self._last_state_name = ""
@@ -339,7 +346,7 @@ class RapidUnitController:
             Transition(condition=self._should_flee, target=flee, priority=100, name="Danger")
         )
         fsm.add_global_transition(
-            Transition(condition=self._should_follow_druid, target=follow, priority=80, name="FollowDruid")
+            Transition(condition=self._should_follow_druid, target=follow, priority=30, name="FollowDruid")
         )
         fsm.add_global_transition(
             Transition(condition=self._has_navigation_request, target=goto, priority=70, name="Navigation")
@@ -566,13 +573,17 @@ class RapidUnitController:
         return should_start_flee
 
     def _should_follow_druid(self, dt: float, context: UnitContext) -> bool:
+        # Ne jamais forcer FollowDruid, privilégier la retraite (Flee) à la place
+        # FollowDruid n'est activé QUE si :
+        # 1. Un Druide existe
+        # 2. Le Scout a déjà un objectif explicite de type "follow_druid"
         if not self.goal_evaluator.has_druid(context.team_id):
             return False
         objective = context.current_objective
         if objective and objective.type == "follow_druid":
             return True
-        health_ratio = context.health / max(context.max_health, 1.0)
-        return health_ratio < self.settings.follow_druid_health_ratio
+        # Sinon, même si la santé est basse, on laisse Flee gérer la situation
+        return False
 
     def _should_explore(self, dt: float, context: UnitContext) -> bool:
         """Détermine si le Scout doit passer en mode exploration."""
@@ -590,21 +601,27 @@ class RapidUnitController:
         if context.current_objective and context.current_objective.type in {"goto_chest", "goto_island_resource"}:
             return False
         
-        # Ne pas explorer s'il y a des ennemis à proximité
+        # Ne JAMAIS interrompre une navigation active (évite l'oscillation GoTo ↔ Explore)
+        if self.is_navigation_active(context):
+            return False
+        
+        # Assouplir la condition : permettre l'exploration même avec des ennemis distants
+        # Seulement bloquer si ennemis TRÈS proches (moins de la moitié de la vision)
         predicted_targets = list(self.prediction.predict_enemy_positions(context.team_id))
-        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
+        close_range = (UNIT_VISION_SCOUT * TILE_SIZE) * 0.5  # Réduire le rayon d'interdiction
         for target in predicted_targets:
             distance = math.hypot(
                 context.position[0] - target.current_position[0],
                 context.position[1] - target.current_position[1]
             )
-            if distance <= vision_radius:
-                # Ennemi proche, ne pas explorer, laisser l'IA attaquer
+            if distance <= close_range:
+                # Ennemi très proche, ne pas explorer, laisser l'IA attaquer
                 return False
         
-        # Explorer si on n'a pas d'objectif d'attaque ou si on est en Idle
+        # Explorer si on n'a pas d'objectif d'attaque ou si on est en Idle ou GoTo
         current_state = self.state_machine.current_state.name
-        return current_state in ["Idle", "GoTo"] or context.current_objective is None
+        # Permettre l'exploration depuis plus d'états, sauf si navigation active
+        return current_state in ["Idle", "GoTo", "Attack"] or context.current_objective is None
 
     def _has_goto_objective(self, dt: float, context: UnitContext) -> bool:
         return bool(context.current_objective and context.current_objective.type.startswith("goto"))
@@ -873,7 +890,17 @@ class RapidUnitController:
                 pos = esper.component_for_entity(context.entity_id, PositionComponent)
                 dx = pos.x - projectile_target[0]
                 dy = pos.y - projectile_target[1]
-                pos.direction = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
+                base_angle = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
+                
+                # Obtenir le compteur de tirs et alterner l'angle
+                shot_counter = context.share_channel.get("shot_counter", 0)
+                context.share_channel["shot_counter"] = shot_counter + 1
+                
+                # Variation d'angle : alterner entre -5°, 0°, +5° pour varier les trajectoires
+                angle_variations = [-5.0, 0.0, 5.0, -3.0, 3.0]
+                angle_offset = angle_variations[int(shot_counter) % len(angle_variations)]
+                
+                pos.direction = (base_angle + angle_offset) % 360.0
             except KeyError:
                 pass
 
@@ -1015,14 +1042,15 @@ class RapidUnitController:
             context.last_state_change = now
             self.cancel_navigation(context)
 
-        # Détection de blocage de navigation
+        # Détection de blocage de navigation - ASSOUPLIR pour éviter les faux positifs
         if current_state == "GoTo" and context.path:
             dist_moved = math.hypot(context.position[0] - self._last_position_check[0], context.position[1] - self._last_position_check[1])
-            if dist_moved < TILE_SIZE * 0.5: # Si on a peu bougé
+            # Augmenter la distance minimale et le temps avant de considérer comme coincé
+            if dist_moved < TILE_SIZE * 0.3: # Seuil plus bas
                 # Utiliser le temps absolu au lieu de dt
                 if self._stuck_timer == 0.0:
                     self._stuck_timer = now
-                elif now - self._stuck_timer > 3.0: # Coincé depuis 3 secondes
+                elif now - self._stuck_timer > 5.0: # Augmenter de 3s à 5s avant d'intervenir
                     context.advance_path() # Forcer le passage au waypoint suivant
                     self._stuck_timer = 0.0
             else:
@@ -1044,27 +1072,31 @@ class RapidUnitController:
         pos = esper.component_for_entity(self.entity_id, PositionComponent)
         vel = esper.component_for_entity(self.entity_id, VelocityComponent)
 
-        # Évitement des alliés proches - augmenté pour réduire les collisions
-        avoidance = self.coordination.compute_avoidance_vector(self.entity_id, (pos.x, pos.y), 128.0)
+        # Évitement des alliés - SEULEMENT pour collisions imminentes
+        # La distance passée (96.0) sera réduite à 40% dans compute_avoidance_vector
+        avoidance = self.coordination.compute_avoidance_vector(self.entity_id, (pos.x, pos.y), 96.0)
         projectile_avoid = self.prediction.projectile_threat_vector((pos.x, pos.y))
+        
+        # DÉSACTIVÉ : Cohésion de groupe (causait des passages à travers les îles)
+        # cohesion = self.coordination.get_cohesion_vector(self.entity_id, (pos.x, pos.y), self.context.team_id)
+        cohesion = (0.0, 0.0)
 
-        # Évitement léger des obstacles proches (îles, mines) pour éviter les accrochages
+        # Évitement des obstacles - simplifié pour réduire les oscillations
         obstacle_repulse = (0.0, 0.0)
         try:
+            # Vérifier seulement si on est TRÈS proche d'un obstacle (imminent)
+            check_radius = TILE_SIZE * 0.6
             samples = []
-            # Échantillons autour du Scout (proche et un peu plus loin)
-            for radius in (TILE_SIZE * 0.6, TILE_SIZE * 1.2):
-                for angle_deg in (0, 45, 90, 135, 180, 225, 270, 315):
-                    rad = math.radians(angle_deg)
-                    sx = pos.x + math.cos(rad) * radius
-                    sy = pos.y + math.sin(rad) * radius
-                    if self.pathfinding.is_world_blocked((sx, sy)):
-                        # Repousser depuis ce point bloqué
-                        dx = pos.x - sx
-                        dy = pos.y - sy
-                        dist = max(1.0, math.hypot(dx, dy))
-                        weight = 1.0 / dist
-                        samples.append((dx * weight, dy * weight))
+            for angle_deg in (0, 90, 180, 270):
+                rad = math.radians(angle_deg)
+                sx = pos.x + math.cos(rad) * check_radius
+                sy = pos.y + math.sin(rad) * check_radius
+                if self.pathfinding.is_world_blocked((sx, sy)):
+                    dx = pos.x - sx
+                    dy = pos.y - sy
+                    dist = max(1.0, math.hypot(dx, dy))
+                    weight = 1.0 / dist
+                    samples.append((dx * weight, dy * weight))
             if samples:
                 rx = sum(v[0] for v in samples)
                 ry = sum(v[1] for v in samples)
@@ -1074,9 +1106,10 @@ class RapidUnitController:
         except Exception:
             pass
 
+        # Combinaison des forces : cible principale + évitements (PAS de cohésion pour éviter passages à travers îles)
         adjusted_target = (
-            target_position[0] + avoidance[0] * 72.0 - projectile_avoid[0] * 32.0 + obstacle_repulse[0] * 36.0,
-            target_position[1] + avoidance[1] * 72.0 - projectile_avoid[1] * 32.0 + obstacle_repulse[1] * 36.0,
+            target_position[0] + avoidance[0] * 32.0 - projectile_avoid[0] * 20.0 + obstacle_repulse[0] * 16.0,
+            target_position[1] + avoidance[1] * 32.0 - projectile_avoid[1] * 20.0 + obstacle_repulse[1] * 16.0,
         )
 
         if self.pathfinding.is_world_blocked(adjusted_target):

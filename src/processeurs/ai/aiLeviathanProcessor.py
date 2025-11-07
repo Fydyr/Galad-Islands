@@ -150,10 +150,8 @@ class AILeviathanProcessor(esper.Processor):
                 continue
 
             # Update Attack Cooldown: Frame-rate independent decrement
-            if esper.has_component(entity, RadiusComponent):
-                radius = esper.component_for_entity(entity, RadiusComponent)
-                if radius.cooldown > 0:
-                    radius.cooldown -= dt * 60  # Convert dt (seconds) to frames at 60 FPS
+            # NOTE: Cooldown is already managed by CapacitiesSpecialesProcessor
+            # No need to decrement it here to avoid double-decrement issues
 
             # Action Throttling: Respect AI action cooldown
             if not ai_comp.isReadyForAction(self.elapsed_time):
@@ -415,10 +413,16 @@ class AILeviathanProcessor(esper.Processor):
                 # Special Ability: Aggressive usage for maximum DPS
                 should_use_special = spe_lev.can_activate()
                 if should_use_special and not is_mine:
-                    spe_lev.activate()
+                    activated = spe_lev.activate()
+                    if activated:
+                        # Fire omnidirectional shot immediately
+                        esper.dispatch_event("attack_event", entity, "leviathan")
+                        # Reset flags after firing
+                        spe_lev.is_active = False
+                        spe_lev.pending = False
                 # Main Weapons: Fire when cooldown ready
                 if radius.cooldown <= 0 and not is_mine:
-                    esper.dispatch_event("attack_event", entity)
+                    esper.dispatch_event("attack_event", entity, "bullet")
                     radius.cooldown = radius.bullet_cooldown
 
             # Secondary Fire: Lateral weapons when flanked
@@ -538,11 +542,17 @@ class AILeviathanProcessor(esper.Processor):
                 should_use_special = spe_lev.can_activate()  # Always use when available!
 
                 if should_use_special:
-                    spe_lev.activate()
+                    activated = spe_lev.activate()
+                    if activated:
+                        # Fire omnidirectional shot immediately
+                        esper.dispatch_event("attack_event", entity, "leviathan")
+                        # Reset flags after firing
+                        spe_lev.is_active = False
+                        spe_lev.pending = False
 
                 # Fire normal attack ALWAYS when cooldown is ready
                 if radius.cooldown <= 0:
-                    esper.dispatch_event("attack_event", entity)
+                    esper.dispatch_event("attack_event", entity, "bullet")
                     radius.cooldown = radius.bullet_cooldown
 
     def _avoidObstacle(

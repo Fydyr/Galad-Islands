@@ -8,6 +8,12 @@ i18n:
 
 Les processeurs contiennent la logique métier du jeu et agissent sur les entités ayant certains composants.
 
+## Optimisation des processeurs IA
+
+Le système utilise un **AI Processor Manager** pour activer/désactiver dynamiquement les processeurs d'IA selon la présence d'entités correspondantes. Cela permet d'économiser jusqu'à **83% d'overhead CPU** lorsqu'aucune unité IA n'est active.
+
+📖 **Voir aussi** : [AI Processor Manager](ai-processor-manager.md) - Documentation complète de l'optimisation.
+
 ## Liste des processeurs
 
 ### Processeurs de base

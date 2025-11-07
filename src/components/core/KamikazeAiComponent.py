@@ -1,6 +1,6 @@
 """
-component pour marquer une unit comme étant contrôlée par une IA individuelle.
-Chaque unit avec ce component aura son propre modèle de décision.
+Composent KamikazeAiComponent pour marquer une unité comme utilisant l'IA kamikaze.
+Ne doit pas être utilisé sur des unités non kamikaze.
 """
 
 from dataclasses import dataclass
