@@ -2,7 +2,7 @@
 
 from .context import AIContextManager, UnitContext
 from .danger_map import DangerMapService
-from .pathfinding import AdvancedPathfindingService, PathObjective
+from .pathfinding import PathfindingService
 from .prediction import PredictionService
 from .goals import GoalEvaluator, Objective
 from .event_bus import IAEventBus
@@ -12,8 +12,7 @@ __all__ = [
     "AIContextManager",
     "UnitContext",
     "DangerMapService",
-    "AdvancedPathfindingService",
-    "PathObjective",
+    "PathfindingService",
     "PredictionService",
     "GoalEvaluator",
     "Objective",

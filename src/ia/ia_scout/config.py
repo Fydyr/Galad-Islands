@@ -42,7 +42,7 @@ class PathfindingSettings:
     danger_weight: float = 4.0
     diagonal_cost: float = 1.4
     island_perimeter_weight: float = 999.0  # Quasi-infini pour éviter complètement les îles
-    island_perimeter_radius: int = 4  # Augmenté de 2 à 4 (2 tuiles complètes de marge, comme Kamikaze)
+    island_perimeter_radius: int = 2  # Réduire de 3 à 2 (1 tuile au lieu de 1.5 tuiles)
     mine_perimeter_radius: int = 4  # Zone de sécurité de 2 tuiles autour des mines
     blocked_margin_radius: int = 1  # Réduire encore de 2 à 1 
     blocked_margin_weight: float = 8.0  # Réduire de 10.0 à 8.0
