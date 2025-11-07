@@ -1462,9 +1462,26 @@ class GameEngine:
         if radius.cooldown > 0:
             return
 
-        # Fire attack - the create_projectile handler will check for Leviathan's special ability
+        # Handle Leviathan's special ability: second volley
+        is_leviathan = es.has_component(entity, SpeLeviathan)
+        leviathan_comp = es.component_for_entity(entity, SpeLeviathan) if is_leviathan else None
+
+        # First attack
         es.dispatch_event("attack_event", entity)
         radius.cooldown = radius.bullet_cooldown
+
+        # If Leviathan and ability active, trigger an immediate second volley
+        if leviathan_comp is not None and getattr(leviathan_comp, "is_active", False):
+            # Log for debug: we detect that the ability is active
+            try:
+                logger.debug("trigger_selected_attack -> Leviathan active for entity %s (cooldown_timer=%s)", entity, getattr(leviathan_comp, 'cooldown_timer', None))
+            except Exception:
+                pass
+            # Deactivate the ability after use (safety)
+            leviathan_comp.is_active = False
+            # Trigger another attack of type 'leviathan' (omnidirectional shot)
+            es.dispatch_event("attack_event", entity, "leviathan")
+            # The cooldown remains unchanged (already applied)
 
     def trigger_selected_special_ability(self):
         if getattr(self, 'self_play_mode', False):
@@ -1502,32 +1519,37 @@ class GameEngine:
             else:
                 print(f"Capacité Maraudeur en cooldown pour l'unité {entity}")
 
-        # Leviathan: omnidirectional shot
+        # Leviathan: second volley
         elif es.has_component(entity, SpeLeviathan):
             leviathan_comp = es.component_for_entity(entity, SpeLeviathan)
             if leviathan_comp.can_activate():
-                # Activate the ability and fire immediately
+                # Activate the ability and immediately fire a second volley
                 activated = leviathan_comp.activate()
                 if activated:
+                    # Consume the ability immediately: fire now
+                    # We don't leave pending (is_active) true because we consume immediately
                     try:
-                        logger.debug("trigger_selected_special_ability -> Leviathan firing omnidirectional shot for entity %s", entity)
+                        # Log debug
+                        logger.debug("trigger_selected_special_ability -> Leviathan activate & immediate shot for entity %s", entity)
                     except Exception:
                         pass
-                    # Fire omnidirectional shot
+                    # Dispatch an immediate attack_event of type 'leviathan'
                     es.dispatch_event("attack_event", entity, "leviathan")
-                    # Reset flags after firing
-                    leviathan_comp.is_active = False
-                    leviathan_comp.pending = False
                     # Play a feedback sound if available
                     try:
                         if getattr(self, 'select_sound', None):
                             self.select_sound.play()
                     except Exception:
                         pass
-                    print(f"Capacité spéciale Leviathan activée pour l'unité {entity} - tir omnidirectionnel!")
+                    # Check that the ability remains pending (is_active True)
+                    try:
+                        logger.debug("trigger_selected_special_ability -> after immediate shot, is_active=%s, cooldown_timer=%s", getattr(leviathan_comp, 'is_active', None), getattr(leviathan_comp, 'cooldown_timer', None))
+                    except Exception:
+                        pass
+                    print(f"Capacité spéciale Leviathan activée et tir immédiat pour l'unité {entity}")
                 else:
                     print(f"Capacité Leviathan en cooldown pour l'unité {entity}")
-
+                
 
         # Druid: flying ivy
         elif es.has_component(entity, SpeDruid):
