@@ -31,11 +31,12 @@ from ..log import get_logger
 from src.settings.settings import config_manager
 from ..services import (
     AIContextManager,
+    AdvancedPathfindingService,
     CoordinationService,
     DangerMapService,
     GoalEvaluator,
     IAEventBus,
-    PathfindingService,
+    PathObjective,
     PredictionService,
     Objective,
 )
@@ -66,7 +67,7 @@ class RapidTroopAIProcessor(esper.Processor):
         super().__init__()
         self.settings = get_settings()
         self.danger_map = DangerMapService(grid, self.settings)
-        self.pathfinding = PathfindingService(grid, self.danger_map, self.settings)
+        self.pathfinding = AdvancedPathfindingService(grid, self.danger_map, self.settings)
         self.prediction = PredictionService()
         self.goal_evaluator = GoalEvaluator(self.settings)
         self.context_manager = AIContextManager(self.settings)
@@ -102,7 +103,7 @@ class RapidTroopAIProcessor(esper.Processor):
         """Recreate spatial services from a new grid definition."""
 
         self.danger_map = DangerMapService(grid, self.settings)
-        self.pathfinding = PathfindingService(grid, self.danger_map, self.settings)
+        self.pathfinding = AdvancedPathfindingService(grid, self.danger_map, self.settings)
         for controller in self.controllers.values():
             controller.danger_map = self.danger_map
             controller.pathfinding = self.pathfinding
@@ -278,7 +279,7 @@ class RapidUnitController:
         entity_id: int,
         context_manager: AIContextManager,
         danger_map: DangerMapService,
-        pathfinding: PathfindingService,
+        pathfinding: AdvancedPathfindingService,
         prediction: PredictionService,
         goal_evaluator: GoalEvaluator,
         event_bus: IAEventBus,
@@ -573,17 +574,44 @@ class RapidUnitController:
         return should_start_flee
 
     def _should_follow_druid(self, dt: float, context: UnitContext) -> bool:
-        # Ne jamais forcer FollowDruid, privilégier la retraite (Flee) à la place
-        # FollowDruid n'est activé QUE si :
-        # 1. Un Druide existe
-        # 2. Le Scout a déjà un objectif explicite de type "follow_druid"
+        """
+        Détermine si le Scout doit suivre un Druid.
+        Ne jamais forcer FollowDruid, privilégier la retraite (Flee) à la place.
+        FollowDruid n'est activé QUE si :
+        1. Un Druide existe
+        2. Le Scout a déjà un objectif explicite de type "follow_druid"
+        3. Le Druid n'est PAS dans le champ de vision (évite de suivre des alliés visibles)
+        """
         if not self.goal_evaluator.has_druid(context.team_id):
             return False
+        
         objective = context.current_objective
-        if objective and objective.type == "follow_druid":
-            return True
-        # Sinon, même si la santé est basse, on laisse Flee gérer la situation
-        return False
+        if not (objective and objective.type == "follow_druid"):
+            # Sinon, même si la santé est basse, on laisse Flee gérer la situation
+            return False
+        
+        # NOUVEAU : Ne pas suivre un allié qui est dans le champ de vision
+        if objective.target_entity is not None:
+            try:
+                druid_pos = esper.component_for_entity(objective.target_entity, PositionComponent)
+                # Calculer la distance au Druid
+                dx = druid_pos.x - context.position[0]
+                dy = druid_pos.y - context.position[1]
+                distance = math.hypot(dx, dy)
+                
+                # Si le Druid est dans le champ de vision (UNIT_VISION_SCOUT tuiles)
+                vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
+                if distance <= vision_radius:
+                    # Le Druid est visible, pas besoin de le suivre activement
+                    # Laisser le Scout en Idle ou autre état plus approprié
+                    if config_manager.get('dev_mode', False):
+                        LOGGER.debug(f"Scout {self.entity_id}: Druid visible à {distance:.1f}px, annulation follow")
+                    return False
+            except KeyError:
+                # Le Druid n'existe plus
+                return False
+        
+        return True
 
     def _should_explore(self, dt: float, context: UnitContext) -> bool:
         """Détermine si le Scout doit passer en mode exploration."""
@@ -1081,13 +1109,14 @@ class RapidUnitController:
         # cohesion = self.coordination.get_cohesion_vector(self.entity_id, (pos.x, pos.y), self.context.team_id)
         cohesion = (0.0, 0.0)
 
-        # Évitement des obstacles - simplifié pour réduire les oscillations
+        # Évitement des obstacles - AMÉLIORÉ avec détection 360° comme Kamikaze
         obstacle_repulse = (0.0, 0.0)
         try:
-            # Vérifier seulement si on est TRÈS proche d'un obstacle (imminent)
-            check_radius = TILE_SIZE * 0.6
+            # Vérifier sur 8 directions (comme Kamikaze) avec rayon augmenté
+            check_radius = TILE_SIZE * 1.5  # Augmenté de 0.6 à 1.5 pour détecter plus tôt
             samples = []
-            for angle_deg in (0, 90, 180, 270):
+            # Vérifier 8 directions au lieu de 4 pour une meilleure couverture
+            for angle_deg in (0, 45, 90, 135, 180, 225, 270, 315):
                 rad = math.radians(angle_deg)
                 sx = pos.x + math.cos(rad) * check_radius
                 sy = pos.y + math.sin(rad) * check_radius
@@ -1095,21 +1124,24 @@ class RapidUnitController:
                     dx = pos.x - sx
                     dy = pos.y - sy
                     dist = max(1.0, math.hypot(dx, dy))
-                    weight = 1.0 / dist
+                    # Force de répulsion inversement proportionnelle à la distance
+                    weight = 2.0 / dist  # Augmenté de 1.0 à 2.0 pour une répulsion plus forte
                     samples.append((dx * weight, dy * weight))
             if samples:
                 rx = sum(v[0] for v in samples)
                 ry = sum(v[1] for v in samples)
                 norm = math.hypot(rx, ry)
                 if norm > 1e-3:
-                    obstacle_repulse = (rx / norm, ry / norm)
+                    # Normaliser et amplifier la répulsion
+                    obstacle_repulse = (rx / norm * 1.5, ry / norm * 1.5)  # Facteur 1.5 pour évitement plus agressif
         except Exception:
             pass
 
         # Combinaison des forces : cible principale + évitements (PAS de cohésion pour éviter passages à travers îles)
+        # Augmenter le poids de obstacle_repulse de 16.0 à 48.0 pour évitement plus fort
         adjusted_target = (
-            target_position[0] + avoidance[0] * 32.0 - projectile_avoid[0] * 20.0 + obstacle_repulse[0] * 16.0,
-            target_position[1] + avoidance[1] * 32.0 - projectile_avoid[1] * 20.0 + obstacle_repulse[1] * 16.0,
+            target_position[0] + avoidance[0] * 32.0 - projectile_avoid[0] * 20.0 + obstacle_repulse[0] * 48.0,
+            target_position[1] + avoidance[1] * 32.0 - projectile_avoid[1] * 20.0 + obstacle_repulse[1] * 48.0,
         )
 
         if self.pathfinding.is_world_blocked(adjusted_target):
@@ -1167,33 +1199,75 @@ class RapidUnitController:
         vel.currentSpeed = max(0.0, vel.currentSpeed * 0.85)
 
     def request_path(self, target_position):
+        """
+        Calcule un chemin adaptatif tenant compte de la vitesse et de l'objectif.
+        Utilise le nouveau système AdvancedPathfindingService.
+        """
         if self.context is None or target_position is None:
             return
-        # Clé de cache arrondie pour avoid les recalculs sur des positions très proches
+        
+        # Clé de cache arrondie pour éviter les recalculs sur des positions très proches
         cache_key = (round(target_position[0], 1), round(target_position[1], 1))
+        
         # Si le chemin est déjà en cache et la position de départ n'a pas trop changé, réutiliser
         if cache_key in self._path_cache:
             cached_path = self._path_cache[cache_key]
-            # Check quele chemin existe et que la destination finale est correcte
+            # Vérifier que le chemin existe et que la destination finale est correcte
             if cached_path and math.hypot(target_position[0] - cached_path[-1][0], target_position[1] - cached_path[-1][1]) < 8.0:
-                # Check quele Scout est encore sur le chemin ou proche du début
+                # Vérifier que le Scout est encore sur le chemin ou proche du début
                 if math.hypot(self.context.position[0] - cached_path[0][0], self.context.position[1] - cached_path[0][1]) < 32.0:
                     self.context.set_path(cached_path)
                     return
+        
         # Si le Scout a déjà un chemin en cours qui mène à la bonne destination, ne rien faire
         if self.context.path:
             last = self.context.path[-1]
             if math.hypot(target_position[0] - last[0], target_position[1] - last[1]) < 8.0:
                 return
+        
         now = self.context_manager.time if hasattr(self.context_manager, "time") else time.time()
         # Ne recalculer le chemin que si au moins 0.5s se sont écoulées
         if now - self._last_path_request_time < 0.5:
             return
+        
         self._last_path_request_time = now
-        # Conversion des coordonnées en entiers pour le pathfinding
-        start_pos = (int(round(self.context.position[0])), int(round(self.context.position[1])))
-        end_pos = (int(round(target_position[0])), int(round(target_position[1])))
-        path = self.pathfinding.find_path(start_pos, end_pos)
+        
+        # Récupérer la vitesse actuelle et maximale
+        try:
+            vel = esper.component_for_entity(self.entity_id, VelocityComponent)
+            current_speed = vel.currentSpeed
+            max_speed = vel.maxUpSpeed if vel.maxUpSpeed > 0 else 10.0
+        except KeyError:
+            current_speed = 0.0
+            max_speed = 10.0
+        
+        # Déterminer l'objectif selon le contexte actuel
+        objective_str = getattr(self.context, "objective", "exploration")
+        if self.context.current_objective:
+            objective_str = self.context.current_objective.type
+        
+        if objective_str == "goto_chest" or "treasure" in objective_str:
+            objective = PathObjective.CHEST
+        elif objective_str == "flee" or objective_str == "follow_to_die":
+            objective = PathObjective.RETREAT
+        elif objective_str in {"attack", "attack_mobile", "attack_base"}:
+            objective = PathObjective.COMBAT
+        else:
+            objective = PathObjective.EXPLORATION
+        
+        # Conversion world → grid
+        start_grid = self.pathfinding.world_to_grid(self.context.position)
+        end_grid = self.pathfinding.world_to_grid(target_position)
+        
+        # Calculer le chemin avec le nouveau système
+        path = self.pathfinding.find_path(
+            start_grid,
+            end_grid,
+            current_speed=current_speed,
+            max_speed=max_speed,
+            objective=objective
+        )
+        
         if path:
             self.context.set_path(path)
             self._path_cache[cache_key] = path
