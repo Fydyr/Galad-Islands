@@ -28,8 +28,8 @@ from src.components.special.isVinedComponent import isVinedComponent
 
 # Algorithms
 # Make sure these import paths match your structure
-from src.algorithms.astar.aStarPathfinding import a_star_pathfinding, Grid, PositionPixel
-from src.algorithms.minimax.minimax import run_minimax, AI_DEPTH, GameState
+from src.ia.ia_druid.astar.aStarPathfinding import a_star_pathfinding, Grid, PositionPixel
+from src.ia.ia_druid.minimax.minimax import run_minimax, AI_DEPTH, GameState
 
 
 # Type alias for grid (from mapComponent.py)
