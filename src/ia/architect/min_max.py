@@ -148,7 +148,8 @@ class ArchitectMinimax:
         for action in current_actions:
             # Simulate our move and run minimax to see the opponent's likely counter-move.
             next_state = self._get_next_state(state, action)
-            score = self._minimax(next_state, self.SEARCH_DEPTH - 1, False)
+            # Pass the action to minimax so it can be used in the evaluation at the leaf node.
+            score = self._minimax(next_state, self.SEARCH_DEPTH - 1, False, action_taken=action)
 
             if score > best_score:
                 best_score = score
@@ -157,31 +158,31 @@ class ArchitectMinimax:
         logger.info(f"Architect AI decided: {best_action}")
         return best_action
 
-    def _minimax(self, state: GameState, depth: int, is_maximizing_player: bool) -> float:
+    def _minimax(self, state: GameState, depth: int, is_maximizing_player: bool, action_taken: Optional[str] = None) -> float:
         """
         Recursive Minimax function. This version is simplified and does not include
         alpha-beta pruning. It explores the game tree to a fixed depth.
         """
         # Terminal condition: if max depth is reached, evaluate the state.
         if depth == 0:
-            return self._evaluate_state(state)
+            return self._evaluate_state(state, action_taken)
 
         if is_maximizing_player:
             max_eval = -np.inf
             for action in self.possible_actions:
                 next_state = self._get_next_state(state, action)
-                evaluation = self._minimax(next_state, depth - 1, False)
+                evaluation = self._minimax(next_state, depth - 1, False, action)
                 max_eval = max(max_eval, evaluation)
             return max_eval
         else:  # Minimizing player (opponent)
             min_eval = np.inf
             # Simulate the opponent's most likely move (advancing towards us).
             next_state = self._get_next_state(state, "OPPONENT_ADVANCE")
-            evaluation = self._minimax(next_state, depth - 1, True)
+            evaluation = self._minimax(next_state, depth - 1, True, "OPPONENT_ADVANCE")
             min_eval = min(min_eval, evaluation)
             return min_eval
 
-    def _evaluate_state(self, state: GameState) -> float:
+    def _evaluate_state(self, state: GameState, action: Optional[str]) -> float:
         """
         Heuristic function to score a game state. A higher score is better for the AI.
         This function assigns value to strategic positions and outcomes.
@@ -203,16 +204,22 @@ class ArchitectMinimax:
 
         # --- Tower Building Evaluation ---
         # Evaluate the outcome of a build action. `build_cooldown_active` is a proxy for "just built".
-        if state.build_cooldown_active:
-            # Reward building a defense tower when enemies are nearby.
-            if state.nearby_foes_count > 0:
-                score += 250  # Strong reward for a timely defense tower.
+        if state.build_cooldown_active and action:
+            # Reward building a defense tower, scaled by the number of nearby enemies.
+            if action == DecisionAction.BUILD_DEFENSE_TOWER and state.nearby_foes_count > 0:
+                # The reward increases with the number of foes, making it more valuable against a larger threat.
+                score += 150 + (state.nearby_foes_count * 50)
 
-            # Reward building a heal tower when allies are damaged.
-            if state.total_allies_max_hp > 0:
+            # High-priority reward for building a heal tower when allies are damaged.
+            if action == DecisionAction.BUILD_HEAL_TOWER and state.total_allies_max_hp > 0:
                 allied_health_ratio = state.total_allies_hp / state.total_allies_max_hp
-                if allied_health_ratio < 0.7:  # Allies below 70% health.
-                    score += 300 * (1 - allied_health_ratio)  # Reward is higher for more damaged allies.
+                # The reward scales dramatically as health drops, making it a priority.
+                if allied_health_ratio < 0.8:  # Start considering healing when allies are below 80% health.
+                    score += 600 * (1 - allied_health_ratio)
+                
+                # Add a large, critical bonus if the team is in serious trouble.
+                if allied_health_ratio < 0.4: # Critical health threshold
+                    score += 500
 
         # Reward being in a state where building is possible.
         can_build = state.player_gold >= self.TOWER_COST_THRESHOLD and not state.is_on_island and state.closest_island_dist < DISTANCE_MIN_FROM_ISLAND

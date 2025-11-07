@@ -84,6 +84,7 @@ class ArchitectAIProcessor(esper.Processor):
             if player_team.team_id == team_id:
                 return player_comp.spend_gold(amount)
         return False
+    
     def process(self, grid):
         """Process all Architect units with enabled AI."""
         self.map_grid = grid
@@ -206,13 +207,13 @@ class ArchitectAIProcessor(esper.Processor):
         # Calculate the health ratio of the entire allied team (excluding bases).
         total_allies_hp = 0.0
         total_allies_max_hp = 0.0
-        for entity, (ally_health, ally_team) in esper.get_components(HealthComponent, TeamComponent):
-            if ally_team.team_id == team.team_id:
-                if esper.has_component(entity, BaseComponent):
-                    continue
-                total_allies_hp += ally_health.currentHealth
-                total_allies_max_hp += ally_health.maxHealth
-
+        for other_entity, (ally_health, ally_team) in esper.get_components(HealthComponent, TeamComponent):
+            # We only want to sum the health of OTHER allied units.
+            if ally_team.team_id == team.team_id and other_entity != entity:
+                # Exclude static bases from the team health calculation.
+                if not esper.has_component(other_entity, BaseComponent):
+                    total_allies_hp += ally_health.currentHealth
+                    total_allies_max_hp += ally_health.maxHealth
 
             
         return GameState(
@@ -338,9 +339,10 @@ class ArchitectAIProcessor(esper.Processor):
             return  # No movement for this action.
 
         elif action == DecisionAction.BUILD_DEFENSE_TOWER:
-            # Check sil'IA a assez d'or before de construire
+            # Check si l'IA a assez d'or before de construire
             if self._get_player_gold(state.team_id) >= UNIT_COST_ATTACK_TOWER + self.gold_reserve:
                 if self._build_defense_tower(entity):
+                    self._spend_player_gold(state.team_id, UNIT_COST_ATTACK_TOWER)
                     ai_comp.start_build_cooldown()
                     self._clear_path(entity)
                     # after avoir construit, chercher une autre île
@@ -352,6 +354,7 @@ class ArchitectAIProcessor(esper.Processor):
         elif action == DecisionAction.BUILD_HEAL_TOWER:
             if self._get_player_gold(state.team_id) >= UNIT_COST_HEAL_TOWER + self.gold_reserve:
                 if self._build_heal_tower(entity):
+                    self._spend_player_gold(state.team_id, UNIT_COST_HEAL_TOWER)
                     ai_comp.start_build_cooldown()
                     self._clear_path(entity)
                     target_pos = self._find_island_in_different_group((pos.x, pos.y))
@@ -780,11 +783,9 @@ class ArchitectAIProcessor(esper.Processor):
             return False
         pos = esper.component_for_entity(entity, PositionComponent)
         team = esper.component_for_entity(entity, TeamComponent)
-        if self._spend_player_gold(team.team_id, UNIT_COST_ATTACK_TOWER):
-            createDefenseTower(self.map_grid, pos, team)
-            logger.info(f"Architect AI (Entity {entity}) built a defense tower for {UNIT_COST_ATTACK_TOWER} gold.")
-            return True
-        return False
+        logger.info(f"Architect AI (Entity {entity}) built a defense tower for {UNIT_COST_ATTACK_TOWER} gold.")
+        return createDefenseTower(self.map_grid, pos, team)
+
 
     def _build_heal_tower(self, entity: int):
         """Tente de construire une tour de soin et de dépenser l'or."""
@@ -792,8 +793,5 @@ class ArchitectAIProcessor(esper.Processor):
             return False
         pos = esper.component_for_entity(entity, PositionComponent)
         team = esper.component_for_entity(entity, TeamComponent)
-        if self._spend_player_gold(team.team_id, UNIT_COST_HEAL_TOWER):
-            createHealTower(self.map_grid, pos, team)
-            logger.info(f"Architect AI (Entity {entity}) built a heal tower for {UNIT_COST_HEAL_TOWER} gold.")
-            return True
-        return False
+        logger.info(f"Architect AI (Entity {entity}) built a heal tower for {UNIT_COST_HEAL_TOWER} gold.")
+        return createHealTower(self.map_grid, pos, team)

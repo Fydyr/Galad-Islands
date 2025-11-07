@@ -77,7 +77,6 @@ def checkCubeLand(grid, x, y, radius):
     # Return top-left of the nearest one
     return (candidates[0][1], candidates[0][2])
 
-
 def createDefenseTower(grid, pos: PositionComponent, team: TeamComponent):
     radius = 3
     land_pos_grid = checkCubeLand(grid, pos.x, pos.y, radius)
@@ -86,6 +85,8 @@ def createDefenseTower(grid, pos: PositionComponent, team: TeamComponent):
         world_x = (land_pos_grid[1] + 1) * TILE_SIZE
         world_y = (land_pos_grid[0] + 1) * TILE_SIZE
         create_defense_tower(world_x, world_y, team.team_id)
+        return True
+    return False
 
 def createHealTower(grid, pos: PositionComponent, team: TeamComponent):
     radius = 3
@@ -95,3 +96,6 @@ def createHealTower(grid, pos: PositionComponent, team: TeamComponent):
         world_x = (land_pos_grid[1] + 1) * TILE_SIZE
         world_y = (land_pos_grid[0] + 1) * TILE_SIZE
         create_heal_tower(world_x, world_y, team.team_id)
+        return True
+    return False
+    
