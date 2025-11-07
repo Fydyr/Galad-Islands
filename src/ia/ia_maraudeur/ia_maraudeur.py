@@ -43,6 +43,7 @@ def get_app_data_path() -> str:
     else:
         # Version non compilée : stocker in src/models du projet
         path = os.path.join(os.path.dirname(__file__), '..', 'models')
+        path = os.path.join(os.path.dirname(__file__), '..', '..', 'models')
         path = os.path.abspath(path)
         os.makedirs(path, exist_ok=True)
         return path
