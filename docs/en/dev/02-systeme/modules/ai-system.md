@@ -48,6 +48,85 @@ The state-action vector is composed of the following 9 features:
 | 7 | `allied_units_health` | Average health of allied units (ratio). |
 | 8 | `action` | The contemplated action (integer from 0 to 6). |
 
+### Support Unit Limits
+
+To prevent support unit spam and maintain strategic balance, the Base AI implements **strict limits** on certain units:
+
+#### Architects: Fixed Limit
+
+**Maximum Limit**: 5 Architects simultaneously
+
+```python
+MAX_ARCHITECTS = 5  # Defined in BaseAi
+```
+
+**Limitation Logic**:
+
+- **Purpose**: Architects are essential for building defensive towers, but an excess of Architects is counterproductive.
+- **Mechanism**: 
+  - If `ally_architects >= MAX_ARCHITECTS`: Penalty of `-1000` on "Create Architect" action
+  - If `towers_needed == 1` and `ally_architects < MAX_ARCHITECTS`:
+    - First Architect: Bonus of `+50`
+    - Second to fifth Architect: Bonus of `+20`
+  - From 6th onward: Total blocking (massive penalty)
+
+**Example**:
+- 0 Architect + Towers needed → AI will create 1 Architect (bonus +50)
+- 1 Architect + Towers still needed → AI can create a 2nd (bonus +20)
+- 5 Architects → Blocked, AI cannot create more
+
+#### Druids: Proportional Limit
+
+**Dynamic Formula**: `max_druids = max(1, min(4, (num_units // 5) + 1))`
+
+**Limitation Logic**:
+
+- **Purpose**: The number of Druids (healers) should be proportional to the number of combat units to heal.
+- **Ratio**: 1 Druid per 5 combat units
+- **Cap**: Maximum 4 Druids even with 20+ units
+- **Minimum**: At least 1 Druid allowed as soon as there are units
+
+**Mechanism**:
+- Dynamic calculation at each decision: `max_druids_allowed = max(1, min(4, (allies // 5) + 1))`
+- If `ally_druids >= max_druids_allowed`: Penalty of `-1000` on "Create Druid" action
+- If `avg_ally_hp < 0.5` and `allies > 3` and `ally_druids < max_druids_allowed`: Bonus of `+15`
+
+**Reference Table**:
+
+| Number of Allied Units | Max Druids Allowed | Effective Ratio |
+|------------------------|-------------------|-----------------|
+| 0-4 units | 1 Druid | 1:4 |
+| 5-9 units | 2 Druids | 1:5 |
+| 10-14 units | 3 Druids | 1:5 |
+| 15-19 units | 4 Druids | 1:5 |
+| 20+ units | 4 Druids (cap) | 1:5+ |
+
+**Concrete Examples**:
+- **6 Scouts** → `(6 // 5) + 1 = 2` Druids max
+- **12 mixed units** → `(12 // 5) + 1 = 3` Druids max
+- **25 units** → `(25 // 5) + 1 = 6` capped at **4** Druids max
+- **2 Scouts** → `(2 // 5) + 1 = 1` Druid max
+
+#### Support Unit Counting
+
+Architects and Druids are **excluded from counting** as combat units in the passive income system (`PassiveIncomeProcessor`):
+
+```python
+# In PassiveIncomeProcessor._count_mobile_units()
+if esper.has_component(ent, SpeDruid) or esper.has_component(ent, SpeArchitect):
+    continue  # Don't count as combat unit
+```
+
+**Impact**: A team with only Druids/Architects receives passive income, as it is considered to have no combat units capable of collecting gold.
+
+#### System Advantages
+
+1. **Anti-spam**: Prevents aberrant behaviors (50 useless Architects)
+2. **Economic Balance**: Forces the AI to diversify its units
+3. **Dynamic Adaptation**: Number of Druids adjusts automatically to army size
+4. **Realistic Strategy**: Coherent healer/fighter ratio (1:5)
+5. **Performance**: Reduces the number of unnecessary entities to manage
+
 ### Training Process
 
 The training is performed by the `train_unified_base_ai.py` script. It combines several data sources to create a robust model:

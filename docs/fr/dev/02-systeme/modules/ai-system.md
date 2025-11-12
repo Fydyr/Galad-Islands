@@ -48,6 +48,85 @@ Le vecteur d'état-action est composé des 9 caractéristiques suivantes :
 | 7 | `allied_units_health` | Santé moyenne des unités alliées (ratio). |
 | 8 | `action` | L'action envisagée (entier de 0 à 6). |
 
+### Limites d'Unités de Support
+
+Pour éviter le spam d'unités de support et maintenir un équilibre stratégique, l'IA de la base implémente des **limites strictes** sur certaines unités :
+
+#### Architectes : Limite Fixe
+
+**Limite maximale** : 5 Architects simultanés
+
+```python
+MAX_ARCHITECTS = 5  # Défini dans BaseAi
+```
+
+**Logique de limitation** :
+
+- **Objectif** : Les Architects sont essentiels pour construire des tours défensives, mais un excès d'Architects est contre-productif.
+- **Mécanisme** : 
+  - Si `ally_architects >= MAX_ARCHITECTS` : Pénalité de `-1000` sur l'action "Créer Architecte"
+  - Si `towers_needed == 1` et `ally_architects < MAX_ARCHITECTS` :
+    - Premier Architecte : Bonus de `+50`
+    - Deuxième à cinquième Architecte : Bonus de `+20`
+  - À partir du 6ème : Blocage total (pénalité massive)
+
+**Exemple** :
+- 0 Architect + Tours nécessaires → IA créera 1 Architect (bonus +50)
+- 1 Architect + Tours encore nécessaires → IA peut créer un 2ème (bonus +20)
+- 5 Architects → Bloqué, l'IA ne peut plus en créer
+
+#### Druides : Limite Proportionnelle
+
+**Formule dynamique** : `max_druids = max(1, min(4, (nb_unités // 5) + 1))`
+
+**Logique de limitation** :
+
+- **Objectif** : Le nombre de Druides (soigneurs) doit être proportionnel au nombre d'unités de combat à soigner.
+- **Ratio** : 1 Druide pour 5 unités de combat
+- **Plafond** : Maximum 4 Druides même avec 20+ unités
+- **Minimum** : Au moins 1 Druide autorisé dès qu'il y a des unités
+
+**Mécanisme** :
+- Calcul dynamique à chaque décision : `max_druids_allowed = max(1, min(4, (allies // 5) + 1))`
+- Si `ally_druids >= max_druids_allowed` : Pénalité de `-1000` sur l'action "Créer Druide"
+- Si `avg_ally_hp < 0.5` et `allies > 3` et `ally_druids < max_druids_allowed` : Bonus de `+15`
+
+**Tableau de référence** :
+
+| Nombre d'Unités Alliées | Druides Max Autorisés | Ratio Effectif |
+|--------------------------|----------------------|----------------|
+| 0-4 unités | 1 Druide | 1:4 |
+| 5-9 unités | 2 Druides | 1:5 |
+| 10-14 unités | 3 Druides | 1:5 |
+| 15-19 unités | 4 Druides | 1:5 |
+| 20+ unités | 4 Druides (cap) | 1:5+ |
+
+**Exemples concrets** :
+- **6 Scouts** → `(6 // 5) + 1 = 2` Druides max
+- **12 unités mixtes** → `(12 // 5) + 1 = 3` Druides max
+- **25 unités** → `(25 // 5) + 1 = 6` plafonné à **4** Druides max
+- **2 Scouts** → `(2 // 5) + 1 = 1` Druide max
+
+#### Comptage des Unités de Support
+
+Les Architects et Druides sont **exclus du comptage** des unités de combat dans le système de revenu passif (`PassiveIncomeProcessor`) :
+
+```python
+# Dans PassiveIncomeProcessor._count_mobile_units()
+if esper.has_component(ent, SpeDruid) or esper.has_component(ent, SpeArchitect):
+    continue  # Ne pas compter comme unité de combat
+```
+
+**Impact** : Une équipe avec uniquement des Druides/Architects reçoit un revenu passif, car elle est considérée comme n'ayant aucune unité de combat capable de collecter de l'or.
+
+#### Avantages du Système
+
+1. **Anti-spam** : Empêche les comportements aberrants (50 Architects inutiles)
+2. **Équilibre économique** : Force l'IA à diversifier ses unités
+3. **Adaptation dynamique** : Le nombre de Druides s'ajuste automatiquement à la taille de l'armée
+4. **Stratégie réaliste** : Ratio soigneurs/combattants cohérent (1:5)
+5. **Performance** : Réduit le nombre d'entités inutiles à gérer
+
 ### Processus d'entraînement
 
 L'entraînement est réalisé par le script `train_unified_base_ai.py`. Il combine plusieurs sources de données pour créer un modèle robuste :

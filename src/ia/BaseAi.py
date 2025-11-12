@@ -86,6 +86,10 @@ class BaseAi(esper.Processor):
         6: {"name": "Kamikaze", "unit_type": UnitType.KAMIKAZE, "cost": UNIT_COSTS.get("kamikaze", 60), "reserve": 50},
     }
 
+    # Limites d'unités de support pour éviter le spam
+    MAX_ARCHITECTS = 5  # Maximum 5 Architects simultanés
+    # MAX_DRUIDS est calculé dynamiquement : 1 Druide par 5 unités (minimum 1, maximum 4)
+
     def __init__(self, team_id=2):
         self.default_team_id = team_id
         self.gold_reserve = 50
@@ -193,6 +197,7 @@ class BaseAi(esper.Processor):
             allied_health_total = 0.0
             allied_health_count = 0
             allied_architects = 0
+            allied_druids = 0
 
             for ent, (team_comp, health_comp) in esper.get_components(TeamComponent, HealthComponent):
                 if esper.has_component(ent, BaseComponent) or esper.has_component(ent, TowerComponent):
@@ -202,12 +207,15 @@ class BaseAi(esper.Processor):
 
                 if team_comp.team_id == ai_team_id:
                     allied_units += 1
-                    # Compter les architectes alliés
+                    # Compter les architectes et druides alliés
                     try:
                         if esper.has_component(ent, ClasseComponent):
                             classe = esper.component_for_entity(ent, ClasseComponent)
-                            if getattr(classe, 'unit_type', None) == UnitType.ARCHITECT:
+                            unit_type = getattr(classe, 'unit_type', None)
+                            if unit_type == UnitType.ARCHITECT:
                                 allied_architects += 1
+                            elif unit_type == UnitType.DRUID:
+                                allied_druids += 1
                     except Exception:
                         pass
                     # collecter santé moyenne des units alliées (exclure la base/tours)
@@ -244,8 +252,9 @@ class BaseAi(esper.Processor):
                 'enemy_base_health_ratio': enemy_base_health_ratio,
                 # santé moyenne (0.0 - 1.0) des units alliées; 1.0 si aucune unit
                 'allied_units_health': (allied_health_total / allied_health_count) if allied_health_count > 0 else 1.0,
-                # nombre d'architectes alliés actifs (pour construire des tours)
+                # nombre d'architectes et druides alliés actifs
                 'ally_architects': allied_architects,
+                'ally_druids': allied_druids,
             }
 
         except Exception as e:
@@ -284,6 +293,7 @@ class BaseAi(esper.Processor):
             base_hp = game_state.get('base_health_ratio', 1.0)
             towers_needed = game_state.get('towers_needed', 0)
             ally_architects = game_state.get('ally_architects', 0)
+            ally_druids = game_state.get('ally_druids', 0)
             allies = game_state.get('allied_units', 0)
             enemies = game_state.get('enemy_units', 0)
             avg_ally_hp = game_state.get('allied_units_health', 1.0)
@@ -304,15 +314,29 @@ class BaseAi(esper.Processor):
                         print(f"[BaseAI] Team {self.default_team_id}: en attente du revenu passif (or={gold}/{scout_total_cost}) pour produire un Éclaireur.")
                     return 0
 
-            # Si des tours sont nécessaires et aucun architecte n'est présent, FORCER Architecte
-            if towers_needed == 1 and ally_architects == 0:
-                # Bonus massif pour Architecte dans ce cas
-                q_values[2] += 50.0  # Architecte (augmenté de 20 à 50)
-                q_values[6] -= 15.0  # Kamikaze moins pertinent en défense (augmenté de 10 à 15)
+            # CALCUL DYNAMIQUE : Limite de Druides proportionnelle au nombre d'unités
+            # Formule : 1 Druide par 5 unités de combat (minimum 1, maximum 4)
+            # Exemples : 0-4 unités = 1 Druide max, 5-9 unités = 2 Druides max, 10-14 = 3, 15-19 = 4, 20+ = 4
+            max_druids_allowed = max(1, min(4, (allies // 5) + 1))
+
+            # LIMITES D'UNITÉS DE SUPPORT : Pénaliser fortement si limite atteinte
+            if ally_architects >= self.MAX_ARCHITECTS:
+                q_values[2] -= 1000.0  # Bloquer complètement les Architects si limite atteinte
+            if ally_druids >= max_druids_allowed:
+                q_values[5] -= 1000.0  # Bloquer complètement les Druides si limite atteinte
+
+            # Si des tours sont nécessaires et peu d'architectes présents, encourager Architecte
+            # MAIS uniquement si la limite n'est pas atteinte
+            if towers_needed == 1 and ally_architects < self.MAX_ARCHITECTS:
+                if ally_architects == 0:
+                    q_values[2] += 50.0  # Bonus massif pour le premier Architecte
+                else:
+                    q_values[2] += 20.0  # Bonus modéré pour un second Architecte
+                q_values[6] -= 15.0  # Kamikaze moins pertinent en défense
                 q_values[3] += 2.0   # Maraudeur légèrement utile mais pas prioritaire
 
-            # Si les unités alliées sont très blessées, prioriser Druide
-            if avg_ally_hp < 0.5 and allies > 3:
+            # Si les unités alliées sont très blessées, prioriser Druide (si limite non atteinte)
+            if avg_ally_hp < 0.5 and allies > 3 and ally_druids < max_druids_allowed:
                 q_values[5] += 15.0  # Druide (augmenté de 12 à 15)
 
             # Défense prioritaire: base très endommagée ET forte infériorité numérique
