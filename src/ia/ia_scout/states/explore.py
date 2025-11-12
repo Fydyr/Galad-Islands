@@ -140,7 +140,7 @@ class ExploreState(RapidAIState):
                 waypoint = context.peek_waypoint()
                 if waypoint:
                     distance_to_waypoint = self.distance(context.position, waypoint)
-                    if distance_to_waypoint <= self.controller.waypoint_radius:
+                    if distance_to_waypoint <= self.controller.waypoint_radius * 1.2:
                         context.advance_path()
                         waypoint = context.peek_waypoint()
                     
@@ -153,13 +153,17 @@ class ExploreState(RapidAIState):
                     # Empty path, move directly
                     self.controller.move_towards(target)
             else:
-                # No path available, try to unstuck or move directly
-                # AUGMENTER le délai avant de considérer comme coincé
-                if self._stuck_timer > 3.5:  # Augmenter de 2.0s à 3.5s
+                dist_to_target = self.distance(context.position, target)
+                if dist_to_target > TILE_SIZE * 3:
+                    # Cible lointaine inaccessible : on l'abandonne immédiatement
+                    self._exploration_target = None
+                    self._stuck_timer = 0.0
+                    # Petit freinage pour éviter de glisser
+                    self.controller.stop()
+                else:
+                    # On est proche, on essaie de se décoincer doucement
                     nudge = self._unstuck_nudge(context.position, target_hint=target)
                     self.controller.move_towards(nudge or target)
-                else:
-                    self.controller.move_towards(target)
         else:
             # No target at all, stop
             self.controller.stop()
@@ -182,12 +186,23 @@ class ExploreState(RapidAIState):
         Similar to Kamikaze exploration logic.
         """
         max_attempts = 30
+        pf = self.controller.pathfinding
+        
         for _ in range(max_attempts):
             # Generate random position with some margin from map edges
             x = random.uniform(TILE_SIZE * 5, (MAP_WIDTH - 5) * TILE_SIZE)
             y = random.uniform(TILE_SIZE * 5, (MAP_HEIGHT - 5) * TILE_SIZE)
             pos = (x, y)
             
+            accessible_pos = pf.find_accessible_world(pos, max_radius_tiles=3.0)
+            
+            if accessible_pos:
+                # Vérification supplémentaire : le point ne doit pas être bloqué
+                if not pf.is_world_blocked(accessible_pos):
+                    danger = self.controller.danger_map.sample_world(accessible_pos)
+                    if danger < self.controller.settings.danger.flee_threshold * 0.7:
+                        return accessible_pos
+
             # Check if position is not blocked (islands, mines, etc.)
             if not self.controller.pathfinding.is_world_blocked(pos):
                 # Optionally check danger level to avoid highly dangerous areas
