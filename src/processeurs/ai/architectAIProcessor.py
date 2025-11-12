@@ -210,8 +210,8 @@ class ArchitectAIProcessor(esper.Processor):
         for other_entity, (ally_health, ally_team) in esper.get_components(HealthComponent, TeamComponent):
             # We only want to sum the health of OTHER allied units.
             if ally_team.team_id == team.team_id and other_entity != entity:
-                # Exclude static bases from the team health calculation.
-                if not esper.has_component(other_entity, BaseComponent):
+                # Exclude static bases and towers from the team health calculation.
+                if not esper.has_component(other_entity, BaseComponent) and not esper.has_component(other_entity, TowerComponent):
                     total_allies_hp += ally_health.currentHealth
                     total_allies_max_hp += ally_health.maxHealth
 
@@ -451,6 +451,7 @@ class ArchitectAIProcessor(esper.Processor):
         closest_bearing = 0
         closest_unit_team_id = None
         unit_count = 0
+        threshold_dist_sq = (TILE_SIZE * 5) ** 2  # 5 tiles radius, squared for performance
 
         for ent, (other_pos, other_team, _) in all_entities:
             if other_pos is my_pos:
@@ -483,7 +484,10 @@ class ArchitectAIProcessor(esper.Processor):
             # If we reach here, it's a valid target (ally or foe)
             dx, dy = other_pos.x - my_pos.x, other_pos.y - my_pos.y
             dist_sq = dx*dx + dy*dy
-            unit_count += 1
+
+            if dist_sq < threshold_dist_sq:
+                unit_count += 1
+
             if dist_sq < closest_dist_sq:
                 closest_dist_sq = dist_sq
                 # Invert dy for arctan2 because Pygame's Y-axis is inverted (0 is at the top),

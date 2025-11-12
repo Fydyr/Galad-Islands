@@ -5,6 +5,7 @@ import copy
 from typing import Tuple, Optional, List
 from dataclasses import dataclass
 import logging
+from src.constants.gameplay import UNIT_COST_HEAL_TOWER
 from src.settings.settings import TILE_SIZE
 
 DISTANCE_MIN_FROM_ISLAND = TILE_SIZE * 2  # Minimum distance to consider being "near" an island
@@ -81,7 +82,7 @@ class ArchitectMinimax:
 
     # --- Minimax Configuration ---
     SEARCH_DEPTH = 3  # How many moves to look ahead (e.g., AI -> Opponent -> AI).
-    SIM_TIME_STEP = 1.0  # Seconds per simulated move.
+    SIM_TIME_STEP = 1.0  # Seconds per simulated move. # TODO: Make this dynamic based on unit speed
     TOWER_COST_THRESHOLD = 150  # Gold needed to consider building a tower.
     ALLY_REGROUP_MAX_DIST = 1200  # Max distance to consider regrouping with an ally.
     SIM_SPEED = 150.0  # Units per second for simulation.
@@ -97,6 +98,7 @@ class ArchitectMinimax:
             DecisionAction.NAVIGATE_TO_CHEST,
             DecisionAction.NAVIGATE_TO_ISLAND_RESOURCE,
         ]
+        self.TOWER_COST_THRESHOLD = UNIT_COST_HEAL_TOWER # Use the cost of the cheapest tower for general affordability checks
 
     def decide(self, state: GameState) -> str:
         """
@@ -108,10 +110,27 @@ class ArchitectMinimax:
         Returns:
             The best strategic action found by Minimax.
         """
-        # Critical override: if the AI is stuck, it must try to get unstuck immediately.
+        # --- Step 1: Handle Critical Overrides (Immediate, Non-Negotiable Actions) ---
+
+        # Override 1: If stuck, the only priority is to get unstuck.
         if state.is_stuck:
             return DecisionAction.GET_UNSTUCK
 
+        # Override 2: If allied health is critical, and we can build, build a healing tower.
+        # This bypasses the standard evaluation to address emergencies.
+        can_build = (state.is_on_island or (state.closest_island_dist is not None and state.closest_island_dist < TILE_SIZE * 4))
+        if can_build and not state.build_cooldown_active and state.player_gold >= UNIT_COST_HEAL_TOWER:
+            if state.total_allies_max_hp > 0:
+                allied_health_ratio = state.total_allies_hp / state.total_allies_max_hp
+                # If health is below 60%, it's an emergency.
+                if allied_health_ratio < 0.6:
+                    logger.info(f"Architect AI CRITICAL OVERRIDE: Allied health at {allied_health_ratio*100:.1f}%. Building HEAL TOWER.")
+                    return DecisionAction.BUILD_HEAL_TOWER
+
+
+        # --- Step 2: Standard Minimax Evaluation for Non-Critical Situations ---
+
+        # Dynamically filter possible actions based on the current game state.
         # Dynamically filter possible actions based on the current game state.
         current_actions = self.possible_actions.copy()
 
@@ -148,17 +167,22 @@ class ArchitectMinimax:
         for action in current_actions:
             # Simulate our move and run minimax to see the opponent's likely counter-move.
             next_state = self._get_next_state(state, action)
-            # Pass the action to minimax so it can be used in the evaluation at the leaf node.
-            score = self._minimax(next_state, self.SEARCH_DEPTH - 1, False, action_taken=action)
+            # Pass the action and the current possible actions to minimax.
+            score = self._minimax(next_state, self.SEARCH_DEPTH - 1, False, current_actions, action_taken=action)
 
             if score > best_score:
                 best_score = score
                 best_action = action
 
-        logger.info(f"Architect AI decided: {best_action}")
+        # --- DEBUG LOGGING ---
+        health_percentage = 0
+        if state.total_allies_max_hp > 0:
+            health_percentage = (state.total_allies_hp / state.total_allies_max_hp) * 100
+        
+        logger.info(f"Architect AI decided: {best_action} with score {best_score:.2f} | Allied Health: {health_percentage:.1f}% | total: {state.total_allies_hp:.2f} | max: {state.total_allies_max_hp:.2f}")
         return best_action
 
-    def _minimax(self, state: GameState, depth: int, is_maximizing_player: bool, action_taken: Optional[str] = None) -> float:
+    def _minimax(self, state: GameState, depth: int, is_maximizing_player: bool, possible_actions: List[str], action_taken: Optional[str] = None) -> float:
         """
         Recursive Minimax function. This version is simplified and does not include
         alpha-beta pruning. It explores the game tree to a fixed depth.
@@ -169,16 +193,16 @@ class ArchitectMinimax:
 
         if is_maximizing_player:
             max_eval = -np.inf
-            for action in self.possible_actions:
+            for action in possible_actions:
                 next_state = self._get_next_state(state, action)
-                evaluation = self._minimax(next_state, depth - 1, False, action)
+                evaluation = self._minimax(next_state, depth - 1, False, self.possible_actions, action)
                 max_eval = max(max_eval, evaluation)
             return max_eval
         else:  # Minimizing player (opponent)
             min_eval = np.inf
             # Simulate the opponent's most likely move (advancing towards us).
             next_state = self._get_next_state(state, "OPPONENT_ADVANCE")
-            evaluation = self._minimax(next_state, depth - 1, True, "OPPONENT_ADVANCE")
+            evaluation = self._minimax(next_state, depth - 1, True, self.possible_actions, "OPPONENT_ADVANCE")
             min_eval = min(min_eval, evaluation)
             return min_eval
 
@@ -201,32 +225,29 @@ class ArchitectMinimax:
                 # Reward being at an ideal distance from an island.
                 distance_error = abs(state.closest_island_dist - IDEAL_BUILD_DISTANCE)
                 score += 500 - distance_error * 0.8
-
-        # --- Tower Building Evaluation ---
-        # Evaluate the outcome of a build action. `build_cooldown_active` is a proxy for "just built".
-        if state.build_cooldown_active and action:
+        
+        # --- Tower Building Action Evaluation ---
+        # This section evaluates the *action itself*, not the resulting state.
+        # This is the correct place to score the immediate strategic value of a build decision.
+        if action == DecisionAction.BUILD_DEFENSE_TOWER:
             # Reward building a defense tower, scaled by the number of nearby enemies.
-            if action == DecisionAction.BUILD_DEFENSE_TOWER and state.nearby_foes_count > 0:
+            if state.nearby_foes_count > 0:
                 # The reward increases with the number of foes, making it more valuable against a larger threat.
                 score += 150 + (state.nearby_foes_count * 50)
 
+        elif action == DecisionAction.BUILD_HEAL_TOWER:
             # High-priority reward for building a heal tower when allies are damaged.
-            if action == DecisionAction.BUILD_HEAL_TOWER and state.total_allies_max_hp > 0:
+            # The threshold for considering healing is lowered to 85% to be more proactive.
+            if state.total_allies_max_hp > 0:
                 allied_health_ratio = state.total_allies_hp / state.total_allies_max_hp
-                # The reward scales dramatically as health drops, making it a priority.
-                if allied_health_ratio < 0.8:  # Start considering healing when allies are below 80% health.
-                    score += 600 * (1 - allied_health_ratio)
-                
-                # Add a large, critical bonus if the team is in serious trouble.
-                if allied_health_ratio < 0.4: # Critical health threshold
-                    score += 500
+                if allied_health_ratio < 0.85:  # Start considering healing when allies are below 85% health.
+                    score += 1000  # Increased base reward for considering healing
+                    score += 3000 * (1 - allied_health_ratio)  # Increased linear scaling, more impactful at higher health ratios.
 
-        # Reward being in a state where building is possible.
-        can_build = state.player_gold >= self.TOWER_COST_THRESHOLD and not state.is_on_island and state.closest_island_dist < DISTANCE_MIN_FROM_ISLAND
-        if can_build:
-            # Bonus for being in a position to build a defense tower when threatened.
-            if state.nearby_foes_count > 0:
-                score += 150
+                # Add a large, critical bonus if the team is in serious trouble.
+                if allied_health_ratio < 0.6:  # Critical health threshold (below 60%)
+                    score += 1500 # Increased critical bonus
+
 
         # --- Resource Collection Scoring ---
         # Forte récompense pour être proche d'une ressource
