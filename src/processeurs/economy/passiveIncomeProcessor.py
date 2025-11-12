@@ -16,6 +16,8 @@ from src.components.core.healthComponent import HealthComponent
 from src.components.core.baseComponent import BaseComponent
 from src.components.core.towerComponent import TowerComponent
 from src.components.core.projectileComponent import ProjectileComponent
+from src.components.special.speDruidComponent import SpeDruid
+from src.components.special.speArchitectComponent import SpeArchitect
 from src.constants.team import Team
 
 
@@ -42,7 +44,7 @@ class PassiveIncomeProcessor(esper.Processor):
 
     def _count_mobile_units(self) -> Tuple[int, int]:
         """Compte uniquement les unités mobiles pertinentes (avec santé),
-        en excluant bases, tours, projectiles et entités non-combat (ex: Player).
+        en excluant bases, tours, projectiles, druides, architects et entités non-combat (ex: Player).
         """
         ally_units = 0
         enemy_units = 0
@@ -51,6 +53,9 @@ class PassiveIncomeProcessor(esper.Processor):
             if esper.has_component(ent, BaseComponent) or esper.has_component(ent, TowerComponent):
                 continue
             if esper.has_component(ent, ProjectileComponent):
+                continue
+            # Skip support units (Druid, Architect)
+            if esper.has_component(ent, SpeDruid) or esper.has_component(ent, SpeArchitect):
                 continue
             if team_comp.team_id == Team.ALLY:
                 ally_units += 1
