@@ -36,8 +36,9 @@ class DangerImpulse:
 class DangerMapService:
     """Maintains a 2D floating field representing danger around the world."""
 
-    def __init__(self, grid: Iterable[Iterable[int]], settings: Optional[AISettings] = None) -> None:
+    def __init__(self, grid: Iterable[Iterable[int]], settings: Optional[AISettings] = None, ai_team_id: int = Team.ENEMY) -> None:
         self.settings = settings or get_settings()
+        self.ai_team_id = ai_team_id  # L'équipe contrôlée par cette IA
         self._grid = np.asarray(list(grid), dtype=np.int16)
         if self._grid.shape != (MAP_HEIGHT, MAP_WIDTH):
             # Fallback to bounds from grid to avoid crashes during tests
@@ -69,29 +70,53 @@ class DangerMapService:
             self._mine_positions = indices.astype(np.int32)
 
         # Base ennemie marquée comme dangereuse
-        enemy_base_center_x = self._grid_width - 3.0
-        enemy_base_center_y = self._grid_height - 2.8
-        base_radius_tiles = 5.0  # Rayon de danger autour de la base ennemie
-        base_intensity = self.settings.pathfinding.danger_weight * 2.0  # Intensité plus élevée que les mines
+        # Récupérer dynamiquement la position de la base ennemie
+        enemy_base_pos = self._get_enemy_base_position()
+        if enemy_base_pos:
+            enemy_base_center_x = enemy_base_pos[0] / TILE_SIZE
+            enemy_base_center_y = enemy_base_pos[1] / TILE_SIZE
+            
+            base_radius_tiles = 5.0  # Rayon de danger autour de la base ennemie
+            base_intensity = self.settings.pathfinding.danger_weight * 2.0  # Intensité plus élevée que les mines
 
-        # Calculer les indices de grille pour la zone autour de la base
-        min_x = max(int(enemy_base_center_x - base_radius_tiles), 0)
-        max_x = min(int(enemy_base_center_x + base_radius_tiles), self._grid_width - 1)
-        min_y = max(int(enemy_base_center_y - base_radius_tiles), 0)
-        max_y = min(int(enemy_base_center_y + base_radius_tiles), self._grid_height - 1)
+            # Calculer les indices de grille pour la zone autour de la base
+            min_x = max(int(enemy_base_center_x - base_radius_tiles), 0)
+            max_x = min(int(enemy_base_center_x + base_radius_tiles), self._grid_width - 1)
+            min_y = max(int(enemy_base_center_y - base_radius_tiles), 0)
+            max_y = min(int(enemy_base_center_y + base_radius_tiles), self._grid_height - 1)
 
-        y_indices, x_indices = np.ogrid[min_y : max_y + 1, min_x : max_x + 1]
-        dx = (x_indices + 0.5) - enemy_base_center_x
-        dy = (y_indices + 0.5) - enemy_base_center_y
-        dist = np.sqrt(dx * dx + dy * dy)
-        mask = dist <= base_radius_tiles
-        if np.any(mask):
-            falloff = np.zeros_like(dist, dtype=np.float32)
-            falloff[mask] = 1.0 - (dist[mask] / base_radius_tiles)
-            addition = base_intensity * falloff
-            self._static[min_y : max_y + 1, min_x : max_x + 1] = np.maximum(
-                self._static[min_y : max_y + 1, min_x : max_x + 1], addition
-            )
+            y_indices, x_indices = np.ogrid[min_y : max_y + 1, min_x : max_x + 1]
+            dx = (x_indices + 0.5) - enemy_base_center_x
+            dy = (y_indices + 0.5) - enemy_base_center_y
+            dist = np.sqrt(dx * dx + dy * dy)
+            mask = dist <= base_radius_tiles
+            if np.any(mask):
+                falloff = np.zeros_like(dist, dtype=np.float32)
+                falloff[mask] = 1.0 - (dist[mask] / base_radius_tiles)
+                addition = base_intensity * falloff
+                self._static[min_y : max_y + 1, min_x : max_x + 1] = np.maximum(
+                    self._static[min_y : max_y + 1, min_x : max_x + 1], addition
+                )
+    
+    def _get_enemy_base_position(self) -> Optional[Tuple[float, float]]:
+        """Récupère la position de la base ennemie en fonction de l'équipe contrôlée."""
+        try:
+            from src.components.core.baseComponent import BaseComponent
+            
+            if self.ai_team_id == Team.ALLY:
+                # Pour l'équipe ALLY, la base ennemie est celle de l'équipe ENEMY
+                base_id = BaseComponent.get_enemy_base()
+            else:
+                # Pour l'équipe ENEMY, la base ennemie est celle de l'équipe ALLY
+                base_id = BaseComponent.get_ally_base()
+            
+            if base_id and esper.has_component(base_id, PositionComponent):
+                pos = esper.component_for_entity(base_id, PositionComponent)
+                return (pos.x, pos.y)
+        except Exception:
+            pass
+        
+        return None
 
     @property
     def field(self) -> np.ndarray:
@@ -124,8 +149,8 @@ class DangerMapService:
         intensity = 2.5
         for entity, (pos, projectile) in esper.get_components(PositionComponent, ProjectileComponent):
             team = esper.component_for_entity(entity, TeamComponent) if esper.has_component(entity, TeamComponent) else None
-            if team and team.team_id == Team.ENEMY:
-                continue  # Ignore friendly projectiles
+            if team and team.team_id == self.ai_team_id:
+                continue  # Ignore friendly projectiles (projectiles de notre équipe)
             self._add_disk((pos.x, pos.y), radius, intensity)
 
     def _inject_bandits(self) -> None:
@@ -143,8 +168,10 @@ class DangerMapService:
     def _inject_enemy_units(self) -> None:
         intensity = 3.0
         radius = 3.5
+        # Déterminer l'équipe ennemie en fonction de notre équipe
+        enemy_team = Team.ALLY if self.ai_team_id == Team.ENEMY else Team.ENEMY
         for entity, (pos, team) in esper.get_components(PositionComponent, TeamComponent):
-            if team.team_id != Team.ALLY:  # Player controlled units are the main threat
+            if team.team_id != enemy_team:  # Ne considérer que les unités ennemies comme menaces
                 continue
             self._add_disk((pos.x, pos.y), radius, intensity)
 

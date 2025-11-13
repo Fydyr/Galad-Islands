@@ -62,10 +62,11 @@ LOGGER = get_logger()
 class RapidTroopAIProcessor(esper.Processor):
     """Processor updating the FSM of each rapid troop (enemy Zasper)."""
 
-    def __init__(self, grid: Iterable[Iterable[int]]) -> None:
+    def __init__(self, grid: Iterable[Iterable[int]], ai_team_id: int = Team.ENEMY) -> None:
         super().__init__()
         self.settings = get_settings()
-        self.danger_map = DangerMapService(grid, self.settings)
+        self.ai_team_id = ai_team_id  # L'équipe contrôlée par ce processor
+        self.danger_map = DangerMapService(grid, self.settings, ai_team_id)
         self.pathfinding = PathfindingService(grid, self.danger_map, self.settings)
         self.prediction = PredictionService()
         self.goal_evaluator = GoalEvaluator(self.settings)
@@ -101,7 +102,7 @@ class RapidTroopAIProcessor(esper.Processor):
     def rebind_grid(self, grid: Iterable[Iterable[int]]) -> None:
         """Recreate spatial services from a new grid definition."""
 
-        self.danger_map = DangerMapService(grid, self.settings)
+        self.danger_map = DangerMapService(grid, self.settings, self.ai_team_id)
         self.pathfinding = PathfindingService(grid, self.danger_map, self.settings)
         for controller in self.controllers.values():
             controller.danger_map = self.danger_map
@@ -163,6 +164,9 @@ class RapidTroopAIProcessor(esper.Processor):
         ):
 
             if classe.unit_type != UnitType.SCOUT:
+                continue
+            # Filtrer par équipe - chaque processor ne traite que son équipe
+            if team.team_id != self.ai_team_id:
                 continue
             yield entity, (team, classe, scout, health, position, velocity, radius)
 
@@ -1062,70 +1066,67 @@ class RapidUnitController:
         if self.context is None or target_position is None:
             return
         
+        # Ne déplacer l'unit que si le centre de la cible reste sur une zone valide
+        # Exception pour les ressources d'îles : permettre le mouvement même sur positions bloquées
+        objective = self.context.current_objective
+        allow_blocked = objective and objective.type == "goto_island_resource"
+        if self.pathfinding.is_world_blocked(target_position) and not allow_blocked:
+            return
+        
         pos = esper.component_for_entity(self.entity_id, PositionComponent)
         vel = esper.component_for_entity(self.entity_id, VelocityComponent)
 
-        # 1. Stabilisation : Si on est très proche de la cible (< 4 pixels), on s'arrête pour éviter de trembler
-        dist_sq = (pos.x - target_position[0])**2 + (pos.y - target_position[1])**2
-        if dist_sq < 4.0 * 4.0:
-            vel.currentSpeed = max(0.0, vel.currentSpeed - 1.0) # Freinage fort
-            return
-
-        # Évitement des alliés (inchangé)
+        # Évitement des alliés - SEULEMENT pour collisions imminentes
+        # La distance passée (96.0) sera réduite à 40% dans compute_avoidance_vector
         avoidance = self.coordination.compute_avoidance_vector(self.entity_id, (pos.x, pos.y), 96.0)
         projectile_avoid = self.prediction.projectile_threat_vector((pos.x, pos.y))
         
-        # 2. Amélioration de la répulsion des obstacles (Islands)
-        obstacle_repulse = [0.0, 0.0]
+        # DÉSACTIVÉ : Cohésion de groupe (causait des passages à travers les îles)
+        # cohesion = self.coordination.get_cohesion_vector(self.entity_id, (pos.x, pos.y), self.context.team_id)
+        cohesion = (0.0, 0.0)
+
+        # Évitement des obstacles - simplifié pour réduire les oscillations
+        obstacle_repulse = (0.0, 0.0)
         try:
-            # On vérifie plus loin devant (lookahead) en fonction de la vitesse
-            lookahead = max(TILE_SIZE * 0.8, vel.currentSpeed * 0.5)
-            
-            # On lance des rayons dans 8 directions pour mieux "sentir" l'île
-            for angle_deg in range(0, 360, 45): 
+            # Vérifier seulement si on est TRÈS proche d'un obstacle (imminent)
+            check_radius = TILE_SIZE * 0.6
+            samples = []
+            for angle_deg in (0, 90, 180, 270):
                 rad = math.radians(angle_deg)
-                sx = pos.x + math.cos(rad) * lookahead
-                sy = pos.y + math.sin(rad) * lookahead
-                
+                sx = pos.x + math.cos(rad) * check_radius
+                sy = pos.y + math.sin(rad) * check_radius
                 if self.pathfinding.is_world_blocked((sx, sy)):
                     dx = pos.x - sx
                     dy = pos.y - sy
-                    dist = math.hypot(dx, dy)
-                    # Force de répulsion inversement proportionnelle à la distance
-                    weight = (lookahead - dist) / lookahead if dist < lookahead else 0.0
-                    # On renforce le poids pour que l'unité "glisse" le long du mur
-                    weight *= 5.0 
-                    
-                    obstacle_repulse[0] += (dx / dist) * weight
-                    obstacle_repulse[1] += (dy / dist) * weight
-
+                    dist = max(1.0, math.hypot(dx, dy))
+                    weight = 1.0 / dist
+                    samples.append((dx * weight, dy * weight))
+            if samples:
+                rx = sum(v[0] for v in samples)
+                ry = sum(v[1] for v in samples)
+                norm = math.hypot(rx, ry)
+                if norm > 1e-3:
+                    obstacle_repulse = (rx / norm, ry / norm)
         except Exception:
             pass
 
-        # Combinaison des forces
-        # On augmente l'influence de la répulsion d'obstacle (passé de 16.0 à 40.0)
+        # Combinaison des forces : cible principale + évitements (PAS de cohésion pour éviter passages à travers îles)
         adjusted_target = (
-            target_position[0] + avoidance[0] * 32.0 - projectile_avoid[0] * 20.0 + obstacle_repulse[0] * 40.0,
-            target_position[1] + avoidance[1] * 32.0 - projectile_avoid[1] * 20.0 + obstacle_repulse[1] * 40.0,
+            target_position[0] + avoidance[0] * 32.0 - projectile_avoid[0] * 20.0 + obstacle_repulse[0] * 16.0,
+            target_position[1] + avoidance[1] * 32.0 - projectile_avoid[1] * 20.0 + obstacle_repulse[1] * 16.0,
         )
-        
-        # ... (reste de la logique dx/dy inchangée) ...
-        
+
+        if self.pathfinding.is_world_blocked(adjusted_target):
+            adjusted_target = target_position
+
         dx = pos.x - adjusted_target[0]
         dy = pos.y - adjusted_target[1]
-        
-        # Calcul de l'angle
+        if abs(dx) < 1 and abs(dy) < 1:
+            vel.currentSpeed = max(0.0, vel.currentSpeed - 0.5)
+            return
+
         target_dir = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
-        
-        # 3. Lissage de la rotation pour éviter le jitter (gauche/droite rapide)
-        diff_angle = (target_dir - pos.direction + 180) % 360 - 180
-        rotation_speed = 15.0 # Degrés max par frame
-        if abs(diff_angle) < rotation_speed:
-            pos.direction = target_dir
-        else:
-            pos.direction += rotation_speed if diff_angle > 0 else -rotation_speed
-            
-        # Gestion de la vitesse (inchangé)
+        pos.direction = target_dir
         desired_speed = vel.maxUpSpeed * 0.8
         if vel.currentSpeed < desired_speed:
             vel.currentSpeed = min(desired_speed, vel.currentSpeed + 0.4)

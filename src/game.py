@@ -1100,8 +1100,8 @@ class GameEngine:
 
         # AI - Initialize the AI processors with the grid
         self.druid_ai_processor = DruidAIProcessor(self.grid, es)
-        self.rapid_ai_processor_ally = RapidTroopAIProcessor(self.grid)
-        self.rapid_ai_processor_enemy = RapidTroopAIProcessor(self.grid)
+        self.rapid_ai_processor_ally = RapidTroopAIProcessor(self.grid, ai_team_id=Team.ALLY)
+        self.rapid_ai_processor_enemy = RapidTroopAIProcessor(self.grid, ai_team_id=Team.ENEMY)
 
         # Tower processor (manages defense/heal towers)
         self.tower_processor = TowerProcessor()
@@ -1123,11 +1123,14 @@ class GameEngine:
         # Enregistrer les processeurs IA standards (component_type, processor, priority)
         # Ils seront activés automatiquement quand les entités spawn
         self.ai_manager.register_ai_processor(DruidAiComponent, self.druid_ai_processor, priority=1)
-        self.ai_manager.register_ai_processor(SpeScout, self.rapid_ai_processor_ally, priority=2)
-        self.ai_manager.register_ai_processor(SpeScout, self.rapid_ai_processor_enemy, priority=3)
+        # Note: Les rapid_ai_processor sont ajoutés manuellement car il y en a deux pour le même composant
         self.ai_manager.register_ai_processor(KamikazeAiComponent, self.kamikaze_ai_processor, priority=6)
         # Note: ArchitectAIProcessor a une signature différente (process(grid)), géré manuellement
         self.ai_manager.register_ai_processor(SpeLeviathan, self.ai_leviathan_processor, priority=9)
+        
+        # Scout AI processors - ajoutés manuellement car il y en a un par équipe
+        es.add_processor(self.rapid_ai_processor_ally, priority=2)
+        es.add_processor(self.rapid_ai_processor_enemy, priority=3)
         
         # Allied and enemy base AI - toujours actifs
         es.add_processor(self.ally_base_ai, priority=7)
