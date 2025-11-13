@@ -521,13 +521,14 @@ class MaraudeurAI:
         obstacle_detected = False
 
         for i, angle_offset in enumerate(angles):
-            probe_angle_rad = direction_rad - math.radians(angle_offset)
+            # FIX: angle de probe = direction + offset (pas direction - offset)
+            probe_angle_rad = direction_rad + math.radians(angle_offset)
             
             # Échantillonner le long du capteur
             for step in range(1, 4):
                 dist = probe_length * (step / 3.0)
-                probe_x = pos.x - dist * math.cos(probe_angle_rad)
-                probe_y = pos.y - dist * math.sin(probe_angle_rad)
+                probe_x = pos.x + dist * math.cos(probe_angle_rad)
+                probe_y = pos.y + dist * math.sin(probe_angle_rad)
 
                 grid_x = int(probe_x // TILE_SIZE)
                 grid_y = int(probe_y // TILE_SIZE)
@@ -578,17 +579,17 @@ class MaraudeurAI:
         check_angles = [30, 60, 90]
         
         for angle in check_angles:
-            # Côté gauche
+            # Côté gauche (+ angle)
             left_rad = math.radians(pos.direction + angle)
-            left_x = pos.x - 3 * TILE_SIZE * math.cos(left_rad)
-            left_y = pos.y - 3 * TILE_SIZE * math.sin(left_rad)
+            left_x = pos.x + 3 * TILE_SIZE * math.cos(left_rad)
+            left_y = pos.y + 3 * TILE_SIZE * math.sin(left_rad)
             if self._is_position_clear(left_x, left_y):
                 left_clear += 1
             
-            # Côté droit
+            # Côté droit (- angle)
             right_rad = math.radians(pos.direction - angle)
-            right_x = pos.x - 3 * TILE_SIZE * math.cos(right_rad)
-            right_y = pos.y - 3 * TILE_SIZE * math.sin(right_rad)
+            right_x = pos.x + 3 * TILE_SIZE * math.cos(right_rad)
+            right_y = pos.y + 3 * TILE_SIZE * math.sin(right_rad)
             if self._is_position_clear(right_x, right_y):
                 right_clear += 1
         
@@ -660,10 +661,11 @@ class MaraudeurAI:
             # Garder une distance optimale pour le tir (6-8 tiles)
             distance = enemies[0][1]
             if distance < 6 * TILE_SIZE:  # Trop proche, reculer
-                # IMPORTANT : inverser direction car movementProcessor soustrait
+                # Reculer en s'éloignant de la cible
                 angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
                 vel.currentSpeed = 2.0
-                print(f"Maraudeur {self.entity}: Recul (trop proche: {distance/TILE_SIZE:.1f} tiles)")
+                if self.debug_mode:
+                    print(f"Maraudeur {self.entity}: Recul (trop proche: {distance/TILE_SIZE:.1f} tiles)")
             elif distance > 8 * TILE_SIZE:  # Trop loin, s'approcher
                 # Si la ligne de vue est bloquée, suivre un chemin plutôt que de foncer dans une île
                 if not self._has_line_of_sight(world, pos, enemies[0][0]):
@@ -678,20 +680,23 @@ class MaraudeurAI:
                                 waypoint = self.path[0]
                         angle = self._angle_to(pos.x - waypoint[0], pos.y - waypoint[1])
                         vel.currentSpeed = 3.2
-                        print(f"Maraudeur {self.entity}: Approche via chemin (reste {len(self.path)} waypoints)")
+                        if self.debug_mode:
+                            print(f"Maraudeur {self.entity}: Approche via chemin (reste {len(self.path)} waypoints)")
                     else:
                         # Pas de chemin: fallback direct (l'évitement gérera)
                         angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                         vel.currentSpeed = 3.5
-                        print(f"Maraudeur {self.entity}: Approche directe (pas de chemin)")
+                        if self.debug_mode:
+                            print(f"Maraudeur {self.entity}: Approche directe (pas de chemin)")
                 else:
-                    # IMPORTANT : inverser direction
+                    # Approche directe vers la cible
                     angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
                     vel.currentSpeed = 3.5
-                    print(f"Maraudeur {self.entity}: Approche (trop loin: {distance/TILE_SIZE:.1f} tiles)")
+                    if self.debug_mode:
+                        print(f"Maraudeur {self.entity}: Approche (trop loin: {distance/TILE_SIZE:.1f} tiles)")
             else:  # Distance parfaite, maintenir position stable
-                # FIX TOUPIE: Ne pas ajouter constamment +90°, juste maintenir orientation vers cible
-                angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
+                # FIX: Maintenir orientation vers cible sans zigzag
+                angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
                 # Mouvement latéral léger pour éviter les tirs ennemis
                 if not hasattr(self, '_strafe_direction'):
                     self._strafe_direction = random.choice([-1, 1])  # -1 = gauche, 1 = droite
@@ -708,7 +713,8 @@ class MaraudeurAI:
                 
             # Lisser la rotation pour éviter les oscillations
             pos.direction = self._smooth_turn(pos.direction, angle, max_delta=12.0)
-            print(f"Maraudeur {self.entity}: Position d'attaque - distance {distance/TILE_SIZE:.1f} tiles")
+            if self.debug_mode:
+                print(f"Maraudeur {self.entity}: Position d'attaque - distance {distance/TILE_SIZE:.1f} tiles")
     
     def _default_defense_behavior(self, world, pos, vel, team):
         """Comportement de défense By default in case of error"""
@@ -1253,21 +1259,7 @@ class MaraudeurAI:
                     self._action_patrol(pos, vel)
                     if self.debug_mode:
                         print(f"Maraudeur {self.entity}: Patrouille ({allies_nearby} alliés, attente renforts)")
-            enemy_base = self._find_enemy_base(world, team)
-            if enemy_base:
-                # IMPORTANT : inverser la direction pour le movementProcessor
-                angle = self._angle_to(pos.x - enemy_base[0], pos.y - enemy_base[1])
-                pos.direction = angle
-                vel.currentSpeed = 4.0
-                if self.debug_mode:
-                    print(f"Maraudeur {self.entity}: Approche vers base ennemie - angle={angle:.1f}°")
-            else:
-                # Patrouiller
-                vel.currentSpeed = 2.5
-                pos.direction = (pos.direction + 30) % 360
-                if self.debug_mode:
-                    print(f"Maraudeur {self.entity}: Patrouille défensive")
-    
+
     def _action_attack(self, world, pos, vel, team):
         """Action: Attaque si ennemi à portée"""
         enemies = self._find_nearby_enemies(world, pos, team)
@@ -1825,10 +1817,19 @@ class MaraudeurAI:
         - current_dir, target_dir en degrés [0..360)
         - max_delta: variation angulaire max autorisée
         """
+        # Normaliser les angles [0, 360)
+        current_dir = current_dir % 360.0
+        target_dir = target_dir % 360.0
+        
         # Calcul du plus petit écart angulaire signé (-180..180]
         diff = (target_dir - current_dir + 540.0) % 360.0 - 180.0
+        
+        # Limiter le changement à max_delta
         if diff > max_delta:
             diff = max_delta
         elif diff < -max_delta:
             diff = -max_delta
-        return (current_dir + diff) % 360.0
+        
+        # Appliquer le changement limité
+        new_dir = (current_dir + diff) % 360.0
+        return new_dir
