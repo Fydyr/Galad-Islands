@@ -2,40 +2,73 @@
 
 ## v0.12.0 (2025-11-14)
 
-### Feat
+### ✨ Nouvelles fonctionnalités
 
-- hh
-- amélioration du système de pathfinding pour les Scouts avec prise en compte de la vitesse et des objectifs
-- ajouter une analyse détaillée des résultats de benchmark
-- ajouter un gestionnaire de processeurs IA pour l'activation/désactivation dynamique des processeurs
-- ajouter une variation d'angle pour les tirs du Scout afin d'éviter les collisions entre projectiles
-- ajouter une fenêtre modale de victoire/défaite avec statistiques et options de rejouer
-- **BaseAi**: améliorer la démonstration de l'IA avec des décisions stratégiques pour deux équipes et ajustement de l'IA de la Base
+- **🎮 Fenêtre modale de fin de partie** : Nouvelle interface de victoire/défaite avec statistiques détaillées
+  - Affichage des statistiques de la partie
+  - Option de rejouer directement
+  - Interface plus claire et informative
 
-### Fix
+- **🤖 Amélioration de l'IA Scout** : Refonte majeure du système de pathfinding
+  - Prise en compte de la vitesse et des objectifs en temps réel
+  - Variation d'angle pour les tirs afin d'éviter les collisions entre projectiles
+  - **Correction majeure** : L'IA Scout fonctionne désormais correctement pour **les deux équipes**
+  - Détection dynamique de la position de la base ennemie (plus de positions codées en dur)
 
-- améliorer le traitement de l'IA des troupes rapides en ajoutant un identifiant d'équipe et en récupérant dynamiquement la position de la base ennemie
-- corriger la logique de détection et d'approche du Maraudeur AI pour un comportement plus précis
-- collision et déplacement du scout
-- ajouter des limites d'unités de support pour les Architectes et Druides afin d'éviter le spam et maintenir l'équilibre stratégique
-- exclure les unités de soutien (Druide, Architecte) du comptage des unités mobiles pour passiveIncomeProcessor
-- ARCHITECT AI FINALLY PLACES HEALING TOWERS
-- remove dump_ai for architect, and partial fix to tower kind placement
-- corriger le chemin de stockage des données de l'application pour la version non compilée
-- ajouter une seconde volée pour l'attaque spéciale du Léviathan et améliorer la gestion de l'activation
-- rajout de l'attaque spécial du léviathan + mise à jour cooldown attaque
-- ajuster la logique de suivi et de retraite pour prioriser la sécurité en cas de faible santé si un Druide est pas disponible
-- améliorer la gestion des blocages avec une marche arrière prolongée et un changement d'angle
-- fix sur le cmd à propos des sprite qui se chargeais avant que le jeu charge
-- ajuster les paramètres de navigation et d'évitement pour améliorer la cohésion et réduire les blocages
-- ajouter le processeur de capacités avec priorité pour gérer les temps de recharge
-- mettre à jour le modèle AI unifié final
-- corriger l'importation du package top-level `src` en ajoutant la racine du projet au sys.path
-- **BaseAi**: ajuster les actions abordables en fonction de la connaissance de la base ennemie pour éviter de spawn un Léviathan en début de partie
+- **⚙️ Gestionnaire de processeurs IA** : Activation/désactivation dynamique
+  - Économie de ressources CPU en n'activant que les processeurs nécessaires
+  - Meilleure performance globale du jeu
 
-### Refactor
+- **📊 Analyse de performance (développeur uniquement)** : Outils de benchmark détaillés
+  - Analyse approfondie des résultats de benchmark
+  - Identification des goulots d'étranglement
 
-- name "barhamus" into "maraudeur"
+### 🐛 Corrections de bugs
+
+- **🎯 IA de l'Architecte** : L'Architecte place enfin correctement les tours de soin
+  - Correction du système de placement des tours
+  - Amélioration de la sélection du type de tour
+
+- **🛡️ IA du Maraudeur** : Comportement de combat amélioré
+  - Logique de détection des ennemis plus précise
+  - Approche tactique optimisée
+
+- **⚡ IA du Léviathan** : Capacité spéciale renforcée
+  - Ajout d'une seconde volée pour l'attaque spéciale
+  - Meilleure gestion de l'activation des capacités
+  - Mise à jour des cooldowns d'attaque
+
+- **🏥 IA des unités blessées** : Logique de survie améliorée
+  - Priorité à la retraite en cas de faible santé
+  - Recherche de Druide pour soins si disponible
+
+- **🚧 Gestion des obstacles** : Navigation améliorée
+  - Meilleure gestion des blocages avec marche arrière prolongée
+  - Changement d'angle pour contourner les obstacles
+  - Paramètres de navigation optimisés pour réduire les blocages
+
+- **⚖️ Équilibrage stratégique** : Limites d'unités de soutien
+  - Plafond pour les Architectes et Druides
+  - Évite le spam et maintient l'équilibre du jeu
+  - Exclusion correcte des unités de soutien du comptage pour le revenu passif
+
+- **🎯 IA de la Base** : Décisions stratégiques améliorées
+  - Démonstration enrichie avec stratégies pour les deux équipes
+  - Ajustement des actions en fonction de la connaissance de la base ennemie
+  - Empêche le spawn de Léviathan en début de partie
+
+- **🔧 Corrections techniques diverses** :
+  - Correction des collisions et du déplacement du Scout
+  - Amélioration du chemin de stockage des données pour les versions non compilées
+  - Correction de l'importation du package `src`
+  - Gestion correcte des temps de recharge avec le processeur de capacités
+  - Correction du chargement des sprites au démarrage
+
+### 🔧 Refactorisation
+
+- **Renommage** : "Barhamus" renommé en "Maraudeur" dans tout le code
+  - Cohérence avec la terminologie du jeu
+  - Mise à jour de tous les fichiers et références
 
 ## v0.11.3 (2025-11-04)
 

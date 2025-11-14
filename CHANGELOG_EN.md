@@ -1,5 +1,75 @@
 # 🧾 Changelog
 
+## v0.12.0 (2025-11-14)
+
+### ✨ New Features
+
+- **🎮 Victory/Defeat Modal Window**: New end-game interface with detailed statistics
+  - Display of match statistics
+  - Replay option directly available
+  - Clearer and more informative interface
+
+- **🤖 Scout AI Improvements**: Major overhaul of the pathfinding system
+  - Real-time consideration of speed and objectives
+  - Angle variation for shots to avoid projectile collisions
+  - **Major fix**: Scout AI now works correctly for **both teams**
+  - Dynamic detection of enemy base position (no more hardcoded positions)
+
+- **⚙️ AI Processor Manager**: Dynamic activation/deactivation
+  - CPU resource savings by only activating necessary processors
+  - Better overall game performance
+
+- **📊 Performance Analysis (Dev only)**: Detailed benchmark tools
+  - In-depth analysis of benchmark results
+  - Identification of bottlenecks
+
+### 🐛 Bug Fixes
+
+- **🎯 Architect AI**: Architect finally places healing towers correctly
+  - Fixed tower placement system
+  - Improved tower type selection
+
+- **🛡️ Maraudeur AI**: Improved combat behavior
+  - More precise enemy detection logic
+  - Optimized tactical approach
+
+- **⚡ Leviathan AI**: Enhanced special ability
+  - Added second volley for special attack
+  - Better ability activation management
+  - Updated attack cooldowns
+
+- **🏥 Injured Unit AI**: Improved survival logic
+  - Priority on retreat at low health
+  - Search for Druid for healing if available
+
+- **🚧 Obstacle Management**: Improved navigation
+  - Better blockage handling with extended reverse
+  - Angle change to bypass obstacles
+  - Optimized navigation parameters to reduce blockages
+
+- **⚖️ Strategic Balance**: Support unit limits
+  - Cap for Architects and Druids
+  - Prevents spam and maintains game balance
+  - Correct exclusion of support units from passive income counting
+
+- **🎯 Base AI**: Improved strategic decisions
+  - Enhanced demonstration with strategies for both teams
+  - Adjusted actions based on enemy base knowledge
+  - Prevents Leviathan spawn at game start
+
+- **🔧 Various Technical Fixes**:
+  - Fixed Scout collision and movement
+  - Improved data storage path for non-compiled versions
+  - Fixed `src` package import
+  - Proper cooldown management with capacities processor
+  - Fixed sprite loading at startup
+
+### 🔧 Refactoring
+
+- **Renaming**: "Barhamus" renamed to "Maraudeur" throughout the code
+  - Consistency with game terminology
+  - Updated all files and references
+
 ## v0.11.3 (2025-11-04)
 
 ### Fix
