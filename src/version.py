@@ -2,4 +2,4 @@
 """
 Contient la version du projet, mise à jour automatiquement par commitizen.
 """
-__version__ = "0.11.3"
+__version__ = "0.12.0"

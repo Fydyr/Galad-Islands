@@ -1,5 +1,42 @@
 # 🧾 Notes de mise à jour
 
+## v0.12.0 (2025-11-14)
+
+### Feat
+
+- hh
+- amélioration du système de pathfinding pour les Scouts avec prise en compte de la vitesse et des objectifs
+- ajouter une analyse détaillée des résultats de benchmark
+- ajouter un gestionnaire de processeurs IA pour l'activation/désactivation dynamique des processeurs
+- ajouter une variation d'angle pour les tirs du Scout afin d'éviter les collisions entre projectiles
+- ajouter une fenêtre modale de victoire/défaite avec statistiques et options de rejouer
+- **BaseAi**: améliorer la démonstration de l'IA avec des décisions stratégiques pour deux équipes et ajustement de l'IA de la Base
+
+### Fix
+
+- améliorer le traitement de l'IA des troupes rapides en ajoutant un identifiant d'équipe et en récupérant dynamiquement la position de la base ennemie
+- corriger la logique de détection et d'approche du Maraudeur AI pour un comportement plus précis
+- collision et déplacement du scout
+- ajouter des limites d'unités de support pour les Architectes et Druides afin d'éviter le spam et maintenir l'équilibre stratégique
+- exclure les unités de soutien (Druide, Architecte) du comptage des unités mobiles pour passiveIncomeProcessor
+- ARCHITECT AI FINALLY PLACES HEALING TOWERS
+- remove dump_ai for architect, and partial fix to tower kind placement
+- corriger le chemin de stockage des données de l'application pour la version non compilée
+- ajouter une seconde volée pour l'attaque spéciale du Léviathan et améliorer la gestion de l'activation
+- rajout de l'attaque spécial du léviathan + mise à jour cooldown attaque
+- ajuster la logique de suivi et de retraite pour prioriser la sécurité en cas de faible santé si un Druide est pas disponible
+- améliorer la gestion des blocages avec une marche arrière prolongée et un changement d'angle
+- fix sur le cmd à propos des sprite qui se chargeais avant que le jeu charge
+- ajuster les paramètres de navigation et d'évitement pour améliorer la cohésion et réduire les blocages
+- ajouter le processeur de capacités avec priorité pour gérer les temps de recharge
+- mettre à jour le modèle AI unifié final
+- corriger l'importation du package top-level `src` en ajoutant la racine du projet au sys.path
+- **BaseAi**: ajuster les actions abordables en fonction de la connaissance de la base ennemie pour éviter de spawn un Léviathan en début de partie
+
+### Refactor
+
+- name "barhamus" into "maraudeur"
+
 ## v0.11.3 (2025-11-04)
 
 ### 🐛 Corrections de bugs
