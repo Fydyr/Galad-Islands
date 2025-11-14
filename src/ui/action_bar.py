@@ -18,6 +18,7 @@ from src.constants.team import Team
 from src.components.core.playerComponent import PlayerComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.team_enum import Team as TeamEnum
+from src.components.core.baseComponent import BaseComponent
 from src.settings import controls
 from src.managers.sprite_manager import sprite_manager, SpriteID
 from src.components.special.speArchitectComponent import SpeArchitect
@@ -450,8 +451,12 @@ class ActionBar:
             if self.self_play_mode:
                 btn.visible = btn.is_global
             else:
-                # Vérifier si l'unité sélectionnée est une base
-                is_base = self.selected_unit and ("BASE" in self.selected_unit.unit_type.upper())
+                # Vérifier si l'unité sélectionnée est une base (en vérifiant BaseComponent)
+                is_base = False
+                if self.selected_unit and hasattr(self, 'game_engine') and self.game_engine:
+                    sel_id = self.game_engine.selected_unit_id
+                    if sel_id is not None and esper.entity_exists(sel_id):
+                        is_base = esper.has_component(sel_id, BaseComponent)
                 
                 # Les boutons de construction ne sont visibles que si un architecte est sélectionné ET qu'on n'est pas en mode spectateur.
                 if btn.action_type in (ActionType.BUILD_DEFENSE_TOWER, ActionType.BUILD_HEAL_TOWER):
