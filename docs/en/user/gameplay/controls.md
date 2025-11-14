@@ -39,13 +39,35 @@ i18n:
 - **Ctrl**: Slow down selected unit
 - **Tab**: Toggle frontal or lateral attack mode
 - **E**: Special ability of selected unit
+- **T**: Enable/Disable AI for selected unit (Auto mode)
+- **Ctrl + T**: Enable/Disable AI for all units
+
+### AI Control (Auto Mode)
+
+Auto mode allows you to delegate control of your units and base to the AI:
+
+- **Auto Button**: Click the "Auto" button in the action bar to enable/disable AI for the selected unit
+- **T Key**: Keyboard shortcut to toggle AI for the selected unit
+- **Ctrl + Click on Auto**: Enable/Disable AI for all your units at once
+- **Ctrl + T**: Same effect as Ctrl + Click on Auto
+
+!!! tip "Auto Mode"
+    - In Player vs AI mode, all units start with AI disabled for the active team
+    - You can enable AI for some units while manually controlling others
+    - AI also works for your base (automatic unit purchasing)
+    - Ideal for managing multiple fronts simultaneously or testing your strategies
 
 ## Advanced Keyboard Shortcuts
 
 ### Unit Group Management
 
 - **1-2**: Change selected unit
-- **T**: Change team
+- **T**: Enable/Disable AI for selected unit (Auto mode)
+- **Ctrl + T**: Enable/Disable AI for all units
+
+### Team Switching
+
+- **F**: Change team (switch between Team 1 and Team 2)
 
 ### Camera Control
 

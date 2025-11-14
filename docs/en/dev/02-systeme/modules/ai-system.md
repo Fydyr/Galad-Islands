@@ -18,6 +18,159 @@ The AI system uses the **Entity-Component-System (ECS)** pattern via the `esper`
 
 📖 **See also**: [AI Processor Manager](ai-processor-manager.md) - Complete documentation of AI processor optimization.
 
+## AI Control System (Auto Mode)
+
+**Version**: 0.12.0  
+**Files**: `src/components/core/aiEnabledComponent.py`, `src/game.py`, `src/ui/action_bar.py`
+
+The AI control system allows players to enable or disable AI for their units and base, offering strategic flexibility similar to modern RTS games.
+
+### Architecture
+
+#### `AIEnabledComponent` Component
+
+Each unit and base has an `AIEnabledComponent` component that controls its AI state:
+
+```python
+@component
+class AIEnabledComponent:
+    enabled: bool = True      # AI state (enabled/disabled)
+    can_toggle: bool = True   # Whether the player can toggle AI
+    
+    def toggle(self) -> bool:
+        """Toggle AI state if allowed."""
+        if self.can_toggle:
+            self.enabled = not self.enabled
+            return True
+        return False
+```
+
+#### Default States
+
+The initial AI state depends on the game mode and active team:
+
+- **AI vs AI Mode** (`self_play_mode=True`): AI enabled for all units and bases
+- **Player vs AI Mode** (`self_play_mode=False`):
+  - Active team units/base: AI **disabled** by default
+  - Opponent team units/base: AI **enabled** by default
+
+Initialization logic in `UnitFactory` and `BaseComponent.create_base`:
+
+```python
+# Determine unit team
+unit_team_id = 2 if enemy else 1
+
+# Activation logic
+if enable_ai is None:
+    ai_enabled = True if self_play_mode else (unit_team_id != active_team_id)
+else:
+    ai_enabled = enable_ai
+
+# Create component with can_toggle=True for all teams
+es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=True))
+```
+
+### Integration with AI Processors
+
+Each AI processor checks `AIEnabledComponent.enabled` before executing its logic:
+
+```python
+# Example in ScoutAiProcessor
+def process(self, dt: float = 0.016):
+    for entity, (pos, team, velocity) in esper.get_components(
+        PositionComponent, TeamComponent, VelocityComponent
+    ):
+        # Check if AI is enabled
+        if esper.has_component(entity, AIEnabledComponent):
+            ai_enabled = esper.component_for_entity(entity, AIEnabledComponent)
+            if not ai_enabled.enabled:
+                continue  # Skip this unit
+        
+        # Execute AI logic...
+```
+
+This check is present in all AI processors:
+
+- `ScoutAiProcessor` (Rapid AI)
+- `MaraudeurAiProcessor`
+- `KamikazeAiProcessor`
+- `ArchitectAIProcessor`
+- `LeviathanAiProcessor`
+- `DruidAIProcessor`
+- `BaseAi`
+
+### User Interface
+
+#### Auto Button
+
+An "Auto" button is added to the action bar (`ActionBar`):
+
+- **Type**: `ActionType.AI_TOGGLE`
+- **Icon**: 🤖 (robot emoji)
+- **Visibility**: Displayed for all units and bases (except in spectator mode)
+- **Keyboard Shortcut**: `T` key
+
+#### Controls
+
+1. **Individual Toggle**:
+   - Click on Auto button → Toggle AI for selected unit
+   - `T` key → Same effect
+
+2. **Global Toggle**:
+   - `Ctrl + Click` on Auto → Toggle AI for all units of active team
+   - `Ctrl + T` → Same effect
+
+#### Base ↔ BaseAi Synchronization
+
+For bases, there is bidirectional synchronization between `AIEnabledComponent` and `BaseAi.enabled`:
+
+```python
+# In toggle_selected_unit_ai (game.py)
+if es.has_component(self.selected_unit_id, BaseComponent):
+    team_comp = es.component_for_entity(self.selected_unit_id, TeamComponent)
+    if team_comp.team_id == Team.ALLY:
+        self.ally_base_ai.enabled = ai_component.enabled
+    elif team_comp.team_id == Team.ENEMY:
+        self.enemy_base_ai.enabled = ai_component.enabled
+```
+
+### Use Cases
+
+#### Multi-Front Management
+
+Players can enable AI for units defending a secondary zone while manually controlling units on the main front.
+
+```python
+# Example scenario
+# Player's Team (Team 1):
+# - Scout 1: AI disabled (manual control, exploration)
+# - Marauders 1-3: AI enabled (automatic base defense)
+# - Base: AI enabled (automatic unit production)
+```
+
+#### Strategy Testing
+
+In AI vs AI mode, players can disable one team's AI to manually test a strategy against the AI opponent.
+
+#### Game Balancing
+
+The system allows compensating for imbalance:
+
+- Beginner player: Enable AI for some units to reduce cognitive load
+- Expert player: Disable all AI for total control
+
+### Limitations and Safeguards
+
+1. **No toggle in spectator mode**: Buttons are hidden in `self_play_mode`
+2. **can_toggle Verification**: While all components currently have `can_toggle=True`, the system allows restricting toggle for certain units if needed
+3. **Robust synchronization**: `BaseAi.process()` checks both `self.enabled` and `AIEnabledComponent.enabled` of the base entity
+
+### Possible Future Evolutions
+
+- **Unit groups**: Save unit groups and toggle their AI in bulk
+- **Conditional AI**: Enable AI only if certain conditions are met (e.g., health < 30%)
+- **Behavior customization**: Allow players to choose AI style (aggressive, defensive, etc.)
+
 ## Base AI (`BaseAi`)
 
 **Fichier** : `src/ia/BaseAi.py`

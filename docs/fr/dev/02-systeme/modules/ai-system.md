@@ -18,6 +18,157 @@ Le système d'IA utilise le pattern **Entity-Component-System (ECS)** via la bib
 
 📖 **Voir aussi** : [AI Processor Manager](ai-processor-manager.md) - Documentation complète de l'optimisation des processeurs IA.
 
+## Système de Contrôle de l'IA (Mode Auto)
+
+**Version** : 0.12.0  
+**Fichiers** : `src/components/core/aiEnabledComponent.py`, `src/game.py`, `src/ui/action_bar.py`
+
+Le système de contrôle de l'IA permet aux joueurs d'activer ou de désactiver l'IA pour leurs unités et leur base, offrant une flexibilité stratégique similaire aux jeux RTS modernes.
+
+### Architecture
+
+#### Composant `AIEnabledComponent`
+
+Chaque unité et base possède un composant `AIEnabledComponent` qui contrôle l'état de son IA :
+
+```python
+@component
+class AIEnabledComponent:
+    enabled: bool = True      # État de l'IA (activée/désactivée)
+    can_toggle: bool = True   # Si le joueur peut basculer l'IA
+    
+    def toggle(self) -> bool:
+        """Bascule l'état de l'IA si autorisé."""
+        if self.can_toggle:
+            self.enabled = not self.enabled
+            return True
+        return False
+```
+
+#### États par défaut
+
+L'état initial de l'IA dépend du mode de jeu et de l'équipe active :
+
+- **Mode AI vs AI** (`self_play_mode=True`) : IA activée pour toutes les unités et bases
+- **Mode Joueur vs IA** (`self_play_mode=False`) :
+  - Unités/base de l'équipe active : IA **désactivée** par défaut
+  - Unités/base de l'équipe adverse : IA **activée** par défaut
+
+La logique d'initialisation dans `UnitFactory` et `BaseComponent.create_base` :
+
+```python
+# Déterminer l'équipe de l'unité
+unit_team_id = 2 if enemy else 1
+
+# Logique d'activation
+if enable_ai is None:
+    ai_enabled = True if self_play_mode else (unit_team_id != active_team_id)
+else:
+    ai_enabled = enable_ai
+
+# Créer le composant avec can_toggle=True pour toutes les équipes
+es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=True))
+```
+
+### Intégration avec les Processeurs IA
+
+Chaque processeur IA vérifie `AIEnabledComponent.enabled` avant d'exécuter sa logique :
+
+```python
+# Exemple dans ScoutAiProcessor
+def process(self, dt: float = 0.016):
+    for entity, (pos, team, velocity) in esper.get_components(
+        PositionComponent, TeamComponent, VelocityComponent
+    ):
+        # Vérifier si l'IA est activée
+        if esper.has_component(entity, AIEnabledComponent):
+            ai_enabled = esper.component_for_entity(entity, AIEnabledComponent)
+            if not ai_enabled.enabled:
+                continue  # Ignorer cette unité
+        
+        # Exécuter la logique IA...
+```
+
+Cette vérification est présente dans tous les processeurs IA :
+- `ScoutAiProcessor` (Rapid AI)
+- `MaraudeurAiProcessor`
+- `KamikazeAiProcessor`
+- `ArchitectAIProcessor`
+- `LeviathanAiProcessor`
+- `DruidAIProcessor`
+- `BaseAi`
+
+### Interface Utilisateur
+
+#### Bouton Auto
+
+Un bouton "Auto" est ajouté à la barre d'action (`ActionBar`) :
+
+- **Type** : `ActionType.AI_TOGGLE`
+- **Icône** : 🤖 (robot emoji)
+- **Visibilité** : Affiché pour toutes les unités et bases (sauf en mode spectateur)
+- **Raccourci clavier** : Touche `T`
+
+#### Contrôles
+
+1. **Toggle individuel** :
+   - Clic sur le bouton Auto → Bascule l'IA de l'unité sélectionnée
+   - Touche `T` → Même effet
+
+2. **Toggle global** :
+   - `Ctrl + Clic` sur Auto → Bascule l'IA de toutes les unités de l'équipe active
+   - `Ctrl + T` → Même effet
+
+#### Synchronisation Base ↔ BaseAi
+
+Pour les bases, il y a une synchronisation bidirectionnelle entre `AIEnabledComponent` et `BaseAi.enabled` :
+
+```python
+# Dans toggle_selected_unit_ai (game.py)
+if es.has_component(self.selected_unit_id, BaseComponent):
+    team_comp = es.component_for_entity(self.selected_unit_id, TeamComponent)
+    if team_comp.team_id == Team.ALLY:
+        self.ally_base_ai.enabled = ai_component.enabled
+    elif team_comp.team_id == Team.ENEMY:
+        self.enemy_base_ai.enabled = ai_component.enabled
+```
+
+### Cas d'Usage
+
+#### Gestion Multi-Front
+
+Le joueur peut activer l'IA pour certaines unités qui défendent une zone secondaire tout en contrôlant manuellement les unités sur le front principal.
+
+```python
+# Exemple de scénario
+# Équipe du joueur (Team 1) :
+# - Scout 1 : IA désactivée (contrôle manuel, exploration)
+# - Maraudeur 1-3 : IA activée (défense automatique de la base)
+# - Base : IA activée (production automatique d'unités)
+```
+
+#### Test de Stratégies
+
+En mode AI vs AI, le joueur peut désactiver l'IA d'une équipe pour tester manuellement une stratégie contre l'IA adverse.
+
+#### Équilibrage du Jeu
+
+Le système permet de compenser un déséquilibre :
+- Joueur débutant : Activer l'IA pour certaines unités pour alléger la charge cognitive
+- Joueur expert : Désactiver toutes les IA pour un contrôle total
+
+### Limitations et Sécurités
+
+1. **Pas de toggle en mode spectateur** : Les boutons sont masqués en `self_play_mode`
+2. **Vérification can_toggle** : Bien que tous les composants aient `can_toggle=True` actuellement, le système permet de restreindre le toggle pour certaines unités si nécessaire
+3. **Synchronisation robuste** : `BaseAi.process()` vérifie à la fois `self.enabled` et `AIEnabledComponent.enabled` de l'entité base
+
+### Évolutions Futures Possibles
+
+- **Groupes d'unités** : Sauvegarder des groupes d'unités et basculer leur IA en masse
+- **IA conditionnelle** : Activer l'IA uniquement si certaines conditions sont remplies (ex: santé < 30%)
+- **Personnalisation du comportement** : Permettre au joueur de choisir le style d'IA (agressif, défensif, etc.)
+
 ## IA de la Base (`BaseAi`)
 
 **Fichier** : `src/ia/BaseAI.py`
