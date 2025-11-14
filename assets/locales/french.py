@@ -172,6 +172,10 @@ TRANSLATIONS = {
     "game.instructions": "Flèches: Déplacer | Molette: Zoom | F3: Debug | Échap: Quitter",
     "game.back_to_menu": "Retour au menu",
     "game.map_title": "Galad Islands - Carte",
+    "game.ai_enabled": "IA activée (Mode Auto)",
+    "game.ai_disabled": "IA désactivée (Contrôle manuel)",
+    "game.ai_enabled_all": "IA activée pour toutes les unités",
+    "game.ai_disabled_all": "IA désactivée pour toutes les unités",
     "game.exit_modal.title": "Quitter la partie ?",
     "game.exit_modal.message": "Êtes-vous sûr de vouloir quitter le jeu ?",
     "game.exit_modal.stay": "Continuer",
@@ -329,7 +333,8 @@ TRANSLATIONS = {
     
     # Interface barre d'action
     "actionbar.special_ability": "Capacité Spé.",
-    "actionbar.attack_mode": "Attaque", 
+    "actionbar.attack_mode": "Attaque",
+    "actionbar.ai_toggle": "Auto",
     "actionbar.shop": "Boutique",
     "actionbar.global_attack": "Attaque Globale",
     "actionbar.global_defense": "Défense Globale",
@@ -346,7 +351,8 @@ TRANSLATIONS = {
     
     # Tooltips
     "tooltip.special_ability": "Capacité spéciale de l'unité\nRaccourci: R",
-    "tooltip.attack_mode": "Mode d'attaque\nRaccourci: A", 
+    "tooltip.attack_mode": "Mode d'attaque\nRaccourci: A",
+    "tooltip.ai_toggle": "Basculer IA (Auto/Manuel)\nRaccourci: T\nCtrl+Clic: Toutes les unités",
     "tooltip.shop": "Ouvrir la boutique\nRaccourci: B",
     "placement.must_be_on_island": "Les bâtiments doivent être construits sur des tuiles îles !",
     

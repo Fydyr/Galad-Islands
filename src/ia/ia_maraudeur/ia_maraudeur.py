@@ -25,6 +25,7 @@ from src.settings.settings import TILE_SIZE
 from src.functions.resource_path import get_resource_path
 from src.settings.settings import config_manager
 from src.ia.ia_maraudeur.log import get_logger
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 
 def get_app_data_path() -> str:
     """
@@ -139,12 +140,13 @@ class MaraudeurAI:
 
     def update(self, world, dt):
         """Mise à jour principale de l'IA avec apprentissage"""
-        # Désactiver l'IA si l'unit est sélectionnée par le joueur
-        if world.has_component(self.entity, PlayerSelectedComponent):
-            # Optionnel : log pour debug
-            if self.debug_mode:
-                self.logger.debug(f"Maraudeur {self.entity}: IA désactivée car unit sélectionnée.")
-            return
+        # Vérifier si l'IA est activée via AIEnabledComponent
+        if world.has_component(self.entity, AIEnabledComponent):
+            ai_enabled = world.component_for_entity(self.entity, AIEnabledComponent)
+            if not ai_enabled.enabled:
+                if self.debug_mode:
+                    self.logger.debug(f"Maraudeur {self.entity}: IA désactivée.")
+                return
         try:
             # Définir la variable ici pour qu'elle soit toujours disponible
             is_learning_disabled = config_manager.get("disable_ai_learning", False)

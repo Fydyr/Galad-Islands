@@ -21,6 +21,7 @@ from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 
 # Special components (Druid)
 from src.components.special.speDruidComponent import SpeDruid
@@ -72,9 +73,11 @@ class DruidAIProcessor(esper.Processor):
             TeamComponent,
             VelocityComponent,
             HealthComponent):
-            # Disable AI if unit selected by player
-            if self.world.has_component(ent, PlayerSelectedComponent):
-                continue
+            # Vérifier si l'IA est activée via AIEnabledComponent
+            if self.world.has_component(ent, AIEnabledComponent):
+                ai_enabled = self.world.component_for_entity(ent, AIEnabledComponent)
+                if not ai_enabled.enabled:
+                    continue
             # Movement handling
             if ai.current_path:
                 # code mouvement

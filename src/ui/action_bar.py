@@ -79,6 +79,7 @@ class ActionType(Enum):
     MOVE_MODE = "move_mode"
     BUILD_DEFENSE_TOWER = "build_defense_tower"
     BUILD_HEAL_TOWER = "build_heal_tower"
+    AI_TOGGLE = "ai_toggle"
     DEV_GIVE_GOLD = "dev_give_gold"
     SWITCH_CAMP = "switch_camp"
     OPEN_SHOP = "open_shop"
@@ -242,6 +243,16 @@ class ActionBar:
                 callback=self._toggle_attack_mode
             ),
             ActionButton(
+                action_type=ActionType.AI_TOGGLE,
+                icon_path="assets/sprites/ui/ai_toggle.png",
+                text=t("actionbar.ai_toggle"),
+                cost=0,
+                hotkey="T",
+                visible=False,
+                tooltip=t("tooltip.ai_toggle"),
+                callback=self._toggle_ai
+            ),
+            ActionButton(
                 action_type=ActionType.OPEN_SHOP,
                 icon_path="assets/sprites/ui/shop_icon.png",
                 text=t("actionbar.shop"),
@@ -321,6 +332,9 @@ class ActionBar:
                 elif button.action_type == ActionType.ATTACK_MODE:
                     button.text = t("actionbar.attack_mode")
                     button.tooltip = t("tooltip.attack_mode")
+                elif button.action_type == ActionType.AI_TOGGLE:
+                    button.text = t("actionbar.ai_toggle")
+                    button.tooltip = t("tooltip.ai_toggle")
                 elif button.action_type == ActionType.OPEN_SHOP:
                     button.text = t("actionbar.shop")
                     button.tooltip = t("tooltip.shop")
@@ -440,7 +454,7 @@ class ActionBar:
                 if btn.action_type in (ActionType.BUILD_DEFENSE_TOWER, ActionType.BUILD_HEAL_TOWER):
                     btn.visible = is_architect_selected
                 # Les boutons d'action d'unit ne sont visibles que si une unit est sélectionnée
-                elif btn.action_type in [ActionType.SPECIAL_ABILITY, ActionType.ATTACK_MODE]:
+                elif btn.action_type in [ActionType.SPECIAL_ABILITY, ActionType.ATTACK_MODE, ActionType.AI_TOGGLE]:
                     btn.visible = self.selected_unit is not None
                 # Le bouton de la boutique est toujours visible sauf en self-play
                 elif btn.action_type == ActionType.OPEN_SHOP:
@@ -658,6 +672,11 @@ class ActionBar:
         print(f"[PLACEHOLDER] Changement de mode: {old_mode} → {self.current_mode}")
         self._show_feedback("success", f"Mode: {mode_name}")
     
+    def _toggle_ai(self):
+        """Bascule l'IA de l'unité sélectionnée."""
+        if self.game_engine:
+            self.game_engine.toggle_selected_unit_ai(toggle_all=False)
+    
     def _get_hotkey_for_action(self, action: str) -> str:
         """Retourne le raccourci clavier pour une action donnée."""
         bindings = controls.get_bindings(action)
@@ -763,7 +782,16 @@ class ActionBar:
             if i < len(normal_buttons) and rect.collidepoint(mouse_pos):
                 button = normal_buttons[i]
                 if button.enabled and button.callback:
-                    button.callback()
+                    # Cas spécial: Ctrl+clic sur le bouton AI_TOGGLE bascule toutes les unités
+                    if button.action_type == ActionType.AI_TOGGLE:
+                        mods = pygame.key.get_mods()
+                        if mods & pygame.KMOD_CTRL:
+                            if self.game_engine:
+                                self.game_engine.toggle_selected_unit_ai(toggle_all=True)
+                        else:
+                            button.callback()
+                    else:
+                        button.callback()
                     return True
         
         # Boutons globaux

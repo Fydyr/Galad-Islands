@@ -28,6 +28,7 @@ from src.components.events.flyChestComponent import FlyingChestComponent
 from src.components.core.towerComponent import TowerComponent
 from src.components.core.baseComponent import BaseComponent
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 from src.constants.team import Team
 import math
 import numpy as np
@@ -158,10 +159,12 @@ class KamikazeAiProcessor(esper.Processor):
                 if not esper.has_component(ent, SteeringComponent):
                     esper.add_component(ent, SteeringComponent())
                 
-                # Si l'unit est sélectionnée par le joueur, l'IA ne doit pas la contrôler.
-                # On réinitialise aussi son chemin pour qu'elle ne reparte pas bizarrement.
-                if esper.has_component(ent, PlayerSelectedComponent):
-                    continue
+                # Vérifier si l'IA est activée via AIEnabledComponent
+                if esper.has_component(ent, AIEnabledComponent):
+                    ai_enabled = esper.component_for_entity(ent, AIEnabledComponent)
+                    if not ai_enabled.enabled:
+                        continue
+                
                 self.kamikaze_logic(ent, pos, vel, team)
 
 

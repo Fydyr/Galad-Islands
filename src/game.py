@@ -43,6 +43,7 @@ from src.processeurs.towerProcessor import TowerProcessor
 from src.ia.ia_scout.processors.rapid_ai_processor import RapidTroopAIProcessor
 from src.processeurs.economy.passiveIncomeProcessor import PassiveIncomeProcessor
 from src.processeurs.ai.ai_processor_manager import AIProcessorManager
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 
 
 # Component imports
@@ -71,6 +72,7 @@ from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.ai.DruidAiComponent import DruidAiComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.ai.architectAIComponent import ArchitectAIComponent
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 
 # import event
 from src.components.events.banditsComponent import Bandits
@@ -1181,7 +1183,7 @@ class GameEngine:
         if ally_base_entity is not None:
             ally_base_pos_comp = es.component_for_entity(ally_base_entity, PositionComponent)
             spawn_x, spawn_y = BaseComponent.get_spawn_position(ally_base_pos_comp.x, ally_base_pos_comp.y, is_enemy=False, jitter=TILE_SIZE * 0.1)
-            player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y))
+            player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y), self_play_mode=self.self_play_mode)
             if player_unit is not None:
                 if not getattr(self, 'self_play_mode', False):
                     self._set_selected_entity(player_unit)
@@ -1193,7 +1195,7 @@ class GameEngine:
         if enemy_base_entity is not None:
             enemy_base_pos_comp = es.component_for_entity(enemy_base_entity, PositionComponent)
             enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(enemy_base_pos_comp.x, enemy_base_pos_comp.y, is_enemy=True, jitter=TILE_SIZE * 0.1)
-            enemy_scout = UnitFactory(UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y))
+            enemy_scout = UnitFactory(UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y), self_play_mode=self.self_play_mode)
             if enemy_scout is not None:
                 print(f"Scout ennemi créé: {enemy_scout}")
 
@@ -1230,16 +1232,12 @@ class GameEngine:
             return
         # Player controls allies
         if active_team == Team.ALLY:
-            if ally_ai:
-                ally_ai.enabled = False
             if enemy_ai:
                 enemy_ai.enabled = True
         # Player controls enemies
         elif active_team == Team.ENEMY:
             if ally_ai:
                 ally_ai.enabled = True
-            if enemy_ai:
-                enemy_ai.enabled = False
 
     def toggle_camera_follow_mode(self) -> None:
         """Toggle between a free camera and following the selected unit."""
@@ -1439,6 +1437,65 @@ class GameEngine:
         current_index = units.index(self.selected_unit_id)
         previous_index = (current_index - 1) % len(units)
         self._set_selected_entity(units[previous_index])
+
+    def toggle_selected_unit_ai(self, toggle_all: bool = False):
+        """Bascule l'IA de l'unité sélectionnée ou de toutes les unités (mode Auto).
+        
+        Args:
+            toggle_all: Si True, bascule l'IA de toutes les unités du joueur
+        """
+        if toggle_all:
+            # Basculer l'IA de toutes les unités du joueur
+            units = self._get_player_units()
+            toggled_count = 0
+            new_state = None
+            
+            for unit_id in units:
+                if es.entity_exists(unit_id) and es.has_component(unit_id, AIEnabledComponent):
+                    ai_component = es.component_for_entity(unit_id, AIEnabledComponent)
+                    if ai_component.can_toggle:
+                        # Utiliser le premier état pour déterminer l'action
+                        if new_state is None:
+                            new_state = not ai_component.enabled
+                        ai_component.enabled = new_state
+                        toggled_count += 1
+            
+            if toggled_count > 0 and new_state is not None:
+                state_text = t("game.ai_enabled_all") if new_state else t("game.ai_disabled_all")
+                if self.notification_system:
+                    from src.ui.notification_system import NotificationType
+                    self.notification_system.add_notification(
+                        state_text,
+                        NotificationType.INFO,
+                        duration=2.0
+                    )
+        else:
+            # Basculer l'IA uniquement pour l'unité sélectionnée
+            if self.selected_unit_id is None:
+                return
+            
+            if not es.entity_exists(self.selected_unit_id):
+                return
+            
+            # Vérifier si l'unité a le composant AIEnabledComponent
+            if not es.has_component(self.selected_unit_id, AIEnabledComponent):
+                return
+            
+            ai_component = es.component_for_entity(self.selected_unit_id, AIEnabledComponent)
+            
+            # Ne basculer que si autorisé
+            if ai_component.can_toggle:
+                success = ai_component.toggle()
+                if success:
+                    # Notification au joueur
+                    state_text = t("game.ai_enabled") if ai_component.enabled else t("game.ai_disabled")
+                    if self.notification_system:
+                        from src.ui.notification_system import NotificationType
+                        self.notification_system.add_notification(
+                            state_text,
+                            NotificationType.INFO,
+                            duration=2.0
+                        )
 
 
     def trigger_selected_attack(self):

@@ -22,6 +22,7 @@ from src.components.core.towerComponent import TowerComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
 from src.functions.buildingCreator import createDefenseTower, createHealTower
 
+
 # AI and pathfinding
 from src.components.ai.architectAIComponent import ArchitectAIComponent
 from src.ia.architect.min_max import ArchitectMinimax, GameState, DecisionAction
@@ -29,6 +30,7 @@ from src.ia.architect.pathfinding import SimplePathfinder
 from src.settings.settings import TILE_SIZE
 from src.constants.gameplay import UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER
 from src.constants.map_tiles import TileType
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 logger = logging.getLogger(__name__)
 
 
@@ -108,9 +110,11 @@ class ArchitectAIProcessor(esper.Processor):
             HealthComponent,
             TeamComponent,
         ):
-            # Désactiver l'IA si l'unit est sélectionnée
-            if esper.has_component(entity, PlayerSelectedComponent):
-                continue
+            # Vérifier si l'IA est activée via AIEnabledComponent
+            if esper.has_component(entity, AIEnabledComponent):
+                ai_enabled = esper.component_for_entity(entity, AIEnabledComponent)
+                if not ai_enabled.enabled:
+                    continue
 
             # Update internal timers for the AI component.
             if ai_comp.build_cooldown_remaining > 0:

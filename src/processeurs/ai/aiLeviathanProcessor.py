@@ -22,6 +22,7 @@ from src.components.core.baseComponent import BaseComponent
 from src.components.core.visionComponent import VisionComponent
 from src.ia.leviathan.decision_tree import LeviathanDecisionTree, GameState, DecisionAction
 from src.ia.leviathan.pathfinding import Pathfinder
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 from src.settings.settings import TILE_SIZE
 from src.constants.map_tiles import TileType
 
@@ -145,8 +146,14 @@ class AILeviathanProcessor(esper.Processor):
         ):
             ai_entities_found += 1
 
-            # Désactivation IA si unit sélectionnée par le joueur
-            if not ai_comp.enabled or esper.has_component(entity, PlayerSelectedComponent):
+            # Vérifier si l'IA est activée via AIEnabledComponent
+            if esper.has_component(entity, AIEnabledComponent):
+                ai_enabled = esper.component_for_entity(entity, AIEnabledComponent)
+                if not ai_enabled.enabled:
+                    continue
+            
+            # Vérifier l'état du composant AI spécifique
+            if not ai_comp.enabled:
                 continue
 
             # Update Attack Cooldown: Frame-rate independent decrement

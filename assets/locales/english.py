@@ -171,6 +171,10 @@ TRANSLATIONS = {
     "game.instructions": "Arrows: Move | Mouse Wheel: Zoom | F3: Debug | Esc: Quit",
     "game.back_to_menu": "Back to Menu",
     "game.map_title": "Galad Islands - Map",
+    "game.ai_enabled": "AI enabled (Auto Mode)",
+    "game.ai_disabled": "AI disabled (Manual Control)",
+    "game.ai_enabled_all": "AI enabled for all units",
+    "game.ai_disabled_all": "AI disabled for all units",
     "game.exit_modal.title": "Leave the game?",
     "game.exit_modal.message": "Are you sure you want to quit the game?",
     "game.exit_modal.stay": "Stay",
@@ -343,6 +347,7 @@ TRANSLATIONS = {
     # Action bar interface
     "actionbar.special_ability": "Special Ability",
     "actionbar.attack_mode": "Attack",
+    "actionbar.ai_toggle": "Auto",
     "actionbar.shop": "Shop", 
     "actionbar.global_attack": "Global Attack",
     "actionbar.global_defense": "Global Defense",
@@ -360,6 +365,7 @@ TRANSLATIONS = {
     # Tooltips
     "tooltip.special_ability": "Unit's special ability\nHotkey: R",
     "tooltip.attack_mode": "Attack mode\nHotkey: A",
+    "tooltip.ai_toggle": "Toggle AI (Auto/Manual)\nHotkey: T\nCtrl+Click: All units",
     "tooltip.shop": "Open shop\nHotkey: B", 
     "placement.must_be_on_island": "Buildings must be placed on island tiles!",
     "placement.must_be_on_island": "Buildings must be placed on island tiles!",

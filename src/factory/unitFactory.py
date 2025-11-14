@@ -51,10 +51,11 @@ from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.KamikazeAiComponent import KamikazeAiComponent
 from src.components.core.visionComponent import VisionComponent
 from src.components.ai.architectAIComponent import ArchitectAIComponent
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 from src.settings.localization import t
 
 
-def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: bool = None):
+def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: bool = None, self_play_mode: bool = False):
     """
     Instantiates an Esper entity corresponding to the provided unit type.
 
@@ -63,7 +64,10 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
         enemy: If True, creates an enemy unit (team 2), otherwise ally (team 1)
         pos: Initial position of the unit
         enable_ai: If True/False, forces AI activation/deactivation.
-                   If None (default), AI is activated only for enemies.
+                   If None (default), AI is activated based on game mode:
+                   - Player vs AI: disabled for player's team, enabled for AI team
+                   - AI vs AI: enabled for both teams
+        self_play_mode: If True, we're in AI vs AI mode (both teams controlled by AI)
     """
     entity = None
     match(unit):
@@ -86,6 +90,16 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             else:
                 # Fallback to old values if the sprite is not found
                 es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Scout.png" if not enemy else "assets/sprites/units/enemy/Scout.png", 80, 100))
+            
+            # AI control logic:
+            # - In AI vs AI mode: enabled for both teams
+            # - In Player vs AI mode: enabled only for AI team, disabled for player team
+            # Player can toggle AI for their own units, but not enemy units
+            if enable_ai is None:
+                ai_enabled = True if self_play_mode else enemy
+            else:
+                ai_enabled = enable_ai
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
 
 
         case UnitType.MARAUDEUR:
@@ -106,6 +120,13 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
                 es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
             else:
                 es.add_component(entity, SpriteComponent("assets/sprites/units/ally/Maraudeur.png" if not enemy else "assets/sprites/units/enemy/Maraudeur.png", 130, 150))
+            
+            # AI control logic (same as Scout)
+            if enable_ai is None:
+                ai_enabled = True if self_play_mode else enemy
+            else:
+                ai_enabled = enable_ai
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
 
         case UnitType.LEVIATHAN:
             entity = es.create_entity()
@@ -125,6 +146,13 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             should_enable_ai = True if enable_ai is None else enable_ai
             if should_enable_ai:
                 es.add_component(entity, AILeviathanComponent(enabled=True))
+            
+            # AI control logic (same as Scout)
+            if enable_ai is None:
+                ai_enabled = True if self_play_mode else enemy
+            else:
+                ai_enabled = enable_ai
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
 
             sprite_id = SpriteID.ALLY_LEVIATHAN if not enemy else SpriteID.ENEMY_LEVIATHAN
             size = sprite_manager.get_default_size(sprite_id)
@@ -159,6 +187,13 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             es.add_component(entity, VisionComponent(UNIT_VISION_DRUID))
 
             es.add_component(entity, DruidAiComponent())
+            
+            # AI control logic (same as Scout)
+            if enable_ai is None:
+                ai_enabled = True if self_play_mode else enemy
+            else:
+                ai_enabled = enable_ai
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
 
         case UnitType.ARCHITECT:
             entity = es.create_entity()
@@ -188,6 +223,13 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
                 timer=0.0
             ))
             es.add_component(entity, VisionComponent(UNIT_VISION_ARCHITECT))
+            
+            # AI control logic (same as Scout)
+            if enable_ai is None:
+                ai_enabled = True if self_play_mode else enemy
+            else:
+                ai_enabled = enable_ai
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
 
         case UnitType.KAMIKAZE:
             entity = es.create_entity()
@@ -208,6 +250,13 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             if size:
                 width, height = size
                 es.add_component(entity, sprite_manager.create_sprite_component(sprite_id, width, height))
+            
+            # AI control logic (same as Scout)
+            if enable_ai is None:
+                ai_enabled = True if self_play_mode else enemy
+            else:
+                ai_enabled = enable_ai
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
 
         case UnitType.ATTACK_TOWER:
             pass

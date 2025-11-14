@@ -18,6 +18,7 @@ from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.teamComponent import TeamComponent
 from src.components.core.playerSelectedComponent import PlayerSelectedComponent
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 from src.constants.gameplay import UNIT_VISION_SCOUT
 from src.settings.settings import TILE_SIZE
 from src.factory.unitType import UnitType
@@ -127,9 +128,12 @@ class RapidTroopAIProcessor(esper.Processor):
             self._debug_overlay.clear()
 
         for entity, components in self._iter_controlled_units():
-            # Désactiver l'IA si l'unit est sélectionnée
-            if self.world is not None and self.world.has_component(entity, PlayerSelectedComponent):
-                continue
+            # Désactiver l'IA si le composant AIEnabledComponent existe et est désactivé
+            if esper.has_component(entity, AIEnabledComponent):
+                ai_enabled = esper.component_for_entity(entity, AIEnabledComponent)
+                if not ai_enabled.enabled:
+                    continue
+            
             t_entity0 = time.perf_counter()
             controller = self._ensure_controller(entity, components)
             controller.update(dt)

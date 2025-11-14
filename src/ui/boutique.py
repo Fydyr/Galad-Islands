@@ -507,8 +507,11 @@ class UnifiedShop:
                 # Calculer la position de spawn près de la base appropriée
                 spawn_position = self._get_base_spawn_position(is_enemy)
                 
+                # Déterminer si on est en mode self_play (AI vs AI)
+                self_play_mode = getattr(self.game_engine, 'self_play_mode', False) if self.game_engine else False
+                
                 # Create l'unit avec la factory
-                entity = UnitFactory(unit_type, is_enemy, spawn_position)
+                entity = UnitFactory(unit_type, is_enemy, spawn_position, self_play_mode=self_play_mode)
                 
                 if entity:
                     # Add l'unit à la liste des troupes de la base appropriée
