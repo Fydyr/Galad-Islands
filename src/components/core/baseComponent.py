@@ -16,6 +16,7 @@ from src.components.core.radiusComponent import RadiusComponent
 from src.components.core.classeComponent import ClasseComponent
 from src.components.core.visionComponent import VisionComponent
 from src.components.core.towerComponent import TowerComponent, TowerType
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 from src.settings.localization import t
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
 
@@ -55,14 +56,14 @@ class BaseComponent:
         return ally_ok and enemy_ok
 
     @classmethod
-    def initialize_bases(cls, ally_base_pos: Tuple[int, int], enemy_base_pos: Tuple[int, int]):
+    def initialize_bases(cls, ally_base_pos: Tuple[int, int], enemy_base_pos: Tuple[int, int], self_play_mode: bool = False, active_team_id: int = 1):
         """Creates allied and enemy base entities if needed."""
         if cls._initialized and cls._bases_are_valid():
             return
         if cls._initialized and not cls._bases_are_valid():
             cls.reset()
 
-        def create_base(team_id: int, pos_x: float, pos_y: float, is_enemy: bool, hitbox: tuple, unit_type: str, shop_id: str, display_name: str) -> int:
+        def create_base(team_id: int, pos_x: float, pos_y: float, is_enemy: bool, hitbox: tuple, unit_type: str, shop_id: str, display_name: str, self_play_mode: bool = False, active_team_id: int = 1) -> int:
             entity = esper.create_entity()
             esper.add_component(entity, BaseComponent(troopList=[], currentTroop=0))
             esper.add_component(entity, PositionComponent(x=pos_x, y=pos_y, direction=0))
@@ -88,6 +89,12 @@ class BaseComponent:
                 radius=BASE_VISION_RANGE * TILE_SIZE,
                 hit_cooldown_duration=3.0 # 1 tir every 2 seconds
             ))
+            
+            # AI control for bases
+            # - In AI vs AI mode: enabled for both bases
+            # - In Player vs AI mode: disabled for active player's base, enabled for AI base
+            ai_enabled = True if self_play_mode else (team_id != active_team_id)
+            esper.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=True))
             width, height = hitbox
             surface = pygame.Surface((width, height), pygame.SRCALPHA)
             surface.fill((0, 0, 0, 0))
@@ -115,7 +122,9 @@ class BaseComponent:
             hitbox=ally_hitbox,
             unit_type="ALLY_BASE",
             shop_id="ally_base",
-            display_name=t("base.ally_name")
+            display_name=t("base.ally_name"),
+            self_play_mode=self_play_mode,
+            active_team_id=active_team_id
         )
 
         # Enemy base parameters
@@ -134,7 +143,9 @@ class BaseComponent:
             hitbox=enemy_hitbox,
             unit_type="ENEMY_BASE",
             shop_id="enemy_base",
-            display_name=t("base.enemy_name")
+            display_name=t("base.enemy_name"),
+            self_play_mode=self_play_mode,
+            active_team_id=active_team_id
         )
 
         cls._initialized = True

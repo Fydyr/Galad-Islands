@@ -1176,7 +1176,7 @@ class GameEngine:
         self.player = ally_player
 
         # Initialize the base manager
-        BaseComponent.initialize_bases(self.ally_base_pos, self.enemy_base_pos)
+        BaseComponent.initialize_bases(self.ally_base_pos, self.enemy_base_pos, self_play_mode=self.self_play_mode, active_team_id=self.selection_team_filter)
 
         # Create an allied Scout
         ally_base_entity = BaseComponent.get_ally_base()
@@ -1487,6 +1487,16 @@ class GameEngine:
             if ai_component.can_toggle:
                 success = ai_component.toggle()
                 if success:
+                    # Si c'est une base, désactiver aussi le BaseAi correspondant
+                    from src.components.core.baseComponent import BaseComponent
+                    if es.has_component(self.selected_unit_id, BaseComponent):
+                        # Déterminer quelle base c'est
+                        team_comp = es.component_for_entity(self.selected_unit_id, TeamComponent)
+                        if team_comp.team_id == Team.ALLY and hasattr(self, 'ally_base_ai'):
+                            self.ally_base_ai.enabled = ai_component.enabled
+                        elif team_comp.team_id == Team.ENEMY and hasattr(self, 'enemy_base_ai'):
+                            self.enemy_base_ai.enabled = ai_component.enabled
+                    
                     # Notification au joueur
                     state_text = t("game.ai_enabled") if ai_component.enabled else t("game.ai_disabled")
                     if self.notification_system:

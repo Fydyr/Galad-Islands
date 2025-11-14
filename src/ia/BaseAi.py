@@ -26,6 +26,7 @@ from src.components.core.positionComponent import PositionComponent
 from src.components.core.classeComponent import ClasseComponent
 from src.components.core.towerComponent import TowerComponent
 from src.components.core.projectileComponent import ProjectileComponent
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 from src.constants.gameplay import UNIT_COSTS
 from src.factory.unitFactory import UnitFactory
 from src.factory.unitType import UnitType, UnitKey
@@ -136,14 +137,26 @@ class BaseAi(esper.Processor):
         if not getattr(self, 'enabled', True):
             return
 
-        # Utiliser l’attribut si le paramètre n’est pas passé
+        # Vérifier si l'entité de la base a AIEnabledComponent et si l'IA est activée
+        base_entity = None
+        if self.default_team_id == 1:  # Team.ALLY
+            base_entity = BaseComponent._ally_base_entity
+        elif self.default_team_id == 2:  # Team.ENEMY
+            base_entity = BaseComponent._enemy_base_entity
+        
+        if base_entity is not None and esper.has_component(base_entity, AIEnabledComponent):
+            ai_component = esper.component_for_entity(base_entity, AIEnabledComponent)
+            if not ai_component.enabled:
+                return
+
+        # Utiliser l'attribut si le paramètre n'est pas passé
         if active_player_team_id is None:
             active_player_team_id = getattr(self, 'active_player_team_id', 1)
 
-        # En mode IA vs IA, ne jamais désactiver l’IA
-        if not getattr(self, 'self_play_mode', False):
-            if self.default_team_id == active_player_team_id:
-                return
+        # En mode IA vs IA, toujours autoriser l'IA
+        # En mode Joueur vs IA, l'IA est contrôlée par AIEnabledComponent uniquement
+        # (le joueur peut activer/désactiver l'IA de sa propre base avec le bouton Auto)
+        # La vérification de AIEnabledComponent.enabled a déjà été faite ci-dessus
 
         self.last_action_time += dt
         if self.last_action_time < self.action_cooldown:

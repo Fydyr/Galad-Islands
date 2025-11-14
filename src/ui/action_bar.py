@@ -450,11 +450,17 @@ class ActionBar:
             if self.self_play_mode:
                 btn.visible = btn.is_global
             else:
+                # Vérifier si l'unité sélectionnée est une base
+                is_base = self.selected_unit and ("BASE" in self.selected_unit.unit_type.upper())
+                
                 # Les boutons de construction ne sont visibles que si un architecte est sélectionné ET qu'on n'est pas en mode spectateur.
                 if btn.action_type in (ActionType.BUILD_DEFENSE_TOWER, ActionType.BUILD_HEAL_TOWER):
                     btn.visible = is_architect_selected
-                # Les boutons d'action d'unit ne sont visibles que si une unit est sélectionnée
-                elif btn.action_type in [ActionType.SPECIAL_ABILITY, ActionType.ATTACK_MODE, ActionType.AI_TOGGLE]:
+                # Les boutons d'attaque et capacité spéciale : visibles uniquement pour les unités (pas les bases)
+                elif btn.action_type in [ActionType.SPECIAL_ABILITY, ActionType.ATTACK_MODE]:
+                    btn.visible = self.selected_unit is not None and not is_base
+                # Le bouton AI Toggle : visible pour toutes les unités ET les bases
+                elif btn.action_type == ActionType.AI_TOGGLE:
                     btn.visible = self.selected_unit is not None
                 # Le bouton de la boutique est toujours visible sauf en self-play
                 elif btn.action_type == ActionType.OPEN_SHOP:
