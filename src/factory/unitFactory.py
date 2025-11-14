@@ -55,7 +55,7 @@ from src.components.core.aiEnabledComponent import AIEnabledComponent
 from src.settings.localization import t
 
 
-def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: bool = None, self_play_mode: bool = False):
+def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: bool = None, self_play_mode: bool = False, active_team_id: int = 1):
     """
     Instantiates an Esper entity corresponding to the provided unit type.
 
@@ -65,9 +65,10 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
         pos: Initial position of the unit
         enable_ai: If True/False, forces AI activation/deactivation.
                    If None (default), AI is activated based on game mode:
-                   - Player vs AI: disabled for player's team, enabled for AI team
+                   - Player vs AI: disabled for active player's team, enabled for AI team
                    - AI vs AI: enabled for both teams
         self_play_mode: If True, we're in AI vs AI mode (both teams controlled by AI)
+        active_team_id: ID of the team controlled by the active player (1 or 2)
     """
     entity = None
     match(unit):
@@ -93,13 +94,14 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             
             # AI control logic:
             # - In AI vs AI mode: enabled for both teams
-            # - In Player vs AI mode: enabled only for AI team, disabled for player team
-            # Player can toggle AI for their own units, but not enemy units
+            # - In Player vs AI mode: disabled for active player's team, enabled for AI team
+            # Player can toggle AI for any unit
             if enable_ai is None:
-                ai_enabled = True if self_play_mode else enemy
+                unit_team_id = 2 if enemy else 1
+                ai_enabled = True if self_play_mode else (unit_team_id != active_team_id)
             else:
                 ai_enabled = enable_ai
-            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=True))
 
 
         case UnitType.MARAUDEUR:
@@ -123,10 +125,11 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             
             # AI control logic (same as Scout)
             if enable_ai is None:
-                ai_enabled = True if self_play_mode else enemy
+                unit_team_id = 2 if enemy else 1
+                ai_enabled = True if self_play_mode else (unit_team_id != active_team_id)
             else:
                 ai_enabled = enable_ai
-            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=True))
 
         case UnitType.LEVIATHAN:
             entity = es.create_entity()
@@ -149,10 +152,11 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             
             # AI control logic (same as Scout)
             if enable_ai is None:
-                ai_enabled = True if self_play_mode else enemy
+                unit_team_id = 2 if enemy else 1
+                ai_enabled = True if self_play_mode else (unit_team_id != active_team_id)
             else:
                 ai_enabled = enable_ai
-            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=True))
 
             sprite_id = SpriteID.ALLY_LEVIATHAN if not enemy else SpriteID.ENEMY_LEVIATHAN
             size = sprite_manager.get_default_size(sprite_id)
@@ -190,10 +194,12 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             
             # AI control logic (same as Scout)
             if enable_ai is None:
-                ai_enabled = True if self_play_mode else enemy
+                unit_team_id = 2 if enemy else 1
+                ai_enabled = True if self_play_mode else (unit_team_id != active_team_id)
             else:
                 ai_enabled = enable_ai
-            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=True))
+
 
         case UnitType.ARCHITECT:
             entity = es.create_entity()
@@ -226,10 +232,11 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             
             # AI control logic (same as Scout)
             if enable_ai is None:
-                ai_enabled = True if self_play_mode else enemy
+                unit_team_id = 2 if enemy else 1
+                ai_enabled = True if self_play_mode else (unit_team_id != active_team_id)
             else:
                 ai_enabled = enable_ai
-            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=True))
 
         case UnitType.KAMIKAZE:
             entity = es.create_entity()
@@ -253,10 +260,11 @@ def UnitFactory(unit: UnitKey, enemy: bool, pos: PositionComponent, enable_ai: b
             
             # AI control logic (same as Scout)
             if enable_ai is None:
-                ai_enabled = True if self_play_mode else enemy
+                unit_team_id = 2 if enemy else 1
+                ai_enabled = True if self_play_mode else (unit_team_id != active_team_id)
             else:
                 ai_enabled = enable_ai
-            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=not enemy))
+            es.add_component(entity, AIEnabledComponent(enabled=ai_enabled, can_toggle=True))
 
         case UnitType.ATTACK_TOWER:
             pass

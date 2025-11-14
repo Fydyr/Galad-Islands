@@ -1183,7 +1183,7 @@ class GameEngine:
         if ally_base_entity is not None:
             ally_base_pos_comp = es.component_for_entity(ally_base_entity, PositionComponent)
             spawn_x, spawn_y = BaseComponent.get_spawn_position(ally_base_pos_comp.x, ally_base_pos_comp.y, is_enemy=False, jitter=TILE_SIZE * 0.1)
-            player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y), self_play_mode=self.self_play_mode)
+            player_unit = UnitFactory(UnitType.SCOUT, False, PositionComponent(spawn_x, spawn_y), self_play_mode=self.self_play_mode, active_team_id=self.selection_team_filter)
             if player_unit is not None:
                 if not getattr(self, 'self_play_mode', False):
                     self._set_selected_entity(player_unit)
@@ -1195,7 +1195,7 @@ class GameEngine:
         if enemy_base_entity is not None:
             enemy_base_pos_comp = es.component_for_entity(enemy_base_entity, PositionComponent)
             enemy_spawn_x, enemy_spawn_y = BaseComponent.get_spawn_position(enemy_base_pos_comp.x, enemy_base_pos_comp.y, is_enemy=True, jitter=TILE_SIZE * 0.1)
-            enemy_scout = UnitFactory(UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y), self_play_mode=self.self_play_mode)
+            enemy_scout = UnitFactory(UnitType.SCOUT, True, PositionComponent(enemy_spawn_x, enemy_spawn_y), self_play_mode=self.self_play_mode, active_team_id=self.selection_team_filter)
             if enemy_scout is not None:
                 print(f"Scout ennemi créé: {enemy_scout}")
 

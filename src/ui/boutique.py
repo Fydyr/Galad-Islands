@@ -510,8 +510,11 @@ class UnifiedShop:
                 # Déterminer si on est en mode self_play (AI vs AI)
                 self_play_mode = getattr(self.game_engine, 'self_play_mode', False) if self.game_engine else False
                 
+                # Récupérer l'équipe active du joueur
+                active_team_id = getattr(self.game_engine, 'selection_team_filter', 1) if self.game_engine else 1
+                
                 # Create l'unit avec la factory
-                entity = UnitFactory(unit_type, is_enemy, spawn_position, self_play_mode=self_play_mode)
+                entity = UnitFactory(unit_type, is_enemy, spawn_position, self_play_mode=self_play_mode, active_team_id=active_team_id)
                 
                 if entity:
                     # Add l'unit à la liste des troupes de la base appropriée
