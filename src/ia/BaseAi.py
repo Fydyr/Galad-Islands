@@ -448,7 +448,7 @@ class BaseAi(esper.Processor):
             is_enemy = (ai_team_id == Team.ENEMY)
             spawn_x, spawn_y = BaseComponent.get_spawn_position(base_pos_comp.x, base_pos_comp.y, is_enemy=is_enemy)
             pos = PositionComponent(spawn_x, spawn_y, 0)
-            new_entity = UnitFactory(unit_type, is_enemy, pos, self_play_mode=self.self_play_mode)
+            new_entity = UnitFactory(unit_type, is_enemy, pos, self_play_mode=self.self_play_mode, active_team_id=self.active_player_team_id)
 
             if new_entity is not None:
                 BaseComponent.add_unit_to_base(new_entity, is_enemy=is_enemy)
