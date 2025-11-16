@@ -12,6 +12,7 @@ from src.menu.state import MenuState
 from src.ui.ui_component import Button, ParticleSystem
 from src.ui.show_gamemode_selection_modal import show_gamemode_selection_modal
 from src.ui.generic_modal import GenericModal
+from src.constants.assets import MUSIC_MAIN_THEME, MUSIC_IN_GAME
 import src.settings.settings as settings
 from src.game import game
 from src.functions.afficherModale import afficher_modale
@@ -171,7 +172,13 @@ class MainMenu:
         if selected_mode in ["player_vs_ai", "ai_vs_ai"]:
             # Launching the game is a blocking action.
             # The menu will resume after the game ends.
+            self.audio_manager.play_music(MUSIC_IN_GAME)
             game(self.surface, bg_original=self.bg_original, select_sound=self.audio_manager.get_select_sound(), mode=selected_mode)
+            # When the game ends, restore the main menu theme
+            # This ensures that if the player quits to the menu, the music is correct.
+            self.audio_manager.play_music(MUSIC_MAIN_THEME)
+
+
 
     def _on_options(self):
         """Shows the options window."""

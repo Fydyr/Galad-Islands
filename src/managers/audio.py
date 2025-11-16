@@ -9,6 +9,7 @@ import sys
 from typing import Optional
 from src.settings import settings
 from src.settings.localization import t
+from src.constants.assets import MUSIC_MAIN_THEME
 from src.functions.resource_path import get_resource_path
 
 # Force UTF-8 encoding for console output on Windows
@@ -27,22 +28,26 @@ class AudioManager:
     def __init__(self):
         pygame.mixer.init()
         self.music_loaded = False
+        self.current_music_path: Optional[str] = None
         self.select_sound: Optional[pygame.mixer.Sound] = None
         self._load_assets()
 
     def _load_assets(self):
         """Loads audio assets."""
-        self._load_music()
+        self.play_music(MUSIC_MAIN_THEME)
         self._load_sound_effects()
 
-    def _load_music(self):
-        """Loads and starts ambient music."""
-        music_path = get_resource_path(os.path.join("assets", "sounds", "xDeviruchi-TitleTheme.ogg"))
+    def play_music(self, music_path: str, loops: int = -1):
+        """Loads and plays a music file."""
+        full_path = get_resource_path(music_path)
+        if self.current_music_path == full_path:
+            return  # Avoid reloading the same music
         try:
-            pygame.mixer.music.load(music_path)
+            pygame.mixer.music.load(full_path)
             self.update_music_volume()
-            pygame.mixer.music.play(-1)  # Infinite loop
+            pygame.mixer.music.play(loops)
             self.music_loaded = True
+            self.current_music_path = full_path
             print("🎵 Music loaded")
         except Exception as e:
             print(t("system.music_load_error", error=e))
