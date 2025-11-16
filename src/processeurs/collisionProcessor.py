@@ -33,99 +33,99 @@ class CollisionProcessor(esper.Processor):
         super().__init__()
         self.graph = graph
         self.mines_initialized = False
-        # Définir les types de terrain et leurs effets selon votre système
+        # Define terrain types and their effects according to your system
         self.terrain_effects = {
-                'water': {'can_pass': True, 'speed_modifier': 1.0},      # 0 - Eau normale
-                'cloud': {'can_pass': True, 'speed_modifier': 0.5},      # 1 - Nuage ralentit
-                'island': {'can_pass': False, 'speed_modifier': 0.0},    # 2 - Île générique bloque
-                        'mine': {'can_pass': True, 'speed_modifier': 1.0},       # 3 - Mine (entity créée)
-                        'ally_base': {'can_pass': False, 'speed_modifier': 0.0}, # 4 - Base alliée bloque
-                        'enemy_base': {'can_pass': False, 'speed_modifier': 0.0} # 5 - Base ennemie bloque
+                'water': {'can_pass': True, 'speed_modifier': 1.0},      # 0 - Normal water
+                'cloud': {'can_pass': True, 'speed_modifier': 0.5},      # 1 - Cloud slows down
+                'island': {'can_pass': False, 'speed_modifier': 0.0},    # 2 - Generic island blocks
+                        'mine': {'can_pass': True, 'speed_modifier': 1.0},       # 3 - Mine (entity created)
+                        'ally_base': {'can_pass': False, 'speed_modifier': 0.0}, # 4 - Allied base blocks
+                        'enemy_base': {'can_pass': False, 'speed_modifier': 0.0} # 5 - Enemy base blocks
                 }
 
     def process(self, **kwargs):
-        # Initialize les entities mines une seule fois
+        # Initialize mine entities only once
         if not self.mines_initialized and self.graph:
             self._initialize_mine_entities()
             self.mines_initialized = True
 
-        # Collision avec le terrain d'abord (before le mouvement)
+        # Terrain collision first (before movement)
         self._process_terrain_collisions()
-        
-        # Collision entre entities
+
+        # Entity-to-entity collisions
         self._process_entity_collisions()
 
     def _initialize_mine_entities(self):
-        """Create an entity pour chaque mine sur la carte"""
+        """Create an entity for each mine on the map"""
         if not self.graph:
             return
-        
+
         mine_count = 0
-        
+
         for y in range(len(self.graph)):
             for x in range(len(self.graph[0])):
                 if self.graph[y][x] == TileType.MINE:  # Mine
-                    # Calculer la position au centre de la tuile
+                    # Calculate position at tile center
                     world_x = (x + 0.5) * TILE_SIZE
                     world_y = (y + 0.5) * TILE_SIZE
-                    
-                    # Create l'entity mine
+
+                    # Create the mine entity
                     mine_entity = esper.create_entity()
-                    
+
                     # Position
                     esper.add_component(mine_entity, Position(
                         x=world_x,
                         y=world_y,
                         direction=0
                     ))
-                    
-                    # Sprite invisible (surface transparente)
+
+                    # Invisible sprite (transparent surface)
                     invisible_surface = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
-                    invisible_surface.fill((0, 0, 0, 0))  # Complètement transparent
-                    
+                    invisible_surface.fill((0, 0, 0, 0))  # Completely transparent
+
                     esper.add_component(mine_entity, Sprite(
                         image=invisible_surface,
                         width=TILE_SIZE,
                         height=TILE_SIZE
                     ))
-                    
-                    # Health (1 HP - détruit en une collision)
+
+                    # Health (1 HP - destroyed in one collision)
                     esper.add_component(mine_entity, Health(
                         currentHealth=1,
                         maxHealth=1
                     ))
-                    
-                    # Attack (40 dégâts)
+
+                    # Attack (40 damage)
                     esper.add_component(mine_entity, Attack(
                         hitPoints=40
                     ))
-                    
-                    # Peut entrer en collision
+
+                    # Can collide
                     esper.add_component(mine_entity, CanCollide())
-                    
-                    # Team neutre (pour qu'elle touche tout le monde)
+
+                    # Neutral team (so it hits everyone)
                     esper.add_component(mine_entity, Team(team_id=0))
-                    
+
                     mine_count += 1
         
 
     def _process_entity_collisions(self):
         """Process entity collisions using spatial hashing."""
-        
-        # 1. Définir la taille de la grille de hachage
-        # Une bonne taille est généralement 2x la taille de l'entity moyenne.
-        CELL_SIZE = TILE_SIZE * 4 
-        
-        # 2. Create et peupler la grille de hachage
+
+        # 1. Define hash grid size
+        # A good size is generally 2x the average entity size.
+        CELL_SIZE = TILE_SIZE * 4
+
+        # 2. Create and populate the hash grid
         spatial_grid = {}
         entities = esper.get_components(Position, Sprite, CanCollide, Team)
 
         for ent, (pos, sprite, _, _) in entities:
-            # Utiliser les dimensions originales pour la logique collision
+            # Use original dimensions for collision logic
             width = int(sprite.original_width)
             height = int(sprite.original_height)
 
-            # Déterminer les cellules de la grille que l'entity chevauche
+            # Determine which grid cells the entity overlaps
             min_x = int((pos.x - width / 2) / CELL_SIZE)
             max_x = int((pos.x + width / 2) / CELL_SIZE)
             min_y = int((pos.y - height / 2) / CELL_SIZE)
@@ -138,7 +138,7 @@ class CollisionProcessor(esper.Processor):
                         spatial_grid[cell_key] = []
                     spatial_grid[cell_key].append(ent)
 
-        # 3. Check les collisions
+        # 3. Check collisions
         already_checked = set()
 
         for ent, (pos, sprite, collide, team) in entities:
@@ -147,7 +147,7 @@ class CollisionProcessor(esper.Processor):
             rect1 = pygame.Rect(0, 0, width, height)
             rect1.center = (int(pos.x), int(pos.y))
 
-            # Déterminer les cellules à checker
+            # Determine cells to check
             min_x = int((pos.x - width / 2) / CELL_SIZE)
             max_x = int((pos.x + width / 2) / CELL_SIZE)
             min_y = int((pos.y - height / 2) / CELL_SIZE)
@@ -162,117 +162,130 @@ class CollisionProcessor(esper.Processor):
                             potential_colliders.add(collider_ent)
             
             for other_ent in potential_colliders:
-                # avoid l'auto-collision et les paires déjà vérifiées
+                # Avoid self-collision and already checked pairs
                 if ent == other_ent:
                     continue
-                
+
                 pair_key = tuple(sorted((ent, other_ent)))
                 if pair_key in already_checked:
                     continue
                 already_checked.add(pair_key)
 
-                # Récupérer les components de l'autre entity
+                # Get the other entity's components
                 other_pos, other_sprite, other_team = esper.component_for_entity(other_ent, Position), esper.component_for_entity(other_ent, Sprite), esper.component_for_entity(other_ent, Team)
 
                 rect2 = pygame.Rect(0, 0, int(other_sprite.original_width), int(other_sprite.original_height))
                 rect2.center = (int(other_pos.x), int(other_pos.y))
 
                 if rect1.colliderect(rect2):
-                    # Ignorer les collisions entre tours et coffres volants
+                    # Ignore collisions between towers and flying chests
                     is_tower1 = esper.has_component(ent, TowerComponent)
                     is_tower2 = esper.has_component(other_ent, TowerComponent)
                     is_chest1 = esper.has_component(ent, FlyingChestComponent)
                     is_chest2 = esper.has_component(other_ent, FlyingChestComponent)
-                    
+
                     if (is_tower1 and is_chest2) or (is_tower2 and is_chest1):
                         continue
-                    
-                    # Ignorer les collisions entre bandits
+
+                    # Ignore collisions between bandits
                     is_bandit1 = esper.has_component(ent, Bandits)
                     is_bandit2 = esper.has_component(other_ent, Bandits)
                     if is_bandit1 and is_bandit2:
                         continue
 
 
-                    # Si c'est la même équipe, ignorer SAUF si une des deux est une mine (team_id=0)
+                    # If same team, ignore UNLESS one is a mine (team_id=0)
                     if team.team_id == other_team.team_id and team.team_id != 0 and other_team.team_id != 0:
                         continue
-                    
-                    # Gérer la collision entre les deux entities
+
+                    # Handle collision between the two entities
                     self._handle_entity_hit(ent, other_ent)
 
     def _handle_entity_hit(self, entity1, entity2):
-        """Gère les dégâts entre deux entities qui se percutent"""
-        # Check sic'est une collision projectile-entity déjà traitée
+        """Handles damage between two colliding entities"""
+        # Check if it's an already processed projectile-entity collision
         projectile_entity = None
         target_entity = None
-        
+
         if esper.has_component(entity1, ProjectileComponent):
             projectile_entity = entity1
             target_entity = entity2
         elif esper.has_component(entity2, ProjectileComponent):
             projectile_entity = entity2
             target_entity = entity1
-            
-        # Si c'est un projectile, Check s'il a déjà touché cette entity
+
+        # If it's a projectile, check if it already hit this entity
         if projectile_entity and target_entity:
             projectile_comp = esper.component_for_entity(projectile_entity, ProjectileComponent)
             if target_entity in projectile_comp.hit_entities:
-                # Ce projectile a déjà touché cette entity, ignorer
+                # This projectile already hit this entity, ignore
                 return
-            # Marquer cette entity comme touchée par ce projectile
+            # Mark this entity as hit by this projectile
             projectile_comp.hit_entities.add(target_entity)
 
-            # Application immédiate des effets pour les projectiles :
-            # - Si la cible est une mine, NE PAS lui infliger de dégâts (comportement voulu),
-            #   détruire seulement le projectile et Create une explosion d'impact.
-            # - Sinon, appliquer les dégâts via processHealth si le projectile a un Attack.
-            # Détecter mine
+            # Immediate effect application for projectiles:
+            # - If target is a mine, DO NOT inflict damage (intended behavior),
+            #   only destroy the projectile and create an impact explosion.
+            # - Otherwise, apply damage via processHealth if the projectile has Attack.
+            # Detect mine
             is_mine_target = self._is_mine_entity(target_entity)
             if is_mine_target:
-                # Explosion d'impact et suppression du projectile (la mine reste intacte)
+                # Impact explosion and projectile removal (mine remains intact)
                 self._create_explosion_at_entity(projectile_entity)
                 if esper.entity_exists(projectile_entity):
                     esper.delete_entity(projectile_entity)
                 return
 
-            # Détecter bandit
+            # Detect bandit - bandits are invulnerable to projectiles
             is_bandit_target = esper.has_component(target_entity, Bandits)
             if is_bandit_target:
-                # Les projectiles passent à travers les bandits, ignorer la collision
+                # Bandits are invulnerable, ignore collision
                 return
 
-            # Cible non-mine et non-bandit : appliquer dégâts if possible
+            # Check if projectile comes from a bandit and if target is a base
+            from src.components.core.baseComponent import BaseComponent
+            is_base_target = esper.has_component(target_entity, BaseComponent)
+            projectile_comp = esper.component_for_entity(projectile_entity, ProjectileComponent)
+            is_bandit_projectile = (projectile_comp.owner_entity is not None and
+                                   esper.entity_exists(projectile_comp.owner_entity) and
+                                   esper.has_component(projectile_comp.owner_entity, Bandits))
+
+            # Bandit projectiles don't damage bases
+            if is_base_target and is_bandit_projectile:
+                # Ignore collision (no damage to bases)
+                return
+
+            # Non-mine and non-bandit target: apply damage if possible
             if esper.has_component(projectile_entity, Attack) and esper.has_component(target_entity, Health):
                 attack_comp = esper.component_for_entity(projectile_entity, Attack)
                 dmg = int(attack_comp.hitPoints) if attack_comp is not None else 0
                 if dmg > 0:
                     processHealth(target_entity, dmg, projectile_entity)
-                    # Explosion d'impact et suppression du projectile
+                    # Impact explosion and projectile removal
                     self._create_explosion_at_entity(projectile_entity)
                     if esper.entity_exists(projectile_entity):
                         esper.delete_entity(projectile_entity)
                     return
         
-        # Si ce n'est pas un projectile, Check les cooldowns pour avoid les dégâts continus
+        # If it's not a projectile, check cooldowns to avoid continuous damage
         elif not projectile_entity:
-            # Check sientity1 peut infliger des dégâts à entity2
+            # Check if entity1 can inflict damage to entity2
             if esper.has_component(entity1, RadiusComponent):
                 radius_comp = esper.component_for_entity(entity1, RadiusComponent)
                 if not radius_comp.can_hit(entity2):
-                    return  # Cooldown pas écoulé, ignorer la collision
+                    return  # Cooldown not elapsed, ignore collision
                 radius_comp.record_hit(entity2)
                 radius_comp.cleanup_old_entries()
-            
-            # Check sientity2 peut infliger des dégâts à entity1
+
+            # Check if entity2 can inflict damage to entity1
             if esper.has_component(entity2, RadiusComponent):
                 radius_comp = esper.component_for_entity(entity2, RadiusComponent)
                 if not radius_comp.can_hit(entity1):
-                    return  # Cooldown pas écoulé, ignorer la collision
+                    return  # Cooldown not elapsed, ignore collision
                 radius_comp.record_hit(entity1)
                 radius_comp.cleanup_old_entries()
-        
-        # Détecter immédiatement les collisions impliquant un coffre volant
+
+        # Immediately detect collisions involving a flying chest
             try:
                 if esper.has_component(entity1, FlyingChestComponent) or esper.has_component(entity2, FlyingChestComponent):
                     esper.dispatch_event("flying_chest_collision", entity1, entity2)
@@ -281,34 +294,34 @@ class CollisionProcessor(esper.Processor):
                 if esper.has_component(entity1, IslandResourceComponent) or esper.has_component(entity2, IslandResourceComponent):
                     esper.dispatch_event("island_resource_collision", entity1, entity2)
             except Exception:
-                # En cas d'Error in le dispatch, ne pas bloquer les autres collisions
+                # In case of error in dispatch, don't block other collisions
                 pass
 
-        # Check sil'une des entities est un projectile et l'autre une mine
+        # Check if one entity is a projectile and the other a mine
         is_projectile1 = esper.has_component(entity1, ProjectileComponent)
         is_projectile2 = esper.has_component(entity2, ProjectileComponent)
         is_mine1 = self._is_mine_entity(entity1)
         is_mine2 = self._is_mine_entity(entity2)
         is_chest1 = esper.has_component(entity1, FlyingChestComponent)
         is_chest2 = esper.has_component(entity2, FlyingChestComponent)
-        # Mais le projectile peut être détruit
+        # But the projectile can be destroyed
         if (is_projectile1 and is_mine2) or (is_projectile2 and is_mine1):
-            # Détruire seulement le projectile et Create une explosion
+            # Destroy only the projectile and create an explosion
             if is_projectile1:
                 self._create_explosion_at_entity(entity1)
                 esper.delete_entity(entity1)
             if is_projectile2:
                 self._create_explosion_at_entity(entity2)
                 esper.delete_entity(entity2)
-            # La mine ne prend aucun dégât et reste en place
+            # Mine takes no damage and stays in place
             return
 
-        # Si une mine heurte un Scout invincible, ignorer totalement (ne pas détruire la mine)
+        # If a mine hits an invincible Scout, ignore completely (don't destroy the mine)
         try:
             if is_mine1 and esper.has_component(entity2, SpeScout):
                 scout_comp = esper.component_for_entity(entity2, SpeScout)
                 if scout_comp.is_invincible():
-                    # Ignorer la collision
+                    # Ignore collision
                     return
             if is_mine2 and esper.has_component(entity1, SpeScout):
                 scout_comp = esper.component_for_entity(entity1, SpeScout)
@@ -316,15 +329,44 @@ class CollisionProcessor(esper.Processor):
                     return
         except Exception:
             pass
-        
-        # Si une mine heurte un bandit, ignorer totalement (bandits immunisés aux mines)
+
+        # If a mine or entity hits a bandit, ignore completely (bandits invulnerable)
         is_bandit1 = esper.has_component(entity1, Bandits)
         is_bandit2 = esper.has_component(entity2, Bandits)
-        if (is_mine1 and is_bandit2) or (is_mine2 and is_bandit1):
-            # Ignorer la collision - les bandits sont immunisés aux mines
+
+        # Bandits are invulnerable: they never take damage
+        # But other entities take damage if they touch a bandit
+        if is_bandit1 or is_bandit2:
+            # If both are bandits, ignore completely
+            if is_bandit1 and is_bandit2:
+                return
+
+            # If it's a mine and a bandit, ignore (bandits immune to mines)
+            if (is_mine1 and is_bandit2) or (is_mine2 and is_bandit1):
+                return
+
+            # Determine who is the bandit and who is the victim
+            if is_bandit1:
+                bandit_entity = entity1
+                victim_entity = entity2
+            else:
+                bandit_entity = entity2
+                victim_entity = entity1
+
+            # Check if victim is a base - bandits don't damage bases
+            from src.components.core.baseComponent import BaseComponent
+            is_base_victim = esper.has_component(victim_entity, BaseComponent)
+            if is_base_victim:
+                # Bandits don't damage bases, ignore collision
+                return
+
+            # Apply damage only to victim (not to bandit)
+            if esper.has_component(bandit_entity, Attack) and esper.has_component(victim_entity, Health):
+                attack_comp = esper.component_for_entity(bandit_entity, Attack)
+                processHealth(victim_entity, int(attack_comp.hitPoints), bandit_entity)
             return
         
-        # Obtenir les components d'attaque et de santé
+        # Get attack and health components
         attack1 = esper.component_for_entity(entity1, Attack) if esper.has_component(entity1, Attack) else None
         health1 = esper.component_for_entity(entity1, Health) if esper.has_component(entity1, Health) else None
         velo1 = esper.component_for_entity(entity1, Velocity) if esper.has_component(entity1, Velocity) else None
@@ -335,9 +377,9 @@ class CollisionProcessor(esper.Processor):
         velo2 = (esper.component_for_entity(entity2, Velocity) if esper.has_component(entity2, Velocity) else None)
         vine2 = esper.component_for_entity(entity2, Vine) if esper.has_component(entity2, Vine) else None
 
-        # Déléguer la logique de dégâts au gestionnaire central `entities_hit` qui
-        # applique correctement les capacités spéciales (invincibilité, bouclier, ...)
-        # Sauvegarder l'état before l'appel pour gérer les explosions et mines
+        # Delegate damage logic to central handler `entities_hit` which
+        # correctly applies special abilities (invincibility, shield, ...)
+        # Save state before call to handle explosions and mines
         try:
             had_proj1 = esper.has_component(entity1, ProjectileComponent)
             had_proj2 = esper.has_component(entity2, ProjectileComponent)
@@ -345,7 +387,7 @@ class CollisionProcessor(esper.Processor):
             had_proj1 = False
             had_proj2 = False
 
-        # Sauvegarder les positions si nécessaire (pour explosion si le projectile meurt)
+        # Save positions if necessary (for explosion if projectile dies)
         if vine1 is not None and velo2 is not None and not had_proj2:
             esper.add_component(entity2, IsVined(vine1.time))
         elif vine2 is not None and velo1 is not None and not had_proj1:
@@ -363,22 +405,22 @@ class CollisionProcessor(esper.Processor):
             except Exception:
                 pass
 
-        # Dispatcher l'événement qui appliquera les dégâts correctement
+        # Dispatch event that will apply damage correctly
         try:
             esper.dispatch_event('entities_hit', entity1, entity2)
         except Exception:
-            # Fallback : si le handler n'existe pas, appliquer dégâts simples
+            # Fallback: if handler doesn't exist, apply simple damage
             if attack1 and health2:
                 health2.currentHealth -= int(attack1.hitPoints)
             if attack2 and health1:
                 health1.currentHealth -= int(attack2.hitPoints)
-        
-        # --- GESTION SPÉCIALE KAMIKAZE ---
-        # Doit être after le dispatch pour que la mine prenne les dégâts before d'être checkée.
+
+        # --- SPECIAL KAMIKAZE HANDLING ---
+        # Must be after dispatch so mine takes damage before being checked.
         is_kamikaze1 = esper.has_component(entity1, SpeKamikazeComponent)
         is_kamikaze2 = esper.has_component(entity2, SpeKamikazeComponent)
 
-        # Le Kamikaze explose sur tout, sauf les coffres.
+        # Kamikaze explodes on everything, except chests.
         if is_kamikaze1 and not is_chest2:
             self._create_explosion_at_entity(entity1)
             esper.delete_entity(entity1)
@@ -387,7 +429,7 @@ class CollisionProcessor(esper.Processor):
             self._create_explosion_at_entity(entity2)
             esper.delete_entity(entity2)
 
-        # Si une mine touche une autre entity (par ex. un vaisseau), elle explose et disparaît
+        # If a mine hits another entity (e.g. a ship), it explodes and disappears
         if is_mine1:
             self._create_explosion_at_entity(entity1)
             self._destroy_mine_on_grid_with_position(pos1)
@@ -399,16 +441,16 @@ class CollisionProcessor(esper.Processor):
             esper.delete_entity(entity2)
 
 
-        # after le dispatch, Check sides entities ont été supprimées et agir en conséquence
-        # Gestion des mines - utiliser les positions sauvegardées car l'entity peut être supprimée
+        # After dispatch, check if entities were deleted and act accordingly
+        # Mine handling - use saved positions because entity may be deleted
         if is_mine1 and not esper.entity_exists(entity1):
             self._destroy_mine_on_grid_with_position(pos1)
         if is_mine2 and not esper.entity_exists(entity2):
             self._destroy_mine_on_grid_with_position(pos2)
 
-        # Gestion des explosions pour les projectiles supprimés
+        # Explosion handling for deleted projectiles
         try:
-            # Si un projectile a été supprimé during le dispatch, Create une explosion d'impact
+            # If a projectile was deleted during dispatch, create an impact explosion
             if had_proj1 and entity1 not in esper._entities and pos1 is not None:
                 self._create_explosion_at_position(pos1[0], pos1[1], impact=True)
 
@@ -418,129 +460,135 @@ class CollisionProcessor(esper.Processor):
             pass
 
     def _create_explosion_at_entity(self, entity):
-        """Create an entity explosion à la position de l'entity donnée (projectile)"""
-        # Utiliser les imports en tête de file : SpriteID, sprite_manager, Position, Sprite
+        """Create an explosion at the given entity's position (projectile)"""
+        # Use imports at top of file: SpriteID, sprite_manager, Position, Sprite
         if not esper.has_component(entity, Position) or esper.has_component(entity, Vine):
             return
         pos = esper.component_for_entity(entity, Position)
-        # Choisir le sprite : explosion d'impact si c'est un projectile, sinon explosion générique
+        # Choose sprite: impact explosion if it's a projectile, otherwise generic explosion
         is_proj = esper.has_component(entity, ProjectileComponent)
         self._create_explosion_at_position(pos.x, pos.y, impact=is_proj)
-        
-        # Dispatcher l'événement original pour compatibilité
+
+        # Dispatch original event for compatibility
             # esper.dispatch_event('entities_hit', entity1, entity2)
 
     def _create_explosion_at_position(self, x: float, y: float, impact: bool = False, duration: float = 0.4):
-        """Create une explosion à une position donnée.
+        """Create an explosion at a given position.
 
-        Si impact=True, utilise le sprite d'impact (`IMPACT_EXPLOSION`), sinon `EXPLOSION`.
+        If impact=True, uses impact sprite (`IMPACT_EXPLOSION`), otherwise `EXPLOSION`.
         """
         explosion_entity = esper.create_entity()
         esper.add_component(explosion_entity, Position(x=x, y=y, direction=0))
         sprite_id = SpriteID.IMPACT_EXPLOSION if impact else SpriteID.EXPLOSION
-        # Taille plus grande pour meilleure visibilité (impact encore plus grand)
+        # Larger size for better visibility (impact even larger)
         scale = 3.0 if impact else 2.5
         size = sprite_manager.get_default_size(sprite_id)
         if size:
             width = int(size[0] * scale)
             height = int(size[1] * scale)
         else:
-            # avoid les fallbacks sur des chemins d'assets bruts : utiliser des tailles By default
+            # Avoid fallbacks on raw asset paths: use default sizes
             base = 20 if impact else 32
             width = int(base * scale)
             height = int(base * scale)
-        # Toujours Create le component via le sprite_manager pour rester cohérent
+        # Always create component via sprite_manager to stay consistent
         esper.add_component(explosion_entity, sprite_manager.create_sprite_component(sprite_id, width, height))
         esper.add_component(explosion_entity, LifetimeComponent(duration))
 
     def _destroy_mine_on_grid(self, entity):
-        """Détruit la mine sur la grille si l'entity est une mine"""
+        """Destroys mine on grid if entity is a mine"""
         if not self.graph:
             return
-        
-        # Check sic'est une mine (health max = 1)
+
+        # Check if it's a mine (max health = 1)
         if esper.has_component(entity, Health):
             health = esper.component_for_entity(entity, Health)
-            if health.maxHealth == 1:  # C'est une mine
-                # Obtenir la position
+            if health.maxHealth == 1:  # It's a mine
+                # Get position
                 if esper.has_component(entity, Position):
                     pos = esper.component_for_entity(entity, Position)
                     grid_x = int(pos.x // TILE_SIZE)
                     grid_y = int(pos.y // TILE_SIZE)
-                    
-                    # Check les limites et détruire sur la grille
-                    if (0 <= grid_y < len(self.graph) and 
+
+                    # Check bounds and destroy on grid
+                    if (0 <= grid_y < len(self.graph) and
                         0 <= grid_x < len(self.graph[0]) and
                         self.graph[grid_y][grid_x] == TileType.MINE):
-                        self.graph[grid_y][grid_x] = int(TileType.SEA)  # Remplacer par de l'eau
-                        
-                        # Dispatcher événement d'explosion
+                        self.graph[grid_y][grid_x] = int(TileType.SEA)  # Replace with water
+
+                        # Dispatch explosion event
                         esper.dispatch_event('mine_explosion', pos.x, pos.y)
 
     def _destroy_mine_on_grid_with_position(self, position):
-        """Détruit la mine sur la grille en utilisant une position sauvegardée"""
+        """Destroys mine on grid using a saved position"""
         if not self.graph or position is None:
             return
-        
+
         x, y = position
         grid_x = int(x // TILE_SIZE)
         grid_y = int(y // TILE_SIZE)
-        
-        # Check les limites et détruire sur la grille si c'est une mine
-        if (0 <= grid_y < len(self.graph) and 
+
+        # Check bounds and destroy on grid if it's a mine
+        if (0 <= grid_y < len(self.graph) and
             0 <= grid_x < len(self.graph[0]) and
             self.graph[grid_y][grid_x] == TileType.MINE):
-            self.graph[grid_y][grid_x] = int(TileType.SEA)  # Remplacer par de l'eau
-            # Dispatcher événement d'explosion
+            self.graph[grid_y][grid_x] = int(TileType.SEA)  # Replace with water
+            # Dispatch explosion event
             esper.dispatch_event('mine_explosion', x, y)
 
     def _process_terrain_collisions(self):
-        """Gère les collisions avec le terrain - before le mouvement"""
+        """Handles terrain collisions - before movement"""
         if not self.graph:
             return
-            
-        # Obtenir all entities qui peuvent entrer en collision avec le terrain
+
+        # Get all entities that can collide with terrain
         entities = esper.get_components(Position, Velocity, CanCollide)
-        
+
         for ent, (pos, velocity, collide) in entities:
-            # Ignorer les entities qui ne bougent pas
+            # Ignore non-moving entities
             if velocity.currentSpeed == 0:
-                # Réinitialiser le modificateur si on ne bouge pas
+                # Reset modifier if not moving
                 velocity.terrain_modifier = 1.0
                 continue
-                
-            # Calculer la position future (où l'entity veut aller)
-            # IMPORTANT : Conserver le signe de currentSpeed pour gérer le recul
+
+            # Calculate future position (where entity wants to go)
+            # IMPORTANT: Keep currentSpeed sign to handle knockback
             direction_rad = math.radians(pos.direction)
             future_x = pos.x - velocity.currentSpeed * math.cos(direction_rad)
             future_y = pos.y - velocity.currentSpeed * math.sin(direction_rad)
 
-            
-            # Convertir les positions en coordonnées de grille
+
+            # Convert positions to grid coordinates
             future_grid_x = int(future_x // TILE_SIZE)
             future_grid_y = int(future_y // TILE_SIZE)
-            
-            # Check les limites de la grille pour la position future
-            if (future_grid_x < 0 or future_grid_x >= len(self.graph[0]) or 
+
+            # Check grid bounds for future position
+            if (future_grid_x < 0 or future_grid_x >= len(self.graph[0]) or
                 future_grid_y < 0 or future_grid_y >= len(self.graph)):
-                # Hors limites - bloquer le mouvement
+                # Check if it's a bandit - they can leave the map
+                is_bandit = esper.has_component(ent, Bandits)
+                if is_bandit:
+                    # Bandits can leave the map freely
+                    velocity.terrain_modifier = 1.0
+                    continue
+                # Out of bounds - block movement for other entities
                 velocity.currentSpeed = 0
                 velocity.terrain_modifier = 1.0
                 continue
-            
-            # Obtenir le type de terrain de destination
+
+            # Get destination terrain type
             future_terrain = self._get_terrain_type_from_grid(future_grid_x, future_grid_y)
-            
-            # Appliquer les effets selon le terrain de destination
+
+            # Apply effects based on destination terrain
             self._apply_terrain_effects(ent, pos, velocity, future_terrain)
 
     def _get_terrain_type_from_grid(self, grid_x, grid_y):
-        """Obtient le type de terrain à partir des coordonnées de grille"""
-        # Si la grille n'est pas fournie, considérer comme eau
+        """Gets terrain type from grid coordinates"""
+        # If grid is not provided, consider as water
         if not self.graph:
             return 'water'
 
-        if (grid_x < 0 or grid_x >= len(self.graph[0]) or 
+        if (grid_x < 0 or grid_x >= len(self.graph[0]) or
             grid_y < 0 or grid_y >= len(self.graph)):
             return 'water'
 
@@ -548,15 +596,15 @@ class CollisionProcessor(esper.Processor):
         return self._get_terrain_type(terrain_value)
 
     def _get_terrain_type(self, terrain_value):
-        """Convertit la valeur numérique du terrain en type de terrain selon votre système"""
-        # Selon votre mapComponent.py :
-        # 0 = mer (eau)
-        # 1 = nuage 
-        # 2 = île générique
+        """Converts numeric terrain value to terrain type according to your system"""
+        # According to your mapComponent.py:
+        # 0 = sea (water)
+        # 1 = cloud
+        # 2 = generic island
         # 3 = mine
-        # 4 = base alliée
-        # 5 = base ennemie
-        
+        # 4 = allied base
+        # 5 = enemy base
+
         if terrain_value == TileType.SEA:
             return 'water'
         elif terrain_value == TileType.CLOUD:
@@ -570,96 +618,102 @@ class CollisionProcessor(esper.Processor):
         elif terrain_value == TileType.ENEMY_BASE:
             return 'enemy_base'
         else:
-            # Valeur inconnue, traiter comme de l'eau
+            # Unknown value, treat as water
             return 'water'
 
     def _apply_terrain_effects(self, entity, pos, velocity, terrain_type):
-        # ProjectileComponent importé en tête de file
+        # ProjectileComponent imported at top of file
         if terrain_type not in self.terrain_effects:
             velocity.terrain_modifier = 1.0
             return
         effect = self.terrain_effects[terrain_type]
         is_projectile = esper.has_component(entity, ProjectileComponent)
-        # Les projectiles traversent les îles et les bases, mais pas les mines
+        is_bandit = esper.has_component(entity, Bandits)
+        # Projectiles and bandits pass through islands and bases
         if not effect['can_pass']:
             if is_projectile:
-                # Détruire seulement si mine, PAS pour les bases ou îles
+                # Destroy only if mine, NOT for bases or islands
                 if terrain_type in ['mine']:
                     esper.delete_entity(entity)
                     return
-                # Sinon (ex: île, base), traverser sans effet
+                # Otherwise (e.g.: island, base), pass through without effect
                 else:
-                    # Pas de destruction, pas de blocage
+                    # No destruction, no blocking
                     velocity.terrain_modifier = 1.0
                     return
+            elif is_bandit:
+                # Bandits fly over everything (islands, bases, mines)
+                # No destruction, no blocking, no slowdown
+                velocity.terrain_modifier = 1.0
+                return
             else:
-                # Bloquer le mouvement et appliquer un knockback centralisé
-                # On met la vitesse à 0 et on applique un recul simple (back along direction)
+                # Block movement and apply centralized knockback
+                # Set speed to 0 and apply simple recoil (back along direction)
                 magnitude = TILE_SIZE * 0.5
                 try:
                     # Position component
                     pos_comp = esper.component_for_entity(entity, Position)
                     vel_comp = velocity
-                    # Appliquer knockback via méthode centralisée
+                    # Apply knockback via centralized method
                     self._apply_knockback(entity, pos_comp, vel_comp, magnitude=magnitude)
                 except Exception:
                     # Fallback: simple stop
                     velocity.currentSpeed = 0
                 velocity.terrain_modifier = 0.0
         else:
-            if is_projectile and terrain_type == 'cloud':
-                # Les projectiles ne sont pas ralentis in les nuages
+            if (is_projectile or is_bandit) and terrain_type == 'cloud':
+                # Projectiles and bandits are not slowed down in clouds
                 velocity.terrain_modifier = 1.0
             else:
                 velocity.terrain_modifier = effect['speed_modifier']
-                
+
     def _is_mine_entity(self, entity):
-        """Check siune entity est une mine (health max = 1, team_id = 0, attack = 40)"""
-        if (esper.has_component(entity, Health) and 
-            esper.has_component(entity, Team) and 
+        """Check if an entity is a mine (max health = 1, team_id = 0, attack = 40)"""
+        if (esper.has_component(entity, Health) and
+            esper.has_component(entity, Team) and
             esper.has_component(entity, Attack)):
             health = esper.component_for_entity(entity, Health)
             team = esper.component_for_entity(entity, Team)
             attack = esper.component_for_entity(entity, Attack)
-            return (health.maxHealth == 1 and 
-                    team.team_id == 0 and 
+            return (health.maxHealth == 1 and
+                    team.team_id == 0 and
                     attack.hitPoints == 40)
         return False
 
     def _apply_knockback(self, entity, pos: Position, velocity: Velocity, magnitude: float = 30.0, stun_duration: float = 0.6):
-        """Applique un knockback simple à une entity : on recule sa position le long de sa direction actuelle,
-        met la vitesse à 0 et pose un timer court (stun) stocké sur le component `velocity` if possible.
+        """Applies simple knockback to an entity: moves back its position along its current direction,
+        sets speed to 0 and sets a short timer (stun) stored on `velocity` component if possible.
 
-        Cette méthode est centralisée in CollisionProcessor pour que all entities soient affectées
-        de la même façon (units, monstres, kamikaze, etc.).
+        This method is centralized in CollisionProcessor so that all entities are affected
+        the same way (units, monsters, kamikaze, etc.).
         """
         try:
-            # Calculer recul en pixels le long de la direction opposée
+            # Calculate recoil in pixels along opposite direction
             dir_rad = math.radians(pos.direction)
-            # Reculer en conservant le signe (on recule in la direction opposée)
+            # Move back while keeping sign (moving back in opposite direction)
             dx = magnitude * math.cos(dir_rad)
             dy = magnitude * math.sin(dir_rad)
-            # Nouvelle logique de rebond : calculer un angle de réflexion
-            # On suppose que l'obstacle est une surface verticale ou horizontale
-            # pour simplifier. On inverse la composante de vitesse perpendiculaire.
+            # New bounce logic: calculate reflection angle
+            # We assume obstacle is vertical or horizontal surface
+            # for simplicity. Reverse perpendicular velocity component.
             current_angle_rad = math.radians(pos.direction)
-            
-            # On inverse la direction de 180 degrés comme base
+
+            # Reverse direction by 180 degrees as base
             new_direction_rad = current_angle_rad + math.pi
-            
-            # add d'un angle aléatoire pour avoid les blocages parfaits
+
+            # Add random angle to avoid perfect blocking
             random_angle_offset = math.radians(random.uniform(-30, 30))
             new_direction_rad += random_angle_offset
-            
-            # Appliquer le déplacement de recul
+
+            # Apply recoil displacement
             dx = magnitude * math.cos(new_direction_rad)
             dy = magnitude * math.sin(new_direction_rad)
 
-            # Si l'entity avait une vitesse, la mettre à 0
+            # If entity had speed, set it to 0
             if hasattr(velocity, 'currentSpeed'):
                 velocity.currentSpeed = 0
 
-            # Appliquer le déplacement de recul in la position (reculer = opposé à la direction)
+            # Apply recoil displacement to position (moving back = opposite to direction)
             pos.x += dx
             pos.y += dy
 
@@ -669,16 +723,16 @@ class CollisionProcessor(esper.Processor):
                 max_x = len(self.graph[0])
                 pos.x = max(0, min(pos.x, max_x * TILE_SIZE - 1))
                 pos.y = max(0, min(pos.y, max_y * TILE_SIZE - 1))
-                
+
             pos.direction = (pos.direction + 180) % 360
-            # Appliquer la nouvelle position de recul
+            # Apply new recoil position
             pos.x -= dx
             pos.y -= dy
-            
+
             pos.direction = math.degrees(new_direction_rad) % 360
 
-            # Marquer un court stun sur le component velocity if possible
-            # On stocke stun_timer sur l'objet velocity pour avoid d'introduire un nouveau component
+            # Mark short stun on velocity component if possible
+            # Store stun_timer on velocity object to avoid introducing new component
             try:
                 setattr(velocity, 'stun_timer', stun_duration)
             except Exception:

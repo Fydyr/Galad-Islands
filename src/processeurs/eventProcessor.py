@@ -31,7 +31,7 @@ class EventProcessor(esper.Processor):
                 KrakenProcessor.process(dt, ent, kraken, event, grid)
 
             for ent, (bandits, event) in esper.get_components(Bandits, Event):
-                BanditsProcessor.process(dt, ent, bandits, event, grid)
+                BanditsProcessor.process(dt, ent, bandits, event)
 
         elif self.eventCooldown > 0:
             self.eventCooldown -= dt
@@ -57,12 +57,12 @@ class EventProcessor(esper.Processor):
         
         pourcent = random.randint(0, 100)
         if pourcent <= self.banditSpawn:
-            # Événement Bandits
+            # Bandits event
             num_boats = random.randint(1, 6)
-            print(f"[EVENT] Vague de {num_boats} navires bandits!")
+            print(f"[EVENT] Wave of {num_boats} bandit ships!")
             created_entities = BanditsProcessor.spawn_bandits_wave(grid, num_boats)
             if created_entities:
-                print(f"[EVENT] {len(created_entities)} navires bandits créés")
+                print(f"[EVENT] {len(created_entities)} bandit ships created")
 
     def _getNewPosition(self, grid):
         newPositiion = None
