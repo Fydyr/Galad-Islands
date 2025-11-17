@@ -45,11 +45,13 @@ class ExploreState(RapidAIState):
 
     def exit(self, context: "UnitContext") -> None:
         self._release_assignment(context, completed=self._target_reached)
-        context.reset_path()
 
     # -----------------------------------------------------------------
     def update(self, dt: float, context: "UnitContext") -> None:
         exploration_planner.record_observation(context.position, UNIT_VISION_SCOUT)
+        if self.controller.is_navigation_active(context):
+            # Le FSM doit rester en GoTo tant que la navigation est active
+            return
 
         if self._assignment is None:
             self._assignment = self._reserve_assignment(context)
@@ -59,30 +61,35 @@ class ExploreState(RapidAIState):
                     self.controller.stop()
                 return
 
-        target = self._sector_target or self._assignment.target_position
-        if not context.path:
-            self.controller.request_path(target)
-            if not context.path:
-                self._handle_blocked_target(context)
-                return
-
-        waypoint = context.peek_waypoint() or target
-        self.controller.move_towards(waypoint)
-
         now = self.controller.context_manager.time
-        if now >= self._crowd_release_cooldown and self._assignment is not None:
-            if self._avoid_local_crowd(context):
-                self._blocked_sectors.add(self._assignment.sector)
-                self._release_assignment(context, completed=False)
-                self._assignment = self._reserve_assignment(context)
-                self._crowd_release_cooldown = now + 1.5
+        if (
+            now >= self._crowd_release_cooldown
+            and self._assignment is not None
+            and self._avoid_local_crowd(context)
+        ):
+            self._blocked_sectors.add(self._assignment.sector)
+            self._release_assignment(context, completed=False)
+            self._assignment = self._reserve_assignment(context)
+            self._crowd_release_cooldown = now + 1.5
+            if self._assignment is None:
                 return
 
-        if self.distance(context.position, target) <= self.controller.waypoint_radius:
+        target = self._sector_target or self._assignment.target_position
+        tolerance = max(self.controller.navigation_tolerance, self.controller.waypoint_radius)
+        if self.distance(context.position, target) <= tolerance:
             self._target_reached = True
             self._release_assignment(context, completed=True)
-            context.reset_path()
             self._assignment = self._reserve_assignment(context)
+            return
+
+        started = self.controller.ensure_navigation(
+            context,
+            target,
+            return_state=self.name,
+            tolerance=tolerance,
+        )
+        if not started:
+            self._handle_blocked_target(context)
 
     # -----------------------------------------------------------------
     def _reserve_assignment(self, context: "UnitContext") -> Optional[ExplorationAssignment]:
@@ -124,6 +131,7 @@ class ExploreState(RapidAIState):
 
     def _handle_blocked_target(self, context: "UnitContext") -> None:
         LOGGER.debug("[AI] %s Explore: destination inaccessible", context.entity_id)
+        self.controller.cancel_navigation(context)
         self.controller.stop()
         if self._assignment is not None:
             self._blocked_sectors.add(self._assignment.sector)
