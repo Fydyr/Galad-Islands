@@ -57,6 +57,10 @@ class GoToState(RapidAIState):
             if self._current_waypoint is None:
                 if self._handle_no_path(context, target_position, objective):
                     return
+                self._current_waypoint = context.peek_waypoint()
+                if self._current_waypoint is None:
+                    # Aucun chemin actif : tomber en mode navigation directe
+                    self._current_waypoint = target_position
 
         distance = self.distance(context.position, self._current_waypoint)
         if distance < waypoint_radius and (now - self._last_advance_time) > 0.2:

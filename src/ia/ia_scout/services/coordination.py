@@ -86,6 +86,11 @@ class CoordinationService:
     def shared_states(self) -> Iterable[UnitSharedState]:
         return list(self._unit_states.values())
 
+    def explorer_states(self) -> Iterable[UnitSharedState]:
+        """Retourne les unités actuellement en mission d'exploration."""
+
+        return [state for state in self._unit_states.values() if state.objective == "explore"]
+
     def assign_rotating_role(
         self,
         role: str,

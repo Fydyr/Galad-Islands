@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
 
@@ -43,10 +43,12 @@ class ExplorationPlanner:
         sector_tile_size: int = 8,
         block_duration: float = 10.0,
         observation_ttl: float = 6.0,
+        max_assignments_per_sector: int = 1,
     ) -> None:
         self._sector_tile_size = max(2, sector_tile_size)
         self._block_duration = block_duration
         self._observation_ttl = observation_ttl
+        self._max_assignments = max(1, max_assignments_per_sector)
         self._cols = math.ceil(MAP_WIDTH / self._sector_tile_size)
         self._rows = math.ceil(MAP_HEIGHT / self._sector_tile_size)
         self._grid = [
@@ -54,6 +56,15 @@ class ExplorationPlanner:
             for _ in range(self._rows)
         ]
         self._reservations: Dict[int, SectorCoord] = {}
+        self._sector_load: Dict[SectorCoord, int] = {}
+        # Poids du score (plus c'est haut, plus le secteur est attractif)
+        self._freshness_weight = 1.0
+        self._distance_weight = 0.002  # pénalise les longs trajets
+        self._load_weight = 2.0       # évite les regroupements
+        self._block_weight = 0.5
+        self._unseen_bonus = 12.0
+        self._frontier_bonus = 6.0    # pousse vers la lisière des nuages
+        self._unvisited_distance_scale = 0.4
 
     # --- API publique -------------------------------------------------
     def preview_target(self, current_position: WorldPos) -> Optional[ExplorationAssignment]:
@@ -84,6 +95,7 @@ class ExplorationPlanner:
         self._reservations[entity_id] = sector
         state = self._grid[sector[1]][sector[0]]
         state.reserve_owner = entity_id
+        self._sector_load[sector] = self._sector_load.get(sector, 0) + 1
         return ExplorationAssignment(sector=sector, target_position=self._sector_center(sector))
 
     def release(self, entity_id: int, *, completed: bool) -> None:
@@ -95,6 +107,11 @@ class ExplorationPlanner:
         state = self._grid[sector[1]][sector[0]]
         if state.reserve_owner == entity_id:
             state.reserve_owner = None
+        new_load = max(0, self._sector_load.get(sector, 1) - 1)
+        if new_load == 0:
+            self._sector_load.pop(sector, None)
+        else:
+            self._sector_load[sector] = new_load
         now = time.perf_counter()
         if completed:
             state.visited = True
@@ -129,13 +146,62 @@ class ExplorationPlanner:
         preferred_sector: Optional[SectorCoord],
         blacklist: Optional[Tuple[SectorCoord, ...]] = None,
     ) -> Optional[SectorCoord]:
-        if preferred_sector and self._can_use_sector(preferred_sector, blacklist):
-            return preferred_sector
+        now = time.perf_counter()
+        candidates = self._candidate_sectors(current_position, preferred_sector, blacklist)
+        prioritize_unvisited = any(not self._grid[sector[1]][sector[0]].visited for sector in candidates)
+        if prioritize_unvisited:
+            candidates = [sector for sector in candidates if not self._grid[sector[1]][sector[0]].visited]
+        best_sector: Optional[SectorCoord] = None
+        best_score = float("-inf")
+        for sector in candidates:
+            if not self._can_use_sector(sector, blacklist):
+                continue
+            if self._sector_load.get(sector, 0) >= self._max_assignments:
+                continue
+            score = self._sector_score(sector, current_position, now)
+            if score > best_score:
+                best_score = score
+                best_sector = sector
+        return best_sector
 
-        best = self._closest_unvisited(current_position, blacklist)
-        if best is not None:
-            return best
-        return self._stalest_sector(blacklist)
+    def _candidate_sectors(
+        self,
+        current_position: Optional[WorldPos],
+        preferred_sector: Optional[SectorCoord],
+        blacklist: Optional[Tuple[SectorCoord, ...]] = None,
+    ) -> List[SectorCoord]:
+        """Construit une shortlist de secteurs à évaluer pour accélérer la sélection."""
+
+        candidates: List[SectorCoord] = []
+        seen = set()
+        if preferred_sector and self._can_use_sector(preferred_sector, blacklist):
+            candidates.append(preferred_sector)
+            seen.add(preferred_sector)
+
+        # Ajouter les secteurs non visités prioritaires
+        best_unvisited = self._rank_unvisited(current_position, blacklist, limit=16)
+        for sector in best_unvisited:
+            if sector not in seen:
+                candidates.append(sector)
+                seen.add(sector)
+
+        stalest = self._rank_stalest(blacklist, limit=12)
+        for sector in stalest:
+            if sector not in seen:
+                candidates.append(sector)
+                seen.add(sector)
+
+        if not candidates:
+            # Dernier recours: parcourir toute la grille (coût acceptable en dernier recours)
+            for sy in range(self._rows):
+                for sx in range(self._cols):
+                    sector = (sx, sy)
+                    if sector in seen:
+                        continue
+                    if not self._can_use_sector(sector, blacklist):
+                        continue
+                    candidates.append(sector)
+        return candidates
 
     def _can_use_sector(self, sector: SectorCoord, blacklist: Optional[Tuple[SectorCoord, ...]] = None) -> bool:
         sx, sy = sector
@@ -150,13 +216,14 @@ class ExplorationPlanner:
             return False
         return True
 
-    def _closest_unvisited(
+    def _rank_unvisited(
         self,
         current_position: Optional[WorldPos],
         blacklist: Optional[Tuple[SectorCoord, ...]] = None,
-    ) -> Optional[SectorCoord]:
-        best_sector: Optional[SectorCoord] = None
-        best_score = float("inf")
+        limit: int = 8,
+    ) -> List[SectorCoord]:
+        """Classe les secteurs jamais visités par distance croissante."""
+        scored: List[Tuple[float, SectorCoord]] = []
         for sy in range(self._rows):
             for sx in range(self._cols):
                 state = self._grid[sy][sx]
@@ -166,14 +233,17 @@ class ExplorationPlanner:
                     continue
                 center = self._sector_center((sx, sy))
                 score = self._distance_sq(center, current_position)
-                if score < best_score:
-                    best_score = score
-                    best_sector = (sx, sy)
-        return best_sector
+                scored.append((score, (sx, sy)))
+        scored.sort(key=lambda item: item[0])
+        return [sector for _, sector in scored[:limit]]
 
-    def _stalest_sector(self, blacklist: Optional[Tuple[SectorCoord, ...]] = None) -> Optional[SectorCoord]:
-        best_sector: Optional[SectorCoord] = None
-        best_age = -1.0
+    def _rank_stalest(
+        self,
+        blacklist: Optional[Tuple[SectorCoord, ...]] = None,
+        limit: int = 8,
+    ) -> List[SectorCoord]:
+        """Classe les secteurs visités depuis trop longtemps pour maintenir la couverture."""
+        scored: List[Tuple[float, SectorCoord]] = []
         now = time.perf_counter()
         for sy in range(self._rows):
             for sx in range(self._cols):
@@ -181,10 +251,47 @@ class ExplorationPlanner:
                 if not self._can_use_sector((sx, sy), blacklist):
                     continue
                 age = now - state.last_visit
-                if age > best_age:
-                    best_age = age
-                    best_sector = (sx, sy)
-        return best_sector
+                scored.append((age, (sx, sy)))
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return [sector for _, sector in scored[:limit]]
+
+    def _sector_score(self, sector: SectorCoord, current_position: Optional[WorldPos], now: float) -> float:
+        """Évalue un secteur en combinant fraîcheur, distance et charge actuelle."""
+        sx, sy = sector
+        state = self._grid[sy][sx]
+        center = self._sector_center(sector)
+        distance = math.sqrt(self._distance_sq(center, current_position)) if current_position else 0.0
+        freshness = self._unseen_bonus if not state.visited else max(0.0, now - state.last_visit)
+        block_penalty = max(0.0, state.blocked_until - now)
+        load_penalty = self._sector_load.get(sector, 0)
+        distance_weight = self._distance_weight * (self._unvisited_distance_scale if not state.visited else 1.0)
+        frontier_bonus = self._frontier_bonus if self._is_frontier_sector(sector) else 0.0
+        score = (
+            self._freshness_weight * freshness
+            - distance_weight * distance
+            - self._block_weight * block_penalty
+            - self._load_weight * load_penalty
+            + frontier_bonus
+        )
+        return score
+
+    def _is_frontier_sector(self, sector: SectorCoord) -> bool:
+        """Détecte les secteurs non visités jouxtant une zone connue (nuages)."""
+
+        sx, sy = sector
+        if not (0 <= sx < self._cols and 0 <= sy < self._rows):
+            return False
+        state = self._grid[sy][sx]
+        if state.visited:
+            return False
+        for ny in range(sy - 1, sy + 2):
+            for nx in range(sx - 1, sx + 2):
+                if nx == sx and ny == sy:
+                    continue
+                if 0 <= nx < self._cols and 0 <= ny < self._rows:
+                    if self._grid[ny][nx].visited:
+                        return True
+        return False
 
     # --- Utilitaires géométriques -----------------------------------
     def _world_to_sector(self, position: WorldPos) -> SectorCoord:

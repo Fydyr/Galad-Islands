@@ -32,7 +32,7 @@ def create_projectile(entity, type: str = "bullet"):
     druidMaxY = 150
 
     # Debug log for projectile creation
-    print(f"[DEBUG] create_projectile - entity: {entity}, type: {type}")
+    # print(f"[DEBUG] create_projectile - entity: {entity}, type: {type}")
 
     if not esper.has_component(entity, SpeArchitect) and not esper.has_component(entity, SpeDruid):
         # Récupère le radius pour savoir si on tire sur les côtés
