@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 from typing import List, Tuple
 
 import sys
 from pathlib import Path
 
 import esper
+import pytest
 from pytest import MonkeyPatch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,8 +24,6 @@ from src.components.core.teamComponent import TeamComponent
 from src.ia.ia_scout.services.danger_map import DangerMapService
 from src.ia.ia_scout.services.pathfinding import PathfindingService
 from src.ia.ia_scout.services.prediction import PredictionService
-from src.ia.ia_scout.services.context import AIContextManager, UnitContext
-from src.ia.ia_scout.states.flee import FleeState
 
 
 def _empty_get_components(*_: object, **__: object) -> List[Tuple[int, Tuple]]:
@@ -75,131 +73,10 @@ def test_pathfinding_evite_les_tuiles_risquees(monkeypatch: MonkeyPatch) -> None
     assert couples  # Un chemin existe
 
 
-def test_prediction_renvoie_uniquement_les_ennemis(monkeypatch: MonkeyPatch) -> None:
-    """Contrôle que la prédiction ignore les alliés et respecte l'horizon."""
+def test_prediction_service_desactive() -> None:
+    """Vérifie que le service de prédiction est désormais indisponible."""
 
-    def _fake_get_components(*_: object, **__: object) -> List[Tuple[int, Tuple[PositionComponent, VelocityComponent, TeamComponent]]]:
-        same_team = (
-            98,
-            (
-                PositionComponent(x=80.0, y=180.0, direction=90.0),
-                VelocityComponent(currentSpeed=8.0),
-                TeamComponent(team_id=Team.ENEMY),
-            ),
-        )
-        ally = (
-            99,
-            (
-                PositionComponent(x=100.0, y=200.0, direction=180.0),
-                VelocityComponent(currentSpeed=10.0),
-                TeamComponent(team_id=Team.ALLY),
-            ),
-        )
-        neutral_threat = (
-            101,
-            (
-                PositionComponent(x=180.0, y=220.0, direction=0.0),
-                VelocityComponent(currentSpeed=12.0),
-                TeamComponent(team_id=42),
-            ),
-        )
-        return [same_team, ally, neutral_threat]
-
-    monkeypatch.setattr(esper, "get_components", _fake_get_components)
-
-    # Éviter les échecs d'Esper.has_component dans ce test spécifique
-    monkeypatch.setattr(esper, "has_component", lambda *_: False)
     predictor = PredictionService(horizon=1.0)
-    predicted = predictor.predict_enemy_positions(team_id=Team.ENEMY)
+    with pytest.raises(RuntimeError, match="PredictionService has been removed"):
+        predictor.predict_enemy_positions(team_id=Team.ENEMY)
 
-    assert len(predicted) == 1
-    assert predicted[0].entity_id == 101
-    assert predicted[0].future_position[1] <= 220.0
-
-
-class _DummySpecial:
-    def __init__(self) -> None:
-        self.activated = False
-
-    def can_activate(self) -> bool:
-        return True
-
-    def activate(self) -> bool:
-        self.activated = True
-        return True
-
-    def is_invincible(self) -> bool:
-        return self.activated
-
-
-class _DummyController:
-    def __init__(self) -> None:
-        self.settings = SimpleNamespace(
-            invincibility_min_health=0.5,
-            pathfinding=SimpleNamespace(waypoint_reached_radius=32.0),
-            debug=SimpleNamespace(enabled=False, log_state_changes=False),
-        )
-        self.context_manager = SimpleNamespace(time=0.0)
-        self.danger_map = SimpleNamespace(
-            find_safest_point=lambda _pos, _radius: (64.0, 64.0),
-            find_safest_point_with_base_bonus=lambda _pos, _base, _radius: (64.0, 64.0),
-        )
-        # Pathfinding minimal requis par FleeState
-        self.pathfinding = SimpleNamespace(
-            is_world_blocked=lambda _pos: False,
-            find_accessible_world=lambda pos, _radius=None: pos,
-        )
-        # Tolérance de navigation utilisée par FleeState.update
-        self.navigation_tolerance = 32.0
-        self.target_history: List[Tuple[float, float]] = []
-
-    def request_path(self, target: Tuple[float, float]) -> None:
-        self.target_history.append(target)
-
-    def move_towards(self, target: Tuple[float, float]) -> None:
-        self.target_history.append(target)
-
-    # Satisfait l'appel FleeState.enter -> cancel_navigation
-    def cancel_navigation(self, _context: UnitContext) -> None:  # type: ignore[override]
-        return
-
-    # Méthodes no-op pour satisfaire FleeState.ensure_navigation/is_navigation_active/stop
-    def ensure_navigation(self, *_args, **_kwargs) -> None:
-        return
-
-    def is_navigation_active(self, *_args, **_kwargs) -> bool:
-        return False
-
-    def stop(self) -> None:
-        return
-
-
-def test_flee_state_declenche_l_invincibilite(monkeypatch: MonkeyPatch) -> None:
-    """Valide que l'état de fuite active la capacité spéciale quand la vie est basse."""
-
-    monkeypatch.setattr(esper, "component_for_entity", lambda *_: None)
-    # Éviter l'exception BaseComponent non initialisé
-    from src.components.core.baseComponent import BaseComponent
-    monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: None))
-
-    controller = _DummyController()
-    manager = AIContextManager()
-    controller.context_manager = manager  # type: ignore[assignment]
-
-    context = UnitContext(
-        entity_id=7,
-        team_id=Team.ENEMY,
-        unit_type=None,
-        max_health=100.0,
-        health=40.0,
-    )
-    context.position = (0.0, 0.0)
-    context.special_component = _DummySpecial()  # type: ignore[assignment]
-
-    state = FleeState("Flee", controller)  # type: ignore[arg-type]
-    state.enter(context)
-    state.update(0.1, context)
-
-    # Vérifie que l'invincibilité a été activée
-    assert isinstance(context.special_component, _DummySpecial) and context.special_component.activated  # type: ignore[union-attr]
-    assert controller.target_history

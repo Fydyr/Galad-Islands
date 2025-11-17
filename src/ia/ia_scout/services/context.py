@@ -56,8 +56,6 @@ class UnitContext:
     target_entity: Optional[int] = None
     wants_attack: bool = False
     wants_flee: bool = False
-    in_flee_state: bool = False  # Track si l'unit est actuellement en fuite (pour hysteresis)
-    flee_exit_time: float = 0.0  # Quand l'unit a quitté l'état Flee (pour avoid re-entrée rapide)
     stuck_state_time: float = 0.0  # Temps passé in le même état sans progresser
     last_state_change: float = 0.0  # Timestamp du dernier changement d'état
     share_channel: Dict[str, float] = field(default_factory=dict)

@@ -42,11 +42,11 @@ class PathfindingSettings:
     danger_weight: float = 4.0
     diagonal_cost: float = 1.4
     island_perimeter_weight: float = 999.0  # Quasi-infini pour éviter complètement les îles
-    island_perimeter_radius: int = 2  # Réduire de 3 à 2 (1 tuile au lieu de 1.5 tuiles)
-    mine_perimeter_radius: int = 4  # Zone de sécurité de 2 tuiles autour des mines
-    blocked_margin_radius: int = 1  # Réduire encore de 2 à 1 
-    blocked_margin_weight: float = 8.0  # Réduire de 10.0 à 8.0
-    map_border_radius: int = 2  # Augmenté pour éviter les bords de carte
+    island_perimeter_radius: int = 1
+    mine_perimeter_radius: int = 1
+    blocked_margin_radius: int = 2
+    blocked_margin_weight: float = 15
+    map_border_radius: int = 1
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),
         int(TileType.ENEMY_BASE),

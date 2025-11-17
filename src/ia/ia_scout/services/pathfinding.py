@@ -12,7 +12,6 @@ from collections import deque
 
 from src.constants.map_tiles import TileType
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
-from src.settings.settings import config_manager
 
 from ..config import AISettings, get_settings
 from ..log import get_logger
@@ -36,71 +35,6 @@ def _heuristic_numba(goal_x: int, goal_y: int, node_x: int, node_y: int) -> floa
 
 
 class PathfindingService:
-    def find_path(self, start: GridPos, goal: GridPos) -> List[WorldPos]:
-        if not self._in_bounds(start) or not self._in_bounds(goal):
-            return []
-
-        goal_initial = goal
-        if self._is_goal_blocked(goal):
-            fallback = self._find_accessible_goal(goal)
-            if fallback is None:
-                return []
-            goal = fallback
-
-        frontier: List[Tuple[float, GridPos]] = []
-        heapq.heappush(frontier, (0.0, start))
-
-        came_from: Dict[GridPos, Optional[GridPos]] = {start: None}
-        cost_so_far: Dict[GridPos, float] = {start: 0.0}
-
-        while frontier:
-            _, current = heapq.heappop(frontier)
-            for dx, dy, move_cost in self._neighbors:
-                next_node = (current[0] + dx, current[1] + dy)
-                if not self._in_bounds(next_node):
-                    continue
-                # Interdire les coupes de coins: un déplacement diagonal n'est permis
-                # que si les deux cases cardinales adjacentes sont franchissables.
-                if dx != 0 and dy != 0:
-                    adj_a = (current[0] + dx, current[1])
-                    adj_b = (current[0], current[1] + dy)
-                    if not self._is_passable(adj_a) or not self._is_passable(adj_b):
-                        continue
-                tile_value = self._grid[next_node[1], next_node[0]]
-                if tile_value in self.settings.pathfinding.tile_blacklist:
-                    continue
-                base_cost = self._tile_cost(next_node)
-                if tile_value in self.settings.pathfinding.tile_soft_block:
-                    base_cost *= 2.5
-                new_cost = cost_so_far[current] + move_cost * base_cost
-                if next_node not in cost_so_far or new_cost < cost_so_far[next_node]:
-                    cost_so_far[next_node] = new_cost
-                    priority = new_cost + self._heuristic(goal, next_node)
-                    heapq.heappush(frontier, (priority, next_node))
-                    came_from[next_node] = current
-        if goal not in came_from:
-            return []
-
-        grid_path: List[GridPos] = []
-        node = goal
-        while True:
-            grid_path.append(node)
-            parent = came_from.get(node)
-            if parent is None:
-                break
-            node = parent
-
-        grid_path.reverse()
-        axis_aligned_path = self._inject_axis_checkpoints(grid_path)
-        compressed_path = self._compress_axis_segments(axis_aligned_path)
-        world_path: List[WorldPos] = [self.grid_to_world(g) for g in compressed_path]
-        self._last_path = world_path  # Stocker le dernier chemin calculé
-        return world_path
-    def _is_passable(self, grid_pos: GridPos) -> bool:
-        x, y = grid_pos
-        if not self._in_bounds((x, y)):
-            return False
-        return not np.isinf(self._base_cost[y, x])
     """Computes weighted paths that avoid hazards while remaining performant."""
 
     def __init__(
@@ -131,6 +65,12 @@ class PathfindingService:
 
         self._neighbors = self._build_neighbors()
 
+        LOGGER.info(
+            "[PF] Initialisation PathfindingService: sub_tile_factor=%s, grid_size=%sx%s",
+            self.sub_tile_factor,
+            self._width,
+            self._height,
+        )
         
         # Stockage du dernier chemin calculé pour l'affichage debug
         self._last_path: List[WorldPos] = []
@@ -148,7 +88,7 @@ class PathfindingService:
         island_mask = self._coarse_grid == island_tile
         if island_mask.any():
             island_expanded = np.repeat(np.repeat(island_mask, factor, axis=0), factor, axis=1)
-            radius_cells = max(int(self.settings.pathfinding.island_perimeter_radius), int(0.75 * factor)) # Assurer un périmètre minimum de 0.75 tuile
+            radius_cells = max(0, int(self.settings.pathfinding.island_perimeter_radius))
             if radius_cells > 0:
                 # Rayon exprimé en sous-tuiles afin d'avoir un contrôle fin sur la zone bloquée
                 padded = np.pad(island_expanded.astype(np.uint8), radius_cells, mode="constant")
@@ -157,8 +97,8 @@ class PathfindingService:
                 expanded_mask = neighborhood.max(axis=(2, 3)).astype(bool)
             else:
                 expanded_mask = island_expanded
-            # Donner un coût élevé aux îles pour les avoid mais permettre l'accès
-            cost[expanded_mask] = self.settings.pathfinding.island_perimeter_weight
+            # Bloquer complètement les îles et leur périmètre - np.inf = infranchissable
+            cost[expanded_mask] = np.inf
 
         mine_tile = int(TileType.MINE)
         mine_mask = self._coarse_grid == mine_tile
@@ -201,7 +141,7 @@ class PathfindingService:
             border_cells = border_radius_tiles
             border_cells = min(border_cells, cost.shape[0] // 2, cost.shape[1] // 2)
             if border_cells > 0:
-                # Bloquer les bords de la carte pour avoid que l'IA ne s'y colle
+                # Bloquer les bords de la carte pour éviter que l'IA ne s'y colle
                 cost[:border_cells, :] = np.inf
                 cost[-border_cells:, :] = np.inf
                 cost[:, :border_cells] = np.inf
@@ -252,15 +192,141 @@ class PathfindingService:
             ((position[1] + 0.5) / factor) * TILE_SIZE,
         )
 
+    def has_line_of_fire(self, origin: WorldPos, target: WorldPos) -> bool:
+        """Teste si un segment est libre d'obstacles en suivant une marche de Bresenham."""
+
+        start = self.world_to_grid(origin)
+        goal = self.world_to_grid(target)
+        x0, y0 = start
+        x1, y1 = goal
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+        sx = 1 if x0 < x1 else -1
+        sy = 1 if y0 < y1 else -1
+        err = dx - dy
+
+        while True:
+            if not self._in_bounds((x0, y0)):
+                return False
+            if np.isinf(self._tile_cost((x0, y0))):
+                return False
+            if (x0, y0) == (x1, y1):
+                break
+            e2 = 2 * err
+            if e2 > -dy:
+                err -= dy
+                x0 += sx
+            if e2 < dx:
+                err += dx
+                y0 += sy
+        return True
+
     def _in_bounds(self, grid_pos: GridPos) -> bool:
         x, y = grid_pos
         return 0 <= x < self._width and 0 <= y < self._height
 
     def _tile_cost(self, grid_pos: GridPos) -> float:
         x, y = grid_pos
-        if not self._in_bounds((x, y)):
-            return float('inf')
-        return self._base_cost[y, x]
+        base = self._base_cost[y, x]
+        coarse_x = x // self.sub_tile_factor
+        coarse_y = y // self.sub_tile_factor
+        danger_field = self.danger_service.field
+        max_coarse_y, max_coarse_x = danger_field.shape
+        coarse_x = min(coarse_x, max_coarse_x - 1)
+        coarse_y = min(coarse_y, max_coarse_y - 1)
+        danger = danger_field[coarse_y, coarse_x]
+        return base + danger * self.settings.pathfinding.danger_weight
+
+    def _is_passable(self, grid_pos: GridPos) -> bool:
+        if not self._in_bounds(grid_pos):
+            return False
+        return not np.isinf(self._tile_cost(grid_pos))
+
+    def find_path(self, start_world: WorldPos, goal_world: WorldPos) -> List[WorldPos]:
+        start = self.world_to_grid(start_world)
+        goal = self.world_to_grid(goal_world)
+
+        if not self._in_bounds(start) or not self._in_bounds(goal):
+            LOGGER.warning(
+                "[PF] find_path annulé: positions hors limites start_in=%s goal_in=%s",
+                self._in_bounds(start),
+                self._in_bounds(goal),
+            )
+            return []
+
+        goal_initial = goal
+        if self._is_goal_blocked(goal):
+            fallback = self._find_accessible_goal(goal)
+            if fallback is None:
+                LOGGER.info(
+                    "[PF] find_path annulé: objectif impraticable (grid=%s) sans alternative",
+                    goal,
+                )
+                return []
+            LOGGER.info(
+                "[PF] find_path objectif ajusté: %s -> %s", goal_initial, fallback
+            )
+            goal = fallback
+
+        frontier: List[Tuple[float, GridPos]] = []
+        heapq.heappush(frontier, (0.0, start))
+
+        came_from: Dict[GridPos, Optional[GridPos]] = {start: None}
+        cost_so_far: Dict[GridPos, float] = {start: 0.0}
+
+        while frontier:
+            _, current = heapq.heappop(frontier)
+
+            if current == goal:
+                break
+
+            for dx, dy, move_cost in self._neighbors:
+                next_node = (current[0] + dx, current[1] + dy)
+                if not self._in_bounds(next_node):
+                    continue
+
+                tile_value = self._grid[next_node[1], next_node[0]]
+                if tile_value in self.settings.pathfinding.tile_blacklist:
+                    continue
+
+                base_cost = self._tile_cost(next_node)
+                if tile_value in self.settings.pathfinding.tile_soft_block:
+                    base_cost *= 2.5
+
+                new_cost = cost_so_far[current] + move_cost * base_cost
+
+                if next_node not in cost_so_far or new_cost < cost_so_far[next_node]:
+                    cost_so_far[next_node] = new_cost
+                    priority = new_cost + self._heuristic(goal, next_node)
+                    heapq.heappush(frontier, (priority, next_node))
+                    came_from[next_node] = current
+
+        if goal not in came_from:
+            LOGGER.info(
+                "[PF] find_path échec: aucun chemin trouvé start=%s goal=%s (frontier vide)",
+                start,
+                goal,
+            )
+            return []
+
+        grid_path: List[GridPos] = []
+        node = goal
+        while True:
+            grid_path.append(node)
+            parent = came_from.get(node)
+            if parent is None:
+                break
+            node = parent
+
+        grid_path.reverse()
+        axis_aligned_path = self._inject_axis_checkpoints(grid_path)
+        compressed_path = self._compress_axis_segments(axis_aligned_path)
+        world_path: List[WorldPos] = [self.grid_to_world(g) for g in compressed_path]
+        self._last_path = world_path  # Stocker le dernier chemin calculé
+        LOGGER.info(
+            "[PF] find_path succès: %s noeuds (compressé=%s)", len(grid_path), len(world_path)
+        )
+        return world_path
 
     def _is_goal_blocked(self, grid_pos: GridPos) -> bool:
         tile_value = self._grid[grid_pos[1], grid_pos[0]]
@@ -378,7 +444,7 @@ class PathfindingService:
         return _heuristic_numba(goal[0], goal[1], node[0], node[1]) / self.sub_tile_factor
 
     def get_unwalkable_areas(self) -> List[WorldPos]:
-        """Retourne la liste des positions centrales des tuiles infranchissables ou à avoid."""
+        """Retourne la liste des positions centrales des tuiles infranchissables ou à éviter."""
         unwalkable_positions = []
         base_cost = self._base_cost
         for y in range(self._height):

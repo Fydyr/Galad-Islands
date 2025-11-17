@@ -16,8 +16,7 @@ if str(ROOT) not in sys.path:
 	sys.path.insert(0, str(ROOT))
 
 from src.ia.ia_scout.services.context import UnitContext
-from src.ia.ia_scout.services.goals import GoalEvaluator
-from src.ia.ia_scout.services.prediction import PredictedEntity
+from src.ia.ia_scout.services.goals import GoalEvaluator, TargetInfo
 from src.components.core.positionComponent import PositionComponent
 from src.components.events.flyChestComponent import FlyingChestComponent
 from src.components.core.healthComponent import HealthComponent
@@ -41,15 +40,6 @@ class DummyDangerMap:
 	def iter_mine_world_positions(self) -> Iterable[Tuple[float, float]]:
 		return list(self.mines)
 
-
-class DummyPredictionService:
-	"""Service de prédiction déterministe pour les scénarios de test."""
-
-	def __init__(self, predictions: Iterable[PredictedEntity]):
-		self._predictions: List[PredictedEntity] = list(predictions)
-
-	def predict_enemy_positions(self, _team_id: int) -> List[PredictedEntity]:
-		return list(self._predictions)
 
 
 class DummyPathfinding:
@@ -94,6 +84,10 @@ def _patch_esper_defaults(monkeypatch: MonkeyPatch) -> None:
 	monkeypatch.setattr(esper, "component_for_entity", lambda *_: (_ for _ in ()).throw(KeyError()))
 
 
+def _no_visible_targets(monkeypatch: MonkeyPatch) -> None:
+	monkeypatch.setattr(GoalEvaluator, "_collect_visible_targets", lambda *_args, **_kwargs: [])
+
+
 def test_chest_prioritaire_si_accessible(monkeypatch: MonkeyPatch) -> None:
 	"""Check qu'un coffre accessible prime sur all autres actions."""
 
@@ -113,14 +107,14 @@ def test_chest_prioritaire_si_accessible(monkeypatch: MonkeyPatch) -> None:
 		return []
 
 	_patch_esper_defaults(monkeypatch)
+	_no_visible_targets(monkeypatch)
 	monkeypatch.setattr(esper, "get_components", fake_get_components)
 	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: None))
 
 	danger_map = DummyDangerMap({})
-	prediction_service = DummyPredictionService([])
 	pathfinding = DummyPathfinding()
 
-	objective, score = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
+	objective, score = evaluator.evaluate(context, danger_map, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "goto_chest"
 	assert objective.target_entity == 42
@@ -155,13 +149,13 @@ def test_coffre_ignore_si_bloque(monkeypatch: MonkeyPatch) -> None:
 	monkeypatch.setattr(esper, "get_components", fake_get_components)
 	monkeypatch.setattr(esper, "component_for_entity", fake_component_for_entity)
 	monkeypatch.setattr(esper, "has_component", lambda *_: True)
+	_no_visible_targets(monkeypatch)
 	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: None))
 
 	danger_map = DummyDangerMap({})
-	prediction_service = DummyPredictionService([])
 	pathfinding = DummyPathfinding(blocked=[(128.0, 0.0)])
 
-	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
+	objective, _ = evaluator.evaluate(context, danger_map, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "follow_druid"
 
@@ -173,25 +167,21 @@ def test_cible_stationnaire_prioritaire(monkeypatch: MonkeyPatch) -> None:
 	context = UnitContext(entity_id=5, team_id=2, unit_type=None, max_health=120.0, health=110.0)
 	context.position = (0.0, 0.0)
 
-	predicted = PredictedEntity(
-		entity_id=50,
-		future_position=(150.0, 50.0),
-		current_position=(150.0, 50.0),
-		speed=0.0,
-		direction=0.0,
-	)
-
 	def fake_get_components(*components):
 		return []
 
 	monkeypatch.setattr(esper, "get_components", fake_get_components)
+	monkeypatch.setattr(
+		GoalEvaluator,
+		"_collect_visible_targets",
+		lambda *_args, **_kwargs: [TargetInfo(entity_id=50, position=(150.0, 50.0), speed=0.0)],
+	)
 	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: None))
 
 	danger_map = DummyDangerMap({})
-	prediction_service = DummyPredictionService([predicted])
 	pathfinding = DummyPathfinding()
 
-	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
+	objective, _ = evaluator.evaluate(context, danger_map, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "attack"
 	assert objective.target_entity == 50
@@ -204,13 +194,6 @@ def test_cible_mobile_vulnerable_active_follow_to_die(monkeypatch: MonkeyPatch) 
 	context = UnitContext(entity_id=6, team_id=2, unit_type=None, max_health=120.0, health=120.0)
 	context.position = (0.0, 0.0)
 
-	predicted = PredictedEntity(
-		entity_id=99,
-		future_position=(200.0, 0.0),
-		current_position=(210.0, 0.0),
-		speed=40.0,
-		direction=0.0,
-	)
 	target_health = HealthComponent(currentHealth=40, maxHealth=100)
 
 	def fake_get_components(*components):
@@ -227,13 +210,17 @@ def test_cible_mobile_vulnerable_active_follow_to_die(monkeypatch: MonkeyPatch) 
 	monkeypatch.setattr(esper, "get_components", fake_get_components)
 	monkeypatch.setattr(esper, "has_component", fake_has_component)
 	monkeypatch.setattr(esper, "component_for_entity", fake_component_for_entity)
+	monkeypatch.setattr(
+		GoalEvaluator,
+		"_collect_visible_targets",
+		lambda *_args, **_kwargs: [TargetInfo(entity_id=99, position=(200.0, 0.0), speed=40.0)],
+	)
 	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: None))
 
 	danger_map = DummyDangerMap({})
-	prediction_service = DummyPredictionService([predicted])
 	pathfinding = DummyPathfinding()
 
-	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
+	objective, _ = evaluator.evaluate(context, danger_map, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "follow_die"
 	assert objective.target_entity == 99
@@ -270,14 +257,14 @@ def test_attack_base_quand_aucune_autre_option(monkeypatch: MonkeyPatch) -> None
 	monkeypatch.setattr(esper, "component_for_entity", fake_component_for_entity)
 	monkeypatch.setattr(BaseComponent, "get_enemy_base", staticmethod(lambda: enemy_base_entity))
 	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: ally_base_entity))
+	_no_visible_targets(monkeypatch)
 	# Marquer la base ennemie comme connue pour l'équipe du contexte
 	monkeypatch.setattr(enemy_base_registry, "is_enemy_base_known", lambda _team_id: True)
 
 	danger_map = DummyDangerMap({})
-	prediction_service = DummyPredictionService([])
 	pathfinding = DummyPathfinding()
 
-	objective, score = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
+	objective, score = evaluator.evaluate(context, danger_map, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "attack_base"
 	assert objective.target_entity == enemy_base_entity
@@ -316,14 +303,14 @@ def test_enemy_units_visent_base_adverse(monkeypatch: MonkeyPatch) -> None:
 	monkeypatch.setattr(esper, "component_for_entity", fake_component_for_entity)
 	monkeypatch.setattr(BaseComponent, "get_enemy_base", staticmethod(lambda: enemy_base_entity))
 	monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: ally_base_entity))
+	_no_visible_targets(monkeypatch)
 	# Marquer la base ennemie comme connue pour l'équipe du contexte
 	monkeypatch.setattr(enemy_base_registry, "is_enemy_base_known", lambda _team_id: True)
 
 	danger_map = DummyDangerMap({})
-	prediction_service = DummyPredictionService([])
 	pathfinding = DummyPathfinding()
 
-	objective, _ = evaluator.evaluate(context, danger_map, prediction_service, pathfinding)  # type: ignore[arg-type]
+	objective, _ = evaluator.evaluate(context, danger_map, pathfinding)  # type: ignore[arg-type]
 
 	assert objective.type == "attack_base"
 	assert objective.target_entity == ally_base_entity
