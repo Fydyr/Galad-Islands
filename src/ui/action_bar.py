@@ -1075,20 +1075,38 @@ class ActionBar:
         info_y = self.screen_height - self.bar_height + 10
 
         # Or du joueur (ligne 1)
-        current_gold = self._get_player_gold_direct(self.current_camp == Team.ENEMY)
+        # Load gold icon once
         try:
             gold_icon = sprite_manager.load_sprite(SpriteID.UI_BITCOIN)
         except Exception:
             gold_icon = None
 
-        gold_str = str(current_gold)
-        if gold_icon:
-            icon_surface = pygame.transform.scale(gold_icon, (28, 28))
-            gold_text = self.font_title.render(gold_str, True, UIColors.GOLD)
-            gold_line_width = icon_surface.get_width() + gold_text.get_width() + 16
+        # In AI vs AI (self_play_mode), show both allied & enemy gold at the same time
+        is_self_play = getattr(self, 'game_engine', None) and getattr(self.game_engine, 'self_play_mode', False)
+        if is_self_play:
+            ally_gold = self._get_player_gold_direct(is_enemy=False)
+            enemy_gold = self._get_player_gold_direct(is_enemy=True)
+            ally_label = f"{t('camp.ally')}: {ally_gold}"
+            enemy_label = f"{t('camp.enemy')}: {enemy_gold}"
+            gold_text_ally = self.font_title.render(ally_label, True, UIColors.GOLD)
+            gold_text_enemy = self.font_title.render(enemy_label, True, UIColors.GOLD)
+            gold_line_width = gold_text_ally.get_width() + gold_text_enemy.get_width() + 30
         else:
-            gold_text = self.font_title.render(f"💰 {gold_str}", True, UIColors.GOLD)
-            gold_line_width = gold_text.get_width()
+            current_gold = self._get_player_gold_direct(self.current_camp == Team.ENEMY)
+        # Compose the text for non-AI vs AI mode
+        if is_self_play:
+            # In spectator mode we already computed ally/enemy texts and width above
+            pass
+        else:
+            gold_str = str(current_gold)
+            # No drawing here — drawing will be done after info_rect is computed so we can center correctly
+            if gold_icon:
+                icon_surface = pygame.transform.scale(gold_icon, (28, 28))
+                gold_text = self.font_title.render(gold_str, True, UIColors.GOLD)
+                gold_line_width = icon_surface.get_width() + gold_text.get_width() + 16
+            else:
+                gold_text = self.font_title.render(f"💰 {gold_str}", True, UIColors.GOLD)
+                gold_line_width = gold_text.get_width()
 
         # Mode (ligne 2)
         mode_color = UIColors.SUCCESS if self.current_mode == "attack" else UIColors.TEXT_NORMAL
@@ -1104,7 +1122,13 @@ class ActionBar:
 
         # Affichage ligne 1 : or
         gold_y = info_rect.y + 14
-        if gold_icon:
+        if is_self_play:
+            # Draw both gold labels centered
+            ally_x = info_rect.x + 12
+            surface.blit(gold_text_ally, (ally_x, gold_y))
+            enemy_x = info_rect.x + info_width - 12 - gold_text_enemy.get_width()
+            surface.blit(gold_text_enemy, (enemy_x, gold_y))
+        elif gold_icon:
             icon_x = info_rect.x + (info_width - gold_line_width) // 2
             icon_y = gold_y
             surface.blit(icon_surface, (icon_x, icon_y))
