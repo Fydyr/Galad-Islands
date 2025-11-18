@@ -42,10 +42,8 @@ def get_app_data_path() -> str:
         os.makedirs(path, exist_ok=True)
         return path
     else:
-        # Version non compilée : stocker in src/models du projet
-        path = os.path.join(os.path.dirname(__file__), '..', 'models')
-        path = os.path.join(os.path.dirname(__file__), '..', '..', 'models')
-        path = os.path.abspath(path)
+        # Version non compilée : stocker dans src/models du projet
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models'))
         os.makedirs(path, exist_ok=True)
         return path
 
@@ -119,21 +117,14 @@ class MaraudeurAI:
     def _load_pretrained_model(self):
         """Charge le modèle/scaler pré-entrainé si disponible (pour démarrer avec une IA compétente)"""
         try:
-            candidates = [
-                os.path.join(self.models_dir, "maraudeur_pretrained.pkl"),
-                get_resource_path(os.path.join('models', 'maraudeur_pretrained.pkl')),
-                get_resource_path(os.path.join('src', 'models', 'maraudeur_pretrained.pkl')),
-                os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models', 'maraudeur_pretrained.pkl')),
-            ]
-            for pretrained_path in candidates:
-                if pretrained_path and os.path.exists(pretrained_path):
-                    with open(pretrained_path, 'rb') as f:
-                        model_data = pickle.load(f)
-                    self.decision_tree = model_data.get('decision_tree', self.decision_tree)
-                    self.scaler = model_data.get('scaler', self.scaler)
-                    self.is_trained = model_data.get('is_trained', False)
-                    self.logger.debug(f"Maraudeur {self.entity}: Modèle pré-entrainé chargé depuis {pretrained_path}")
-                    break
+            pretrained_path = os.path.join(self.models_dir, "maraudeur_pretrained.pkl")
+            if os.path.exists(pretrained_path):
+                with open(pretrained_path, 'rb') as f:
+                    model_data = pickle.load(f)
+                self.decision_tree = model_data.get('decision_tree', self.decision_tree)
+                self.scaler = model_data.get('scaler', self.scaler)
+                self.is_trained = model_data.get('is_trained', False)
+                self.logger.debug(f"Maraudeur {self.entity}: Modèle pré-entrainé chargé depuis {pretrained_path}")
         except (pickle.UnpicklingError, EOFError, KeyError) as e:
             # Erreurs courantes de déserialisation, non critiques
             self.logger.debug(f"Erreur chargement modèle pré-entrainé: {e}")
@@ -1746,11 +1737,10 @@ class MaraudeurAI:
             })
     
     def _save_model(self):
-        """Sauvegarde le modèle entraîné"""
+        """Sauvegarde le modèle entraîné dans src/models"""
         try:
             if not os.path.exists(self.models_dir):
                 os.makedirs(self.models_dir)
-            
             model_data = {
                 'decision_tree': self.decision_tree,
                 'scaler': self.scaler,
@@ -1758,26 +1748,24 @@ class MaraudeurAI:
                 'strategy_performance': self.strategy_performance,
                 'is_trained': self.is_trained
             }
-            
-            with open(os.path.join(self.models_dir, f"maraudeur_ai_{self.entity}.pkl"), 'wb') as f:
+            model_path = os.path.join(self.models_dir, f"maraudeur_ai_{self.entity}.pkl")
+            with open(model_path, 'wb') as f:
                 pickle.dump(model_data, f)
         except Exception as e:
             print(f"Erreur sauvegarde modèle: {e}")
     
     def _load_model(self):
-        """Charge un modèle sauvegardé"""
+        """Charge un modèle sauvegardé depuis src/models"""
         try:
             model_path = os.path.join(self.models_dir, f"maraudeur_ai_{self.entity}.pkl")
             if os.path.exists(model_path):
                 with open(model_path, 'rb') as f:
                     model_data = pickle.load(f)
-                
                 self.decision_tree = model_data.get('decision_tree', self.decision_tree)
                 self.scaler = model_data.get('scaler', self.scaler)
                 self.experiences = model_data.get('experiences', [])
                 self.strategy_performance = model_data.get('strategy_performance', self.strategy_performance)
                 self.is_trained = model_data.get('is_trained', False)
-                
                 if self.debug_mode:
                     print(f"Modèle IA chargé pour Maraudeur {self.entity}")
         except Exception as e:
