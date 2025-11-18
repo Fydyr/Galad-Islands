@@ -471,6 +471,8 @@ class ActionBar:
                 elif btn.action_type == ActionType.OPEN_SHOP:
                     btn.visible = True
                 # Les boutons globaux (comme le debug) ne sont pas affectés
+                    # Les boutons globaux (comme le debug) ne sont pas affectés
+                    btn.visible = True
 
         # # DIAGNOSTIC : Affichage de l'état self_play_mode et des boutons visibles
         # print(f"[ActionBar] self_play_mode={self.self_play_mode}")
@@ -684,9 +686,12 @@ class ActionBar:
         self._show_feedback("success", f"Mode: {mode_name}")
     
     def _toggle_ai(self):
-        """Bascule l'IA de l'unité sélectionnée."""
+        """Bascule l'IA de l'unité sélectionnée, ou de toutes les unités si aucune sélection."""
         if self.game_engine:
-            self.game_engine.toggle_selected_unit_ai(toggle_all=False)
+            if self.selected_unit is not None:
+                self.game_engine.toggle_selected_unit_ai(toggle_all=False)
+            else:
+                self.game_engine.toggle_selected_unit_ai(toggle_all=True)
     
     def _get_hotkey_for_action(self, action: str) -> str:
         """Retourne le raccourci clavier pour une action donnée."""
