@@ -31,8 +31,6 @@ from src.settings.settings import TILE_SIZE
 from src.constants.gameplay import UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER
 from src.constants.map_tiles import TileType
 from src.components.core.aiEnabledComponent import AIEnabledComponent
-logger = logging.getLogger(__name__)
-
 
 class ArchitectAIProcessor(esper.Processor):
     """
@@ -70,8 +68,6 @@ class ArchitectAIProcessor(esper.Processor):
 
         self.decision_maker = ArchitectMinimax()
         
-        logger.info("ArchitectAIProcessor initialized.")
-
     def _get_player_gold(self, team_id: int) -> int:
         """
         Récupère la quantité d'or pour une équipe donnée.
@@ -93,7 +89,6 @@ class ArchitectAIProcessor(esper.Processor):
         # Lazy initialization of the pathfinder once the map grid is available.
         if self.map_grid is not None and self.pathfinder is None:
             self.pathfinder = SimplePathfinder(self.map_grid, TILE_SIZE)
-            logger.info("ArchitectAIProcessor: SimplePathfinder initialized.")
 
         # Calculate delta time for time-based calculations.
         current_time = time.time()
@@ -132,7 +127,6 @@ class ArchitectAIProcessor(esper.Processor):
 
             current_grid_x = int(pos.x // TILE_SIZE)
             current_grid_y = int(pos.y // TILE_SIZE)
-            logger.info(f"Architect AI (Entity {entity}) at grid: ({current_grid_x}, {current_grid_y})")
             
             # 2. DECIDE: Use the Minimax model to choose the best action.
             action = self.decision_maker.decide(state)
@@ -426,7 +420,7 @@ class ArchitectAIProcessor(esper.Processor):
             # Debug log for pathfinding waypoint.
             waypoint_grid_x = int(waypoint[0] // TILE_SIZE)
             waypoint_grid_y = int(waypoint[1] // TILE_SIZE)
-            logger.info(f"Architect AI (Entity {entity}) pathfinding to grid: ({waypoint_grid_x}, {waypoint_grid_y})")
+
             # Check if we are close to the current waypoint
             if self._is_close_to_target(pos, waypoint, TILE_SIZE * 1.2):
                 self._entity_paths[entity].pop(0)
@@ -791,7 +785,7 @@ class ArchitectAIProcessor(esper.Processor):
             return False
         pos = esper.component_for_entity(entity, PositionComponent)
         team = esper.component_for_entity(entity, TeamComponent)
-        logger.info(f"Architect AI (Entity {entity}) built a defense tower for {UNIT_COST_ATTACK_TOWER} gold.")
+
         return createDefenseTower(self.map_grid, pos, team)
 
 
@@ -801,5 +795,5 @@ class ArchitectAIProcessor(esper.Processor):
             return False
         pos = esper.component_for_entity(entity, PositionComponent)
         team = esper.component_for_entity(entity, TeamComponent)
-        logger.info(f"Architect AI (Entity {entity}) built a heal tower for {UNIT_COST_HEAL_TOWER} gold.")
+
         return createHealTower(self.map_grid, pos, team)
