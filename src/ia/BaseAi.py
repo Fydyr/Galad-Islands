@@ -292,6 +292,20 @@ class BaseAi(esper.Processor):
         ]
 
         try:
+            # Compter le nombre de Scouts alliés
+            scout_count = 0
+            ai_team_id = self.default_team_id
+            for ent, (team_comp, health_comp) in esper.get_components(TeamComponent, HealthComponent):
+                if team_comp.team_id == ai_team_id:
+                    try:
+                        if esper.has_component(ent, ClasseComponent):
+                            classe = esper.component_for_entity(ent, ClasseComponent)
+                            unit_type = getattr(classe, 'unit_type', None)
+                            if unit_type == UnitType.SCOUT:
+                                scout_count += 1
+                    except Exception:
+                        pass
+
             # Calculer Q pour chaque action
             q_values = []
             for action in range(7):
@@ -374,6 +388,12 @@ class BaseAi(esper.Processor):
                 for action, details in self.ACTION_MAPPING.items()
                 if game_state['gold'] >= details['cost'] + details['reserve']
             ]
+
+            # Limite de Scouts IA base : 4 au début, 6 si la base ennemie est découverte
+            scout_limit = 6 if game_state['enemy_base_known'] else 4
+            if scout_count >= scout_limit:
+                # Si la limite est atteinte, on ne propose pas l'action Scout
+                affordable_actions = [a for a in affordable_actions if a != 1]
             # Exclure certaines actions si la base ennemie n'est pas connue
             if game_state['enemy_base_known'] == 0:
                 # Bloquer Kamikaze (6) et Léviathan (4) si la base ennemie n'est pas découverte
@@ -386,7 +406,7 @@ class BaseAi(esper.Processor):
             if not affordable_actions:
                 return 0
 
-            # Choisir la meilleure action parmi celles qui sont abordables
+            # Si l'action la plus haute est Scout mais la limite est atteinte, faire rien
             best_action = max(affordable_actions, key=lambda a: q_values[a])
             return int(best_action)
 
@@ -461,7 +481,7 @@ class BaseAi(esper.Processor):
             is_enemy = (ai_team_id == Team.ENEMY)
             spawn_x, spawn_y = BaseComponent.get_spawn_position(base_pos_comp.x, base_pos_comp.y, is_enemy=is_enemy)
             pos = PositionComponent(spawn_x, spawn_y, 0)
-            new_entity = UnitFactory(unit_type, is_enemy, pos, self_play_mode=self.self_play_mode, active_team_id=self.active_player_team_id)
+            new_entity = UnitFactory(unit_type, is_enemy, pos, enable_ai=True, self_play_mode=self.self_play_mode, active_team_id=self.active_player_team_id)
 
             if new_entity is not None:
                 BaseComponent.add_unit_to_base(new_entity, is_enemy=is_enemy)
