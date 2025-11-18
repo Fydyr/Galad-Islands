@@ -18,6 +18,7 @@ Managers centralize the management of resources and high-level game behaviors.
 | `DisplayManager` | Display management | `src/managers/display.py` |
 | `AudioManager` | Audio management | `src/managers/audio.py` |
 | `SpriteManager` | Sprite cache | `src/systems/sprite_system.py` |
+| `TutorialManager` | In-game tutorial system and contextual tips | `src/managers/tutorial_manager.py` |
 
 ## Gameplay managers
 
@@ -83,6 +84,29 @@ class SpriteSystem:
 - Avoids multiple reloads  
 - ID system instead of paths
 - Memory optimization
+
+### TutorialManager
+
+**Responsibility:** Manage in-game contextual tutorial tips and notifications.
+
+Key features:
+- Store tutorial steps with a key and trigger event
+- Persist read tips with `config_manager` under `read_tips`
+- Queue tips when several events happen concurrently
+- Prioritize important tips (e.g. `start` / `select_unit`)
+
+File: `src/managers/tutorial_manager.py`
+
+How to add a new tutorial tip (developer):
+1. Add a translation key in `assets/locales/english.py` and `assets/locales/french.py`:
+    - `tutorial.my_tip.title` and `tutorial.my_tip.message`
+2. Update `_load_tutorial_steps()` in `TutorialManager` to add a new step with a unique `key` and `trigger` event name.
+    - `trigger` is a `pygame.USEREVENT` `user_type` string that will be posted by the game code.
+3. Implement the trigger by posting `pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "my_trigger"}))` in appropriate gameplay logic (e.g., in `FlyingChestProcessor`, `vision_system`, `boutique` callbacks)
+4. Optionally, add a priority entry in `TutorialManager._tip_priority` to control queueing order.
+5. The tutorial will not be shown if it is present in `config_manager` `read_tips` — this persists across sessions.
+
+Tip: Use `TutorialManager.show_tip('my_tip_key')` for direct calls if you want to bypass event wiring in specific situations.
 
 ## Usage Patterns
 

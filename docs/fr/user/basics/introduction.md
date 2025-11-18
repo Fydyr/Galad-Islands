@@ -24,8 +24,6 @@ Explorez progressivement l'archipel grâce à un **système de brouillard de gue
 
 #### 🧪 Visibilité (Version Bêta)
 
-**⚠️ Cette fonctionnalité est actuellement en développement et disponible uniquement dans la version bêta du jeu.**
-
 Le système de visibilité avancé apporte une couche stratégique supplémentaire au gameplay avec des portées de vision variables selon les unités et une vision partagée par équipe.
 
 **Note :** Pour les stratégies détaillées et conseils tactiques, consultez la section [Brouillard de guerre et vision](../gameplay/gameplay.md#brouillard-de-guerre-et-vision-version-béta) du guide de gameplay.
