@@ -24,6 +24,7 @@ class PlayerControlProcessor(esper.Processor):
         self.slowing_down = False  # Indique si le frein est activé
         self.change_mode_cooldown = 0
         self.special_ability_cooldown = 0  # Cooldown pour éviter les activations multiples
+        self._movement_trigger_sent = False
         self.enabled = True
 
     def process(self, **kwargs):
@@ -63,22 +64,27 @@ class PlayerControlProcessor(esper.Processor):
                 self.slowing_down = False
 
             # Accélération uniquement si le frein n'est pas activé
+            moving_now = False
             if not self.slowing_down and controls.is_action_active(controls.ACTION_UNIT_MOVE_FORWARD, keys, modifiers_state):
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     if velocity.currentSpeed < velocity.maxUpSpeed:
                         velocity.currentSpeed += 0.2
+                    moving_now = True
             if not self.slowing_down and controls.is_action_active(controls.ACTION_UNIT_MOVE_BACKWARD, keys, modifiers_state):
                 if esper.has_component(entity, VelocityComponent):
                     velocity = esper.component_for_entity(entity, VelocityComponent)
                     if velocity.currentSpeed > velocity.maxReverseSpeed:
                         velocity.currentSpeed -= 0.1
+                    moving_now = True
 
             if controls.is_action_active(controls.ACTION_UNIT_TURN_RIGHT, keys, modifiers_state):
+                moving_now = True
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
                     position.direction = (position.direction + 1) % 360
             if controls.is_action_active(controls.ACTION_UNIT_TURN_LEFT, keys, modifiers_state):
+                moving_now = True
                 if esper.has_component(entity, PositionComponent):
                     position = esper.component_for_entity(entity, PositionComponent)
                     position.direction = (position.direction - 1) % 360
@@ -102,6 +108,15 @@ class PlayerControlProcessor(esper.Processor):
                     print(f"[DEBUG] PlayerControlProcessor - Cooldown set to: {radius.cooldown}")
                 else:
                     print(f"[DEBUG] PlayerControlProcessor - Cannot attack, cooldown remaining: {radius.cooldown}")
+            # Post a single event for movement if we detect movement actions and haven't posted yet
+            try:
+                if moving_now and not self._movement_trigger_sent:
+                    pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "unit_moved"}))
+                    self._movement_trigger_sent = True
+                elif not moving_now:
+                    self._movement_trigger_sent = False
+            except Exception:
+                pass
 
             # Changement du mode d'attaque avec Tab
             if controls.is_action_active(controls.ACTION_UNIT_ATTACK_MODE, keys, modifiers_state) and self.change_mode_cooldown == 0:

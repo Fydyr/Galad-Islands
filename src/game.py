@@ -123,9 +123,15 @@ class EventHandler:
     def handle_events(self):
         """Handles all pygame events."""
         for event in pygame.event.get():
-            # Give priority to the tutorial
+            # Enregistrer les triggers tutoriels dynamiques (hors self_play_mode)
+            try:
+                if hasattr(self.game_engine, 'tutorial_manager') and not getattr(self.game_engine, 'self_play_mode', False):
+                    self.game_engine.tutorial_manager.handle_event(event)
+            except Exception:
+                pass
+            # Give priority to the notification handling if tutorial is active
             if self.game_engine.tutorial_manager.is_active():
-                self.game_engine.tutorial_manager.handle_event(event, self.game_engine.window.get_width(), self.game_engine.window.get_height())
+                self.game_engine.tutorial_manager.handle_notification_event(event, self.game_engine.window.get_width(), self.game_engine.window.get_height())
                 # If the tutorial is active, it might consume events, so we can decide to stop propagation if needed.
                 # For now, we let other handlers process the event as well.
 
@@ -287,17 +293,18 @@ class EventHandler:
     def _open_shop(self):
         """Opens the shop via the ActionBar and trigger the tutorial if needed."""
         if self.game_engine.action_bar is not None:
+            # Ouvrir / fermer la boutique
             self.game_engine.action_bar._open_shop()
-        # Trigger the tutorial when the shop is opened
-        if hasattr(self.game_engine, 'tutorial_manager') and self.game_engine.tutorial_manager is not None:
-            # If the tutorial is not finished and there is a step dedicated to the shop, force it
-            tuto = self.game_engine.tutorial_manager
-            # Search for a step containing "shop" in the title or message
-            for idx, step in enumerate(tuto.steps):
-                if "boutique" in step.get("title", "").lower() or "boutique" in step.get("message", "").lower():
-                    tuto.current_step_index = idx
-                    tuto._show_current_step()
-                    break
+            # Afficher l'astuce de la boutique seulement si la boutique est ouverte
+            try:
+                shop = getattr(self.game_engine.action_bar, 'shop', None)
+                shop_open = getattr(shop, 'is_open', False)
+            except Exception:
+                shop_open = False
+
+            # The Shop class already posts a pygame.USEREVENT "open_shop" which triggers tutorials,
+            # so we don't call show_tip here to avoid duplicate or premature displays.
+
 
     def _handle_group_shortcuts(self, event: pygame.event.Event) -> bool:
         """Handles keyboard shortcuts related to control groups."""
@@ -1061,10 +1068,9 @@ class GameEngine:
         # Configurer la caméra
         self._setup_camera()
         
-        # Start the tutorial
+        # Signal game start for tutorials (handled by TutorialManager via event triggers)
         if not self.self_play_mode:
-            self.tutorial_manager.start_tutorial()
-        
+            pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "game_start"}))
         # Réinitialiser le système de vision after l'initialisation complète
         vision_system.reset()
         
@@ -1301,6 +1307,12 @@ class GameEngine:
         self.selection_team_filter = team
         self._clear_current_selection()
         self._update_selection_state()
+        # Envoyer un événement de tutoriel si une unité est sélectionnée et si on n'est pas en mode self-play
+        try:
+            if not getattr(self, 'self_play_mode', False) and self.selected_unit_id is not None:
+                pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "unit_selected"}))
+        except Exception:
+            pass
 
         if self.action_bar is not None:
             self.action_bar.set_camp(team, show_feedback=notify)

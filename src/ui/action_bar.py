@@ -676,6 +676,7 @@ class ActionBar:
     def _open_shop(self):
         """Ouvre ou ferme la boutique."""
         self.shop.toggle()
+        pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "open_shop", "is_open": self.shop.is_open}))
     
     def _toggle_attack_mode(self):
         """Bascule le mode d'attaque (placeholder)."""

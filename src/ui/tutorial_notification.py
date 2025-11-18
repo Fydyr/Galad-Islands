@@ -56,6 +56,41 @@ class TutorialNotification:
         """
         self.x = screen_width - self.width - 20
         self.y = 20
+
+    def _wrap_text(self, text: str, font: pygame.font.Font, max_width: int) -> list:
+        """Wrap text into lines that fit within max_width using the provided font."""
+        if not text:
+            return [""]
+        words = text.split(' ')
+        lines = []
+        current = ""
+        for w in words:
+            candidate = (current + " " + w).strip()
+            width = font.size(candidate)[0]
+            if width <= max_width:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                # If a single word is longer than max_width, we have to force-break it
+                if font.size(w)[0] > max_width:
+                    # split the long word by characters
+                    part = ""
+                    for c in w:
+                        if font.size(part + c)[0] <= max_width:
+                            part += c
+                        else:
+                            lines.append(part)
+                            part = c
+                    if part:
+                        current = part
+                    else:
+                        current = ""
+                else:
+                    current = w
+        if current:
+            lines.append(current)
+        return lines
         
     def handle_event(self, event: pygame.event.Event) -> str | None:
         """
@@ -133,26 +168,47 @@ class TutorialNotification:
         if not self.visible or self.dismissed:
             return
             
-        # Fond avec transparence
+        # Message with wrapping (respect the notification width)
+        font_title = pygame.font.Font(None, 24)
+        font_msg = pygame.font.Font(None, 18)
+        max_text_width = self.width - 2 * self.padding
+        
+        # Title will be drawn after the background is drawn (below)
+        
+        # Message with wrapping (respect the notification width)
+        font_msg = pygame.font.Font(None, 18)
+        max_text_width = self.width - 2 * self.padding
+
+        message_lines = []
+        for paragraph in self.message.split('\n'):
+            wrapped = self._wrap_text(paragraph, font_msg, max_text_width)
+            if wrapped:
+                message_lines.extend(wrapped)
+            else:
+                message_lines.append("")
+
+        # Recalculate height to fit the content and buttons
+        title_height = font_title.get_linesize()
+        line_height = font_msg.get_linesize()
+        content_height = len(message_lines) * line_height
+        self.height = self.padding + title_height + 8 + content_height + self.padding + self.button_height + self.padding
+
+        # Draw background with updated height
         bg_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         pygame.draw.rect(bg_surface, self.bg_color, bg_surface.get_rect(), border_radius=10)
         pygame.draw.rect(bg_surface, self.border_color, bg_surface.get_rect(), 2, border_radius=10)
         surface.blit(bg_surface, (self.x, self.y))
-        
-        # Titre
-        font_title = pygame.font.Font(None, 24)
+
+        # Title (draw on top of background)
         title_surface = font_title.render(self.title, True, self.text_color)
         surface.blit(title_surface, (self.x + self.padding, self.y + self.padding))
-        
-        # Message
-        font_msg = pygame.font.Font(None, 18)
-        
-        # Affichage multi-ligne
-        y_offset = self.y + self.padding + 30
-        for line in self.message.split('\n'):
+
+        # Draw the message lines
+        y_offset = self.y + self.padding + title_height + 8
+        for line in message_lines:
             line_surface = font_msg.render(line, True, self.text_color)
             surface.blit(line_surface, (self.x + self.padding, y_offset))
-            y_offset += 20
+            y_offset += line_height
             
         # Bouton Suivant
         self._draw_button(
