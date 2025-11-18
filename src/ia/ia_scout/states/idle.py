@@ -33,7 +33,7 @@ class IdleState(RapidAIState):
 
     def update(self, dt: float, context: "UnitContext") -> None:
         # Keep a slow drift to avoid staying static in danger.
-        danger = self.controller.danger_map.sample_world(context.position)
+        danger = context.danger_level
         now = self.controller.context_manager.time
 
         if danger > self.controller.settings.danger.safe_threshold:

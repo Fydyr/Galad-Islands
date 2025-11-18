@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from src.settings.settings import MAP_HEIGHT, MAP_WIDTH, TILE_SIZE
+from ..config import get_settings
 
 SectorCoord = Tuple[int, int]
 WorldPos = Tuple[float, float]
@@ -44,6 +45,7 @@ class ExplorationPlanner:
         block_duration: float = 10.0,
         observation_ttl: float = 6.0,
         max_assignments_per_sector: int = 1,
+        window_capacity: int = 32,
     ) -> None:
         self._sector_tile_size = max(2, sector_tile_size)
         self._block_duration = block_duration
@@ -57,6 +59,8 @@ class ExplorationPlanner:
         ]
         self._reservations: Dict[int, SectorCoord] = {}
         self._sector_load: Dict[SectorCoord, int] = {}
+        self._window_capacity = max(4, int(window_capacity))
+        self._entity_windows: Dict[int, List[SectorCoord]] = {}
         # Poids du score (plus c'est haut, plus le secteur est attractif)
         self._freshness_weight = 1.0
         self._distance_weight = 0.002  # pénalise les longs trajets
@@ -88,7 +92,7 @@ class ExplorationPlanner:
             sector = self._reservations[entity_id]
             return ExplorationAssignment(sector=sector, target_position=self._sector_center(sector))
 
-        sector = self._select_sector(current_position, preferred_sector, blacklist)
+        sector = self._next_window_sector(entity_id, current_position, preferred_sector, blacklist)
         if sector is None:
             return None
 
@@ -97,6 +101,69 @@ class ExplorationPlanner:
         state.reserve_owner = entity_id
         self._sector_load[sector] = self._sector_load.get(sector, 0) + 1
         return ExplorationAssignment(sector=sector, target_position=self._sector_center(sector))
+
+    def _next_window_sector(
+        self,
+        entity_id: int,
+        current_position: WorldPos,
+        preferred_sector: Optional[SectorCoord],
+        blacklist: Optional[Tuple[SectorCoord, ...]],
+        *,
+        refresh_cache: bool = False,
+    ) -> Optional[SectorCoord]:
+        if preferred_sector and self._can_use_sector(preferred_sector, blacklist):
+            if self._sector_load.get(preferred_sector, 0) < self._max_assignments:
+                self._discard_from_window(entity_id, preferred_sector)
+                return preferred_sector
+
+        window = self._entity_windows.get(entity_id)
+        if refresh_cache or not window:
+            candidates = self._candidate_sectors(
+                current_position,
+                preferred_sector=None,
+                blacklist=blacklist,
+                limit=self._window_capacity,
+            )
+            if not candidates:
+                self._entity_windows.pop(entity_id, None)
+                return None
+            self._entity_windows[entity_id] = candidates
+            window = candidates
+
+        now = time.perf_counter()
+        best_sector: Optional[SectorCoord] = None
+        best_score = float("-inf")
+        for sector in list(window):
+            if not self._can_use_sector(sector, blacklist):
+                continue
+            if self._sector_load.get(sector, 0) >= self._max_assignments:
+                continue
+            score = self._sector_score(sector, current_position, now)
+            if score > best_score:
+                best_score = score
+                best_sector = sector
+
+        if best_sector is None:
+            if refresh_cache:
+                self._entity_windows.pop(entity_id, None)
+                return None
+            return self._next_window_sector(entity_id, current_position, preferred_sector, blacklist, refresh_cache=True)
+
+        window.remove(best_sector)
+        if not window:
+            self._entity_windows.pop(entity_id, None)
+        return best_sector
+
+    def _discard_from_window(self, entity_id: int, sector: SectorCoord) -> None:
+        window = self._entity_windows.get(entity_id)
+        if not window:
+            return
+        try:
+            window.remove(sector)
+        except ValueError:
+            return
+        if not window:
+            self._entity_windows.pop(entity_id, None)
 
     def release(self, entity_id: int, *, completed: bool) -> None:
         """Libère une zone précédemment affectée."""
@@ -118,6 +185,7 @@ class ExplorationPlanner:
             state.last_visit = now
         else:
             state.blocked_until = now + self._block_duration
+        self._discard_from_window(entity_id, sector)
 
     def record_observation(self, position: WorldPos, vision_radius_tiles: float) -> None:
         """Marque comme visitées les zones couvertes par le champ de vision."""
@@ -138,6 +206,11 @@ class ExplorationPlanner:
         """Indique s'il reste des zones inconnues."""
 
         return any(not state.visited for row in self._grid for state in row)
+
+    def drop_window(self, entity_id: int) -> None:
+        """Oublie la fenêtre de secteurs associée à une entité retirée."""
+
+        self._entity_windows.pop(entity_id, None)
 
     # --- Sélection interne -------------------------------------------
     def _select_sector(
@@ -169,6 +242,7 @@ class ExplorationPlanner:
         current_position: Optional[WorldPos],
         preferred_sector: Optional[SectorCoord],
         blacklist: Optional[Tuple[SectorCoord, ...]] = None,
+        limit: Optional[int] = None,
     ) -> List[SectorCoord]:
         """Construit une shortlist de secteurs à évaluer pour accélérer la sélection."""
 
@@ -177,6 +251,8 @@ class ExplorationPlanner:
         if preferred_sector and self._can_use_sector(preferred_sector, blacklist):
             candidates.append(preferred_sector)
             seen.add(preferred_sector)
+            if limit is not None and len(candidates) >= limit:
+                return candidates
 
         # Ajouter les secteurs non visités prioritaires
         best_unvisited = self._rank_unvisited(current_position, blacklist, limit=16)
@@ -184,12 +260,16 @@ class ExplorationPlanner:
             if sector not in seen:
                 candidates.append(sector)
                 seen.add(sector)
+                if limit is not None and len(candidates) >= limit:
+                    return candidates
 
         stalest = self._rank_stalest(blacklist, limit=12)
         for sector in stalest:
             if sector not in seen:
                 candidates.append(sector)
                 seen.add(sector)
+                if limit is not None and len(candidates) >= limit:
+                    return candidates
 
         if not candidates:
             # Dernier recours: parcourir toute la grille (coût acceptable en dernier recours)
@@ -201,6 +281,8 @@ class ExplorationPlanner:
                     if not self._can_use_sector(sector, blacklist):
                         continue
                     candidates.append(sector)
+                    if limit is not None and len(candidates) >= limit:
+                        return candidates
         return candidates
 
     def _can_use_sector(self, sector: SectorCoord, blacklist: Optional[Tuple[SectorCoord, ...]] = None) -> bool:
@@ -320,5 +402,35 @@ class ExplorationPlanner:
         dy = position[1] - current_position[1]
         return dx * dx + dy * dy
 
+    def sector_from_world(self, position: WorldPos) -> SectorCoord:
+        """Expose le calcul interne de secteur pour les observateurs externes."""
 
-exploration_planner = ExplorationPlanner()
+        return self._world_to_sector(position)
+
+
+_settings = get_settings()
+exploration_planner = ExplorationPlanner(window_capacity=_settings.exploration.window_size)
+
+
+class ExplorationObservationBuffer:
+    """Agrège les observations par secteur pour limiter les écritures inutiles."""
+
+    def __init__(self, planner: ExplorationPlanner) -> None:
+        self._planner = planner
+        self._pending: Dict[SectorCoord, Tuple[WorldPos, float]] = {}
+
+    def queue(self, position: WorldPos, vision_radius_tiles: float) -> None:
+        sector = self._planner.sector_from_world(position)
+        cached = self._pending.get(sector)
+        if cached is None or vision_radius_tiles > cached[1]:
+            self._pending[sector] = ((position[0], position[1]), vision_radius_tiles)
+
+    def flush(self) -> None:
+        if not self._pending:
+            return
+        for position, radius in self._pending.values():
+            self._planner.record_observation(position, radius)
+        self._pending.clear()
+
+
+exploration_observer = ExplorationObservationBuffer(exploration_planner)

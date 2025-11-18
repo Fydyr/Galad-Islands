@@ -10,7 +10,7 @@ from src.settings.settings import TILE_SIZE
 
 from .base import RapidAIState
 from ..log import get_logger
-from ..services.exploration import ExplorationAssignment, exploration_planner
+from ..services.exploration import ExplorationAssignment, exploration_planner, exploration_observer
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..processors.rapid_ai_processor import RapidUnitController
@@ -48,7 +48,8 @@ class ExploreState(RapidAIState):
 
     # -----------------------------------------------------------------
     def update(self, dt: float, context: "UnitContext") -> None:
-        exploration_planner.record_observation(context.position, UNIT_VISION_SCOUT)
+        if self._should_record_observation(context):
+            exploration_observer.queue(context.position, UNIT_VISION_SCOUT)
         if self.controller.is_navigation_active(context):
             # Le FSM doit rester en GoTo tant que la navigation est active
             return
@@ -91,6 +92,20 @@ class ExploreState(RapidAIState):
         if not started:
             self._handle_blocked_target(context)
 
+    def _should_record_observation(self, context: "UnitContext") -> bool:
+        """Limite la fréquence des mises à jour de vision pour économiser le planner."""
+
+        channel = context.share_channel
+        last_pos = channel.get("explore_obs_pos")
+        last_time = float(channel.get("explore_obs_time", 0.0))
+        now = self.controller.context_manager.time
+        distance = float("inf") if last_pos is None else self.distance(context.position, tuple(last_pos))
+        if distance < TILE_SIZE and (now - last_time) < 0.25:
+            return False
+        channel["explore_obs_pos"] = (context.position[0], context.position[1])
+        channel["explore_obs_time"] = now
+        return True
+
     # -----------------------------------------------------------------
     def _reserve_assignment(self, context: "UnitContext") -> Optional[ExplorationAssignment]:
         metadata = context.current_objective.metadata if context.current_objective else None
@@ -103,8 +118,30 @@ class ExploreState(RapidAIState):
                 except (TypeError, ValueError):
                     hint = None
         blacklist = tuple(self._blocked_sectors) if self._blocked_sectors else None
-        assignment = exploration_planner.reserve(context.entity_id, context.position, hint, blacklist=blacklist)
-        if assignment:
+        attempts = 0
+        while attempts < 4:
+            assignment = exploration_planner.reserve(
+                context.entity_id,
+                context.position,
+                hint,
+                blacklist=blacklist,
+            )
+            if assignment is None:
+                return None
+
+            prepared_target = self._prepare_assignment_target(context, assignment)
+            if prepared_target is None:
+                LOGGER.debug(
+                    "[AI] %s Explore → secteur %s inaccessible, nouvelle recherche",
+                    context.entity_id,
+                    assignment.sector,
+                )
+                self._blocked_sectors.add(assignment.sector)
+                exploration_planner.release(context.entity_id, completed=False)
+                blacklist = tuple(self._blocked_sectors)
+                attempts += 1
+                continue
+
             LOGGER.debug(
                 "[AI] %s Explore → secteur %s (%.0f, %.0f)",
                 context.entity_id,
@@ -112,10 +149,12 @@ class ExploreState(RapidAIState):
                 assignment.target_position[0],
                 assignment.target_position[1],
             )
-            self._sector_target = self._compute_offset_target(assignment, context)
+            self._sector_target = prepared_target
             self._register_assignment_metadata(context, assignment)
             self._blocked_sectors.discard(assignment.sector)
-        return assignment
+            return assignment
+
+        return None
 
     def _release_assignment(self, context: "UnitContext", *, completed: bool) -> None:
         if self._assignment is None:
@@ -153,6 +192,36 @@ class ExploreState(RapidAIState):
             assignment.target_position[0] + math.cos(angle) * radius,
             assignment.target_position[1] + math.sin(angle) * radius,
         )
+
+    def _prepare_assignment_target(
+        self,
+        context: "UnitContext",
+        assignment: ExplorationAssignment,
+    ) -> Optional[tuple[float, float]]:
+        """Construit un point atteignable pour éviter les blocages sur les îles."""
+
+        offset_target = self._compute_offset_target(assignment, context)
+        return self._ensure_accessible_target(offset_target, assignment.target_position)
+
+    def _ensure_accessible_target(
+        self,
+        candidate: tuple[float, float],
+        fallback: tuple[float, float],
+    ) -> Optional[tuple[float, float]]:
+        """Ramène la cible sur une case franchissable si le centre du secteur est bloqué."""
+
+        pathfinding = self.controller.pathfinding
+        if pathfinding is None:
+            return candidate
+
+        if not pathfinding.is_world_blocked(candidate):
+            return candidate
+
+        adjusted = pathfinding.find_accessible_world(candidate, max_radius_tiles=6.0)
+        if adjusted is not None:
+            return adjusted
+
+        return pathfinding.find_accessible_world(fallback, max_radius_tiles=8.0)
 
     def _register_assignment_metadata(
         self,

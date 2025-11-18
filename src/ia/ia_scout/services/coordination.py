@@ -37,6 +37,8 @@ class CoordinationService:
         self._global_danger: float = 0.0
         self._role_index: Dict[str, int] = {}
         self._roles: Dict[str, RoleAssignment] = {}
+        self._shared_cache: Optional[Tuple[UnitSharedState, ...]] = None
+        self._explorer_cache: Optional[Tuple[UnitSharedState, ...]] = None
 
     def assign_chest(self, entity_id: int, chest_id: int, current_time: float) -> None:
         self._chest_assignments[chest_id] = ChestAssignment(entity_id, chest_id, current_time)
@@ -62,6 +64,8 @@ class CoordinationService:
         for role, assignment in list(self._roles.items()):
             if assignment.entity_id not in alive_entities:
                 self._roles.pop(role, None)
+        if to_remove or to_reap:
+            self._invalidate_state_cache()
 
     def update_unit_state(
         self,
@@ -79,17 +83,24 @@ class CoordinationService:
             timestamp=timestamp,
         )
         self._global_danger = 0.85 * self._global_danger + 0.15 * danger
+        self._invalidate_state_cache()
 
     def broadcast_danger(self) -> float:
         return self._global_danger
 
     def shared_states(self) -> Iterable[UnitSharedState]:
-        return list(self._unit_states.values())
+        if self._shared_cache is None:
+            self._shared_cache = tuple(self._unit_states.values())
+        return self._shared_cache
 
     def explorer_states(self) -> Iterable[UnitSharedState]:
         """Retourne les unités actuellement en mission d'exploration."""
 
-        return [state for state in self._unit_states.values() if state.objective == "explore"]
+        if self._explorer_cache is None:
+            self._explorer_cache = tuple(
+                state for state in self._unit_states.values() if state.objective == "explore"
+            )
+        return self._explorer_cache
 
     def assign_rotating_role(
         self,
@@ -112,3 +123,7 @@ class CoordinationService:
         self._role_index[role] = index + 1
         self._roles[role] = RoleAssignment(entity_id=chosen, timestamp=timestamp)
         return chosen
+
+    def _invalidate_state_cache(self) -> None:
+        self._shared_cache = None
+        self._explorer_cache = None

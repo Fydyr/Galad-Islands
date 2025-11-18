@@ -30,6 +30,7 @@ class DangerSettings:
     flee_threshold: float = 0.7
     flee_release_threshold: float = 0.15  # Encore plus bas pour avoid l'oscillation
     max_value_cap: float = 12.0
+    sample_interval_frames: int = 3
 
 
 @dataclass
@@ -54,6 +55,8 @@ class PathfindingSettings:
     tile_soft_block: tuple[int, ...] = (int(TileType.MINE),)
     recompute_distance_min: float = 64.0
     waypoint_reached_radius_factor: float = 1.2  # Augmenter de 0.5 à 1.2 pour éviter micro-mouvements
+    max_batch_per_tick: int = 3
+    pending_request_timeout: float = 0.5
 
 
 @dataclass
@@ -69,10 +72,15 @@ class ObjectiveWeights:
 
 @dataclass
 class DebugSettings:
-    enabled: bool = True  # Activer les logs par défaut
+    enabled: bool = False  # Activer les logs par défaut
     log_state_changes: bool = True
     log_objectives: bool = False
-    overlay_enabled: bool = False
+    overlay_enabled: bool = True
+
+
+@dataclass
+class ExplorationSettings:
+    window_size: int = 32
 
 
 @dataclass
@@ -83,6 +91,7 @@ class AISettings:
     pathfinding: PathfindingSettings = field(default_factory=PathfindingSettings)
     weights: ObjectiveWeights = field(default_factory=ObjectiveWeights)
     debug: DebugSettings = field(default_factory=DebugSettings)
+    exploration: ExplorationSettings = field(default_factory=ExplorationSettings)
     tick_frequency: float = 10.0  # updates per second
     flee_health_ratio: float = 0.35
     follow_druid_health_ratio: float = 0.95
@@ -115,8 +124,13 @@ class AISettings:
             if hasattr(self.debug, key):
                 setattr(self.debug, key, value)
 
+        exploration_data = data.get("exploration") or {}
+        for key, value in exploration_data.items():
+            if hasattr(self.exploration, key):
+                setattr(self.exploration, key, value)
+
         for key, value in data.items():
-            if key in {"danger", "pathfinding", "weights", "debug"}:
+            if key in {"danger", "pathfinding", "weights", "debug", "exploration"}:
                 continue
             if hasattr(self, key):
                 setattr(self, key, value)

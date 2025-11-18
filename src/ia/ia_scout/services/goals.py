@@ -36,11 +36,12 @@ class Objective:
     metadata: Optional[dict] = None
 
 
-@dataclass
+@dataclass(slots=True)
 class TargetInfo:
     entity_id: int
     position: Tuple[float, float]
     speed: float
+    team_id: int
 
 
 class GoalEvaluator:
@@ -62,6 +63,17 @@ class GoalEvaluator:
 
     def __init__(self, settings: Optional[AISettings] = None) -> None:
         self.settings = settings or get_settings()
+        self._target_cache: Optional[List[TargetInfo]] = None
+
+    def prime_target_cache(self, targets: List[TargetInfo]) -> None:
+        """Injecte un cache partagé pour éviter les requêtes Esper répétées."""
+
+        self._target_cache = targets
+
+    def clear_target_cache(self) -> None:
+        """Supprime le cache courant après la boucle de tick."""
+
+        self._target_cache = None
 
     def has_druid(self, team_id: int) -> bool:
         """Indique si un druide allié au camp spécifié est présent."""
@@ -265,19 +277,35 @@ class GoalEvaluator:
         vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
         vision_sq = vision_radius * vision_radius
         targets: List[TargetInfo] = []
+
+        source = self._target_cache
+        if source is None:
+            source_iter = self._iter_world_targets()
+        else:
+            source_iter = source
+
+        for info in source_iter:
+            if info.team_id == context.team_id:
+                continue
+            dx = info.position[0] - context.position[0]
+            dy = info.position[1] - context.position[1]
+            if (dx * dx + dy * dy) > vision_sq:
+                continue
+            targets.append(info)
+        return targets
+
+    def _iter_world_targets(self) -> Iterable[TargetInfo]:
         for entity, (team, position, velocity) in esper.get_components(
             TeamComponent,
             PositionComponent,
             VelocityComponent,
         ):
-            if team.team_id == context.team_id:
-                continue
-            dx = position.x - context.position[0]
-            dy = position.y - context.position[1]
-            if (dx * dx + dy * dy) > vision_sq:
-                continue
-            targets.append(TargetInfo(entity, (position.x, position.y), abs(velocity.currentSpeed)))
-        return targets
+            yield TargetInfo(
+                entity_id=entity,
+                position=(position.x, position.y),
+                speed=abs(velocity.currentSpeed),
+                team_id=team.team_id,
+            )
 
     def _is_within_vision(self, origin: Tuple[float, float], target: Tuple[float, float]) -> bool:
         vision_radius = UNIT_VISION_SCOUT * TILE_SIZE

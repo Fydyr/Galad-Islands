@@ -51,8 +51,14 @@ class UnitContext:
     current_objective: Optional["Objective"] = None
     objective_score: float = 0.0
     danger_level: float = 0.0
+    last_danger_sample: float = -999.0
+    last_danger_position: Tuple[float, float] = (0.0, 0.0)
     path: List[Tuple[float, float]] = field(default_factory=list)
     path_index: int = 0
+    path_pending: bool = False
+    path_request_id: Optional[int] = None
+    path_requested_at: float = 0.0
+    pending_target: Optional[Tuple[float, float]] = None
     target_entity: Optional[int] = None
     wants_attack: bool = False
     wants_flee: bool = False

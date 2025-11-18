@@ -181,10 +181,11 @@ class AttackState(RapidAIState):
 
         candidates: list[tuple[float, Tuple[float, float]]] = []
         # Récupérer all positions des units pour avoid les collisions
-        occupied_positions = set()
-        for ent, pos_comp in esper.get_component(PositionComponent):
-            if ent != context.entity_id:
-                occupied_positions.add((round(pos_comp.x, 1), round(pos_comp.y, 1)))
+        occupied_positions = [
+            (ent, pos)
+            for ent, pos in self.controller.position_snapshot
+            if ent != context.entity_id
+        ]
 
         # Tester plusieurs angles pour trouver des positions valides autour de la cible
         for angle in range(0, 360, 30):
@@ -202,7 +203,10 @@ class AttackState(RapidAIState):
                 continue
             # avoid les positions occupées par une autre unit (tolérance 32px)
             rounded_candidate = (round(candidate[0], 1), round(candidate[1], 1))
-            collision = any(math.hypot(rounded_candidate[0] - op[0], rounded_candidate[1] - op[1]) < 32.0 for op in occupied_positions)
+            collision = any(
+                math.hypot(rounded_candidate[0] - pos[0], rounded_candidate[1] - pos[1]) < 32.0
+                for _, pos in occupied_positions
+            )
             if collision:
                 continue
             distance_to_unit = self.distance(context.position, candidate)

@@ -67,8 +67,6 @@ def create_projectile(entity, type: str = "bullet"):
             # Normaliser les angles in [0, 360)
             angles = [a % 360 for a in angles]
 
-            print(angles)
-
         # Mode Leviathan: tir omnidirectionnel (all directions autour de l'entity)
         elif type == "leviathan":
             # Tir omnidirectionnel centré sur la direction actuelle de l'entity.

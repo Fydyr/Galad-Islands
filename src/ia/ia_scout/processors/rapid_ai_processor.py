@@ -32,7 +32,9 @@ from ..services import (
     PathfindingService,
     Objective,
     exploration_planner,
+    exploration_observer,
 )
+from ..services.goals import TargetInfo
 from ..services.context import UnitContext
 from ..fsm.machine import StateMachine, Transition
 from ..states import (
@@ -72,6 +74,9 @@ class RapidTroopAIProcessor(esper.Processor):
         self._last_time: float = time.perf_counter()
         self._debug_overlay = []
         self.world = cast(Optional["World"], None)
+        self._position_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        self._danger_update_interval = max(0.2, 2.0 / max(self.settings.tick_frequency, 1e-3))
+        self._danger_update_accumulator = 0.0
         # L'attribut world est renseigné par Esper lors de l'attachement du processor.
         # Ce buffer accumule les informations affichées dans l'overlay de débogage.
 
@@ -99,6 +104,7 @@ class RapidTroopAIProcessor(esper.Processor):
         self.danger_map = DangerMapService(grid, self.settings)
         self.pathfinding = PathfindingService(grid, self.danger_map, self.settings)
         for controller in self.controllers.values():
+            controller.cancel_pending_path()
             controller.danger_map = self.danger_map
             controller.pathfinding = self.pathfinding
 
@@ -108,12 +114,14 @@ class RapidTroopAIProcessor(esper.Processor):
         self._cleanup_dead_entities()
         self._refresh_services(dt)
         self._push_env_events()
+        self._refresh_position_snapshot()
         collect_debug = self.settings.debug.enabled and self.settings.debug.overlay_enabled
         if collect_debug:
             self._debug_overlay.clear()
 
         for entity, components in self._iter_controlled_units():
             controller = self._ensure_controller(entity, components)
+            controller.set_position_snapshot(self._position_snapshot)
             controller.update(dt)
             if collect_debug and controller.context is not None:
                 self._debug_overlay.append(
@@ -125,6 +133,9 @@ class RapidTroopAIProcessor(esper.Processor):
                         "state": hash(controller.state_machine.current_state.name) % 1_000_000,
                     }
                 )
+        exploration_observer.flush()
+        self._resolve_path_requests()
+        self.goal_evaluator.clear_target_cache()
 
     def _iter_controlled_units(self):
         for entity, (team, classe, scout, health, position, velocity, radius) in esper.get_components(
@@ -160,7 +171,12 @@ class RapidTroopAIProcessor(esper.Processor):
         return controller
 
     def _refresh_services(self, dt: float) -> None:
-        self.danger_map.update(dt)
+        self._danger_update_accumulator += dt
+        if self._danger_update_accumulator < self._danger_update_interval:
+            return
+        budget = self._danger_update_accumulator
+        self._danger_update_accumulator = 0.0
+        self.danger_map.update(budget)
 
     def _cleanup_dead_entities(self) -> None:
         """Supprime les contrôleurs des entités disparues ou mortes."""
@@ -193,12 +209,56 @@ class RapidTroopAIProcessor(esper.Processor):
         alive_entities = existing_entities.difference(dead_set)
         self.coordination.cleanup(alive_entities)
 
+    def _refresh_position_snapshot(self) -> None:
+        """Capture uniquement les unités contrôlées et prépare le cache des cibles."""
+
+        position_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        for entity in tuple(self.controllers.keys()):
+            try:
+                pos = esper.component_for_entity(entity, PositionComponent)
+            except KeyError:
+                continue
+            position_snapshot.append((entity, (pos.x, pos.y)))
+
+        target_cache: List[TargetInfo] = []
+        for entity, (team, pos, velocity) in esper.get_components(
+            TeamComponent,
+            PositionComponent,
+            VelocityComponent,
+        ):
+            target_cache.append(
+                TargetInfo(
+                    entity_id=entity,
+                    position=(pos.x, pos.y),
+                    speed=abs(velocity.currentSpeed),
+                    team_id=team.team_id,
+                )
+            )
+
+        self._position_snapshot = position_snapshot
+        self.goal_evaluator.prime_target_cache(target_cache)
+
+    def _resolve_path_requests(self) -> None:
+        """Distribue les chemins calculés en batch aux contrôleurs concernés."""
+
+        completions = self.pathfinding.process_pending_requests()
+        if not completions:
+            return
+        for entity_id, request_id, path in completions:
+            controller = self.controllers.get(entity_id)
+            if controller is None:
+                continue
+            controller.apply_path_result(request_id, path)
+
     def _discard_entity_state(self, entity_id: int) -> None:
         """Retire toutes les références internes associées à l'entité fournie."""
         controller = self.controllers.pop(entity_id, None)
-        if controller and controller.context and controller.context.assigned_chest_id is not None:
-            self.coordination.release_chest(controller.context.assigned_chest_id)
+        if controller is not None:
+            controller.cancel_pending_path()
+            if controller.context and controller.context.assigned_chest_id is not None:
+                self.coordination.release_chest(controller.context.assigned_chest_id)
         exploration_planner.release(entity_id, completed=False)
+        exploration_planner.drop_window(entity_id)
         self.context_manager.remove_context(entity_id)
         LOGGER.debug("[AI] Removed controller for entity %s", entity_id)
 
@@ -282,6 +342,47 @@ class RapidUnitController:
         self._persistent_nav_target: Optional[tuple[float, float]] = None
         self._persistent_nav_owner: Optional[str] = None
         self._persistent_nav_return: Optional[str] = None
+        self._position_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        tick_rate = max(self.settings.tick_frequency, 1e-3)
+        frames = max(1, int(self.settings.danger.sample_interval_frames))
+        self._danger_sample_interval = frames / tick_rate
+        self._danger_sample_distance_sq = float(TILE_SIZE * 1.5) ** 2
+
+    def apply_path_result(self, request_id: int, waypoints: List[Tuple[float, float]]) -> None:
+        """Applique un chemin calculé si la requête correspond toujours au contexte courant."""
+
+        ctx = self.context_manager.context_for(self.entity_id)
+        if ctx is None or ctx.path_request_id != request_id:
+            return
+        ctx.path_pending = False
+        ctx.path_request_id = None
+        ctx.pending_target = None
+        ctx.path_requested_at = 0.0
+        ctx.share_channel.pop("goto_path_pending_since", None)
+        if waypoints:
+            ctx.set_path(waypoints)
+        else:
+            ctx.reset_path()
+
+    def cancel_pending_path(self) -> None:
+        """Annule proprement une requête différée encore en file."""
+
+        ctx = self.context_manager.context_for(self.entity_id)
+        if ctx is None or ctx.path_request_id is None:
+            return
+        self.pathfinding.cancel_request(ctx.path_request_id)
+        ctx.path_pending = False
+        ctx.path_request_id = None
+        ctx.pending_target = None
+        ctx.share_channel.pop("goto_path_pending_since", None)
+        self._persistent_nav_target: Optional[tuple[float, float]] = None
+        self._persistent_nav_owner: Optional[str] = None
+        self._persistent_nav_return: Optional[str] = None
+        self._position_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        tick_rate = max(self.settings.tick_frequency, 1e-3)
+        frames = max(1, int(self.settings.danger.sample_interval_frames))
+        self._danger_sample_interval = frames / tick_rate
+        self._danger_sample_distance_sq = float(TILE_SIZE * 1.5) ** 2
 
     def _build_state_machine(self) -> StateMachine:
         idle = IdleState("Idle", self)
@@ -391,6 +492,13 @@ class RapidUnitController:
     def navigation_tolerance(self) -> float:
         return self._navigation_tolerance
 
+    @property
+    def position_snapshot(self) -> List[Tuple[int, Tuple[float, float]]]:
+        return self._position_snapshot
+
+    def set_position_snapshot(self, snapshot: List[Tuple[int, Tuple[float, float]]]) -> None:
+        self._position_snapshot = snapshot
+
     def get_shooting_range(self, context: UnitContext) -> float:
         """Retourne la portée de tir effective de l'unité en pixels."""
 
@@ -461,6 +569,7 @@ class RapidUnitController:
         if not self.navigation_target_matches(context, target, tolerance=self.navigation_tolerance * 0.25):
             context.reset_path()
         context.share_channel.pop("goto_last_replan", None)
+        context.share_channel.pop("goto_last_replan_pos", None)
         LOGGER.info("[AI] %s start_navigation: navigation started to (%.1f,%.1f), nav_active=%s, nav_owner=%s", 
                    self.entity_id, target[0], target[1], 
                    context.share_channel.get("nav_active"), context.share_channel.get("nav_owner"))
@@ -629,7 +738,8 @@ class RapidUnitController:
             return
         self.context = ctx
         self._tick_attack_cooldown(ctx, dt)
-        ctx.danger_level = self.danger_map.sample_world(ctx.position)
+        self._refresh_danger_level(ctx)
+        self._timeout_pending_path(ctx)
         self._refresh_objective(ctx)
         previous_state = self.state_machine.current_state.name
         self.state_machine.update(dt, ctx)
@@ -711,6 +821,34 @@ class RapidUnitController:
             radius.cooldown = 0.0
             return
         radius.cooldown = max(0.0, radius.cooldown - dt)
+
+    def _timeout_pending_path(self, context: UnitContext) -> None:
+        """Annule les requêtes de chemin trop anciennes pour relancer un calcul propre."""
+
+        if not context.path_pending or context.path_request_id is None:
+            return
+        elapsed = self.context_manager.time - context.path_requested_at
+        if elapsed < self.settings.pathfinding.pending_request_timeout:
+            return
+        self.pathfinding.cancel_request(context.path_request_id)
+        context.path_pending = False
+        context.path_request_id = None
+        context.pending_target = None
+
+    def _refresh_danger_level(self, context: UnitContext) -> None:
+        """Met à jour le danger en cache à fréquence bornée pour limiter les échantillonnages."""
+
+        elapsed = self.context_manager.time - context.last_danger_sample
+        need_sample = elapsed >= self._danger_sample_interval
+        if not need_sample:
+            dx = context.position[0] - context.last_danger_position[0]
+            dy = context.position[1] - context.last_danger_position[1]
+            need_sample = (dx * dx + dy * dy) >= self._danger_sample_distance_sq
+        if not need_sample:
+            return
+        context.danger_level = self.danger_map.sample_world(context.position)
+        context.last_danger_sample = self.context_manager.time
+        context.last_danger_position = (context.position[0], context.position[1])
 
     def _refresh_objective(self, context: UnitContext) -> None:
         now = self.context_manager.time
@@ -895,37 +1033,64 @@ class RapidUnitController:
         vel = esper.component_for_entity(self.entity_id, VelocityComponent)
         vel.currentSpeed = max(0.0, vel.currentSpeed * 0.85)
 
+    def _grid_signature(self, origin: Tuple[float, float], target: Tuple[float, float]) -> Tuple[int, int, int, int]:
+        start_grid = self.pathfinding.world_to_grid(origin)
+        target_grid = self.pathfinding.world_to_grid(target)
+        return (start_grid[0], start_grid[1], target_grid[0], target_grid[1])
+
     def request_path(
         self,
         target_position,
         *,
         hint_nodes: Optional[List[Tuple[float, float]]] = None,
     ) -> None:
-        """Calcule un chemin en injectant éventuellement des points intermédiaires."""
+        """Planifie un calcul de chemin en batch et mémorise la requête."""
 
         if self.context is None or target_position is None:
             return
 
+        ctx = self.context
         nodes: List[Tuple[float, float]] = list(hint_nodes or []) + [target_position]
         if not nodes:
-            self.context.reset_path()
+            ctx.reset_path()
             return
 
-        assembled_path: List[Tuple[float, float]] = []
-        origin = self.context.position
-        for node in nodes:
-            segment = self.pathfinding.find_path(origin, node)
-            if not segment:
-                continue
-            if assembled_path:
-                assembled_path.extend(segment[1:])
-            else:
-                assembled_path.extend(segment)
-            origin = segment[-1]
+        now = self.context_manager.time
+        if ctx.path_pending and ctx.path_request_id is not None:
+            ctx.share_channel.setdefault("goto_path_pending_since", now)
+            return
 
-        if assembled_path:
-            self.context.set_path(assembled_path)
-        else:
-            self.context.reset_path()
+        origin = ctx.position
+        signature = self._grid_signature(origin, nodes[-1])
+        last_signature = ctx.share_channel.get("goto_last_request_signature")
+        last_request_time = ctx.share_channel.get("goto_last_request_time", -999.0)
+        min_interval = float(getattr(self.settings.pathfinding, "min_request_interval_seconds", 0.65))
+        repeat_window = max(min_interval * 1.5, float(getattr(self.settings.pathfinding, "repeat_request_window", 1.2)))
+        has_active_path = bool(ctx.path)
+        recently_requested = (now - last_request_time) < min_interval
+        repeating_same = last_signature == signature and (now - last_request_time) < repeat_window
+        if has_active_path and (recently_requested or repeating_same):
+            return
+
+        dx = origin[0] - nodes[-1][0]
+        dy = origin[1] - nodes[-1][1]
+        distance = math.hypot(dx, dy)
+        priority = 1.0 / max(distance, 1.0)
+        request_id = self.pathfinding.enqueue_request(
+            entity_id=self.entity_id,
+            origin=origin,
+            nodes=nodes,
+            priority=priority,
+            replace_request_id=ctx.path_request_id,
+        )
+        ctx.path_pending = True
+        ctx.path_request_id = request_id
+        ctx.path_requested_at = now
+        ctx.pending_target = nodes[-1]
+        ctx.share_channel["goto_last_request_time"] = now
+        ctx.share_channel["goto_last_request_signature"] = signature
+        ctx.share_channel["goto_path_pending_since"] = now
+        ctx.share_channel["goto_last_target_sample"] = nodes[-1]
+        ctx.share_channel["goto_last_request_origin"] = origin
 
 

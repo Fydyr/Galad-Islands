@@ -26,8 +26,13 @@ class GoToState(RapidAIState):
         super().__init__(name, controller)
         self._current_waypoint: Optional[Tuple[float, float]] = None
         self._last_advance_time: float = 0.0
-        self._replan_min_delay: float = 0.15
-        self._blocked_replan_delay: float = 0.3
+        pf_settings = controller.settings.pathfinding
+        self._replan_min_delay: float = float(getattr(pf_settings, "replan_min_delay", 0.8))
+        self._blocked_replan_delay: float = float(getattr(pf_settings, "blocked_replan_delay", 1.2))
+        self._min_request_interval: float = float(getattr(pf_settings, "min_request_interval_seconds", 0.65))
+        self._target_replan_threshold: float = float(
+            getattr(pf_settings, "replan_target_delta", controller.waypoint_radius * 0.35)
+        )
 
     def enter(self, context: "UnitContext") -> None:
         super().enter(context)
@@ -55,6 +60,9 @@ class GoToState(RapidAIState):
         if self._current_waypoint is None:
             self._current_waypoint = context.peek_waypoint()
             if self._current_waypoint is None:
+                if context.path_pending:
+                    self.controller.move_towards(target_position)
+                    return
                 if self._handle_no_path(context, target_position, objective):
                     return
                 self._current_waypoint = context.peek_waypoint()
@@ -85,9 +93,15 @@ class GoToState(RapidAIState):
             return
         hints = self._hint_nodes(context, target)
         self.controller.request_path(target, hint_nodes=hints)
-        if not context.path and not self.controller.is_navigation_active(context):
+        context.share_channel["goto_last_target_sample"] = target
+        if (
+            not context.path
+            and not context.path_pending
+            and not self.controller.is_navigation_active(context)
+        ):
             if context.current_objective is not None:
                 context.current_objective = None
+            context.share_channel.pop("nav_target", None)
 
     def _target_position(self, context: "UnitContext") -> Optional[Tuple[float, float]]:
         if self.controller.is_navigation_active(context):
@@ -124,19 +138,43 @@ class GoToState(RapidAIState):
     def _should_replan(self, now: float, context: "UnitContext", target_position: Tuple[float, float]) -> bool:
         last_replan = context.share_channel.get("goto_last_replan", 0.0)
         blocked_until = context.share_channel.get("goto_block_until", 0.0)
+        if context.path_pending:
+            return False
+        if not context.path:
+            return True
         if now < blocked_until:
             return False
-        if now - last_replan < self._replan_min_delay and context.path:
+        if now - last_replan < self._replan_min_delay:
             return False
+        last_request_time = context.share_channel.get("goto_last_request_time", 0.0)
+        if now - last_request_time < self._min_request_interval:
+            return False
+        last_pos = context.share_channel.get("goto_last_replan_pos")
+        moved_enough = True
+        if last_pos is not None:
+            moved_enough = self.distance(context.position, tuple(last_pos)) >= (self.controller.waypoint_radius * 0.5)
+        if not moved_enough and getattr(context, "stuck_state_time", 0.0) < 0.3:
+            return False
+        last_target_sample = context.share_channel.get("goto_last_target_sample")
+        if last_target_sample is not None:
+            target_shift = self.distance(tuple(last_target_sample), target_position)
+            if (
+                target_shift < self._target_replan_threshold
+                and (now - last_replan) < (self._replan_min_delay * 2.0)
+                and context.path
+            ):
+                return False
         distance_target = self.distance(context.position, target_position)
-        return not context.path or distance_target > self.controller.settings.pathfinding.recompute_distance_min
+        return distance_target > self.controller.settings.pathfinding.recompute_distance_min
 
     def _refresh_path(self, context: "UnitContext", target_position: Tuple[float, float], now: float) -> None:
         hints = self._hint_nodes(context, target_position)
         self.controller.request_path(target_position, hint_nodes=hints)
         context.share_channel["goto_last_replan"] = now
+        context.share_channel["goto_last_replan_pos"] = (context.position[0], context.position[1])
+        context.share_channel["goto_last_target_sample"] = target_position
         self._current_waypoint = context.peek_waypoint()
-        if not context.path:
+        if not context.path and not context.path_pending:
             context.share_channel["goto_block_until"] = now + self._blocked_replan_delay
 
     def _handle_no_path(
@@ -145,7 +183,7 @@ class GoToState(RapidAIState):
         target_position: Tuple[float, float],
         objective: Optional["Objective"],
     ) -> bool:
-        if context.path:
+        if context.path or context.path_pending:
             return False
         if self.controller.is_navigation_active(context):
             self.controller.move_towards(target_position)
@@ -159,7 +197,7 @@ class GoToState(RapidAIState):
     def _dynamic_waypoint_radius(self, context: "UnitContext") -> float:
         """Ajuste le rayon des waypoints selon la densité locale."""
 
-        local_danger = self.controller.danger_map.sample_world(context.position)
+        local_danger = context.danger_level
         shrink = 0.5 if local_danger > self.controller.settings.danger.safe_threshold else 1.0
         base_radius = self.controller.waypoint_radius
         return max(24.0, base_radius * shrink)

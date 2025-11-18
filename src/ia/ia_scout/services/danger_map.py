@@ -236,26 +236,20 @@ class DangerMapService:
         base_grid_y = base_position[1] / TILE_SIZE
         max_bonus_radius = max(bonus_radius_tiles, 1.0)
 
-        best_value = math.inf
-        best_coord: Optional[Tuple[int, int]] = None
-
-        for grid_y in range(min_y, max_y + 1):
-            for grid_x in range(min_x, max_x + 1):
-                raw_value = float(self._field[grid_y, grid_x])
-                dist = math.hypot((grid_x + 0.5) - base_grid_x, (grid_y + 0.5) - base_grid_y)
-                bonus = 0.0
-                if dist <= max_bonus_radius:
-                    # Bonus décroissant pour favoriser les positions proches de la base alliée.
-                    bonus = bonus_intensity * (1.0 - (dist / max_bonus_radius))
-                adjusted_value = raw_value - bonus
-                if adjusted_value < best_value:
-                    best_value = adjusted_value
-                    best_coord = (grid_x, grid_y)
-
-        if best_coord is None:
-            return self.find_safest_point(position, search_radius_tiles)
-
-        best_x, best_y = best_coord
+        xs = np.arange(min_x, max_x + 1, dtype=np.float32) + 0.5
+        ys = np.arange(min_y, max_y + 1, dtype=np.float32) + 0.5
+        grid_xs, grid_ys = np.meshgrid(xs, ys, indexing="xy")
+        distances = np.sqrt((grid_xs - base_grid_x) ** 2 + (grid_ys - base_grid_y) ** 2)
+        bonus = np.zeros_like(distances, dtype=np.float32)
+        mask = distances <= max_bonus_radius
+        if np.any(mask):
+            bonus[mask] = bonus_intensity * (1.0 - (distances[mask] / max_bonus_radius))
+        window = self._field[min_y : max_y + 1, min_x : max_x + 1]
+        adjusted = window - bonus
+        flat_index = int(np.argmin(adjusted))
+        offset_y, offset_x = divmod(flat_index, adjusted.shape[1])
+        best_x = min_x + offset_x
+        best_y = min_y + offset_y
         return ((best_x + 0.5) * TILE_SIZE, (best_y + 0.5) * TILE_SIZE)
 
     def iter_mine_world_positions(self) -> Iterable[Tuple[float, float]]:
