@@ -241,7 +241,7 @@ class SpriteManager:
             logger.error("Error loading sprite %s from %s: %s", sprite_id.value, sprite_data.file_path, e)
             return None
     
-    def create_sprite_component(self, sprite_id: SpriteID, width: Optional[int] = None, height: Optional[int] = None):
+    def create_sprite_component(self, sprite_id: SpriteID, width: Optional[int] = None, height: Optional[int] = None, reversable: bool = False):
         """Create a SpriteComponent with the specified sprite ID."""
         from src.components.core.spriteComponent import SpriteComponent
         
@@ -262,14 +262,16 @@ class SpriteManager:
                 width=float(final_width),
                 height=float(final_height),
                 image=image_surface,
-                image_loading_enabled=self.image_loading_enabled
+                image_loading_enabled=self.image_loading_enabled,
+                reversable=reversable
             )
         # Fallback: return component with only path so it can try to load itself
         return SpriteComponent(
             image_path=sprite_data.file_path,
             width=float(final_width),
             height=float(final_height),
-            image_loading_enabled=self.image_loading_enabled
+            image_loading_enabled=self.image_loading_enabled,
+            reversable=reversable
         )
     
     def preload_sprites(self, sprite_ids: list[SpriteID]):
@@ -316,12 +318,12 @@ class SpriteManager:
         
         return "Registered Sprites:\n" + "\n".join(sprites_info)
     
-    def add_sprite_to_entity(self, ent, sprite_id):
+    def add_sprite_to_entity(self, ent, sprite_id, reversable: bool = False):
         size = sprite_manager.get_default_size(sprite_id)
     
         if size:
             width, height = size
-            esper.add_component(ent, sprite_manager.create_sprite_component(sprite_id, width, height))
+            esper.add_component(ent, sprite_manager.create_sprite_component(sprite_id, width, height, reversable))
         else:
             # Fallback to old method
             esper.add_component(ent, Sprite(

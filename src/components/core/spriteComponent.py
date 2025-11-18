@@ -4,7 +4,7 @@ import pygame
 @component
 class SpriteComponent:
     
-    def __init__ ( self, image_path: str = "", width=0.0, height=0.0, image=None, surface=None, image_loading_enabled: bool = True):
+    def __init__ ( self, image_path: str = "", width=0.0, height=0.0, image=None, surface=None, image_loading_enabled: bool = True, reversable: bool = False):
         self.image_path: str = image_path  # Chemin to l'image du sprite in le dossier assets
         self.width: float = width
         self.height: float = height
@@ -14,6 +14,7 @@ class SpriteComponent:
         self.image: pygame.Surface|None = image
         self.surface: pygame.Surface|None = surface
         self._image_loading_enabled = image_loading_enabled
+        self.reversable: bool = reversable
         
         # Ne charger l'image que si elle n'est pas déjà fournie, qu'un chemin existe,
         # et que le chargement d'image est activé.

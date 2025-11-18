@@ -505,9 +505,14 @@ class GameRenderer:
         zoom_levels = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5]
         discrete_zoom = min(zoom_levels, key=lambda x: abs(x - camera.zoom))
 
+        # Determine if the sprite should be flipped
+        # Flip if reversable and direction is between 90 and 270 degrees (facing left)
+        should_flip = sprite.reversable and (90 < pos.direction < 270)
+
         # Optimized cache key: use discrete zoom + rounded rotation
         rotation_key = round(pos.direction / 15) * 15  # Round rotation to nearest 15 degrees
-        cache_key = (sprite.image_path, discrete_zoom, sprite.width, sprite.height, rotation_key)
+        # Include flip state in the cache key
+        cache_key = (sprite.image_path, discrete_zoom, sprite.width, sprite.height, rotation_key, should_flip)
         
         if not hasattr(self, '_sprite_cache'):
             self._sprite_cache = {}
@@ -526,6 +531,10 @@ class GameRenderer:
                     scaled_image = image
                 else:
                     scaled_image = pygame.transform.scale(image, (display_width, display_height))
+
+                # Flip the scaled image if necessary before rotation
+                if should_flip:
+                    scaled_image = pygame.transform.flip(scaled_image, False, True)
 
                 # Apply rounded rotation and cache
                 if rotation_key != 0:
@@ -664,11 +673,12 @@ class GameRenderer:
         direction_rad = -pygame.math.Vector2(0, -1).angle_to(pygame.math.Vector2(1, 0).rotate(es.component_for_entity(entity_id, PositionComponent).direction)) * (3.14159 / 180)
         offset_y_base = sprite_height // 2 + 12
 
-        offset_x = offset_y_base * -np.sin(direction_rad)
-        offset_y = offset_y_base * -np.cos(direction_rad)
+        # offset_x = offset_y_base * -np.sin(direction_rad)
+        # offset_y = offset_y_base * -np.cos(direction_rad)
 
         # Bar position (centered above the entity)
-        bar_x, bar_y = x - bar_width // 2 + offset_x, y - offset_y
+        # bar_x, bar_y = x - bar_width // 2 + offset_x, y - offset_y
+        bar_x, bar_y = x - bar_width // 2, y - offset_y_base
 
         # Check that maxHealth is not zero to avoid division by zero
         if health.maxHealth <= 0:

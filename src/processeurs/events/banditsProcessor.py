@@ -321,41 +321,7 @@ class BanditsProcessor:
 
             # Add the sprite
             sprite_id = SpriteID.PIRATE_SHIP
-            size = sprite_manager.get_default_size(sprite_id)
-
-            # Try to create the sprite component via the sprite manager.
-            # In headless/test environments pygame may not have a display
-            # initialized which causes image loading to raise. Guard against
-            # that and fall back to a lightweight SpriteComponent without
-            # triggering image loading.
-            try:
-                if size:
-                    width, height = size
-                    comp = sprite_manager.create_sprite_component(
-                        sprite_id, width, height)
-                    if comp is not None:
-                        # Apply horizontal flip for bandits going left (direction 0°)
-                        if side == 1:  # Right -> left, flip the sprite
-                            import pygame
-                            if comp.image is not None and hasattr(comp.image, 'get_width'):
-                                comp.image = pygame.transform.flip(comp.image, True, False)
-                        esper.add_component(bandit_ent, comp)
-                    else:
-                        # Fallback to a minimal SpriteComponent without image
-                        esper.add_component(bandit_ent, Sprite(
-                            "", float(width), float(height)))
-                else:
-                    # No default size known; use a small placeholder without image
-                    esper.add_component(bandit_ent, Sprite("", 64.0, 64.0))
-            except Exception:
-                # Any error while creating sprite (e.g., pygame not initialized)
-                # fallback to minimal component to keep tests/imports working
-                if size:
-                    w, h = size
-                    esper.add_component(
-                        bandit_ent, Sprite("", float(w), float(h)))
-                else:
-                    esper.add_component(bandit_ent, Sprite("", 64.0, 64.0))
+            sprite_manager.add_sprite_to_entity(bandit_ent, sprite_id, True)
 
             created_entities.append(bandit_ent)
 
