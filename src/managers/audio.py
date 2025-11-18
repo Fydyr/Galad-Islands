@@ -6,7 +6,8 @@ import pygame
 import os
 import json
 import sys
-from typing import Optional
+import random
+from typing import Optional, List
 from src.settings import settings
 from src.settings.localization import t
 from src.constants.assets import MUSIC_MAIN_THEME
@@ -30,6 +31,12 @@ class AudioManager:
         self.music_loaded = False
         self.current_music_path: Optional[str] = None
         self.select_sound: Optional[pygame.mixer.Sound] = None
+
+        # Explosion sounds management
+        self.explosion_sounds: List[pygame.mixer.Sound] = []
+        self.explosion_channel = None
+        self._explosion_initialized = False
+
         self._load_assets()
 
     def _load_assets(self):
@@ -65,6 +72,71 @@ class AudioManager:
             print(t("system.sound_load_error", error=e))
             self.select_sound = None
 
+    def _ensure_explosion_initialized(self):
+        """Initializes the dedicated explosion channel if not already done."""
+        if self._explosion_initialized:
+            return
+
+        try:
+            # Reserve a dedicated channel for explosions (channel 0)
+            # Music uses pygame.mixer.music (separate channel)
+            pygame.mixer.set_reserved(1)  # Reserve channel 0
+            self.explosion_channel = pygame.mixer.Channel(0)
+            self._load_explosion_sounds()
+            self._explosion_initialized = True
+        except pygame.error as e:
+            print(f"⚠️ Unable to initialize explosion manager: {e}")
+
+    def _load_explosion_sounds(self):
+        """Loads all explosion sounds from assets/sounds/explosion folder."""
+        explosion_dir = os.path.join("assets", "sounds", "explosion")
+        full_path = get_resource_path(explosion_dir)
+
+        if not os.path.exists(full_path):
+            print(f"⚠️ Explosion folder not found: {full_path}")
+            return
+
+        try:
+            # List all audio files in the folder
+            sound_files = [
+                f for f in os.listdir(full_path)
+                if f.endswith(('.ogg', '.mp3', '.wav'))
+            ]
+
+            if not sound_files:
+                print(f"⚠️ No audio files found in {explosion_dir}")
+                return
+
+            # Load each sound file
+            for sound_file in sound_files:
+                sound_path = os.path.join(explosion_dir, sound_file)
+                try:
+                    sound = pygame.mixer.Sound(get_resource_path(sound_path))
+                    self.explosion_sounds.append(sound)
+                except Exception as e:
+                    print(f"⚠️ Unable to load {sound_file}: {e}")
+
+            if self.explosion_sounds:
+                print(f"💥 {len(self.explosion_sounds)} explosion sound(s) loaded")
+                self._update_explosion_volume()
+            else:
+                print("⚠️ No explosion sounds could be loaded")
+
+        except Exception as e:
+            print(f"⚠️ Error loading explosion sounds: {e}")
+
+    def _update_explosion_volume(self):
+        """Updates the volume of all explosion sounds."""
+        if not self.explosion_sounds:
+            return
+
+        effects_volume = settings.config_manager.get("volume_effects", 0.7)
+        master_volume = settings.config_manager.get("volume_master", 0.8)
+        final_volume = effects_volume * master_volume
+
+        for sound in self.explosion_sounds:
+            sound.set_volume(final_volume)
+
     def update_music_volume(self):
         """Updates music volume from configuration."""
         if not self.music_loaded:
@@ -86,6 +158,7 @@ class AudioManager:
         final_volume = effects_volume * master_volume
 
         self.select_sound.set_volume(final_volume)
+        self._update_explosion_volume()
 
     def update_all_volumes(self):
         """Updates all volumes from configuration."""
@@ -106,6 +179,45 @@ class AudioManager:
         """Returns the selection sound to inject into components."""
         return self.select_sound
 
+    def play_explosion_sound(self):
+        """
+        Plays a random explosion sound.
+        Only plays the sound if no explosion sound is already playing.
+        """
+        # Ensure the manager is initialized
+        self._ensure_explosion_initialized()
+
+        if not self.explosion_sounds:
+            return  # No sounds available
+
+        # Check if a sound is already playing on the dedicated channel
+        if self.explosion_channel and self.explosion_channel.get_busy():
+            return  # An explosion sound is already playing, don't play another
+
+        # Select a random sound
+        sound = random.choice(self.explosion_sounds)
+
+        # Play the sound on the dedicated channel
+        if self.explosion_channel:
+            self.explosion_channel.play(sound)
+            print("💥 Explosion sound played")
+
+    def is_explosion_playing(self) -> bool:
+        """
+        Checks if an explosion sound is currently playing.
+
+        Returns:
+            True if an explosion sound is playing, False otherwise
+        """
+        if self.explosion_channel:
+            return self.explosion_channel.get_busy()
+        return False
+
+    def stop_all_explosions(self):
+        """Stops all explosion sounds currently playing."""
+        if self.explosion_channel:
+            self.explosion_channel.stop()
+
 
 class VolumeWatcher:
     """Monitors volume changes in the configuration."""
@@ -115,7 +227,7 @@ class VolumeWatcher:
         self.last_music_volume = settings.config_manager.get("volume_music", 0.5)
         self.last_effects_volume = settings.config_manager.get("volume_effects", 0.7)
         self.last_master_volume = settings.config_manager.get("volume_master", 0.8)
-        
+
         # HACK: Read config directly at startup to force volume
         self._force_volume_from_config()
 
@@ -142,6 +254,7 @@ class VolumeWatcher:
             self.last_effects_volume = new_effects
             self.last_master_volume = new_master
             self.audio_manager.update_all_volumes()
+
             print("🎚️ Volumes updated")
 
         return changed
