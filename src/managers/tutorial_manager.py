@@ -4,6 +4,7 @@ Manager for the in-game tutorial.
 """
 import pygame
 from typing import List, Dict, Any, Optional
+from collections import deque
 from src.ui.tutorial_notification import TutorialNotification
 from src.settings.localization import t
 
@@ -29,6 +30,19 @@ class TutorialManager:
 
         self._load_tutorial_steps()
         self.current_tip_key: Optional[str] = None
+        # Queue to store pending tips that should be displayed after the current one
+        self._queued_tips: deque[str] = deque()
+        # Priority map for queued tips: higher value = higher priority
+        self._tip_priority: dict[str, int] = {
+            "start": 100,
+            "select_unit": 90,
+            "enemy_spotted": 80,
+            "ai_mode": 70,
+            "resource_collected": 60,
+            "gold": 60,
+            "attack_unit": 80,
+            "fog_of_war": 10,
+        }
 
     def get_tip_by_key(self, key: str):
         """Returns the tip (dict) corresponding to the key, or None."""
@@ -43,6 +57,28 @@ class TutorialManager:
             self.show_tutorial = bool(self.config_manager.get("show_tutorial", True))
             self.read_tips = set(self.config_manager.get("read_tips", []))
         if not self.show_tutorial or key in self.read_tips:
+            return
+
+        # If a tutorial is currently displayed, queue the requested tip
+        if self.active_notification is not None and not self.active_notification.dismissed:
+            # Do not queue duplicates or already read tips
+            if key in self.read_tips:
+                return
+            if key == self.current_tip_key:
+                return
+            if key in self._queued_tips:
+                return
+            # Insert into queue according to priority (high -> front)
+            priority = self._tip_priority.get(key, 0)
+            inserted = False
+            for i, queued_key in enumerate(self._queued_tips):
+                queued_priority = self._tip_priority.get(queued_key, 0)
+                if priority > queued_priority:
+                    self._queued_tips.insert(i, key)
+                    inserted = True
+                    break
+            if not inserted:
+                self._queued_tips.append(key)
             return
 
         step = self.get_tip_by_key(key)
@@ -82,6 +118,30 @@ class TutorialManager:
                 "message": t("tutorial.shop_open.message"),
                 "trigger": "open_shop",
             },
+            {
+                "key": "gold",
+                "title": t("tutorial.gold.title"),
+                "message": t("tutorial.gold.message"),
+                "trigger": "resource_collected",
+            },
+            {
+                "key": "attack_unit",
+                "title": t("tutorial.attack_unit.title"),
+                "message": t("tutorial.attack_unit.message"),
+                "trigger": "enemy_spotted",
+            },
+            {
+                "key": "fog_of_war",
+                "title": t("tutorial.fog_of_war.title"),
+                "message": t("tutorial.fog_of_war.message"),
+                "trigger": "tile_explored",
+            },
+            {
+                "key": "ai_mode",
+                "title": t("tutorial.ai_mode.title"),
+                "message": t("tutorial.ai_mode.message"),
+                "trigger": "ai_mode",
+            },
         ]
 
     def handle_event(self, event: pygame.event.Event):
@@ -100,6 +160,10 @@ class TutorialManager:
                             continue
                     # Trigger the tip
                     self.show_tip(step["key"])
+                    # After showing the start tip, queue the select_unit tip so it
+                    # appears automatically after the welcome tip is dismissed.
+                    if step["key"] == "start":
+                        self.show_tip("select_unit")
                     break
 
     def handle_notification_event(self, event: pygame.event.Event, screen_width: int, screen_height: int):
@@ -118,10 +182,28 @@ class TutorialManager:
                         self.config_manager.save_config()
                 self.active_notification = None
                 self.current_tip_key = None
+                # If we have queued tips, display the next one
+                if len(self._queued_tips) > 0:
+                    next_key = self._queued_tips.popleft()
+                    # Ensure tutorials are enabled and tip not already read
+                    if self.config_manager:
+                        self.show_tutorial = bool(self.config_manager.get("show_tutorial", True))
+                        self.read_tips = set(self.config_manager.get("read_tips", []))
+                    if next_key not in self.read_tips:
+                        self.show_tip(next_key)
+                return
             elif result == "skip":
                 self.is_skipped = True
                 self.active_notification = None
                 self.current_tip_key = None
+                # After skipping, show next queued tip (skip does not mark as read)
+                if len(self._queued_tips) > 0:
+                    next_key = self._queued_tips.popleft()
+                    if self.config_manager:
+                        self.show_tutorial = bool(self.config_manager.get("show_tutorial", True))
+                        self.read_tips = set(self.config_manager.get("read_tips", []))
+                    if next_key not in self.read_tips:
+                        self.show_tip(next_key)
 
     def draw(self, surface: pygame.Surface):
         """Draws the active tutorial notification."""
@@ -138,6 +220,7 @@ class TutorialManager:
         self.is_finished = False
         self.is_skipped = False
         self.read_tips = set()
+        self._queued_tips.clear()
         if self.config_manager:
             self.config_manager.set("read_tips", [])
             self.config_manager.save_config()

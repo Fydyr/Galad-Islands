@@ -1063,6 +1063,11 @@ class GameEngine:
         self._initialize_ecs()
 
         # Create les entities de base
+        # Avoid triggering 'tile_explored' during initial creation (base + scout spawn)
+        try:
+            vision_system._suppress_explore_events = True
+        except Exception:
+            pass
         self._create_initial_entities()
         
         # Configurer la caméra
@@ -1073,6 +1078,11 @@ class GameEngine:
             pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "game_start"}))
         # Réinitialiser le système de vision after l'initialisation complète
         vision_system.reset()
+        # Re-enable exploration events so the fog-of-war tutorial can fire later
+        try:
+            vision_system._suppress_explore_events = False
+        except Exception:
+            pass
         
     def _initialize_game_map(self):
         """Initialise la carte du jeu."""
