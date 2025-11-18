@@ -116,7 +116,7 @@
 ### Tour de Soin
 
 ![Tour de Soin allié](/assets/sprites/buildings/ally/ally-heal-tower.png)
-![Tour de Soin ennemie](/assets/sprites/buildings/enemy/enemy-attack-tower.png)
+![Tour de Soin ennemie](/assets/sprites/buildings/enemy/enemy-heal-tower.png)
 
 - **Soin** : 10 PV
 - **Portée** : 5 cases
@@ -129,19 +129,19 @@
 ### Dangers
 
 - **Tempêtes** (5% chance)
-![Tempêtes](/assets/event/tempete.png)
+![Tempêtes](/assets/sprites/event/storm.png)
   - Dégâts : 30 toutes les 3s
   - Zone : 3 cases de diamètre (1.5 cases de rayon)
   - Durée : 20s
 
 - **Vague de bandits** (25% chance)
-![Vague de bandits](/assets/event/pirate_ship.png)
+![Vague de bandits](/assets/sprites/event/pirate_ship.png)
   - 1-6 navires ennemis
   - Dégâts : 20
   - Traverse la carte d'ouest en est
 
 - **Kraken** (10% chance)
-![Kraken](/assets/event/kraken.png)
+![Kraken](/assets/sprites/event/kraken.png)
   - Dégâts : 70
   - 2-6 tentacules
   - Attaque les îles et détruit tours/ressources
@@ -154,7 +154,7 @@
 ### Bonus
 
 - **Coffres volants** (20% chance)
-![chest](/assets/event/chest_close.png)
+![chest](/assets/sprites/event/chest_close.png)
   - Récompense : 10-20 Gold
   - 2-5 coffres par événement
   - Durée : 20s avant disparition
