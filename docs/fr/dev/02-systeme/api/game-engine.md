@@ -135,6 +135,19 @@ def _handle_action_bar_shop_purchase(self, unit_type: str, cost: int) -> bool:
     """Callback pour achat d'unité via la boutique."""
 ```
 
+### Mode AI vs AI (Self-play / Spectateur)
+
+Quand le `GameEngine` est en mode "self-play" (`self_play_mode=True`), le moteur agit comme un spectateur : les deux équipes sont contrôlées par l'IA et les entrées du joueur sont désactivées.
+
+- Activation/désactivation : utiliser `GameEngine.enable_self_play()` et `GameEngine.disable_self_play()` pour basculer le mode spectateur à l'exécution. `enable_self_play()` règle `self_play_mode = True` et active les IA des deux bases.
+- Les tutoriels sont désactivés : `EventHandler` n'appelle pas `TutorialManager.handle_event(event)` quand `self_play_mode` est vrai — cela empêche les astuces in-game d'apparaître lors d'une partie AI vs AI.
+- Le brouillard de guerre est désactivé pour le spectateur : `GameRenderer._render_fog_of_war` quitte prématurément si `self_play_mode` est activé, rendant la carte entièrement visible.
+- Différences UI : en mode spectateur la `ActionBar` met l'accent sur la présentation — l'or des deux camps (allié & ennemi) est affiché simultanément via `ActionBar._draw_player_info`, ce qui permet de comparer leurs économies.
+
+Remarque pratique : le flag `self_play_mode` est propagé aux systèmes de rendu et d'entrée. Pour forcer l'apparition d'une astuce en self-play (debug), appelez `TutorialManager.show_tip(key)` directement.
+
+
+
 ### EventHandler
 
 **Responsabilité :** Gestion centralisée de tous les événements pygame.
@@ -149,6 +162,7 @@ class EventHandler:
     def handle_events(self) -> None:
         """Traite tous les événements de la queue pygame."""
 ```
+
 
 #### Méthodes de gestion d'événements
 

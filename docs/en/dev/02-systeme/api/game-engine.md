@@ -134,6 +134,18 @@ def _handle_action_bar_shop_purchase(self, unit_type: str, cost: int) -> bool:
     """Callback for unit purchase via the shop."""
 ```
 
+### AI vs AI (Self-play / Spectator)
+
+When `GameEngine` runs in "self-play" mode (`self_play_mode=True`) the engine acts as a spectator: both teams are controlled by the AI and the player input is effectively disabled.
+
+- Enabling/disabling: use `GameEngine.enable_self_play()` and `GameEngine.disable_self_play()` to toggle spectator mode at runtime. `enable_self_play()` sets `self_play_mode = True` and ensures both base AIs are activated.
+- Tutorials are suppressed: the `EventHandler` guards tutorial triggers and will not call `TutorialManager.handle_event(event)` when `self_play_mode` is set; this prevents in-game tips showing while watching an AI match.
+- Fog of war is disabled for spectators: `GameRenderer._render_fog_of_war` early-exits when `self_play_mode` is enabled so the entire map is visible.
+- UI differences: in spectator mode the `ActionBar` focuses on presentation — both allied and enemy gold amounts are shown concurrently (see `ActionBar._draw_player_info`), making it easier to compare economies.
+
+Practical note: The `self_play_mode` flag is propagated to systems that control rendering and input. If you need to trigger tutorial messages for debugging while in self-play, call `TutorialManager.show_tip(key)` directly.
+
+
 ### EventHandler
 
 **Responsibility:** Centralized management of all pygame events.

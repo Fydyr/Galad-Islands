@@ -17,6 +17,10 @@ Au lancement, vous arrivez sur le menu principal avec les options suivantes :
 - **👥 Crédits** : Découvrir l'équipe de développement
 - **🚪 Quitter** : Fermer le jeu
 
+### Modes de jeu (note rapide)
+
+En cliquant sur **Jouer**, vous pouvez choisir différents modes. Le mode **IA vs IA** (spectateur) vous permet d'observer deux IA s'affronter en direct. Dans ce mode la barre d'action affiche simultanément l'or des deux bases pour comparer les économies ; notez que les tutoriels ne s'affichent pas en mode spectateur.
+
 !!! tip "Configuration recommandée"
     **Avant votre première partie**, visitez le menu **Options** pour :
     - Ajuster la résolution à votre écran

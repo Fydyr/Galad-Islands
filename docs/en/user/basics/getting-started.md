@@ -23,6 +23,10 @@ When launching, you arrive at the main menu with the following options:
 - **👥 Credits**: Discover the development team
 - **🚪 Quit**: Close the game
 
+### Game modes (quick note)
+
+When you press **Play**, you can choose between game modes. In particular, **AI vs AI** lets you watch two AIs play against each other as a spectator. In this mode the action bar shows both bases' gold concurrently so you can compare their economies; note that in AI vs AI tutorials do not appear.
+
 !!! tip "Recommended configuration"
     **Before your first game**, visit the **Options** menu to:
     - Adjust resolution to your screen
