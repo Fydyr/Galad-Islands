@@ -478,4 +478,14 @@ TRANSLATIONS = {
     "team_selection.message": "Select your starting side:",
     "team_selection.team1": "The Dawn Fleet",
     "team_selection.team2": "The Abyss Legion",
+
+    # Tutorial
+    "tutorial.next_button": "Next",
+    "tutorial.skip_button": "Skip",
+    "tutorial.step1.title": "Welcome to Galad Islands!",
+    "tutorial.step1.message": "This tutorial will guide you through the basics of the game.",
+    "tutorial.step2.title": "Your First Unit",
+    "tutorial.step2.message": "This is your first unit. You can select it by clicking on it.",
+    "tutorial.step3.title": "Move Your Unit",
+    "tutorial.step3.message": "Right-click on the map to move your selected unit.",
 }

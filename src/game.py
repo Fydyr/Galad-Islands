@@ -16,8 +16,9 @@ from src.settings.localization import t
 from src.settings.docs_manager import get_help_path
 from src.settings import controls
 from src.constants.team import Team
-from src.ui.team_selection_modal import TeamSelectionModal
 from src.components.core.team_enum import Team as TeamEnum
+from src.ui.team_selection_modal import TeamSelectionModal
+from src.managers.tutorial_manager import TutorialManager
 from src.ui.crash_window import show_crash_popup
 
 logger = logging.getLogger(__name__)
@@ -80,7 +81,6 @@ from src.processeurs.flyingChestProcessor import FlyingChestProcessor
 from src.managers.island_resource_manager import IslandResourceManager
 from src.processeurs.stormProcessor import StormProcessor
 from src.processeurs.combatRewardProcessor import CombatRewardProcessor
-from src.managers.display import get_display_manager
 
 # Factory and utility function imports
 from src.factory.unitFactory import UnitFactory
@@ -123,6 +123,12 @@ class EventHandler:
     def handle_events(self):
         """Handles all pygame events."""
         for event in pygame.event.get():
+            # Give priority to the tutorial
+            if self.game_engine.tutorial_manager.is_active():
+                self.game_engine.tutorial_manager.handle_event(event, self.game_engine.window.get_width(), self.game_engine.window.get_height())
+                # If the tutorial is active, it might consume events, so we can decide to stop propagation if needed.
+                # For now, we let other handlers process the event as well.
+
             if event.type == pygame.QUIT:
                 # Open confirmation modal instead of quitting directly
                 self.game_engine.open_exit_modal()
@@ -279,9 +285,19 @@ class EventHandler:
         self.game_engine.show_debug = not self.game_engine.show_debug
 
     def _open_shop(self):
-        """Opens the shop via the ActionBar."""
+        """Opens the shop via the ActionBar and trigger the tutorial if needed."""
         if self.game_engine.action_bar is not None:
             self.game_engine.action_bar._open_shop()
+        # Trigger the tutorial when the shop is opened
+        if hasattr(self.game_engine, 'tutorial_manager') and self.game_engine.tutorial_manager is not None:
+            # If the tutorial is not finished and there is a step dedicated to the shop, force it
+            tuto = self.game_engine.tutorial_manager
+            # Search for a step containing "shop" in the title or message
+            for idx, step in enumerate(tuto.steps):
+                if "boutique" in step.get("title", "").lower() or "boutique" in step.get("message", "").lower():
+                    tuto.current_step_index = idx
+                    tuto._show_current_step()
+                    break
 
     def _handle_group_shortcuts(self, event: pygame.event.Event) -> bool:
         """Handles keyboard shortcuts related to control groups."""
@@ -342,6 +358,10 @@ class GameRenderer:
         
         if show_debug:
             self._render_debug_info(window, camera, dt, self.game_engine)
+
+        # Draw the tutorial
+        if self.game_engine.tutorial_manager.is_active():
+            self.game_engine.tutorial_manager.draw(window)
             
         if self.game_engine.exit_modal.is_active():
             self.game_engine.exit_modal.render(window)
@@ -875,6 +895,7 @@ class GameEngine:
         self.maraudeur_ais = {}  # entity_id -> MaraudeurAI
         self.player = None
         self.notification_system = get_notification_system()
+        self.tutorial_manager = TutorialManager(config_manager=config_manager)
 
         # ECS processors
         self.movement_processor = None
@@ -1039,6 +1060,10 @@ class GameEngine:
         
         # Configurer la caméra
         self._setup_camera()
+        
+        # Start the tutorial
+        if not self.self_play_mode:
+            self.tutorial_manager.start_tutorial()
         
         # Réinitialiser le système de vision after l'initialisation complète
         vision_system.reset()

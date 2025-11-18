@@ -32,6 +32,8 @@ from src.settings.localization import (
 )
 from src.settings import controls
 from src.managers.display import get_display_manager
+from src.settings.settings import config_manager
+from src.managers.tutorial_manager import TutorialManager
 from src.utils.update_checker import check_for_updates_force
 from src.constants.key_bindings import (
     BASIC_BINDINGS,
@@ -118,7 +120,8 @@ class OptionsState:
     max_fps: int
     checking_update: bool  # Indicateur de vérification en cours
     update_check_result: Optional[str]  # Résultat de la dernière vérification
-    
+    show_tutorial: bool  # Ajout pour activer/désactiver le tutoriel
+
     @classmethod
     def from_config(cls) -> 'OptionsState':
         """creates un état à partir de la configuration actuelle."""
@@ -159,6 +162,7 @@ class OptionsState:
             max_fps=int(config_manager.get("max_fps", 60)),
             checking_update=False,
             update_check_result=None,
+              show_tutorial=config_manager.get("show_tutorial", True)
         )
 
 
@@ -204,7 +208,6 @@ class OptionsWindow:
             center=(self.screen_width//2, self.screen_height//2)
         )
         self.content_rect = pygame.Rect(20, 50, self.modal_width - 40, self.modal_height - 70)
-        
         # Polices
         self._setup_fonts()
         
@@ -240,6 +243,10 @@ class OptionsWindow:
         
         # Section Performance
         y_pos = self._create_performance_section(content_surface, y_pos)
+        y_pos += UIConstants.SECTION_SPACING
+        
+        # Section Gameplay (nouvelle section)
+        y_pos = self._create_gameplay_section(content_surface, y_pos)
         y_pos += UIConstants.SECTION_SPACING
         
         # Section Résolution
@@ -411,6 +418,56 @@ class OptionsWindow:
         config_manager.set("max_fps", int(fps))
         config_manager.save_config()
         self._refresh_state()
+        
+    def _create_gameplay_section(self, surface: pygame.Surface, y_pos: int) -> int:
+        """Crée la section Gameplay avec l'option tutoriel et le bouton reset."""
+        # Titre de section
+        section_surf = self.font_section.render(
+            t("options.gameplay_section", default="Gameplay"), True, Colors.GOLD)
+        surface.blit(section_surf, (0, y_pos))
+        y_pos += 40
+
+        # Checkbox activer/désactiver le tutoriel
+        tuto_checkbox_rect = pygame.Rect(
+            0, y_pos, 320, UIConstants.LINE_HEIGHT)
+        tuto_checkbox = RadioButton(
+            tuto_checkbox_rect,
+            t("options.enable_tutorial", default="Activer le tutoriel"),
+            self.font_normal,
+            "show_tutorial",
+            selected=self.state.show_tutorial,
+            callback=self._on_show_tutorial_changed
+        )
+        self.components.append(tuto_checkbox)
+        y_pos += UIConstants.LINE_HEIGHT + 10
+
+        # Bouton Réinitialiser les tutos
+        reset_tuto_rect = pygame.Rect(
+            0, y_pos, UIConstants.BUTTON_WIDTH+40, UIConstants.BUTTON_HEIGHT)
+        reset_tuto_button = Button(
+            reset_tuto_rect,
+            t("options.button_reset_tutorials", default="Réinit. tutoriels"),
+            self.font_normal,
+            color=(100, 150, 200),
+            text_color=Colors.WHITE,
+            callback=self._on_reset_tutorials
+        )
+        self.components.append(reset_tuto_button)
+
+        # Afficher le message de confirmation juste sous le bouton reset tuto
+        if hasattr(self, '_show_tutorial_reset_message') and self._show_tutorial_reset_message:
+            now = pygame.time.get_ticks()
+            if now - getattr(self, '_tutorial_reset_message_timer', 0) < 2500:
+                msg = t("options.tutorials_reset_message",
+                        default="Progression du tutoriel réinitialisée !")
+                msg_surf = self.font_normal.render(msg, True, Colors.GREEN)
+                surface.blit(msg_surf, (reset_tuto_rect.left,
+                             y_pos + UIConstants.BUTTON_HEIGHT + 8))
+            else:
+                self._show_tutorial_reset_message = False
+
+        y_pos += UIConstants.BUTTON_HEIGHT + 30
+        return y_pos
     
     def _create_resolution_section(self, surface: pygame.Surface, y_pos: int) -> int:
         """creates la section des paramètres de résolution."""
@@ -676,8 +733,20 @@ class OptionsWindow:
         y_pos += 20
         return y_pos
     
+    def _on_reset_tutorials(self) -> None:
+        """Callback pour réinitialiser la progression du tutoriel."""
+        config_manager.set("read_tips", [])
+        config_manager.save_config()
+        # Afficher une notification temporaire sous le bouton
+        self._show_tutorial_reset_message = True
+        self._tutorial_reset_message_timer = pygame.time.get_ticks()
+        print("✅ Progression du tutoriel réinitialisée")
+
     def _create_action_buttons(self, surface: pygame.Surface, y_pos: int) -> int:
-        """creates les boutons d'action."""
+        """creates les boutons d'action et retourne la nouvelle position Y."""
+        # Marquer surface comme utilisée (évite les avertissements d'analyse statique)
+        _ = surface
+
         # Bouton Reset
         reset_rect = pygame.Rect(50, y_pos, UIConstants.BUTTON_WIDTH, UIConstants.BUTTON_HEIGHT)
         reset_button = Button(
@@ -689,7 +758,7 @@ class OptionsWindow:
             callback=self._on_reset
         )
         self.components.append(reset_button)
-        
+
         # Bouton Fermer
         close_rect = pygame.Rect(200, y_pos, UIConstants.BUTTON_WIDTH, UIConstants.BUTTON_HEIGHT)
         close_button = Button(
@@ -701,9 +770,21 @@ class OptionsWindow:
             callback=self._on_close
         )
         self.components.append(close_button)
-        
-        y_pos += 60
+
+        # Avancer la position Y après les boutons
+        y_pos += UIConstants.BUTTON_HEIGHT + 20
         return y_pos
+
+
+    def _on_show_tutorial_changed(self, _value: Any) -> None:
+        """Callback pour activer/désactiver le tutoriel."""
+        # Marquer _value comme utilisé pour éviter les avertissements d'analyse statique
+        _ = _value
+
+        new_value = not self.state.show_tutorial
+        config_manager.set("show_tutorial", new_value)
+        config_manager.save_config()
+        self.state.show_tutorial = new_value
 
     def _get_binding_display_text(self, action: str) -> str:
         """Retourne le texte affiché pour une action donnée."""

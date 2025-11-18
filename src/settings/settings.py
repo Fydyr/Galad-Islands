@@ -39,6 +39,8 @@ DEFAULT_CONFIG = {
     "check_updates": True,  # Vérification automatique des mises à jour au démarrage
     "camera_sensitivity": 1.0,
     "camera_fast_multiplier": 2.5,
+    "show_tutorial": True,  # Affichage du tutoriel activé/désactivé
+    "read_tips": [],  # Liste des astuces lues pour le tutoriel
     "key_bindings": {
         "unit_move_forward": ["z"],
         "unit_move_backward": ["s"],

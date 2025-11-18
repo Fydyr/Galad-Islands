@@ -456,4 +456,22 @@ TRANSLATIONS = {
     "team_selection.message": "Sélectionnez votre camp de départ :",
     "team_selection.team1": "La Flotte de l'Aube",
     "team_selection.team2": "La Légion des Abysses",
+
+    # Tutoriel
+    "tutorial.next_button": "Suivant",
+    "tutorial.skip_button": "Passer",
+    "tutorial.step1.title": "Bienvenue sur Galad Islands !",
+    "tutorial.step1.message": "Ce tutoriel va vous guider à travers les bases du jeu.",
+    "tutorial.step2.title": "Votre Première Unité",
+    "tutorial.step2.message": "Ceci est votre première unité. Vous pouvez la sélectionner en cliquant dessus.",
+    "tutorial.step3.title": "Déplacer Votre Unité",
+    "tutorial.step3.message": "Faites un clic droit sur la carte pour déplacer votre unité sélectionnée.",
+    "tutorial.step4.title": "La Boutique",
+    "tutorial.step4.message": "Appuyez sur B ou cliquez sur l'icône boutique pour ouvrir la boutique. Achetez des unités, bâtiments ou améliorations avec votre or. Sélectionnez un Architecte pour construire des tours.",
+    "tutorial.step5.title": "Le Brouillard de Guerre",
+    "tutorial.step5.message": "Les zones sombres de la carte sont inexplorées ou hors de vue. Déplacez vos unités pour révéler la carte et repérer les ennemis.",
+    "tutorial.step6.title": "Commandes Essentielles",
+    "tutorial.step6.message": "A : Mode attaque | R : Capacité spéciale | T : Activer/désactiver l'IA\nClic droit : Déplacer | Survolez les boutons pour plus d'infos.",
+    "tutorial.step7.title": "Conseils Rapides",
+    "tutorial.step7.message": "Gagnez de l'or en capturant des objectifs ou en éliminant des ennemis. Gardez un œil sur vos ressources et explorez la carte pour prendre l'avantage !",
 }
