@@ -90,8 +90,7 @@
 
 #### **Kamikase** - 30 Gold
 
-![Kamikase allié](/assets/docs/units/ally/Kamikase.png)
-![Kamikase ennemie](/assets/docs/units/enemy/kamikase.png)
+![Kamikase allié & ennemi](/assets/docs/units/ally/Kamikase.png)
 
 - **Speed** : 6/s (Fastest!)
 - **Damage** : instantaneous (at once)
@@ -115,7 +114,7 @@
 ### Healing Tower
 
 ![Allied Healing Tower](/assets/sprites/buildings/ally/ally-heal-tower.png)
-![Enemy Healing Tower](/assets/sprites/buildings/enemy/enemy-attack-tower.png)
+![Enemy Healing Tower](/assets/sprites/buildings/enemy/enemy-heal-tower.png)
 
 - **Healing** : 15 HP
 - **Range** : 5 tiles
@@ -128,19 +127,19 @@
 ### Hazards
 
 - **Storms** (5% chance)
-![Storms](/assets/event/tempete.png)
+![Storms](/assets/sprites/event/storm.png)
   - Damage : 30 every 3s
   - Area : 3 tiles diameter (1.5 tiles radius)
   - Duration : 20s
 
 - **Bandit Wave** (25% chance)
-![Bandit Wave](/assets/event/pirate_ship.png)
+![Bandit Wave](/assets/sprites/event/pirate_ship.png)
   - 1-6 enemy ships
   - Damage : 20
   - Crosses the map from west to east
 
 - **Kraken** (10% chance)
-![Kraken](/assets/event/kraken.png)
+![Kraken](/assets/sprites/event/kraken.png)
   - Damage : 70
   - 2-6 tentacles
   - Attacks islands and destroys towers/resources
@@ -153,7 +152,7 @@
 ### Bonuses
 
 - **Flying Chests** (20% chance)
-![chest](/assets/event/chest_close.png)
+![chest](/assets/sprites/event/chest_close.png)
   - Reward : 10-20 Gold
   - 2-5 chests per event
   - Duration : 20s before disappearing

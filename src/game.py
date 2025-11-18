@@ -45,6 +45,7 @@ from src.ia.ia_scout.processors.rapid_ai_processor import RapidTroopAIProcessor
 from src.processeurs.economy.passiveIncomeProcessor import PassiveIncomeProcessor
 from src.processeurs.ai.ai_processor_manager import AIProcessorManager
 from src.components.core.aiEnabledComponent import AIEnabledComponent
+from src.processeurs.explosionSoundProcessor import ExplosionSoundProcessor
 
 
 # Component imports
@@ -532,9 +533,14 @@ class GameRenderer:
         zoom_levels = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5]
         discrete_zoom = min(zoom_levels, key=lambda x: abs(x - camera.zoom))
 
+        # Determine if the sprite should be flipped
+        # Flip if reversable and direction is between 90 and 270 degrees (facing left)
+        should_flip = sprite.reversable and (90 < pos.direction < 270)
+
         # Optimized cache key: use discrete zoom + rounded rotation
         rotation_key = round(pos.direction / 15) * 15  # Round rotation to nearest 15 degrees
-        cache_key = (sprite.image_path, discrete_zoom, sprite.width, sprite.height, rotation_key)
+        # Include flip state in the cache key
+        cache_key = (sprite.image_path, discrete_zoom, sprite.width, sprite.height, rotation_key, should_flip)
         
         if not hasattr(self, '_sprite_cache'):
             self._sprite_cache = {}
@@ -553,6 +559,10 @@ class GameRenderer:
                     scaled_image = image
                 else:
                     scaled_image = pygame.transform.scale(image, (display_width, display_height))
+
+                # Flip the scaled image if necessary before rotation
+                if should_flip:
+                    scaled_image = pygame.transform.flip(scaled_image, False, True)
 
                 # Apply rounded rotation and cache
                 if rotation_key != 0:
@@ -691,11 +701,12 @@ class GameRenderer:
         direction_rad = -pygame.math.Vector2(0, -1).angle_to(pygame.math.Vector2(1, 0).rotate(es.component_for_entity(entity_id, PositionComponent).direction)) * (3.14159 / 180)
         offset_y_base = sprite_height // 2 + 12
 
-        offset_x = offset_y_base * -np.sin(direction_rad)
-        offset_y = offset_y_base * -np.cos(direction_rad)
+        # offset_x = offset_y_base * -np.sin(direction_rad)
+        # offset_y = offset_y_base * -np.cos(direction_rad)
 
         # Bar position (centered above the entity)
-        bar_x, bar_y = x - bar_width // 2 + offset_x, y - offset_y
+        # bar_x, bar_y = x - bar_width // 2 + offset_x, y - offset_y
+        bar_x, bar_y = x - bar_width // 2, y - offset_y_base
 
         # Check that maxHealth is not zero to avoid division by zero
         if health.maxHealth <= 0:
@@ -868,18 +879,20 @@ class GameRenderer:
 class GameEngine:
     """Main class managing all game logic."""
 
-    def __init__(self, window=None, bg_original=None, select_sound=None, self_play_mode=False):
+    def __init__(self, window=None, bg_original=None, select_sound=None, audio_manager=None, self_play_mode=False):
         """Initializes the game engine.
 
         Args:
             window: Existing pygame surface (optional)
             bg_original: Background image for modals (optional)
             select_sound: Selection sound for modals (optional)
+            audio_manager: AudioManager instance for sound effects (optional)
             self_play_mode: Activates AI vs AI mode (optional)
         """
         self.window = window
         self.bg_original = bg_original
         self.select_sound = select_sound
+        self.audio_manager = audio_manager
         self.running = True
         self.created_local_window = False
         self.show_debug = False
@@ -1140,6 +1153,8 @@ class GameEngine:
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Passive income to prevent stalemates when a team has zero units
         self.passive_income_processor = PassiveIncomeProcessor(gold_per_tick=1, interval=2.0)
+        # Explosion sound processor for damage sounds
+        self.explosion_sound_processor = ExplosionSoundProcessor(self.audio_manager) if self.audio_manager else None
 
         # AI - Initialize the AI processors with the grid
         self.druid_ai_processor = DruidAIProcessor(self.grid, es)
@@ -1184,6 +1199,8 @@ class GameEngine:
         es.add_processor(self.collision_processor, priority=4)
         es.add_processor(self.movement_processor, priority=5)
         es.add_processor(self.player_controls, priority=6)
+        if self.explosion_sound_processor:
+            es.add_processor(self.explosion_sound_processor, priority=9)  # Before passive income
         es.add_processor(self.passive_income_processor, priority=10)
         #es.add_processor(self.tower_processor, priority=5)
         #es.add_processor(self.lifetime_processor, priority=10)
@@ -2354,13 +2371,14 @@ class GameEngine:
         elif not hasattr(self, '_ai_stats_timer'):
             self._ai_stats_timer = 10.0
 
-def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
+def game(window=None, bg_original=None, select_sound=None, audio_manager=None, mode="player_vs_ai"):
     """Main entry point for the game (compatibility with existing API).
 
     Args:
         window: Existing pygame surface (optional)
         bg_original: Background image for modals (optional)
         select_sound: Selection sound for modals (optional)
+        audio_manager: AudioManager instance for sound effects (optional)
         mode: "player_vs_ai" or "ai_vs_ai"
     """
     try:
@@ -2389,7 +2407,7 @@ def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
             if team_chosen is not None:
                 selected_team = team_chosen
 
-        engine = GameEngine(window, bg_original, select_sound, self_play_mode=(mode == "ai_vs_ai"))
+        engine = GameEngine(window, bg_original, select_sound, audio_manager, self_play_mode=(mode == "ai_vs_ai"))
         if mode == "ai_vs_ai":
             engine.enable_self_play()
         # Apply team choice to the engine
