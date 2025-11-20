@@ -36,69 +36,28 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build with PyInstaller
+      - name: Build with PyInstaller (onedir)
         shell: bash
         run: |
           # Détection du séparateur selon l'OS
           if [ "$RUNNER_OS" = "Windows" ]; then SEP=';'; else SEP=':'; fi
-          # Build main game
-          pyinstaller --onefile main.py --name galad-islands \
-            --add-data "assets${SEP}assets" \
-            --add-data "src/models${SEP}models" \
-            --hidden-import sklearn.ensemble._forest
-          # Build config tool
-          pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
-                      --add-data "assets/locales${SEP}assets/locales" \
-                      --add-data "src${SEP}src" \
-                      --exclude-module esper \
-                      --exclude-module llvmlite \
-                      --exclude-module numba \
-                      --exclude-module numpy \
-                      --exclude-module Pillow \
-                      --exclude-module sklearn \
-                      --exclude-module joblib
-          # Build Marauder AI Cleaner
-          pyinstaller --onefile --windowed tools/maraudeur_ai_cleaner.py --name MaraudeurAiCleaner \
-                      --add-data "assets/locales${SEP}assets/locales" \
-                      --add-data "src${SEP}src" \
-                      --exclude-module esper \
-                      --exclude-module llvmlite \
-                      --exclude-module numba \
-                      --exclude-module numpy \
-                      --exclude-module Pillow \
-                      --exclude-module sklearn \
-                      --exclude-module joblib \
-                      --exclude-module pygame
+          # Use the spec to produce Onedir (folders) for each executable
+          pyinstaller build.spec
 
 
 
       - name: Archive build
         if: runner.os == 'Windows'
         run: |
-          mkdir -p galad-islands-windows
-          copy dist\galad-islands.exe galad-islands-windows\
-          copy dist\galad-config-tool.exe galad-islands-windows\
-          copy dist\MaraudeurAiCleaner.exe galad-islands-windows\
-          copy RELEASE_README.md galad-islands-windows\README.md
-          # mkdir galad-islands-windows\models
-          # Les assets et modèles sont inclus dans l'exécutable via --add-data, pas besoin de les copier
-          Compress-Archive -Path galad-islands-windows\* -DestinationPath galad-islands-windows.zip
+          # Use PowerShell script to package release and de-duplicate assets
+          .\tools\package_release.ps1 windows
         shell: pwsh
 
       - name: Archive build (Linux/Mac)  
         if: runner.os != 'Windows'
         run: |
-          mkdir -p galad-islands-${{ runner.os }}
-          cp dist/galad-islands galad-islands-${{ runner.os }}/
-          cp dist/galad-config-tool galad-islands-${{ runner.os }}/
-          cp dist/MaraudeurAiCleaner galad-islands-${{ runner.os }}/
-          cp RELEASE_README.md galad-islands-${{ runner.os }}/README.md
-          # mkdir -p galad-islands-${{ runner.os }}/models
-          # Les assets et modèles sont inclus dans l'exécutable via --add-data, pas besoin de les copier
-          chmod +x galad-islands-${{ runner.os }}/galad-islands
-          chmod +x galad-islands-${{ runner.os }}/galad-config-tool
-          chmod +x galad-islands-${{ runner.os }}/MaraudeurAiCleaner
-          zip -r galad-islands-${{ runner.os }}.zip galad-islands-${{ runner.os }}
+          # Use packaging script to create combined release folder and ZIP
+          bash tools/package_release.sh ${{ runner.os }}
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
