@@ -2,6 +2,14 @@
 
 import os
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules, collect_all, copy_metadata, collect_dynamic_libs
+import glob
+
+# Collect model files (glob) to avoid path expansion issues across different CI runners
+model_datas = []
+for f in glob.glob('src/models/*.pkl'):
+    model_datas.append((f, 'models'))
+for f in glob.glob('src/ia/models/*.pkl'):
+    model_datas.append((f, 'models'))
 
 # NOTE: Building with a single Analysis (above) may add excluded modules or
 # heavy libs to all executables. To have finer control we create one
@@ -13,7 +21,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules, coll
 analysis_game = Analysis(
     ['main.py'],
     pathex=[os.getcwd()],
-    datas=[('assets', 'assets'), ('src/models/*.pkl', 'models')],
+    datas=[('assets', 'assets')] + model_datas,
     hiddenimports=['sklearn.ensemble._forest'],
     hookspath=[],
     runtime_hooks=[],

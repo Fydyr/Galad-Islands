@@ -35,6 +35,25 @@ jobs:
           cache=$(python -m pip cache dir 2>/dev/null || python -c "import os; print(os.path.expanduser('~/.cache/pip'))")
           echo "cache=$cache" >> $GITHUB_OUTPUT
 
+      - name: Compute pip cache key (Linux/Mac)
+        id: pip-key-linux
+        if: runner.os != 'Windows'
+        run: |
+          if [ -f requirements.lock ]; then
+            if command -v sha256sum >/dev/null 2>&1; then
+              pip_key=$(sha256sum requirements.lock | cut -d ' ' -f 1)
+            else
+              pip_key=$(shasum -a 256 requirements.lock | cut -d ' ' -f 1)
+            fi
+          else
+            if command -v sha256sum >/dev/null 2>&1; then
+              pip_key=$(sha256sum requirements.txt | cut -d ' ' -f 1)
+            else
+              pip_key=$(shasum -a 256 requirements.txt | cut -d ' ' -f 1)
+            fi
+          fi
+          echo "pip_key=$pip_key" >> $GITHUB_OUTPUT
+
       - name: Determine pip cache directory (Windows)
         id: pip-cache-windows
         if: runner.os == 'Windows'
@@ -48,13 +67,56 @@ jobs:
           }
           Write-Output "cache=$cache" >> $Env:GITHUB_OUTPUT
 
-      - name: Cache pip dependencies
+      - name: Compute pip cache key (Windows)
+        id: pip-key-windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (Test-Path requirements.lock) { $hash = (Get-FileHash requirements.lock -Algorithm SHA256).Hash } else { $hash = (Get-FileHash requirements.txt -Algorithm SHA256).Hash }
+          Write-Output "pip_key=$hash" >> $Env:GITHUB_OUTPUT
+
+      - name: 'Debug: show pip cache path (Linux/Mac)'
+        if: runner.os != 'Windows'
+        run: |
+          echo "pip cache: ${{ steps.pip-cache-macos-linux.outputs.cache }}"
+          if [ -d "${{ steps.pip-cache-macos-linux.outputs.cache }}" ]; then ls -la "${{ steps.pip-cache-macos-linux.outputs.cache }}" | head -n 40; fi
+
+      - name: 'Debug: show pip cache path (Windows)'
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Output "pip cache: ${{ steps.pip-cache-windows.outputs.cache }}"
+          pwsh -c "if (Test-Path \"${{ steps.pip-cache-windows.outputs.cache }}\") { Get-ChildItem -Path \"${{ steps.pip-cache-windows.outputs.cache }}\" -Recurse | Select-Object -First 40 }"
+
+      - name: Cache pip dependencies (Linux/Mac)
+        id: cache-pip-linux
+        if: runner.os != 'Windows'
         uses: actions/cache@v4
         with:
-          path: ${{ steps.pip-cache-macos-linux.outputs.cache || steps.pip-cache-windows.outputs.cache }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          path: ${{ steps.pip-cache-macos-linux.outputs.cache }}
+          key: ${{ runner.os }}-pip-${{ steps.pip-key-linux.outputs.pip_key }}
           restore-keys: |
             ${{ runner.os }}-pip-
+
+      - name: 'Debug: show pip cache key for Linux/Mac'
+        if: runner.os != 'Windows'
+        run: |
+          echo "pip key: ${{ runner.os }}-pip-${{ steps.pip-key-linux.outputs.pip_key }}"
+
+      - name: Cache pip dependencies (Windows)
+        id: cache-pip-windows
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pip-cache-windows.outputs.cache }}
+          key: ${{ runner.os }}-pip-${{ steps.pip-key-windows.outputs.pip_key }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: 'Debug: show pip cache key for Windows'
+        if: runner.os == 'Windows'
+        run: |
+          echo "pip key: ${{ runner.os }}-pip-${{ steps.pip-key-windows.outputs.pip_key }}"
 
       - name: Ensure build directory exists (Linux/Mac)
         if: runner.os != 'Windows'
@@ -74,6 +136,22 @@ jobs:
           key: ${{ runner.os }}-pyinstaller-${{ hashFiles('build.spec', 'main.py', 'tools/galad_config.py', 'tools/maraudeur_ai_cleaner.py') }}
           restore-keys: |
             ${{ runner.os }}-pyinstaller-
+
+      - name: 'Debug: show build dir before cache'
+        run: |
+          echo "Build dir exists: $(test -d build && echo yes || echo no)"
+          ls -la build || true
+
+      - name: 'Debug: show cache hit (Linux/Mac)'
+        if: runner.os != 'Windows'
+        run: |
+          echo "Linux/Mac pip cache hit: ${{ steps.cache-pip-linux.outputs.cache-hit }}"
+
+      - name: 'Debug: show cache hit (Windows)'
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Output "Windows pip cache hit: ${{ steps.cache-pip-windows.outputs.cache-hit }}"
 
       - name: Install dependencies
         run: |
