@@ -1,0 +1,16 @@
+TRANSLATIONS = {
+    "controls.player1": "Player 1",
+    "controls.forward": "Move Forward",
+    "controls.backward": "Move Backward",
+    "controls.turn_left": "Turn Left",
+    "controls.turn_right": "Turn Right",
+    "controls.previous_unit": "Previous Unit",
+    "controls.next_unit": "Next Unit",
+    "controls.attack_mode": "Attack Mode",
+    "controls.special_ability": "Special Ability",
+    "controls.stop_ship": "Stop Ship",
+    "controls.camera": "Camera / Map",
+    "controls.move_camera": "Move Camera",
+    "controls.zoom": "Zoom In/Out",
+    "controls.escape": "Exit Map View",
+}

@@ -1,0 +1,16 @@
+TRANSLATIONS = {
+    "controls.player1": "Joueur 1",
+    "controls.forward": "Avancer",
+    "controls.backward": "Reculer",
+    "controls.turn_left": "Tourner à gauche",
+    "controls.turn_right": "Tourner à droite",
+    "controls.previous_unit": "Unité précédente",
+    "controls.next_unit": "Unité suivante",
+    "controls.attack_mode": "Mode attaque",
+    "controls.special_ability": "Capacité spéciale",
+    "controls.stop_ship": "Arrêt du vaisseau",
+    "controls.camera": "Caméra / Carte",
+    "controls.move_camera": "Déplacer la caméra",
+    "controls.zoom": "Zoom avant/arrière",
+    "controls.escape": "Quitter la vue carte",
+}

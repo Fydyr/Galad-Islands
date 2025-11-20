@@ -19,14 +19,30 @@ src/settings/localization.py    # Main manager
 └── Config integration          # Preferences persistence
 
 assets/locales/                 # Translation files
-├── french.py                   # French translations (game)
-├── english.py                  # English translations (game)
+├── en/                         # English translations (modular)
+│   ├── __init__.py            # Auto-loading of all modules
+│   ├── navigation.py           # Menus and navigation (14 keys)
+│   ├── game.py                 # Game interface and modals (37 keys)
+│   ├── options.py              # Settings and configuration (110 keys)
+│   ├── shops.py                # Shop interface (57 keys)
+│   ├── help.py                 # Tips and tooltips (49 keys)
+│   ├── actionbar.py            # Action bar interface (16 keys)
+│   ├── units.py                # Units and classes (18 keys)
+│   ├── teams.py                # Teams and bases (6 keys)
+│   ├── debug.py                # Debug menu (30 keys)
+│   ├── controls.py             # Controls and bindings (14 keys)
+│   ├── system.py               # System messages (15 keys)
+│   ├── tutorial.py             # Tutorial steps (18 keys)
+│   └── gameplay.py             # Core gameplay (7 keys)
+├── fr/                         # French translations (same structure)
+├── english.py                  # English compatibility (loads en/)
+├── french.py                   # French compatibility (loads fr/)
 ├── tools/                      # GUI tools translations
 │   ├── clean_models_gui_fr.py  # Model cleaner (FR)
 │   ├── clean_models_gui_en.py  # Model cleaner (EN)
 │   ├── galad_config_tool_fr.py # Config tool (FR)
 │   └── galad_config_tool_en.py # Config tool (EN)
-└── [new_language].py           # Future languages
+└── README.md                   # Localization workflow documentation
 ```
 
 ## Localization manager
@@ -156,52 +172,120 @@ self.title(self._t("window.title", default="Marauder Models Cleaner"))
 
 ## Translation files structure
 
-### Standard format
+### Modular organization
 
-**Example:** `assets/locales/french.py`
+The new modular structure organizes translations into logical categories, making maintenance easier and reducing file size. Each category is a separate Python module that is automatically loaded.
+
+
+**Structure:**
+
+```text
+assets/locales/[lang]/
+├── __init__.py          # Auto-loads all category modules
+├── navigation.py        # Menus, game modes, team selection
+├── game.py              # Game interface, victory/defeat, modals
+├── options.py           # All settings and configuration
+├── shops.py             # Shop interface and items
+├── help.py              # Tips, tooltips, and help text
+├── actionbar.py         # Action bar interface elements
+├── units.py             # Unit names, classes, and descriptions
+├── teams.py             # Team names and descriptions
+├── debug.py             # Debug interface elements
+├── controls.py          # Control settings and key bindings
+├── system.py            # System messages and notifications
+├── tutorial.py          # Tutorial content and guidance
+└── gameplay.py          # Core gameplay elements
+```
+
+**Benefits:**
+
+- **Easier maintenance**: Each category can be updated independently
+- **Better organization**: Related translations are grouped together
+- **Reduced file size**: Smaller files are easier to handle
+- **Automatic loading**: No manual import management required
+
+### Category format
+
+**Example:** `assets/locales/en/navigation.py`
 
 ```python
 # -*- coding: utf-8 -*-
 """
-French translations for Galad Islands
+Navigation translations for Galad Islands
 """
 
 TRANSLATIONS = {
-    # Organization by categories with prefixes
-    
-    # Main Menu
-    "menu.play": "Jouer",
-    "menu.Options": "Options",
-    "menu.quit": "Quitter",
-    
-    # Game interface
-    "game.gold": "Or : {amount}",              # With dynamic parameter
-    "game.unit_selected": "Unité sélectionnée : {name}",
-    "game.health": "Vie : {current}/{max}",
-    
-    # System messages
-    "system.loading": "Chargement...",
-    "system.error": "Erreur : {message}",
-    
-    # Keyboard shortcuts
-    "Options.binding.unit_attack": "Attack principale",
-    "Options.binding.camera_move_left": "Camera vers la gauche",
-    
-    # Tips and advice
-    "tip.0": "Utilisez les abilities special au bon moment !",
-    "tip.1": "Les mines d'or vous donnent des ressources supplémentaires.",
-    "tip.2": "Explorez la carte pour découvrir des coffres cachés.",
+    # Main menu
+    "menu.play": "Play",
+    "menu.options": "Options",
+    "menu.quit": "Quit",
+
+    # Game modes
+    "gamemode.select_mode_title": "Game Mode",
+    "gamemode.select_mode_message": "Select a game mode",
+    "gamemode.player_vs_ai": "Player vs AI",
+    "gamemode.ai_vs_ai": "AI vs AI (Spectator)",
+
+    # Team selection
+    "team_selection.title": "Choose your team",
+    "team_selection.message": "Select your starting side:",
+    "team_selection.team1": "The Dawn Fleet",
+    "team_selection.team2": "The Abyss Legion",
 }
+```
+
+### Automatic loading
+
+The `__init__.py` file in each language folder automatically discovers and loads all translation modules:
+
+```python
+# assets/locales/en/__init__.py
+import importlib
+import os
+
+TRANSLATIONS = {}
+
+# Auto-load all category modules in this directory
+current_dir = os.path.dirname(__file__)
+for filename in os.listdir(current_dir):
+    if filename.endswith('.py') and filename != '__init__.py':
+        module_name = filename[:-3]  # Remove .py extension
+        try:
+            module = importlib.import_module(f'.{module_name}', package=__name__)
+            if hasattr(module, 'TRANSLATIONS'):
+                TRANSLATIONS.update(module.TRANSLATIONS)
+        except ImportError:
+            pass  # Skip modules that can't be imported
+```
+
+### Compatibility files
+
+For backwards compatibility, the root `english.py` and `french.py` files automatically merge all categorized translations:
+
+```python
+# assets/locales/english.py
+from assets.locales.en import TRANSLATIONS as _EN_CATEGORIES
+TRANSLATIONS = {}
+TRANSLATIONS.update(_EN_CATEGORIES)
 ```
 
 ### Naming conventions
 
-| Prefix | Usage | Example |
-|---------|-------|---------|
-| `menu.` | Menus and navigation | `menu.play`, `menu.Options` |
-| `game.` | Game interface | `game.gold`, `game.unit_selected` |
-| `Options.` | Settings and configuration | `Options.volume`, `Options.language` |
-| `system.` | System messages | `system.loading`, `system.error` |
+| Category | Prefixes | Purpose |
+|----------|----------|---------|
+| `navigation.py` | `menu.`, `gamemode.`, `team_selection.` | Menus and navigation |
+| `game.py` | `game.`, `game_over.`, `game_*.` | Game interface and states |
+| `options.py` | `options.*` | All settings and configuration |
+| `shops.py` | `shop.`, `enemy_shop.` | Shop interfaces |
+| `help.py` | `tip.`, `tooltip.` | Help and guidance |
+| `actionbar.py` | `actionbar.` | Action bar elements |
+| `units.py` | `units.`, `class.` | Units and unit classes |
+| `teams.py` | `base.`, `camp.` | Teams and bases |
+| `debug.py` | `debug.*` | Debug and development |
+| `controls.py` | `controls.*` | Controls and bindings |
+| `system.py` | `system.`, `update.`, `feedback.` | System messages |
+| `tutorial.py` | `tutorial.*` | Tutorial content |
+| `gameplay.py` | `game.*` (core) | Core gameplay mechanics |
 | `tip.` | Tips and advice | `tip.0`, `tip.1`, `tip.2` |
 | `unit.` | Unit names and descriptions | `unit.zasper`, `unit.druid` |
 | `error.` | Error messages | `error.save_failed`, `error.connection` |
@@ -291,53 +375,112 @@ for i, tip in enumerate(all_tips):
 
 ## Adding a new language
 
-### Step 1: Create the translation file
+### Step 1: Create the modular structure
 
-Create a new file in `assets/locales/`:
+Create a new language directory and copy the structure from an existing language:
 
-**Example:** `assets/locales/spanish.py`
+```bash
+# Create new language directory
+mkdir -p assets/locales/es
+
+# Copy the modular structure from English
+cp -r assets/locales/en/* assets/locales/es/
+
+# Rename __init__.py to avoid conflicts during copy
+mv assets/locales/es/__init__.py assets/locales/es/__init__.py.backup
+```
+
+### Step 2: Create category files
+
+Translate each category file. Start with the most important ones:
+
+**Example:** `assets/locales/es/navigation.py`
 
 ```python
 # -*- coding: utf-8 -*-
 """
-Spanish translations for Galad Islands
+Navigation translations for Galad Islands
 """
 
 TRANSLATIONS = {
-    # Main Menu
+    # Main menu
     "menu.play": "Jugar",
-    "menu.Options": "Opciones", 
-    "menu.credits": "Créditos",
-    "menu.help": "Ayuda",
-    "menu.scenario": "Escenario",
+    "menu.options": "Opciones",
     "menu.quit": "Salir",
-    
-    # Game interface
-    "game.gold": "Oro: {amount}",
-    "game.unit_selected": "Unidad seleccionada: {name}",
-    "game.health": "Vida: {current}/{max}",
-    
-    # System messages
-    "system.loading": "Cargando...",
-    "system.error": "Error: {message}",
-    
-    # Tips
-    "tip.0": "¡Usa las habilidades especiales en el momento adecuado!",
-    "tip.1": "Las minas de oro te dan recursos adicionales.",
-    
-    # All other keys must be translated...
+
+    # Game modes
+    "gamemode.select_mode_title": "Modo de Juego",
+    "gamemode.select_mode_message": "Selecciona un modo de juego",
+    "gamemode.player_vs_ai": "Jugador vs IA",
+    "gamemode.ai_vs_ai": "IA vs IA (Espectador)",
+
+    # Team selection
+    "team_selection.title": "Elige tu equipo",
+    "team_selection.message": "Selecciona tu bando inicial:",
+    "team_selection.team1": "La Flota del Alba",
+    "team_selection.team2": "La Legión del Abismo",
 }
 ```
 
-### Step 2: Update the Manager
+### Step 3: Create the auto-loading `__init__.py`
 
-Modify `src/settings/localization.py`:
+Create the `__init__.py` file for automatic module loading:
+
+**`assets/locales/es/__init__.py`**
+
+```python
+# -*- coding: utf-8 -*-
+"""
+Spanish translations for Galad Islands - Auto-loading module
+"""
+
+import importlib
+import os
+
+TRANSLATIONS = {}
+
+# Auto-load all category modules in this directory
+current_dir = os.path.dirname(__file__)
+for filename in os.listdir(current_dir):
+    if filename.endswith('.py') and filename not in ['__init__.py', '__pycache__']:
+        module_name = filename[:-3]  # Remove .py extension
+        try:
+            module = importlib.import_module(f'.{module_name}', package=__name__)
+            if hasattr(module, 'TRANSLATIONS'):
+                TRANSLATIONS.update(module.TRANSLATIONS)
+        except ImportError:
+            pass  # Skip modules that can't be imported
+```
+
+### Step 4: Create compatibility file
+
+Create the root compatibility file:
+
+**`assets/locales/spanish.py`**
+
+```python
+# -*- coding: utf-8 -*-
+"""
+Spanish translations for Galad Islands (compatibility)
+"""
+
+# Load modular translations
+from assets.locales.es import TRANSLATIONS as _ES_CATEGORIES
+
+# Main translations dict for compatibility
+TRANSLATIONS = {}
+TRANSLATIONS.update(_ES_CATEGORIES)
+```
+
+### Step 5: Update the Manager
+
+Modify `src/settings/localization.py` to support the new language:
 
 ```python
 def _load_translations(self):
     """Load translations for the current language"""
     try:
-        # Add the new language to the mapping
+        # Language mapping now uses modular structure
         language_modules = {
             "fr": "assets.locales.french", 
             "en": "assets.locales.english",
@@ -357,7 +500,7 @@ def get_available_languages(self):
     }
 ```
 
-### Step 3: Validation and testing
+### Step 6: Validation and testing
 
 ```python
 # Translation validation script
@@ -384,6 +527,13 @@ def validate_translations():
     print(f"English: {len(en_keys)} keys")
     print(f"Spanish: {len(es_keys)} keys")
 ```
+
+**Benefits of the modular approach:**
+
+- **Faster setup**: Copy existing structure instead of creating one monolithic file
+- **Easier maintenance**: Translate one category at a time
+- **Better organization**: Related translations stay together
+- **Automatic loading**: No need to manually update import lists
 
 ## Best practices
 

@@ -499,3 +499,12 @@ TRANSLATIONS = {
     "tutorial.gold.title": "Earning Gold",
     "tutorial.gold.message": "Gold is crucial to recruit units and build defenses. Earn it by destroying enemies and collecting flying chests or island resources.",
 }
+
+# Merge new categorized translations if present (keeps backwards compatibility)
+try:
+  from assets.locales.en import TRANSLATIONS as _EN_CATEGORIES
+  if isinstance(_EN_CATEGORIES, dict):
+    TRANSLATIONS.update(_EN_CATEGORIES)
+except Exception:
+  # best-effort: keep existing translations working even if new modules are not available
+  pass
