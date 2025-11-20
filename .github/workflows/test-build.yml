@@ -86,7 +86,10 @@ jobs:
         shell: pwsh
         run: |
           Write-Output "pip cache: ${{ steps.pip-cache-windows.outputs.cache }}"
-          pwsh -c "if (Test-Path \"${{ steps.pip-cache-windows.outputs.cache }}\") { Get-ChildItem -Path \"${{ steps.pip-cache-windows.outputs.cache }}\" -Recurse | Select-Object -First 40 }"
+          # Run Test-Path directly in PowerShell using single-quoted literal to avoid backslash escaping
+          if (Test-Path -LiteralPath '${{ steps.pip-cache-windows.outputs.cache }}') {
+            Get-ChildItem -Path '${{ steps.pip-cache-windows.outputs.cache }}' -Recurse | Select-Object -First 40
+          }
 
       - name: Cache pip dependencies (Linux/Mac)
         id: cache-pip-linux
