@@ -28,13 +28,89 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Cache pip dependencies
+      - name: Determine pip cache directory (Linux/Mac)
+        id: pip-cache-macos-linux
+        if: runner.os != 'Windows'
+        run: |
+          cache=$(python -m pip cache dir 2>/dev/null || python -c "import os; print(os.path.expanduser('~/.cache/pip'))")
+          echo "cache=$cache" >> $GITHUB_OUTPUT
+
+      - name: Compute pip cache key (Linux/Mac)
+        id: pip-key-linux
+        if: runner.os != 'Windows'
+        run: |
+          if [ -f requirements.lock ]; then
+            if command -v sha256sum >/dev/null 2>&1; then
+              pip_key=$(sha256sum requirements.lock | cut -d ' ' -f 1)
+            else
+              pip_key=$(shasum -a 256 requirements.lock | cut -d ' ' -f 1)
+            fi
+          else
+            if command -v sha256sum >/dev/null 2>&1; then
+              pip_key=$(sha256sum requirements.txt | cut -d ' ' -f 1)
+            else
+              pip_key=$(shasum -a 256 requirements.txt | cut -d ' ' -f 1)
+            fi
+          fi
+          echo "pip_key=$pip_key" >> $GITHUB_OUTPUT
+
+      - name: Determine pip cache directory (Windows)
+        id: pip-cache-windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          try {
+            $cache = (python -m pip cache dir 2>$null).Trim()
+            if (-not $cache) { throw 'NoOutput' }
+          } catch {
+            $cache = python -c "import os; print(os.path.expanduser('~/.cache/pip'))"
+          }
+          Write-Output "cache=$cache" >> $Env:GITHUB_OUTPUT
+
+      - name: Compute pip cache key (Windows)
+        id: pip-key-windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (Test-Path requirements.lock) { $hash = (Get-FileHash requirements.lock -Algorithm SHA256).Hash } else { $hash = (Get-FileHash requirements.txt -Algorithm SHA256).Hash }
+          Write-Output "pip_key=$hash" >> $Env:GITHUB_OUTPUT
+
+      # Debug steps removed: they caused CI crashes when run on Windows agent.
+
+      - name: Cache pip dependencies (Linux/Mac)
+        id: cache-pip-linux
+        if: runner.os != 'Windows'
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          path: ${{ steps.pip-cache-macos-linux.outputs.cache }}
+          key: ${{ runner.os }}-pip-${{ steps.pip-key-linux.outputs.pip_key }}
           restore-keys: |
             ${{ runner.os }}-pip-
+
+      # Debug steps removed: show pip cache key (Linux/Mac)
+
+      - name: Cache pip dependencies (Windows)
+        id: cache-pip-windows
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pip-cache-windows.outputs.cache }}
+          key: ${{ runner.os }}-pip-${{ steps.pip-key-windows.outputs.pip_key }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Debug steps removed: show pip cache key (Windows)
+
+      - name: Ensure build directory exists (Linux/Mac)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p build
+
+      - name: Ensure build directory exists (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path build -Force
 
       - name: Cache PyInstaller build
         uses: actions/cache@v4
@@ -43,6 +119,12 @@ jobs:
           key: ${{ runner.os }}-pyinstaller-${{ hashFiles('build.spec', 'main.py', 'tools/galad_config.py', 'tools/maraudeur_ai_cleaner.py') }}
           restore-keys: |
             ${{ runner.os }}-pyinstaller-
+
+      # Debug steps removed: build dir check (was for debugging only)
+
+      # Debug steps removed: show cache hit (Linux/Mac)
+
+      # Debug steps removed: show cache hit (Windows)
 
       - name: Install dependencies
         run: |
@@ -73,5 +155,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: galad-islands-${{ runner.os }}-test-${{ github.event.inputs.version || 'latest' }}
-          path: galad-islands-*.zip
+          path: galad-islands-${{ runner.os }}/
           retention-days: 7  # Garde les artifacts 7 jours pour les tests

@@ -25,45 +25,105 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Determine pip cache directory (Linux/Mac)
+        id: pip-cache-macos-linux
+        if: runner.os != 'Windows'
+        run: |
+          cache=$(python -m pip cache dir 2>/dev/null || python -c "import os; print(os.path.expanduser('~/.cache/pip'))")
+          echo "cache=$cache" >> $GITHUB_OUTPUT
+
+      - name: Compute pip cache key (Linux/Mac)
+        id: pip-key-linux
+        if: runner.os != 'Windows'
+        run: |
+          if [ -f requirements.lock ]; then
+            if command -v sha256sum >/dev/null 2>&1; then
+              pip_key=$(sha256sum requirements.lock | cut -d ' ' -f 1)
+            else
+              pip_key=$(shasum -a 256 requirements.lock | cut -d ' ' -f 1)
+            fi
+          else
+            if command -v sha256sum >/dev/null 2>&1; then
+              pip_key=$(sha256sum requirements.txt | cut -d ' ' -f 1)
+            else
+              pip_key=$(shasum -a 256 requirements.txt | cut -d ' ' -f 1)
+            fi
+          fi
+          echo "pip_key=$pip_key" >> $GITHUB_OUTPUT
+
+      - name: Determine pip cache directory (Windows)
+        id: pip-cache-windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          try {
+            $cache = (python -m pip cache dir 2>$null).Trim()
+            if (-not $cache) { throw 'NoOutput' }
+          } catch {
+            $cache = python -c "import os; print(os.path.expanduser('~/.cache/pip'))"
+          }
+          Write-Output "cache=$cache" >> $Env:GITHUB_OUTPUT
+
+      - name: Compute pip cache key (Windows)
+        id: pip-key-windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (Test-Path requirements.lock) { $hash = (Get-FileHash requirements.lock -Algorithm SHA256).Hash } else { $hash = (Get-FileHash requirements.txt -Algorithm SHA256).Hash }
+          Write-Output "pip_key=$hash" >> $Env:GITHUB_OUTPUT
+
+      - name: Cache pip dependencies (Linux/Mac)
+        id: cache-pip-linux
+        if: runner.os != 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pip-cache-macos-linux.outputs.cache }}
+          key: ${{ runner.os }}-pip-${{ steps.pip-key-linux.outputs.pip_key }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Cache pip dependencies (Windows)
+        id: cache-pip-windows
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pip-cache-windows.outputs.cache }}
+          key: ${{ runner.os }}-pip-${{ steps.pip-key-windows.outputs.pip_key }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Ensure build directory exists (Linux/Mac)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p build
+
+      - name: Ensure build directory exists (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path build -Force
+
+      - name: Cache PyInstaller build
+        uses: actions/cache@v4
+        with:
+          path: build/
+          key: ${{ runner.os }}-pyinstaller-${{ hashFiles('build.spec', 'main.py', 'tools/galad_config.py', 'tools/maraudeur_ai_cleaner.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pyinstaller-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build with PyInstaller
+      - name: Build with PyInstaller (onedir)
         shell: bash
         run: |
           # Détection du séparateur selon l'OS
           if [ "$RUNNER_OS" = "Windows" ]; then SEP=';'; else SEP=':'; fi
-          # Build main game
-          pyinstaller --onefile main.py --name galad-islands \
-            --add-data "assets${SEP}assets" \
-            --add-data "src/models${SEP}models" \
-            --hidden-import sklearn.ensemble._forest
-          # Build config tool
-          pyinstaller --onefile --windowed tools/galad_config.py --name galad-config-tool \
-                      --add-data "assets/locales${SEP}assets/locales" \
-                      --add-data "src${SEP}src" \
-                      --exclude-module esper \
-                      --exclude-module llvmlite \
-                      --exclude-module numba \
-                      --exclude-module numpy \
-                      --exclude-module Pillow \
-                      --exclude-module sklearn \
-                      --exclude-module joblib
-          # Build Marauder AI Cleaner
-          pyinstaller --onefile --windowed tools/maraudeur_ai_cleaner.py --name MaraudeurAiCleaner \
-                      --add-data "assets/locales${SEP}assets/locales" \
-                      --add-data "src${SEP}src" \
-                      --exclude-module esper \
-                      --exclude-module llvmlite \
-                      --exclude-module numba \
-                      --exclude-module numpy \
-                      --exclude-module Pillow \
-                      --exclude-module sklearn \
-                      --exclude-module joblib \
-                      --exclude-module pygame
+          # Use the spec to produce Onedir (folders) for each executable
+          pyinstaller build.spec
 
       - name: Detect if tag commit is in 'unstable' branch
         shell: bash
@@ -80,30 +140,15 @@ jobs:
       - name: Archive build
         if: runner.os == 'Windows'
         run: |
-          mkdir -p galad-islands-windows
-          copy dist\galad-islands.exe galad-islands-windows\
-          copy dist\galad-config-tool.exe galad-islands-windows\
-          copy dist\MaraudeurAiCleaner.exe galad-islands-windows\
-          copy RELEASE_README.md galad-islands-windows\README.md
-          # Les assets et modèles sont inclus dans l'exécutable via --add-data, pas besoin de les copier
-          Compress-Archive -Path galad-islands-windows\* -DestinationPath galad-islands-windows.zip
+          # Use PowerShell script to package release and de-duplicate assets
+          .\tools\package_release.ps1 windows
         shell: pwsh
 
       - name: Archive build (Linux/Mac)
         if: runner.os != 'Windows'
         run: |
-          mkdir -p galad-islands-${{ runner.os }}
-          cp dist/galad-islands galad-islands-${{ runner.os }}/
-          cp dist/galad-config-tool galad-islands-${{ runner.os }}/
-          cp dist/MaraudeurAiCleaner galad-islands-${{ runner.os }}/
-          cp RELEASE_README.md galad-islands-${{ runner.os }}/README.md
-          # mkdir -p galad-islands-${{ runner.os }}/models
-          # Les assets et modèles sont inclus dans l'exécutable via --add-data, pas besoin de les copier
-          # cp src/models/base_ai_unified_final.pkl galad-islands-${{ runner.os }}/models/
-          chmod +x galad-islands-${{ runner.os }}/galad-islands
-          chmod +x galad-islands-${{ runner.os }}/galad-config-tool
-          chmod +x galad-islands-${{ runner.os }}/MaraudeurAiCleaner
-          zip -r galad-islands-${{ runner.os }}.zip galad-islands-${{ runner.os }}
+          # Use packaging script to create combined release folder and ZIP
+          bash tools/package_release.sh ${{ runner.os }}
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
