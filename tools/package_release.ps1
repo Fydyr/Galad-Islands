@@ -1,30 +1,57 @@
-param([string]$platform = 'windows')
+# tools/package_release.ps1
+param(
+    [string]$OS = "windows"
+)
 
-$OutDir = "galad-islands-$platform"
-New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+$version = "0.0.1-test"  # Ou récupérer depuis les inputs du workflow si nécessaire
+$packageName = "galad-islands-$OS"
 
-# Copy one-dir outputs
-Copy-Item -Path dist\galad-islands -Destination "$OutDir\galad-islands" -Recurse -Force
-Copy-Item -Path dist\galad-config-tool -Destination "$OutDir\galad-config-tool" -Recurse -Force
-Copy-Item -Path dist\MaraudeurAiCleaner -Destination "$OutDir\MaraudeurAiCleaner" -Recurse -Force
+# Créer le dossier de package
+New-Item -ItemType Directory -Path $packageName -Force
 
-# Dedup assets: move main assets to root
-if (Test-Path "$OutDir\galad-islands\assets") {
-    Move-Item -Path "$OutDir\galad-islands\assets" -Destination "$OutDir\assets"
+# Copier les dossiers complets d'abord
+Copy-Item "dist/galad-islands" "$packageName/galad-islands" -Recurse -Force
+Copy-Item "dist/galad-config-tool" "$packageName/galad-config-tool" -Recurse -Force
+Copy-Item "dist/MaraudeurAiCleaner" "$packageName/MaraudeurAiCleaner" -Recurse -Force
+
+# Dédupliquer assets et models
+if (Test-Path "$packageName/galad-islands/assets") {
+    Move-Item "$packageName/galad-islands/assets" "$packageName/assets" -Force
 }
-# Remove other assets
-Remove-Item -Path "$OutDir\galad-config-tool\assets" -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item -Path "$OutDir\MaraudeurAiCleaner\assets" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$packageName/galad-config-tool/assets" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$packageName/MaraudeurAiCleaner/assets" -Recurse -Force -ErrorAction SilentlyContinue
 
-# Move models
-if (Test-Path "$OutDir\galad-islands\models") {
-    Move-Item -Path "$OutDir\galad-islands\models" -Destination "$OutDir\models"
+if (Test-Path "$packageName/galad-islands/models") {
+    Move-Item "$packageName/galad-islands/models" "$packageName/models" -Force
 }
+Remove-Item "$packageName/galad-config-tool/models" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$packageName/MaraudeurAiCleaner/models" -Recurse -Force -ErrorAction SilentlyContinue
 
-# Add README
-Copy-Item -Path RELEASE_README.md -Destination "$OutDir\README.md"
+# Unifier les _internal : créer un dossier commun et copier toutes les bibliothèques
+New-Item -ItemType Directory -Path "$packageName/_internal" -Force
 
-# Zip
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-[System.IO.Compression.ZipFile]::CreateFromDirectory($OutDir, "$OutDir.zip")
-Write-Output "Packaged $OutDir.zip"
+# Copier depuis chaque _internal individuel (sans duplication grâce à Copy-Item -Force)
+Get-ChildItem "dist/galad-islands/_internal/*" | Copy-Item -Destination "$packageName/_internal/" -Recurse -Force
+Get-ChildItem "dist/galad-config-tool/_internal/*" | Copy-Item -Destination "$packageName/_internal/" -Recurse -Force
+Get-ChildItem "dist/MaraudeurAiCleaner/_internal/*" | Copy-Item -Destination "$packageName/_internal/" -Recurse -Force
+
+# Déplacer les exécutables à la racine
+Move-Item "$packageName/galad-islands/galad-islands.exe" "$packageName/galad-islands.exe" -Force
+Move-Item "$packageName/galad-config-tool/galad-config-tool.exe" "$packageName/galad-config-tool.exe" -Force
+Move-Item "$packageName/MaraudeurAiCleaner/MaraudeurAiCleaner.exe" "$packageName/MaraudeurAiCleaner.exe" -Force
+
+# Supprimer les _internal individuels et les dossiers vides
+Remove-Item "$packageName/galad-islands/_internal" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$packageName/galad-config-tool/_internal" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$packageName/MaraudeurAiCleaner/_internal" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$packageName/galad-islands" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$packageName/galad-config-tool" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$packageName/MaraudeurAiCleaner" -Recurse -Force -ErrorAction SilentlyContinue
+
+# Copier le README
+Copy-Item "RELEASE_README.md" "$packageName/README.md" -Force
+
+# Créer le ZIP
+Compress-Archive -Path $packageName -DestinationPath "$packageName.zip"
+
+Write-Host "Package créé : $packageName.zip"
