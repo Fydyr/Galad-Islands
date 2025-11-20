@@ -29,8 +29,41 @@ if [ -d "${OUT_DIR}/galad-islands/models" ]; then
   mv "${OUT_DIR}/galad-islands/models" "${OUT_DIR}/models"
 fi
 
-# Clean up redundant empty directories
+# Remove models from other folders to avoid duplication
+rm -rf "${OUT_DIR}/galad-config-tool/models" || true
+rm -rf "${OUT_DIR}/MaraudeurAiCleaner/models" || true
+
+# Unify _internal folders: create a common _internal and deduplicate libraries
+mkdir -p "${OUT_DIR}/_internal"
+
+# Copy all libraries from each _internal to the common one (cp -n to avoid overwriting)
+if [ -d "${OUT_DIR}/galad-islands/_internal" ]; then
+  cp -rn "${OUT_DIR}/galad-islands/_internal"/* "${OUT_DIR}/_internal/" 2>/dev/null || true
+fi
+if [ -d "${OUT_DIR}/galad-config-tool/_internal" ]; then
+  cp -rn "${OUT_DIR}/galad-config-tool/_internal"/* "${OUT_DIR}/_internal/" 2>/dev/null || true
+fi
+if [ -d "${OUT_DIR}/MaraudeurAiCleaner/_internal" ]; then
+  cp -rn "${OUT_DIR}/MaraudeurAiCleaner/_internal"/* "${OUT_DIR}/_internal/" 2>/dev/null || true
+fi
+
+# Move executables to root level (temporarily with different names to avoid conflicts)
+mv "${OUT_DIR}/galad-islands/galad-islands" "${OUT_DIR}/galad-islands.exe"
+mv "${OUT_DIR}/galad-config-tool/galad-config-tool" "${OUT_DIR}/galad-config-tool.exe"
+mv "${OUT_DIR}/MaraudeurAiCleaner/MaraudeurAiCleaner" "${OUT_DIR}/MaraudeurAiCleaner.exe"
+
+# Remove the individual _internal folders and empty directories
+rm -rf "${OUT_DIR}/galad-islands/_internal"
+rm -rf "${OUT_DIR}/galad-config-tool/_internal"
+rm -rf "${OUT_DIR}/MaraudeurAiCleaner/_internal"
 rmdir "${OUT_DIR}/galad-islands" 2>/dev/null || true
+rmdir "${OUT_DIR}/galad-config-tool" 2>/dev/null || true
+rmdir "${OUT_DIR}/MaraudeurAiCleaner" 2>/dev/null || true
+
+# Rename executables back to their final names
+mv "${OUT_DIR}/galad-islands.exe" "${OUT_DIR}/galad-islands"
+mv "${OUT_DIR}/galad-config-tool.exe" "${OUT_DIR}/galad-config-tool"
+mv "${OUT_DIR}/MaraudeurAiCleaner.exe" "${OUT_DIR}/MaraudeurAiCleaner"
 
 # Add README
 cp RELEASE_README.md "${OUT_DIR}/README.md"

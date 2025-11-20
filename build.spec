@@ -65,6 +65,8 @@ pyz_maraudeur = PYZ(analysis_maraudeur.pure, analysis_maraudeur.zipped_data, cip
 exe_game = EXE(
     pyz_game,
     analysis_game.scripts,
+    [],
+    exclude_binaries=True,
     name='galad-islands',
     console=False,  # No console for the game
     icon='assets/logo.ico'
@@ -73,6 +75,8 @@ exe_game = EXE(
 exe_config_tool = EXE(
     pyz_config,
     analysis_config.scripts,
+    [],
+    exclude_binaries=True,
     name='galad-config-tool',
     console=False,  # No console for the config tool
     icon='assets/logo.ico'
@@ -81,6 +85,8 @@ exe_config_tool = EXE(
 exe_maraudeur = EXE(
     pyz_maraudeur,
     analysis_maraudeur.scripts,
+    [],
+    exclude_binaries=True,
     name='MaraudeurAiCleaner',
     console=False,
     icon='assets/logo.ico'
