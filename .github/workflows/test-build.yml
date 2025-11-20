@@ -1,0 +1,77 @@
+name: Test Build (Onedir)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Numéro de version pour le test (ex: 0.0.1-test)'
+        required: false
+        default: '0.0.1-test'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}  # Utilise la branche actuelle où le workflow est déclenché
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Cache PyInstaller build
+        uses: actions/cache@v4
+        with:
+          path: build/
+          key: ${{ runner.os }}-pyinstaller-${{ hashFiles('build.spec', 'main.py', 'tools/galad_config.py', 'tools/maraudeur_ai_cleaner.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pyinstaller-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build with PyInstaller (onedir)
+        shell: bash
+        run: |
+          # Use the spec to produce Onedir (folders) for each executable
+          pyinstaller build.spec
+
+      - name: Archive build
+        if: runner.os == 'Windows'
+        run: |
+          # Use PowerShell script to package release and de-duplicate assets
+          .\tools\package_release.ps1 windows
+        shell: pwsh
+
+      - name: Archive build (Linux/Mac)  
+        if: runner.os != 'Windows'
+        run: |
+          # Use packaging script to create combined release folder and ZIP
+          bash tools/package_release.sh ${{ runner.os }}
+
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: galad-islands-${{ runner.os }}-test-${{ github.event.inputs.version || 'latest' }}
+          path: galad-islands-*.zip
+          retention-days: 7  # Garde les artifacts 7 jours pour les tests
