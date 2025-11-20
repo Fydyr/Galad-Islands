@@ -37,8 +37,13 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $cache = python -c "import sys,subprocess,os;try:out=subprocess.check_output([sys.executable,'-m','pip','cache','dir'], stderr=subprocess.DEVNULL);print(out.decode().strip());except Exception:print(os.path.expanduser('~/.cache/pip'))"
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "cache=$cache"
+          try {
+            $cache = (python -m pip cache dir 2>$null).Trim()
+            if (-not $cache) { throw 'NoOutput' }
+          } catch {
+            $cache = python -c "import os; print(os.path.expanduser('~/.cache/pip'))"
+          }
+          Write-Output "cache=$cache" >> $Env:GITHUB_OUTPUT
 
       - name: Cache pip dependencies
         uses: actions/cache@v4
