@@ -87,10 +87,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: 'Debug: show pip cache key for Linux/Mac'
-        if: runner.os != 'Windows'
-        run: |
-          echo "pip key: ${{ runner.os }}-pip-${{ steps.pip-key-linux.outputs.pip_key }}"
+      # Debug steps removed: show pip cache key for Linux/Mac
 
       - name: Cache pip dependencies (Windows)
         id: cache-pip-windows
@@ -102,10 +99,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: 'Debug: show pip cache key for Windows'
-        if: runner.os == 'Windows'
-        run: |
-          echo "pip key: ${{ runner.os }}-pip-${{ steps.pip-key-windows.outputs.pip_key }}"
+      # Debug steps removed: show pip cache key for Windows
 
       - name: Ensure build directory exists (Linux/Mac)
         if: runner.os != 'Windows'

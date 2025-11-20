@@ -75,21 +75,7 @@ jobs:
           if (Test-Path requirements.lock) { $hash = (Get-FileHash requirements.lock -Algorithm SHA256).Hash } else { $hash = (Get-FileHash requirements.txt -Algorithm SHA256).Hash }
           Write-Output "pip_key=$hash" >> $Env:GITHUB_OUTPUT
 
-      - name: 'Debug: show pip cache path (Linux/Mac)'
-        if: runner.os != 'Windows'
-        run: |
-          echo "pip cache: ${{ steps.pip-cache-macos-linux.outputs.cache }}"
-          if [ -d "${{ steps.pip-cache-macos-linux.outputs.cache }}" ]; then ls -la "${{ steps.pip-cache-macos-linux.outputs.cache }}" | head -n 40; fi
-
-      - name: 'Debug: show pip cache path (Windows)'
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Write-Output "pip cache: ${{ steps.pip-cache-windows.outputs.cache }}"
-          # Run Test-Path directly in PowerShell using single-quoted literal to avoid backslash escaping
-          if (Test-Path -LiteralPath '${{ steps.pip-cache-windows.outputs.cache }}') {
-            Get-ChildItem -Path '${{ steps.pip-cache-windows.outputs.cache }}' -Recurse | Select-Object -First 40
-          }
+      # Debug steps removed: they caused CI crashes when run on Windows agent.
 
       - name: Cache pip dependencies (Linux/Mac)
         id: cache-pip-linux
@@ -101,10 +87,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: 'Debug: show pip cache key for Linux/Mac'
-        if: runner.os != 'Windows'
-        run: |
-          echo "pip key: ${{ runner.os }}-pip-${{ steps.pip-key-linux.outputs.pip_key }}"
+      # Debug steps removed: show pip cache key (Linux/Mac)
 
       - name: Cache pip dependencies (Windows)
         id: cache-pip-windows
@@ -116,10 +99,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: 'Debug: show pip cache key for Windows'
-        if: runner.os == 'Windows'
-        run: |
-          echo "pip key: ${{ runner.os }}-pip-${{ steps.pip-key-windows.outputs.pip_key }}"
+      # Debug steps removed: show pip cache key (Windows)
 
       - name: Ensure build directory exists (Linux/Mac)
         if: runner.os != 'Windows'
@@ -140,21 +120,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pyinstaller-
 
-      - name: 'Debug: show build dir before cache'
-        run: |
-          echo "Build dir exists: $(test -d build && echo yes || echo no)"
-          ls -la build || true
+      # Debug steps removed: build dir check (was for debugging only)
 
-      - name: 'Debug: show cache hit (Linux/Mac)'
-        if: runner.os != 'Windows'
-        run: |
-          echo "Linux/Mac pip cache hit: ${{ steps.cache-pip-linux.outputs.cache-hit }}"
+      # Debug steps removed: show cache hit (Linux/Mac)
 
-      - name: 'Debug: show cache hit (Windows)'
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Write-Output "Windows pip cache hit: ${{ steps.cache-pip-windows.outputs.cache-hit }}"
+      # Debug steps removed: show cache hit (Windows)
 
       - name: Install dependencies
         run: |
