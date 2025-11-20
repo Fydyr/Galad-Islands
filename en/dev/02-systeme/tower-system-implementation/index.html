@@ -1,0 +1,3989 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation complète de Galad Islands - Guide utilisateur et documentation technique">
+      
+      
+        <meta name="author" content="Équipe Galad Islands">
+      
+      
+        <link rel="canonical" href="https://fydyr.github.io/Galad-Islands/en/dev/02-systeme/tower-system-implementation/">
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../update-system/">
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.21">
+    
+    
+      
+        <title>Tower System - Galad Islands - Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.2a3383ac.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tower-system-implementation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../" title="Galad Islands - Documentation" class="md-header__button md-logo" aria-label="Galad Islands - Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Galad Islands - Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tower System
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Passer au mode sombre / Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Passer au mode sombre / Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Passer au mode clair / Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Passer au mode clair / Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../../dev/02-systeme/tower-system-implementation/" hreflang="fr" class="md-select__link">
+              Français
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Fydyr/Galad-Islands" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Fydyr/Galad-Islands
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../user/basics/introduction/" class="md-tabs__link">
+          
+  
+  
+  📖 User Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../01-introduction/overview/" class="md-tabs__link">
+          
+  
+  
+  🛠️ Technical Documentation
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../support/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  💬 Support and Contact
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../" title="Galad Islands - Documentation" class="md-nav__button md-logo" aria-label="Galad Islands - Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Galad Islands - Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Fydyr/Galad-Islands" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Fydyr/Galad-Islands
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    📖 User Documentation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            📖 User Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/basics/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Introduction & Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/basics/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Setup & Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/gameplay/controls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Controls & Interfaces
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/gameplay/gameplay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Gameplay & Progression
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/units/units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Sprites Description & Tips
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Additional Resources
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            Additional Resources
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/tools/galad-config-tool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Config Tool
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/basics/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/units/units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Sprites Description & Tips
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/economy/buildings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Buildings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/economy/shop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Shop
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/gameplay/action-bar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Action Bar
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/basics/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Game Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/help/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/help/credits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Credits
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    🛠️ Technical Documentation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            🛠️ Technical Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    1. Introduction
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            1. Introduction
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-introduction/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    2. System Description
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            2. System Description
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ECS Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Tower System
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tower System
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of Contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      System Architecture
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Components
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-towercomponent-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. TowerComponent (Base)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-defensetowercomponent" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. DefenseTowerComponent
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-healtowercomponent" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. HealTowerComponent
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#systems-processors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Systems (Processors)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Systems (Processors)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#towerprocessor" class="md-nav__link">
+    <span class="md-ellipsis">
+      TowerProcessor
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TowerProcessor">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#main-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      Main Method
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-into-the-game-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration into the Game Loop
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#factory" class="md-nav__link">
+    <span class="md-ellipsis">
+      Factory
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Factory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#buildingfactory" class="md-nav__link">
+    <span class="md-ellipsis">
+      buildingFactory
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="buildingFactory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create_defense_tower" class="md-nav__link">
+    <span class="md-ellipsis">
+      create_defense_tower
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create_heal_tower" class="md-nav__link">
+    <span class="md-ellipsis">
+      create_heal_tower
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#user-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      User Interface
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="User Interface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#actionbar" class="md-nav__link">
+    <span class="md-ellipsis">
+      ActionBar
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ActionBar">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#construction-buttons" class="md-nav__link">
+    <span class="md-ellipsis">
+      Construction Buttons
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#construction-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      Construction Logic
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#button-activation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Button Activation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sprites-and-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprites and Assets
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sprites and Assets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      File Structure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sprite-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite Configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#developer-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Developer Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#translations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Translations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fixes-made" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixes Made
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fixes Made">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-import-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Import Organization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-sprite-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Sprite Paths
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-tower-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Tower Names
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-debug-button-visibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Debug Button Visibility
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-towerprocessor-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. TowerProcessor Integration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-adding-towercomponent-to-towers" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Adding TowerComponent to Towers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-placement-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Placement Checks
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Data Flow
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests-and-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tests and Validation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tests and Validation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#functionality-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      Functionality Checklist
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test Commands
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#possible-future-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Possible Future Improvements
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Possible Future Improvements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#short-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      Short Term
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#medium-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      Medium Term
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#long-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      Long Term
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dependencies
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dependencies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#required-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Required Components
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      Required Systems
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#modified-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Modified Files
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authors-and-contributions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authors and Contributions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      License
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Update System
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_4" id="__nav_3_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    API
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/game-engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Game Engine
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/ui-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    UI System
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/unit-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Unit System
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_5" id="__nav_3_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Modules
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            Modules
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Components
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/processors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Processors
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/managers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Managers
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/special-capacity-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Special Abilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/sprite-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Sprite Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/vision-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Vision System
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/ai-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AI System
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/ai-processor-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    AI Processor Manager
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/benchmark-analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Benchmark Analysis Tool
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rendering_optimizations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Rendering Optimizations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    3. Installation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            3. Installation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-installation/requirements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Hardware Requirements
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    4. Configuration
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            4. Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-configuration/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Configuration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-configuration/galad-config-tool-technical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Galad Config Tool
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-configuration/debug-mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Debug Mode
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-configuration/localization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Localization
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    5. Operations
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            5. Operations
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-exploitation/systeme/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    System Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-exploitation/operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    System Operations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-exploitation/deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Deployment
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    6. Maintenance
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            6. Maintenance
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-maintenance/maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Maintenance
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-maintenance/versioning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Versioning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_7" id="__nav_3_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    7. Annexes
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_7">
+            <span class="md-nav__icon md-icon"></span>
+            7. Annexes
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-annexes/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contribution Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    💬 Support and Contact
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of Contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      System Architecture
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Components
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-towercomponent-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. TowerComponent (Base)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-defensetowercomponent" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. DefenseTowerComponent
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-healtowercomponent" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. HealTowerComponent
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#systems-processors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Systems (Processors)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Systems (Processors)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#towerprocessor" class="md-nav__link">
+    <span class="md-ellipsis">
+      TowerProcessor
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TowerProcessor">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#main-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      Main Method
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-into-the-game-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration into the Game Loop
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#factory" class="md-nav__link">
+    <span class="md-ellipsis">
+      Factory
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Factory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#buildingfactory" class="md-nav__link">
+    <span class="md-ellipsis">
+      buildingFactory
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="buildingFactory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create_defense_tower" class="md-nav__link">
+    <span class="md-ellipsis">
+      create_defense_tower
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create_heal_tower" class="md-nav__link">
+    <span class="md-ellipsis">
+      create_heal_tower
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#user-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      User Interface
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="User Interface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#actionbar" class="md-nav__link">
+    <span class="md-ellipsis">
+      ActionBar
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ActionBar">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#construction-buttons" class="md-nav__link">
+    <span class="md-ellipsis">
+      Construction Buttons
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#construction-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      Construction Logic
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#button-activation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Button Activation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sprites-and-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprites and Assets
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sprites and Assets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      File Structure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sprite-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite Configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#developer-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Developer Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#translations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Translations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fixes-made" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixes Made
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fixes Made">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-import-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Import Organization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-sprite-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Sprite Paths
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-tower-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Tower Names
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-debug-button-visibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Debug Button Visibility
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-towerprocessor-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. TowerProcessor Integration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-adding-towercomponent-to-towers" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Adding TowerComponent to Towers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-placement-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Placement Checks
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Data Flow
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests-and-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tests and Validation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tests and Validation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#functionality-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      Functionality Checklist
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test Commands
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#possible-future-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Possible Future Improvements
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Possible Future Improvements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#short-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      Short Term
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#medium-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      Medium Term
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#long-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      Long Term
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dependencies
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dependencies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#required-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Required Components
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      Required Systems
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#modified-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Modified Files
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authors-and-contributions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authors and Contributions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      License
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="tower-system-implementation">Tower System Implementation<a class="headerlink" href="#tower-system-implementation" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>This document describes the complete implementation of the defense and healing tower system in Galad Islands. The system allows the Architect unit to build defensive towers that automatically attack enemies or heal allies.</p>
+<p><strong>Implementation Date</strong>: October 2025<br />
+<strong>Version</strong>: 1.0.0<br />
+<strong>Architecture</strong>: ECS (Entity Component System) with esper</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
+<ol>
+<li><a href="#system-architecture">System Architecture</a></li>
+<li><a href="#components">Components</a></li>
+<li><a href="#systems-processors">Systems (Processors)</a></li>
+<li><a href="#factory">Factory</a></li>
+<li><a href="#user-interface">User Interface</a></li>
+<li><a href="#sprites-and-assets">Sprites and Assets</a></li>
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#fixes-made">Fixes Made</a></li>
+</ol>
+<hr />
+<h2 id="system-architecture">System Architecture<a class="headerlink" href="#system-architecture" title="Permanent link">&para;</a></h2>
+<p>The tower system follows the project's ECS architecture:</p>
+<div class="highlight"><pre><span></span><code>┌─────────────────────────────────────────┐
+│              User Interface             │
+│  (ActionBar - Construction Buttons)     │
+└────────────────┬────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│            Factory Pattern              │
+│  (buildingFactory - Entity Creation)    │
+└────────────────┬────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│         Components (Components)         │
+│  - TowerComponent (base)                │
+│  - DefenseTowerComponent                │
+│  - HealTowerComponent                   │
+└────────────────┬────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│        Processor (Processor)            │
+│  - TowerProcessor (action logic)        │
+└─────────────────────────────────────────┘
+</code></pre></div>
+<hr />
+<h2 id="components">Components<a class="headerlink" href="#components" title="Permanent link">&para;</a></h2>
+<h3 id="1-towercomponent-base">1. TowerComponent (Base)<a class="headerlink" href="#1-towercomponent-base" title="Permanent link">&para;</a></h3>
+<p><strong>File</strong>: <code>src/components/core/towerComponent.py</code></p>
+<p>Base component for all towers.</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TowerComponent</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base component for towers.&quot;&quot;&quot;</span>
+    <span class="n">tower_type</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># &quot;defense&quot; or &quot;heal&quot;</span>
+    <span class="nb">range</span><span class="p">:</span> <span class="nb">float</span>     <span class="c1"># Action range</span>
+    <span class="n">cooldown</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># Time between two actions</span>
+    <span class="n">current_cooldown</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># Cooldown counter</span>
+    <span class="n">target_entity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Currently targeted entity</span>
+</code></pre></div>
+<p><strong>Properties</strong>:
+- <code>tower_type</code>: Type of tower ("defense" or "heal")
+- <code>range</code>: Detection range (in pixels)
+- <code>cooldown</code>: Delay between two actions (in seconds)
+- <code>current_cooldown</code>: Time remaining before the next action
+- <code>target_entity</code>: ID of the currently targeted entity</p>
+<p><strong>Usage</strong>: Added to each tower entity to manage common behavior.</p>
+<h3 id="2-defensetowercomponent">2. DefenseTowerComponent<a class="headerlink" href="#2-defensetowercomponent" title="Permanent link">&para;</a></h3>
+<p><strong>File</strong>: <code>src/components/core/defenseTowerComponent.py</code></p>
+<p>Specific component for attack towers.</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DefenseTowerComponent</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Component for defense towers (attack).&quot;&quot;&quot;</span>
+    <span class="n">damage</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># Damage inflicted per attack</span>
+    <span class="n">attack_speed</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># Attack speed</span>
+</code></pre></div>
+<p><strong>Properties</strong>:
+- <code>damage</code>: Damage inflicted per projectile (default: 15.0)
+- <code>attack_speed</code>: Attack speed multiplier (default: 1.0)</p>
+<p><strong>Usage</strong>: Added to defense towers in addition to <code>TowerComponent</code>.</p>
+<h3 id="3-healtowercomponent">3. HealTowerComponent<a class="headerlink" href="#3-healtowercomponent" title="Permanent link">&para;</a></h3>
+<p><strong>File</strong>: <code>src/components/core/healTowerComponent.py</code></p>
+<p>Specific component for healing towers.</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HealTowerComponent</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Component for healing towers.&quot;&quot;&quot;</span>
+    <span class="n">heal_amount</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># Health points restored per heal</span>
+    <span class="n">heal_speed</span><span class="p">:</span> <span class="nb">float</span>   <span class="c1"># Healing speed</span>
+</code></pre></div>
+<p><strong>Properties</strong>:
+- <code>heal_amount</code>: Health points restored (default: 10.0)
+- <code>heal_speed</code>: Healing speed multiplier (default: 1.0)</p>
+<p><strong>Usage</strong>: Added to healing towers in addition to <code>TowerComponent</code>.</p>
+<hr />
+<h2 id="systems-processors">Systems (Processors)<a class="headerlink" href="#systems-processors" title="Permanent link">&para;</a></h2>
+<h3 id="towerprocessor">TowerProcessor<a class="headerlink" href="#towerprocessor" title="Permanent link">&para;</a></h3>
+<p><strong>File</strong>: <code>src/processors/towerProcessor.py</code></p>
+<p>Main processor managing tower logic.</p>
+<h4 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Cooldown Management</strong>:</li>
+<li>Decrements the cooldown of each tower</li>
+<li>
+<p>Allows action when the cooldown reaches 0</p>
+</li>
+<li>
+<p><strong>Target Detection</strong>:</p>
+</li>
+<li>Searches for enemies within range (defense towers)</li>
+<li>Searches for wounded allies within range (healing towers)</li>
+<li>
+<p>Uses <code>TeamComponent</code> to identify allies/enemies</p>
+</li>
+<li>
+<p><strong>Actions</strong>:</p>
+</li>
+<li><strong>Defense Towers</strong>: Creates projectiles via <code>ProjectileFactory</code></li>
+<li><strong>Healing Towers</strong>: Applies healing directly to <code>HealthComponent</code></li>
+</ol>
+<h4 id="main-method">Main Method<a class="headerlink" href="#main-method" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Processes tower logic each frame.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">entity</span><span class="p">,</span> <span class="p">(</span><span class="n">tower</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">team</span><span class="p">)</span> <span class="ow">in</span> <span class="n">esper</span><span class="o">.</span><span class="n">get_components</span><span class="p">(</span>
+        <span class="n">TowerComponent</span><span class="p">,</span> <span class="n">PositionComponent</span><span class="p">,</span> <span class="n">TeamComponent</span>
+    <span class="p">):</span>
+        <span class="c1"># 1. Update cooldown</span>
+        <span class="k">if</span> <span class="n">tower</span><span class="o">.</span><span class="n">current_cooldown</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">tower</span><span class="o">.</span><span class="n">current_cooldown</span> <span class="o">-=</span> <span class="n">dt</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># 2. Search for target</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_target</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">tower</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">team</span><span class="p">)</span>
+
+        <span class="c1"># 3. Action according to type</span>
+        <span class="k">if</span> <span class="n">target</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tower</span><span class="o">.</span><span class="n">tower_type</span> <span class="o">==</span> <span class="s2">&quot;defense&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_attack_target</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">tower</span><span class="o">.</span><span class="n">tower_type</span> <span class="o">==</span> <span class="s2">&quot;heal&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_heal_target</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+
+            <span class="c1"># 4. Reset cooldown</span>
+            <span class="n">tower</span><span class="o">.</span><span class="n">current_cooldown</span> <span class="o">=</span> <span class="n">tower</span><span class="o">.</span><span class="n">cooldown</span>
+</code></pre></div>
+<h4 id="integration-into-the-game-loop">Integration into the Game Loop<a class="headerlink" href="#integration-into-the-game-loop" title="Permanent link">&para;</a></h4>
+<p><strong>File</strong>: <code>src/game.py</code></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_initialize_processors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initializes the game&#39;s processors.&quot;&quot;&quot;</span>
+    <span class="c1"># ... other processors</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tower_processor</span> <span class="o">=</span> <span class="n">TowerProcessor</span><span class="p">()</span>
+    <span class="n">esper</span><span class="o">.</span><span class="n">add_processor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tower_processor</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>In the main loop</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Updates all game systems.&quot;&quot;&quot;</span>
+    <span class="c1"># ... other updates</span>
+
+    <span class="c1"># Tower processing</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tower_processor</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tower_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="factory">Factory<a class="headerlink" href="#factory" title="Permanent link">&para;</a></h2>
+<h3 id="buildingfactory">buildingFactory<a class="headerlink" href="#buildingfactory" title="Permanent link">&para;</a></h3>
+<p><strong>File</strong>: <code>src/factory/buildingFactory.py</code></p>
+<p>Factory for creating tower entities.</p>
+<h4 id="create_defense_tower">create_defense_tower<a class="headerlink" href="#create_defense_tower" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_defense_tower</span><span class="p">(</span><span class="n">world</span><span class="p">:</span> <span class="n">esper</span><span class="o">.</span><span class="n">World</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">team_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a defense tower.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        world: esper World</span>
+<span class="sd">        x, y: Tower position</span>
+<span class="sd">        team_id: Team ID (1=ally, 2=enemy)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ID of the created entity</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">entity</span> <span class="o">=</span> <span class="n">world</span><span class="o">.</span><span class="n">create_entity</span><span class="p">()</span>
+
+    <span class="c1"># Base components</span>
+    <span class="n">world</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">PositionComponent</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+    <span class="n">world</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">TeamComponent</span><span class="p">(</span><span class="n">team_id</span><span class="p">))</span>
+
+    <span class="c1"># Sprite</span>
+    <span class="n">sprite</span> <span class="o">=</span> <span class="n">sprite_manager</span><span class="o">.</span><span class="n">create_sprite_component</span><span class="p">(</span>
+        <span class="n">SpriteID</span><span class="o">.</span><span class="n">ALLY_DEFENCE_TOWER</span> <span class="k">if</span> <span class="n">team_id</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">SpriteID</span><span class="o">.</span><span class="n">ENEMY_DEFENCE_TOWER</span>
+    <span class="p">)</span>
+    <span class="n">world</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">sprite</span><span class="p">)</span>
+
+    <span class="c1"># Tower-specific components</span>
+    <span class="n">world</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">TowerComponent</span><span class="p">(</span>
+        <span class="n">tower_type</span><span class="o">=</span><span class="s2">&quot;defense&quot;</span><span class="p">,</span>
+        <span class="nb">range</span><span class="o">=</span><span class="mf">200.0</span><span class="p">,</span>
+        <span class="n">cooldown</span><span class="o">=</span><span class="mf">2.0</span>
+    <span class="p">))</span>
+    <span class="n">world</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">DefenseTowerComponent</span><span class="p">(</span>
+        <span class="n">damage</span><span class="o">=</span><span class="mf">15.0</span><span class="p">,</span>
+        <span class="n">attack_speed</span><span class="o">=</span><span class="mf">1.0</span>
+    <span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">entity</span>
+</code></pre></div>
+<h4 id="create_heal_tower">create_heal_tower<a class="headerlink" href="#create_heal_tower" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_heal_tower</span><span class="p">(</span><span class="n">world</span><span class="p">:</span> <span class="n">esper</span><span class="o">.</span><span class="n">World</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">team_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a healing tower.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        world: esper World</span>
+<span class="sd">        x, y: Tower position</span>
+<span class="sd">        team_id: Team ID (1=ally, 2=enemy)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ID of the created entity</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">entity</span> <span class="o">=</span> <span class="n">world</span><span class="o">.</span><span class="n">create_entity</span><span class="p">()</span>
+
+    <span class="c1"># Base components</span>
+    <span class="n">world</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">PositionComponent</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+    <span class="n">world</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">TeamComponent</span><span class="p">(</span><span class="n">team_id</span><span class="p">))</span>
+
+    <span class="c1"># Sprite</span>
+    <span class="n">sprite</span> <span class="o">=</span> <span class="n">sprite_manager</span><span class="o">.</span><span class="n">create_sprite_component</span><span class="p">(</span>
+        <span class="n">SpriteID</span><span class="o">.</span><span class="n">ALLY_HEAL_TOWER</span> <span class="k">if</span> <span class="n">team_id</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">SpriteID</span><span class="o">.</span><span class="n">ENEMY_HEAL_TOWER</span>
+    <span class="p">)</span>
+    <span class="n">world</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">sprite</span><span class="p">)</span>
+
+    <span class="c1"># Tower-specific components</span>
+    <span class="n">world</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">TowerComponent</span><span class="p">(</span>
+        <span class="n">tower_type</span><span class="o">=</span><span class="s2">&quot;heal&quot;</span><span class="p">,</span>
+        <span class="nb">range</span><span class="o">=</span><span class="mf">150.0</span><span class="p">,</span>
+        <span class="n">cooldown</span><span class="o">=</span><span class="mf">3.0</span>
+    <span class="p">))</span>
+    <span class="n">world</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">HealTowerComponent</span><span class="p">(</span>
+        <span class="n">heal_amount</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">heal_speed</span><span class="o">=</span><span class="mf">1.0</span>
+    <span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">entity</span>
+</code></pre></div>
+<hr />
+<h2 id="user-interface">User Interface<a class="headerlink" href="#user-interface" title="Permanent link">&para;</a></h2>
+<h3 id="actionbar">ActionBar<a class="headerlink" href="#actionbar" title="Permanent link">&para;</a></h3>
+<p><strong>File</strong>: <code>src/ui/action_bar.py</code></p>
+<p>The ActionBar manages the tower construction buttons.</p>
+<h4 id="construction-buttons">Construction Buttons<a class="headerlink" href="#construction-buttons" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="n">build_buttons</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">ActionButton</span><span class="p">(</span>
+        <span class="n">action_type</span><span class="o">=</span><span class="n">ActionType</span><span class="o">.</span><span class="n">BUILD_DEFENSE_TOWER</span><span class="p">,</span>
+        <span class="n">icon_path</span><span class="o">=</span><span class="s2">&quot;assets/sprites/ui/build_defense.png&quot;</span><span class="p">,</span>
+        <span class="n">text</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="s2">&quot;actionbar.build_defense&quot;</span><span class="p">),</span>
+        <span class="n">cost</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span>
+        <span class="n">hotkey</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># Visible only when Architect is selected</span>
+        <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_build_defense_tower</span>
+    <span class="p">),</span>
+    <span class="n">ActionButton</span><span class="p">(</span>
+        <span class="n">action_type</span><span class="o">=</span><span class="n">ActionType</span><span class="o">.</span><span class="n">BUILD_HEAL_TOWER</span><span class="p">,</span>
+        <span class="n">icon_path</span><span class="o">=</span><span class="s2">&quot;assets/sprites/ui/build_heal.png&quot;</span><span class="p">,</span>
+        <span class="n">text</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="s2">&quot;actionbar.build_heal&quot;</span><span class="p">),</span>
+        <span class="n">cost</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>
+        <span class="n">hotkey</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_build_heal_tower</span>
+    <span class="p">)</span>
+<span class="p">]</span>
+</code></pre></div>
+<h4 id="construction-logic">Construction Logic<a class="headerlink" href="#construction-logic" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_build_defense_tower</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Builds a defense tower.&quot;&quot;&quot;</span>
+    <span class="c1"># Check if an Architect is selected</span>
+    <span class="n">architects</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">esper</span><span class="o">.</span><span class="n">get_components</span><span class="p">(</span><span class="n">SpeArchitect</span><span class="p">,</span> <span class="n">PositionComponent</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">architects</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">notification_system</span><span class="o">.</span><span class="n">add_notification</span><span class="p">(</span>
+            <span class="n">t</span><span class="p">(</span><span class="s2">&quot;notification.no_architect&quot;</span><span class="p">),</span>
+            <span class="n">NotificationType</span><span class="o">.</span><span class="n">ERROR</span>
+        <span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Get the Architect&#39;s position</span>
+    <span class="n">_</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span> <span class="o">=</span> <span class="n">architects</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Check if it&#39;s on an island</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_tile_island</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">game_engine</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">pos</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">pos</span><span class="o">.</span><span class="n">y</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">notification_system</span><span class="o">.</span><span class="n">add_notification</span><span class="p">(</span>
+            <span class="n">t</span><span class="p">(</span><span class="s2">&quot;notification.not_on_island&quot;</span><span class="p">),</span>
+            <span class="n">NotificationType</span><span class="o">.</span><span class="n">ERROR</span>
+        <span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Check if there is already a tower at this location</span>
+    <span class="k">for</span> <span class="n">entity</span><span class="p">,</span> <span class="p">(</span><span class="n">tower_pos</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">esper</span><span class="o">.</span><span class="n">get_components</span><span class="p">(</span><span class="n">PositionComponent</span><span class="p">,</span> <span class="n">TowerComponent</span><span class="p">):</span>
+        <span class="n">distance</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">pos</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">tower_pos</span><span class="o">.</span><span class="n">x</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">pos</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="n">tower_pos</span><span class="o">.</span><span class="n">y</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">distance</span> <span class="o">&lt;</span> <span class="mi">40</span><span class="p">:</span>  <span class="c1"># Minimum radius between towers</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">notification_system</span><span class="o">.</span><span class="n">add_notification</span><span class="p">(</span>
+                <span class="n">t</span><span class="p">(</span><span class="s2">&quot;notification.tower_already_exists&quot;</span><span class="p">),</span>
+                <span class="n">NotificationType</span><span class="o">.</span><span class="n">ERROR</span>
+            <span class="p">)</span>
+            <span class="k">return</span>
+
+    <span class="c1"># Check the cost</span>
+    <span class="n">cost</span> <span class="o">=</span> <span class="mi">150</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_player_gold_direct</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">cost</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">notification_system</span><span class="o">.</span><span class="n">add_notification</span><span class="p">(</span>
+            <span class="n">t</span><span class="p">(</span><span class="s2">&quot;notification.not_enough_gold&quot;</span><span class="p">),</span>
+            <span class="n">NotificationType</span><span class="o">.</span><span class="n">ERROR</span>
+        <span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Create the tower</span>
+    <span class="n">create_defense_tower</span><span class="p">(</span><span class="n">esper</span><span class="p">,</span> <span class="n">pos</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">pos</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">team_id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Deduct the cost</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_set_player_gold_direct</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_player_gold_direct</span><span class="p">()</span> <span class="o">-</span> <span class="n">cost</span><span class="p">)</span>
+
+    <span class="c1"># Success notification</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">notification_system</span><span class="o">.</span><span class="n">add_notification</span><span class="p">(</span>
+        <span class="n">t</span><span class="p">(</span><span class="s2">&quot;notification.tower_built&quot;</span><span class="p">),</span>
+        <span class="n">NotificationType</span><span class="o">.</span><span class="n">SUCCESS</span>
+    <span class="p">)</span>
+</code></pre></div>
+<h4 id="button-activation">Button Activation<a class="headerlink" href="#button-activation" title="Permanent link">&para;</a></h4>
+<p>The buttons are activated when the Architect is selected:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_for_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">UnitInfo</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Updates buttons based on the selected unit.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">selected_unit</span> <span class="o">=</span> <span class="n">unit_info</span>
+
+    <span class="c1"># Show construction buttons if Architect is selected</span>
+    <span class="k">for</span> <span class="n">button</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_buttons</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">button</span><span class="o">.</span><span class="n">action_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">ActionType</span><span class="o">.</span><span class="n">BUILD_DEFENSE_TOWER</span><span class="p">,</span> <span class="n">ActionType</span><span class="o">.</span><span class="n">BUILD_HEAL_TOWER</span><span class="p">]:</span>
+            <span class="n">button</span><span class="o">.</span><span class="n">visible</span> <span class="o">=</span> <span class="p">(</span><span class="n">unit_info</span> <span class="ow">and</span> <span class="n">unit_info</span><span class="o">.</span><span class="n">unit_type</span> <span class="o">==</span> <span class="s2">&quot;Architect&quot;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_update_button_positions</span><span class="p">()</span>
+</code></pre></div>
+<hr />
+<h2 id="sprites-and-assets">Sprites and Assets<a class="headerlink" href="#sprites-and-assets" title="Permanent link">&para;</a></h2>
+<h3 id="file-structure">File Structure<a class="headerlink" href="#file-structure" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>assets/sprites/buildings/
+├── ally/
+│   ├── ally-defence-tower.png    # Ally defense tower (80x120)
+│   └── ally-heal-tower.png        # Ally healing tower (80x120)
+└── enemy/
+    ├── enemy-defence-tower.png    # Enemy defense tower (80x120)
+    └── enemy-heal-tower.png        # Enemy healing tower (80x120)
+</code></pre></div>
+<h3 id="sprite-configuration">Sprite Configuration<a class="headerlink" href="#sprite-configuration" title="Permanent link">&para;</a></h3>
+<p><strong>File</strong>: <code>src/managers/sprite_manager.py</code></p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SpriteID</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sprite identifiers.&quot;&quot;&quot;</span>
+    <span class="c1"># ... other sprites</span>
+    <span class="n">ALLY_DEFENCE_TOWER</span> <span class="o">=</span> <span class="s2">&quot;ALLY_DEFENCE_TOWER&quot;</span>
+    <span class="n">ALLY_HEAL_TOWER</span> <span class="o">=</span> <span class="s2">&quot;ALLY_HEAL_TOWER&quot;</span>
+    <span class="n">ENEMY_DEFENCE_TOWER</span> <span class="o">=</span> <span class="s2">&quot;ENEMY_DEFENCE_TOWER&quot;</span>
+    <span class="n">ENEMY_HEAL_TOWER</span> <span class="o">=</span> <span class="s2">&quot;ENEMY_HEAL_TOWER&quot;</span>
+
+<span class="c1"># Sprite configurations</span>
+<span class="n">SPRITE_CONFIGS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="c1"># Buildings</span>
+    <span class="n">SpriteData</span><span class="p">(</span>
+        <span class="n">SpriteID</span><span class="o">.</span><span class="n">ALLY_DEFENCE_TOWER</span><span class="p">,</span>
+        <span class="s2">&quot;assets/sprites/buildings/ally/ally-defence-tower.png&quot;</span><span class="p">,</span>
+        <span class="mi">80</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span>
+        <span class="s2">&quot;Defense Tower&quot;</span>
+    <span class="p">),</span>
+    <span class="n">SpriteData</span><span class="p">(</span>
+        <span class="n">SpriteID</span><span class="o">.</span><span class="n">ALLY_HEAL_TOWER</span><span class="p">,</span>
+        <span class="s2">&quot;assets/sprites/buildings/ally/ally-heal-tower.png&quot;</span><span class="p">,</span>
+        <span class="mi">80</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span>
+        <span class="s2">&quot;Healing Tower&quot;</span>
+    <span class="p">),</span>
+    <span class="n">SpriteData</span><span class="p">(</span>
+        <span class="n">SpriteID</span><span class="o">.</span><span class="n">ENEMY_DEFENCE_TOWER</span><span class="p">,</span>
+        <span class="s2">&quot;assets/sprites/buildings/enemy/enemy-defence-tower.png&quot;</span><span class="p">,</span>
+        <span class="mi">80</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span>
+        <span class="s2">&quot;Enemy Defense Tower&quot;</span>
+    <span class="p">),</span>
+    <span class="n">SpriteData</span><span class="p">(</span>
+        <span class="n">SpriteID</span><span class="o">.</span><span class="n">ENEMY_HEAL_TOWER</span><span class="p">,</span>
+        <span class="s2">&quot;assets/sprites/buildings/enemy/enemy-heal-tower.png&quot;</span><span class="p">,</span>
+        <span class="mi">80</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span>
+        <span class="s2">&quot;Enemy Healing Tower&quot;</span>
+    <span class="p">),</span>
+<span class="p">]</span>
+</code></pre></div>
+<hr />
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<h3 id="developer-mode">Developer Mode<a class="headerlink" href="#developer-mode" title="Permanent link">&para;</a></h3>
+<p><strong>File</strong>: <code>src/settings/settings.py</code></p>
+<div class="highlight"><pre><span></span><code><span class="n">DEFAULT_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;language&quot;</span><span class="p">:</span> <span class="s2">&quot;french&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;fullscreen&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">&quot;resolution&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1280</span><span class="p">,</span> <span class="mi">720</span><span class="p">],</span>
+    <span class="s2">&quot;volume&quot;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span>
+    <span class="s2">&quot;dev_mode&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># Activates development features</span>
+    <span class="c1"># ... other parameters</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The <code>dev_mode</code> controls the display of the debug button in the ActionBar:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># In _initialize_buttons()</span>
+<span class="k">if</span> <span class="n">ConfigManager</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dev_mode&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="n">global_buttons</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">ActionButton</span><span class="p">(</span>
+            <span class="n">action_type</span><span class="o">=</span><span class="n">ActionType</span><span class="o">.</span><span class="n">DEV_GIVE_GOLD</span><span class="p">,</span>
+            <span class="n">icon_path</span><span class="o">=</span><span class="s2">&quot;assets/sprites/ui/dev_give_gold.png&quot;</span><span class="p">,</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="s2">&quot;actionbar.debug_menu&quot;</span><span class="p">),</span>
+            <span class="n">cost</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">hotkey</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">tooltip</span><span class="o">=</span><span class="n">t</span><span class="p">(</span><span class="s2">&quot;debug.modal.title&quot;</span><span class="p">),</span>
+            <span class="n">is_global</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_debug_menu</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+</code></pre></div>
+<h3 id="translations">Translations<a class="headerlink" href="#translations" title="Permanent link">&para;</a></h3>
+<p><strong>Files</strong>:
+- <code>assets/locales/french.py</code>
+- <code>assets/locales/english.py</code></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># French</span>
+<span class="n">TRANSLATIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;shop.defense_tower&quot;</span><span class="p">:</span> <span class="s2">&quot;Tour de Défense&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;shop.defense_tower_desc&quot;</span><span class="p">:</span> <span class="s2">&quot;Tour de défense automatique&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;shop.heal_tower&quot;</span><span class="p">:</span> <span class="s2">&quot;Tour de Soin&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;shop.heal_tower_desc&quot;</span><span class="p">:</span> <span class="s2">&quot;Tour de soin automatique&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;actionbar.build_defense&quot;</span><span class="p">:</span> <span class="s2">&quot;Tour de Défense&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;actionbar.build_heal&quot;</span><span class="p">:</span> <span class="s2">&quot;Tour de Soin&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;notification.tower_built&quot;</span><span class="p">:</span> <span class="s2">&quot;Tour construite avec succès&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;notification.tower_already_exists&quot;</span><span class="p">:</span> <span class="s2">&quot;Une tour existe déjà ici&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;notification.no_architect&quot;</span><span class="p">:</span> <span class="s2">&quot;Vous devez sélectionner un Architecte&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;notification.not_on_island&quot;</span><span class="p">:</span> <span class="s2">&quot;Vous devez construire sur une île&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># English</span>
+<span class="n">TRANSLATIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;shop.defense_tower&quot;</span><span class="p">:</span> <span class="s2">&quot;Defense Tower&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;shop.defense_tower_desc&quot;</span><span class="p">:</span> <span class="s2">&quot;Automatic defense tower&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;shop.heal_tower&quot;</span><span class="p">:</span> <span class="s2">&quot;Heal Tower&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;shop.heal_tower_desc&quot;</span><span class="p">:</span> <span class="s2">&quot;Automatic healing tower&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;actionbar.build_defense&quot;</span><span class="p">:</span> <span class="s2">&quot;Defense Tower&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;actionbar.build_heal&quot;</span><span class="p">:</span> <span class="s2">&quot;Heal Tower&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;notification.tower_built&quot;</span><span class="p">:</span> <span class="s2">&quot;Tower built successfully&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;notification.tower_already_exists&quot;</span><span class="p">:</span> <span class="s2">&quot;A tower already exists here&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;notification.no_architect&quot;</span><span class="p">:</span> <span class="s2">&quot;You must select an Architect&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;notification.not_on_island&quot;</span><span class="p">:</span> <span class="s2">&quot;You must build on an island&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="fixes-made">Fixes Made<a class="headerlink" href="#fixes-made" title="Permanent link">&para;</a></h2>
+<h3 id="1-import-organization">1. Import Organization<a class="headerlink" href="#1-import-organization" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: Imports scattered in the code, unnecessary try/except blocks</p>
+<p><strong>Solution</strong>: All imports grouped at the top of the file</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># src/ui/action_bar.py - File header</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pygame</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">esper</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">auto</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.components.core.positionComponent</span><span class="w"> </span><span class="kn">import</span> <span class="n">PositionComponent</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.components.special.speArchitectComponent</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpeArchitect</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.components.core.towerComponent</span><span class="w"> </span><span class="kn">import</span> <span class="n">TowerComponent</span>
+<span class="c1"># ... other imports</span>
+</code></pre></div>
+<p><strong>Files modified</strong>:
+- <code>src/ui/action_bar.py</code></p>
+<h3 id="2-sprite-paths">2. Sprite Paths<a class="headerlink" href="#2-sprite-paths" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: Incorrect path for <code>ALLY_DEFENCE_TOWER</code> (missing the <code>ally/</code> subfolder)</p>
+<p><strong>Before</strong>:
+<div class="highlight"><pre><span></span><code><span class="n">SpriteData</span><span class="p">(</span>
+    <span class="n">SpriteID</span><span class="o">.</span><span class="n">ALLY_DEFENCE_TOWER</span><span class="p">,</span>
+    <span class="s2">&quot;assets/sprites/buildings/ally-defence-tower.png&quot;</span><span class="p">,</span>  <span class="c1"># ❌ Incorrect</span>
+    <span class="mi">80</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span>
+    <span class="s2">&quot;Defense Tower&quot;</span>
+<span class="p">)</span>
+</code></pre></div></p>
+<p><strong>After</strong>:
+<div class="highlight"><pre><span></span><code><span class="n">SpriteData</span><span class="p">(</span>
+    <span class="n">SpriteID</span><span class="o">.</span><span class="n">ALLY_DEFENCE_TOWER</span><span class="p">,</span>
+    <span class="s2">&quot;assets/sprites/buildings/ally/ally-defence-tower.png&quot;</span><span class="p">,</span>  <span class="c1"># ✅ Correct</span>
+    <span class="mi">80</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span>
+    <span class="s2">&quot;Defense Tower&quot;</span>
+<span class="p">)</span>
+</code></pre></div></p>
+<p><strong>Files modified</strong>:
+- <code>src/managers/sprite_manager.py</code></p>
+<h3 id="3-tower-names">3. Tower Names<a class="headerlink" href="#3-tower-names" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: Towers named "Attack Tower" instead of "Defense Tower"</p>
+<p><strong>Solution</strong>: Corrected translations</p>
+<p><strong>Files modified</strong>:
+- <code>assets/locales/french.py</code>
+- <code>assets/locales/english.py</code></p>
+<h3 id="4-debug-button-visibility">4. Debug Button Visibility<a class="headerlink" href="#4-debug-button-visibility" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: Debug button always visible, even with <code>dev_mode: False</code></p>
+<p><strong>Solution</strong>: 
+1. Added <code>dev_mode: False</code> to <code>DEFAULT_CONFIG</code>
+2. Condition <code>if ConfigManager().get('dev_mode', False)</code> to create the button
+3. Dynamic check in <code>_update_button_positions()</code></p>
+<p><strong>Files modified</strong>:
+- <code>src/settings/settings.py</code>
+- <code>src/ui/action_bar.py</code></p>
+<h3 id="5-towerprocessor-integration">5. TowerProcessor Integration<a class="headerlink" href="#5-towerprocessor-integration" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: <code>TowerProcessor</code> created but not called in the game loop</p>
+<p><strong>Solution</strong>: Added the <code>process(dt)</code> call in <code>GameEngine.update()</code></p>
+<p><strong>Before</strong>:
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="c1"># tower_processor existed but was not called</span>
+    <span class="n">esper</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
+</code></pre></div></p>
+<p><strong>After</strong>:
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="c1"># ... other updates</span>
+
+    <span class="c1"># Tower processing</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tower_processor</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tower_processor</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+
+    <span class="n">esper</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
+</code></pre></div></p>
+<p><strong>Files modified</strong>:
+- <code>src/game.py</code></p>
+<h3 id="6-adding-towercomponent-to-towers">6. Adding TowerComponent to Towers<a class="headerlink" href="#6-adding-towercomponent-to-towers" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: Towers created without <code>TowerComponent</code>, so not detected by the processor</p>
+<p><strong>Solution</strong>: Systematically added the component in the factories</p>
+<p><strong>Files modified</strong>:
+- <code>src/factory/buildingFactory.py</code></p>
+<h3 id="7-placement-checks">7. Placement Checks<a class="headerlink" href="#7-placement-checks" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: No checks before placing a tower</p>
+<p><strong>Solution</strong>: Added 3 checks:
+1. Architect selected
+2. Position on an island
+3. No existing tower nearby</p>
+<p><strong>Files modified</strong>:
+- <code>src/ui/action_bar.py</code> (<code>_build_defense_tower()</code> and <code>_build_heal_tower()</code> methods)</p>
+<hr />
+<h2 id="data-flow">Data Flow<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>┌──────────────────────────────────────────────────────────┐
+│                    Player clicks                          │
+│              &quot;Build Defense Tower&quot;                        │
+└─────────────────────┬────────────────────────────────────┘
+                      │
+                      ▼
+┌──────────────────────────────────────────────────────────┐
+│              ActionBar._build_defense_tower()             │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ 1. Check for selected Architect                    │  │
+│  │ 2. Check position on island                        │  │
+│  │ 3. Check for no existing tower                     │  │
+│  │ 4. Check cost (150 gold)                           │  │
+│  └────────────────────────────────────────────────────┘  │
+└─────────────────────┬────────────────────────────────────┘
+                      │
+                      ▼
+┌──────────────────────────────────────────────────────────┐
+│        buildingFactory.create_defense_tower()             │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ 1. Create entity                                   │  │
+│  │ 2. Add PositionComponent                         │  │
+│  │ 3. Add TeamComponent                             │  │
+│  │ 4. Add SpriteComponent                           │  │
+│  │ 5. Add TowerComponent                            │  │
+│  │ 6. Add DefenseTowerComponent                     │  │
+│  └────────────────────────────────────────────────────┘  │
+└─────────────────────┬────────────────────────────────────┘
+                      │
+                      ▼
+┌──────────────────────────────────────────────────────────┐
+│           Tower created in the world (esper)              │
+└─────────────────────┬────────────────────────────────────┘
+                      │
+                      ▼
+┌──────────────────────────────────────────────────────────┐
+│         TowerProcessor.process(dt) - Each frame         │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ For each tower:                                    │  │
+│  │   1. Decrement cooldown                            │  │
+│  │   2. If cooldown = 0:                              │  │
+│  │      a. Search for target in range                 │  │
+│  │      b. If target found:                           │  │
+│  │         - Defense tower → Create projectile        │  │
+│  │         - Healing tower → Heal ally                │  │
+│  │      c. Reset cooldown                             │  │
+│  └────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘
+</code></pre></div>
+<hr />
+<h2 id="tests-and-validation">Tests and Validation<a class="headerlink" href="#tests-and-validation" title="Permanent link">&para;</a></h2>
+<h3 id="functionality-checklist">Functionality Checklist<a class="headerlink" href="#functionality-checklist" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Towers appear correctly on the screen</li>
+<li>[x] Sprites match the correct file</li>
+<li>[x/home/lieserl/Documents/GitHub/Galad-Islands/docs/en/dev/02-systeme/tower-system-implementation.md] Defense towers attack enemies within their range</li>
+<li>[x] Healing towers heal wounded allies</li>
+<li>[x] Cooldown works correctly</li>
+<li>[x] Buttons only display if Architect is selected</li>
+<li>[x] Debug button only displays if <code>dev_mode = True</code></li>
+<li>[x] Translations are correct (FR/EN)</li>
+<li>[x] Placement checks position (island only)
+-- [x] Placement checks for absence of existing tower</li>
+<li>[x] Gold cost is correctly deducted</li>
+</ul>
+<h3 id="test-commands">Test Commands<a class="headerlink" href="#test-commands" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Test defense tower creation</span>
+./venv/bin/python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
+<span class="s2">import pygame</span>
+<span class="s2">pygame.init()</span>
+<span class="s2">from src.factory.buildingFactory import create_defense_tower</span>
+<span class="s2">import esper</span>
+
+<span class="s2">world = esper.World()</span>
+<span class="s2">tower = create_defense_tower(world, 100, 100)</span>
+<span class="s2">print(f&#39;Tower created: {tower}&#39;)</span>
+<span class="s2">pygame.quit()</span>
+<span class="s2">&quot;</span>
+
+<span class="c1"># Launch the game</span>
+./venv/bin/python<span class="w"> </span>main.py
+</code></pre></div>
+<hr />
+<h2 id="possible-future-improvements">Possible Future Improvements<a class="headerlink" href="#possible-future-improvements" title="Permanent link">&para;</a></h2>
+<h3 id="short-term">Short Term<a class="headerlink" href="#short-term" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] Add visual effects during attack/healing</li>
+<li>[ ] Add sounds for shots/heals</li>
+<li>[ ] Progressive construction animation
+-- [ ] Visual range indicator during placement</li>
+</ul>
+<h3 id="medium-term">Medium Term<a class="headerlink" href="#medium-term" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] Tower upgrade system (level, damage, range)</li>
+<li>[ ] Special towers (slow, area of effect, etc.)</li>
+<li>[ ] Tower maintenance cost</li>
+<li>[ ] Manual destruction of towers with partial refund</li>
+</ul>
+<h3 id="long-term">Long Term<a class="headerlink" href="#long-term" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] AI for optimal tower placement (enemy mode)</li>
+<li>[ ] Synergy between nearby towers</li>
+<li>[ ] Legendary towers with unique abilities</li>
+<li>[ ] Research system to unlock new towers</li>
+</ul>
+<hr />
+<h2 id="dependencies">Dependencies<a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h2>
+<h3 id="required-components">Required Components<a class="headerlink" href="#required-components" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>PositionComponent</code>: Position in the world</li>
+<li><code>TeamComponent</code>: Ally/enemy identification</li>
+<li><code>HealthComponent</code>: Health points (for targets)</li>
+<li><code>SpriteComponent</code>: Visual rendering</li>
+<li><code>SpeArchitect</code>: Ability to build</li>
+</ul>
+<h3 id="required-systems">Required Systems<a class="headerlink" href="#required-systems" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>sprite_manager</code>: Sprite loading</li>
+<li><code>ProjectileFactory</code>: Projectile creation (defense towers)</li>
+<li><code>NotificationSystem</code>: User feedback</li>
+<li><code>ConfigManager</code>: Game configuration</li>
+</ul>
+<hr />
+<h2 id="modified-files">Modified Files<a class="headerlink" href="#modified-files" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Modifications</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/components/core/towerComponent.py</code></td>
+<td>✨ Creation of the base component</td>
+</tr>
+<tr>
+<td><code>src/components/core/defenseTowerComponent.py</code></td>
+<td>✨ Creation of the defense component</td>
+</tr>
+<tr>
+<td><code>src/components/core/healTowerComponent.py</code></td>
+<td>✨ Creation of the healing component</td>
+</tr>
+<tr>
+<td><code>src/processors/towerProcessor.py</code></td>
+<td>✨ Creation of the processor</td>
+</tr>
+<tr>
+<td><code>src/factory/buildingFactory.py</code></td>
+<td>✨ Added factories + 🔧 TowerComponent</td>
+</tr>
+<tr>
+<td><code>src/managers/sprite_manager.py</code></td>
+<td>🔧 Corrected sprite paths</td>
+</tr>
+<tr>
+<td><code>src/ui/action_bar.py</code></td>
+<td>🔧 Organized imports + construction buttons</td>
+</tr>
+<tr>
+<td><code>src/settings/settings.py</code></td>
+<td>➕ Added <code>dev_mode</code></td>
+</tr>
+<tr>
+<td><code>src/game.py</code></td>
+<td>🔧 Integrated TowerProcessor</td>
+</tr>
+<tr>
+<td><code>assets/locales/french.py</code></td>
+<td>🔧 Corrected translations</td>
+</tr>
+<tr>
+<td><code>assets/locales/english.py</code></td>
+<td>🔧 Corrected translations</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Legend</strong>:
+- ✨ New file
+- 🔧 Modification
+- ➕ Feature addition</p>
+<hr />
+<h2 id="authors-and-contributions">Authors and Contributions<a class="headerlink" href="#authors-and-contributions" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Initial Implementation</strong>: Development Session October 2025</li>
+<li><strong>ECS Architecture</strong>: Based on the existing project structure</li>
+<li><strong>Tests and Fixes</strong>: Complete system validation</li>
+</ul>
+<hr />
+<h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
+<p>This system is part of the Galad Islands project and is subject to the same license as the main project.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/Fydyr/Galad-Islands" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.share"], "search": "../../../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+    
+  </body>
+</html>
