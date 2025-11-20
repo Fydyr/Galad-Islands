@@ -25,16 +25,25 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Determine pip cache directory
-        id: pip-cache
+      - name: Determine pip cache directory (Linux/Mac)
+        id: pip-cache-macos-linux
+        if: runner.os != 'Windows'
         run: |
-          python -m pip cache dir 2>/dev/null || echo "~/.cache/pip"
-          echo "cache=$(python -m pip cache dir 2>/dev/null || echo ~/.cache/pip)" >> $GITHUB_OUTPUT
+          cache=$(python -m pip cache dir 2>/dev/null || python -c "import os; print(os.path.expanduser('~/.cache/pip'))")
+          echo "cache=$cache" >> $GITHUB_OUTPUT
+
+      - name: Determine pip cache directory (Windows)
+        id: pip-cache-windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cache = python -c "import sys,subprocess,os;try:out=subprocess.check_output([sys.executable,'-m','pip','cache','dir'], stderr=subprocess.DEVNULL);print(out.decode().strip());except Exception:print(os.path.expanduser('~/.cache/pip'))"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "cache=$cache"
 
       - name: Cache pip dependencies
         uses: actions/cache@v4
         with:
-          path: ${{ steps.pip-cache.outputs.cache }}
+          path: ${{ steps.pip-cache-macos-linux.outputs.cache || steps.pip-cache-windows.outputs.cache }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
