@@ -30,6 +30,22 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Cache PyInstaller build
+        uses: actions/cache@v4
+        with:
+          path: build/
+          key: ${{ runner.os }}-pyinstaller-${{ hashFiles('build.spec', 'main.py', 'tools/galad_config.py', 'tools/maraudeur_ai_cleaner.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pyinstaller-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
