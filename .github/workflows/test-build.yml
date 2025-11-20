@@ -32,9 +32,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
-            pip-
+            ${{ runner.os }}-pip-
 
       - name: Cache PyInstaller build
         uses: actions/cache@v4
