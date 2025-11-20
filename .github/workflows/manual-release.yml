@@ -30,13 +30,30 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Determine pip cache directory
+        id: pip-cache
+        run: |
+          python -m pip cache dir 2>/dev/null || echo "~/.cache/pip"
+          echo "cache=$(python -m pip cache dir 2>/dev/null || echo ~/.cache/pip)" >> $GITHUB_OUTPUT
+
       - name: Cache pip dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
+          path: ${{ steps.pip-cache.outputs.cache }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+
+      - name: Ensure build directory exists (Linux/Mac)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p build
+
+      - name: Ensure build directory exists (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path build -Force
 
       - name: Cache PyInstaller build
         uses: actions/cache@v4
