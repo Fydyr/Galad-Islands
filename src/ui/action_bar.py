@@ -851,12 +851,6 @@ class ActionBar:
         """Gère les raccourcis clavier."""
         key_char = pygame.key.name(key)
         
-        # Raccourci spécial pour changement de camp
-        camp_hotkey = self._get_hotkey_for_action("selection_cycle_team").lower()
-        if key_char == camp_hotkey:
-            self._switch_camp()
-            return True
-        
         for button in self.action_buttons:
             if button.visible and button.enabled and button.hotkey.lower() == key_char:
                 if button.callback:

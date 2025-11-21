@@ -235,7 +235,14 @@ class EventHandler:
             self.game_engine.select_all_allied_units()
             return
         elif controls.matches_action(controls.ACTION_SELECTION_CYCLE_TEAM, event):
-            self.game_engine.cycle_selection_team()
+            try:
+                allowed = config_manager.get('dev_mode', False) or getattr(self.game_engine, 'self_play_mode', False)
+            except Exception:
+                allowed = False
+            if allowed:
+                self.game_engine.cycle_selection_team()
+            else:
+                pass
             return
         elif self._handle_group_shortcuts(event):
             return
@@ -1369,6 +1376,17 @@ class GameEngine:
         
     def cycle_selection_team(self) -> None:
         """Switch to the next faction for selection."""
+        # Only allow programmatic cycling of selection team via hotkeys/shortcuts
+        # when dev_mode is enabled or when running in self_play_mode (AI vs AI).
+        try:
+            allowed = config_manager.get('dev_mode', False) or getattr(self, 'self_play_mode', False)
+        except Exception:
+            allowed = False
+
+        if not allowed:
+            # Ignore attempts to cycle selection team in normal Player vs AI games.
+            return
+
         order = (Team.ALLY, Team.ENEMY)
         try:
             index = order.index(self.selection_team_filter)
