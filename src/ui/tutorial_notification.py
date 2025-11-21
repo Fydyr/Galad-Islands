@@ -44,8 +44,7 @@ class TutorialNotification:
         self.y = 0
         
         # État d'interaction
-        self.next_button_hover = False
-        self.skip_button_hover = False
+        self.ok_button_hover = False
         
     def set_position(self, screen_width: int, screen_height: int):
         """
@@ -108,37 +107,23 @@ class TutorialNotification:
             
         if event.type == pygame.MOUSEMOTION:
             mouse_x, mouse_y = event.pos
-            self._update_hover_state(mouse_x, mouse_y)
+            self.ok_button_hover = self._get_ok_button_rect().collidepoint(mouse_x, mouse_y)
             return "hover"
             
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse_x, mouse_y = event.pos
             
-            # Bouton Suivant
-            next_rect = self._get_next_button_rect()
-            if next_rect.collidepoint(mouse_x, mouse_y):
+            # Bouton OK
+            ok_rect = self._get_ok_button_rect()
+            if ok_rect.collidepoint(mouse_x, mouse_y):
                 self.dismissed = True
                 return "next"
                 
-            # Bouton Passer
-            skip_rect = self._get_skip_button_rect()
-            if skip_rect.collidepoint(mouse_x, mouse_y):
-                self.dismissed = True
-                return "skip"
-                
         return None
         
-    def _update_hover_state(self, mouse_x: int, mouse_y: int):
-        """Met à jour l'état de survol des boutons."""
-        next_rect = self._get_next_button_rect()
-        skip_rect = self._get_skip_button_rect()
-        
-        self.next_button_hover = next_rect.collidepoint(mouse_x, mouse_y)
-        self.skip_button_hover = skip_rect.collidepoint(mouse_x, mouse_y)
-        
-    def _get_next_button_rect(self) -> pygame.Rect:
-        """Retourne le rectangle du bouton Suivant."""
-        button_width = (self.width - 3 * self.padding) // 2
+    def _get_ok_button_rect(self) -> pygame.Rect:
+        """Retourne le rectangle du bouton OK."""
+        button_width = (self.width - 2 * self.padding)
         button_y = self.y + self.height - self.padding - self.button_height
         return pygame.Rect(
             self.x + self.padding,
@@ -146,19 +131,7 @@ class TutorialNotification:
             button_width,
             self.button_height
         )
-        
-    def _get_skip_button_rect(self) -> pygame.Rect:
-        """Retourne le rectangle du bouton Passer."""
-        button_width = (self.width - 3 * self.padding) // 2
-        button_y = self.y + self.height - self.padding - self.button_height
-        button_x = self.x + 2 * self.padding + button_width
-        return pygame.Rect(
-            button_x,
-            button_y,
-            button_width,
-            self.button_height
-        )
-        
+
     def draw(self, surface: pygame.Surface):
         """
         Dessine la notification sur la surface.
@@ -212,20 +185,12 @@ class TutorialNotification:
             surface.blit(line_surface, (self.x + self.padding, y_offset))
             y_offset += line_height
             
-        # Bouton Suivant
+        # Bouton OK
         self._draw_button(
             surface,
-            self._get_next_button_rect(),
-            t("tutorial.next_button"),
-            self.next_button_hover
-        )
-        
-        # Bouton Passer
-        self._draw_button(
-            surface,
-            self._get_skip_button_rect(),
-            t("tutorial.skip_button"),
-            self.skip_button_hover
+            self._get_ok_button_rect(),
+            t("tutorial.ok_button", default="OK"),
+            self.ok_button_hover
         )
         
     def _draw_button(self, surface: pygame.Surface, rect: pygame.Rect, 
