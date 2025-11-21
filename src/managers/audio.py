@@ -64,7 +64,7 @@ class AudioManager:
         """Loads sound effects."""
         try:
             self.select_sound = pygame.mixer.Sound(
-                get_resource_path(os.path.join("assets", "sounds", "select_sound.mp3"))
+                get_resource_path(os.path.join("assets", "sounds", "select_sound.ogg"))
             )
             self.update_effects_volume()
             print("🔊 Sound effects loaded")
