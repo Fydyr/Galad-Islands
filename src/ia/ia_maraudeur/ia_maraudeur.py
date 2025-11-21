@@ -35,6 +35,10 @@ class MaraudeurAI:
         self.last_obstacle_check = 0.0
         self.stuck_counter = 0
         self.last_position = None
+        
+        # Logger de position toutes les 5 secondes
+        self.last_log_time = 0.0
+        self.log_interval = 5.0
 
     def update(self, world, dt):
         """Mise à jour principale de l'IA avec apprentissage"""
@@ -66,9 +70,21 @@ class MaraudeurAI:
             dist_moved = math.sqrt((pos.x - self.last_position[0])**2 + (pos.y - self.last_position[1])**2)
             if dist_moved < 5 and vel.currentSpeed > 1.0:  # Bloqué !
                 self.stuck_counter += 1
+                # Si bloqué trop longtemps (50 frames = ~5 sec), forcer un changement de direction
+                if self.stuck_counter > 50:
+                    pos.direction = (pos.direction + 90) % 360
+                    vel.currentSpeed = 3.0
+                    print(f"Maraudeur {self.entity}: DéBLOCAGE FORCÉ ! Rotation 90°")
+                    self.stuck_counter = 0
             else:
                 self.stuck_counter = 0
         self.last_position = (pos.x, pos.y)
+
+        # Logger de position toutes les 5 secondes
+        self.last_log_time += dt
+        if self.last_log_time >= self.log_interval:
+            self._log_position(pos, vel)
+            self.last_log_time = 0.0
 
         # Logique simple et déterministe
         try:
@@ -84,6 +100,20 @@ class MaraudeurAI:
             print(f"Erreur IA Maraudeur {self.entity}: {e}")
             vel.currentSpeed = 2.0
             pos.direction = (pos.direction + 45) % 360
+    
+    def _log_position(self, pos, vel):
+        """Log la position et l'état du maraudeur toutes les 5 secondes"""
+        print(f"\n{'='*60}")
+        print(f"MARAUDEUR {self.entity} - MODE: {self.mode.upper()}")
+        print(f"Position: ({pos.x:.1f}, {pos.y:.1f})")
+        print(f"Direction: {pos.direction:.1f}°")
+        print(f"Vitesse: {vel.currentSpeed:.1f}")
+        print(f"Temps de survie: {self.survival_time:.1f}s")
+        if hasattr(self, 'current_action') and self.current_action:
+            print(f"Action en cours: {self.current_action}")
+        if self.stuck_counter > 0:
+            print(f"⚠️  Compteur bloqué: {self.stuck_counter}")
+        print(f"{'='*60}\n")
 
     def _analyze_situation(self, world, pos, health, team):
         """Analyse la situation actuelle et retourne un vecteur d'état"""
@@ -181,9 +211,13 @@ class MaraudeurAI:
         # Chercher ennemis proches
         enemies = self._find_nearby_enemies(world, pos, team)
         
+        # Stocker l'action pour le log
+        self.current_action = ""
+        
         if enemies and enemies[0][1] < 10 * TILE_SIZE:
             # Ennemi proche : l'attaquer
             target_pos = world.component_for_entity(enemies[0][0], PositionComponent)
+            # Direction VERS l'ennemi (MovementProcessor soustrait, donc on inverse)
             target_angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
             
             # Éviter obstacles
@@ -192,10 +226,12 @@ class MaraudeurAI:
             
             pos.direction = self._smooth_turn(pos.direction, target_angle, max_delta=15.0)
             vel.currentSpeed = 3.5
-            print(f"Maraudeur {self.entity} (DEF): Attaque ennemi proche")
+            self.current_action = f"Attaque ennemi proche (dist={enemies[0][1]/TILE_SIZE:.1f} tiles)"
+            print(f"Maraudeur {self.entity} (DEF): {self.current_action}")
         
         elif base_dist > 8 * TILE_SIZE:
             # Trop loin de la base : y retourner
+            # Direction VERS la base (MovementProcessor soustrait, donc on inverse)
             target_angle = self._angle_to(pos.x - base_pos[0], pos.y - base_pos[1])
             
             # Éviter obstacles
@@ -204,19 +240,36 @@ class MaraudeurAI:
             
             pos.direction = self._smooth_turn(pos.direction, target_angle, max_delta=15.0)
             vel.currentSpeed = 3.0
-            print(f"Maraudeur {self.entity} (DEF): Retour à la base")
+            self.current_action = f"Retour à la base (dist={base_dist/TILE_SIZE:.1f} tiles)"
+            print(f"Maraudeur {self.entity} (DEF): {self.current_action}")
         
         else:
-            # Patrouiller autour de la base
-            patrol_angle = self._angle_to(pos.x - base_pos[0], pos.y - base_pos[1]) + 90
+            # Patrouiller en cercle autour de la base
+            # Vecteur de la base vers le maraudeur
+            to_maraudeur_x = pos.x - base_pos[0]
+            to_maraudeur_y = pos.y - base_pos[1]
+            
+            # Rotation de 90° de ce vecteur pour obtenir la tangente (sens horaire)
+            # Tangente = (-y, x) pour rotation antihoraire OU (y, -x) pour horaire
+            tangent_x = to_maraudeur_y   # Rotation horaire
+            tangent_y = -to_maraudeur_x
+            
+            # L'angle de cette tangente EST la direction de patrouille
+            # Mais MovementProcessor soustrait, donc on inverse
+            patrol_angle = self._angle_to(-tangent_x, -tangent_y)
+            
             pos.direction = self._smooth_turn(pos.direction, patrol_angle, max_delta=10.0)
-            vel.currentSpeed = 2.0
-            print(f"Maraudeur {self.entity} (DEF): Patrouille base")
+            vel.currentSpeed = 2.5
+            self.current_action = f"Patrouille circulaire (dist base={base_dist/TILE_SIZE:.1f} tiles)"
+            print(f"Maraudeur {self.entity} (DEF): {self.current_action}")
     
     def _offensive_behavior(self, world, pos, vel, team, health):
         """Comportement offensif : attaquer la base ennemie"""
         # Chercher ennemis proches d'abord
         enemies = self._find_nearby_enemies(world, pos, team)
+        
+        # Stocker l'action pour le log
+        self.current_action = ""
         
         # Si santé basse, reculer
         health_ratio = health.currentHealth / health.maxHealth
@@ -230,7 +283,8 @@ class MaraudeurAI:
             
             pos.direction = self._smooth_turn(pos.direction, retreat_angle, max_delta=20.0)
             vel.currentSpeed = 4.0
-            print(f"Maraudeur {self.entity} (OFF): Retraite (santé basse)")
+            self.current_action = f"Retraite (santé={health_ratio*100:.0f}%)"
+            print(f"Maraudeur {self.entity} (OFF): {self.current_action}")
             return
         
         # Attaquer ennemi proche
@@ -243,12 +297,14 @@ class MaraudeurAI:
             
             pos.direction = self._smooth_turn(pos.direction, target_angle, max_delta=15.0)
             vel.currentSpeed = 3.5
-            print(f"Maraudeur {self.entity} (OFF): Attaque ennemi proche")
+            self.current_action = f"Attaque ennemi proche (dist={enemies[0][1]/TILE_SIZE:.1f} tiles)"
+            print(f"Maraudeur {self.entity} (OFF): {self.current_action}")
         
         else:
             # Aller vers la base ennemie
             enemy_base = self._find_enemy_base(world, team)
             if enemy_base:
+                dist_to_enemy_base = math.sqrt((pos.x - enemy_base[0])**2 + (pos.y - enemy_base[1])**2)
                 target_angle = self._angle_to(pos.x - enemy_base[0], pos.y - enemy_base[1])
                 
                 # Éviter obstacles
@@ -257,12 +313,14 @@ class MaraudeurAI:
                 
                 pos.direction = self._smooth_turn(pos.direction, target_angle, max_delta=15.0)
                 vel.currentSpeed = 4.0
-                print(f"Maraudeur {self.entity} (OFF): Fonce vers base ennemie")
+                self.current_action = f"Fonce vers base ennemie (dist={dist_to_enemy_base/TILE_SIZE:.1f} tiles)"
+                print(f"Maraudeur {self.entity} (OFF): {self.current_action}")
             else:
                 # Chercher la base ennemie
                 pos.direction = (pos.direction + 20) % 360
                 vel.currentSpeed = 3.0
-                print(f"Maraudeur {self.entity} (OFF): Recherche base ennemie")
+                self.current_action = "Recherche base ennemie"
+                print(f"Maraudeur {self.entity} (OFF): {self.current_action}")
     
     def _auto_fire(self, world, pos, team):
         """Tir automatique sur les ennemis à portée"""
@@ -1139,7 +1197,8 @@ class MaraudeurAI:
             
             if 0 <= grid_y < len(self.grid) and 0 <= grid_x < len(self.grid[0]):
                 tile = self.grid[grid_y][grid_x]
-                if tile in [TileType.ISLAND, TileType.MINE, TileType.WALL]:
+                # Vérifier si c'est un obstacle solide
+                if tile in [TileType.GENERIC_ISLAND, TileType.MINE, TileType.ALLY_BASE, TileType.ENEMY_BASE]:
                     return True
         
         return False
