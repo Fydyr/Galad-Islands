@@ -35,9 +35,10 @@ class UpdateNotification:
         self.hover_color = (50, 140, 220)
         
         # Dimensions et position (coin supérieur droit)
-        self.width = 350
-        self.height = 120
-        self.padding = 15
+        # Increase defaults to match larger tutorial window for readability
+        self.width = 520
+        self.height = 160
+        self.padding = 20
         self.button_height = 30
         self.button_spacing = 10
         
@@ -148,24 +149,33 @@ class UpdateNotification:
         surface.blit(bg_surface, (self.x, self.y))
         
         # Titre
-        font_title = pygame.font.Font(None, 24)
+        # Use larger fonts to match the larger notification size
+        font_title = pygame.font.Font(None, 28)
         title_text = t("update.available_title")
         title_surface = font_title.render(title_text, True, self.text_color)
         surface.blit(title_surface, (self.x + self.padding, self.y + self.padding))
         
         # Message
-        font_msg = pygame.font.Font(None, 18)
+        font_msg = pygame.font.Font(None, 20)
         message = t("update.available_message").format(
             version=self.new_version,
             current_version=self.current_version
         )
         
-        # Affichage multi-ligne
-        y_offset = self.y + self.padding + 30
-        for line in message.split('\n'):
+        # Multi-line display (respect dynamic font metrics)
+        title_height = font_title.get_linesize()
+        line_height = font_msg.get_linesize()
+        y_offset = self.y + self.padding + title_height + 8
+
+        lines = message.split('\n')
+        for line in lines:
             line_surface = font_msg.render(line, True, self.text_color)
             surface.blit(line_surface, (self.x + self.padding, y_offset))
-            y_offset += 20
+            y_offset += line_height
+
+        # Recalculate height to fit dynamic content
+        content_height = len(lines) * line_height
+        self.height = self.padding + title_height + 8 + content_height + self.padding + self.button_height + self.padding
             
         # Bouton télécharger
         self._draw_button(
@@ -200,7 +210,7 @@ class UpdateNotification:
         pygame.draw.rect(surface, self.border_color, rect, 2, border_radius=5)
         
         # Texte centré
-        font = pygame.font.Font(None, 20)
+        font = pygame.font.Font(None, 22)
         text_surface = font.render(text, True, self.text_color)
         text_rect = text_surface.get_rect(center=rect.center)
         surface.blit(text_surface, text_rect)

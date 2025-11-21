@@ -32,9 +32,10 @@ class TutorialNotification:
         self.hover_color = (50, 140, 220)
         
         # Dimensions et position (coin supérieur droit)
-        self.width = 350
-        self.height = 120
-        self.padding = 15
+        # Increased default width/height for more readable tutorial window
+        self.width = 520
+        self.height = 160
+        self.padding = 20
         self.button_height = 30
         self.button_spacing = 10
 
@@ -169,14 +170,15 @@ class TutorialNotification:
             return
             
         # Message with wrapping (respect the notification width)
-        font_title = pygame.font.Font(None, 24)
-        font_msg = pygame.font.Font(None, 18)
+        # Use slightly larger fonts to match the larger window
+        font_title = pygame.font.Font(None, 28)
+        font_msg = pygame.font.Font(None, 20)
         max_text_width = self.width - 2 * self.padding
         
         # Title will be drawn after the background is drawn (below)
         
         # Message with wrapping (respect the notification width)
-        font_msg = pygame.font.Font(None, 18)
+        font_msg = pygame.font.Font(None, 20)
         max_text_width = self.width - 2 * self.padding
 
         message_lines = []
