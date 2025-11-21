@@ -31,9 +31,10 @@ class NotificationSystem:
     def __init__(self):
         self.notifications: List[Notification] = []
         self.max_notifications = 5
-        self.notification_height = 40
-        self.notification_width = 400
-        self.padding = 10
+        # Make notifications slightly larger and wider for readability
+        self.notification_height = 56
+        self.notification_width = 520
+        self.padding = 12
         self.fade_duration = 0.5  # Durée du fade out en secondes
         
         # Couleurs par type
@@ -46,9 +47,10 @@ class NotificationSystem:
         
         # Police
         try:
-            self.font = pygame.font.Font(None, 24)
+            # Slightly larger font for better readability
+            self.font = pygame.font.Font(None, 28)
         except:
-            self.font = pygame.font.SysFont("Arial", 24)
+            self.font = pygame.font.SysFont("Arial", 28)
     
     def add_notification(self, message: str, notification_type: NotificationType = NotificationType.INFO, duration: float = 3.0):
         """

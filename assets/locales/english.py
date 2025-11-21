@@ -478,4 +478,33 @@ TRANSLATIONS = {
     "team_selection.message": "Select your starting side:",
     "team_selection.team1": "The Dawn Fleet",
     "team_selection.team2": "The Abyss Legion",
+
+    # Tutorial
+    "tutorial.next_button": "Next",
+    "tutorial.skip_button": "Skip",
+    "tutorial.move_unit.title": "Move Your Unit",
+    "tutorial.move_unit.message": "Move your selected unit using the movement keys (W/A/S/D or Z/Q/S/D depending on your keyboard layout). You can rebind controls in the Options.",
+    "tutorial.select_unit.title": "Your First Unit",
+    "tutorial.select_unit.message": "This is your first unit. You can select it by clicking on it.",
+    "tutorial.start.title": "Welcome to Galad Islands",
+    "tutorial.start.message": "This quick tutorial will guide you through the game's basics — move units, open the shop and more. Let's get started!",
+    "tutorial.attack_unit.title": "Attack an Enemy Unit",
+    "tutorial.attack_unit.message": "An enemy unit is approaching! Press the attack key (default: A) to fire at it.",
+    "tutorial.ai_mode.title": "AI Mode",
+    "tutorial.ai_mode.message": "Press T to toggle between manual control and AI mode. In AI mode the unit acts automatically; the base also has an AI that can buy units.",
+    "tutorial.shop_open.title": "The Shop",
+    "tutorial.shop_open.message": "The shop lets you buy units. You can see their stats and descriptions there.",
+    "tutorial.fog_of_war.title": "Fog of War",
+    "tutorial.fog_of_war.message": "Dark areas of the map are unexplored or out of view. Move your units to reveal the map and spot enemies.",
+    "tutorial.gold.title": "Earning Gold",
+    "tutorial.gold.message": "Gold is crucial to recruit units and build defenses. Earn it by destroying enemies and collecting flying chests or island resources.",
 }
+
+# Merge new categorized translations if present (keeps backwards compatibility)
+try:
+  from assets.locales.en import TRANSLATIONS as _EN_CATEGORIES
+  if isinstance(_EN_CATEGORIES, dict):
+    TRANSLATIONS.update(_EN_CATEGORIES)
+except Exception:
+  # best-effort: keep existing translations working even if new modules are not available
+  pass

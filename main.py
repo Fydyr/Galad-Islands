@@ -173,7 +173,7 @@ class MainMenu:
             # Launching the game is a blocking action.
             # The menu will resume after the game ends.
             self.audio_manager.play_music(MUSIC_IN_GAME)
-            game(self.surface, bg_original=self.bg_original, select_sound=self.audio_manager.get_select_sound(), mode=selected_mode)
+            game(self.surface, bg_original=self.bg_original, select_sound=self.audio_manager.get_select_sound(), audio_manager=self.audio_manager, mode=selected_mode)
             # When the game ends, restore the main menu theme
             # This ensures that if the player quits to the menu, the music is correct.
             self.audio_manager.play_music(MUSIC_MAIN_THEME)

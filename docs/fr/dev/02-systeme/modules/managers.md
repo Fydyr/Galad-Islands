@@ -18,6 +18,7 @@ Les gestionnaires centralisent la gestion des ressources et comportements de hau
 | `DisplayManager` | Gestion de l'affichage | `src/managers/display.py` |
 | `AudioManager` | Gestion audio | `src/managers/audio.py` |
 | `SpriteManager` | Cache des sprites | `src/systems/sprite_system.py` |
+| `TutorialManager` | Système de tutoriels en jeu et astuces contextuelles | `src/managers/tutorial_manager.py` |
 
 ## Gestionnaires de gameplay
 
@@ -83,6 +84,29 @@ class SpriteSystem:
 - Évite les rechargements multiples  
 - Système d'IDs au lieu de chemins
 - Optimisation mémoire
+
+### TutorialManager
+
+**Responsabilité :** Gère les notifications contextuelles du tutoriel en jeu.
+
+Fonctionnalités :
+- Stocke les étapes du tutoriel avec une clé et un trigger
+- Persiste les astuces lues via `config_manager` (`read_tips`)
+- File d'attente des astuces si plusieurs triggers surviennent en même temps
+- Priorisation des astuces importantes (ex. `start` / `select_unit`)
+
+Fichier : `src/managers/tutorial_manager.py`
+
+Comment ajouter une astuce (développeur) :
+1. Ajouter les clés de traduction dans `assets/locales/english.py` et `assets/locales/french.py` :
+    - `tutorial.my_tip.title` et `tutorial.my_tip.message`
+2. Mettre à jour `_load_tutorial_steps()` dans `TutorialManager` pour ajouter la nouvelle étape avec une `key` unique et `trigger` (chaine `user_type`).
+    - `trigger` est un `pygame.USEREVENT` `user_type` qui sera posté dans la logique du jeu.
+3. Implémenter le trigger en postant `pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "my_trigger"}))` dans le code (ex. `FlyingChestProcessor`, `vision_system`, `boutique`).
+4. Optionnel : ajouter une entrée dans `_tip_priority` pour contrôler l'ordre d'affichage.
+5. Le tutoriel ne s'affichera pas s'il est dans `config_manager['read_tips']` — ces données sont persistées.
+
+Astuce : appeler `TutorialManager.show_tip('my_tip_key')` pour déclencher directement un tutoriel sans passer par un event.
 
 ## Patterns d'utilisation
 

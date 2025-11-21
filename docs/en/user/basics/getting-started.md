@@ -23,6 +23,10 @@ When launching, you arrive at the main menu with the following options:
 - **👥 Credits**: Discover the development team
 - **🚪 Quit**: Close the game
 
+### Game modes (quick note)
+
+When you press **Play**, you can choose between game modes. In particular, **AI vs AI** lets you watch two AIs play against each other as a spectator. In this mode the action bar shows both bases' gold concurrently so you can compare their economies; note that in AI vs AI tutorials do not appear.
+
 !!! tip "Recommended configuration"
     **Before your first game**, visit the **Options** menu to:
     - Adjust resolution to your screen
@@ -54,6 +58,23 @@ When you start a game, you find yourself in the **Galad Islands archipelago** wi
 | **Escape** | Return to menu |
 
 > 📖 **For more details**, consult the [controls guide](../gameplay/controls.md)
+
+## 🎓 In-game Tutorials
+
+In-game tutorials help you learn the core mechanics and interface during your first session. They appear as small notifications in the top-right corner: a short title, a brief message, and two buttons — **Next** and **Skip**.
+
+- Tutorials are contextual: they appear when important game events happen (game start, unit selection, opening the shop, spotting enemies, collecting a chest or island resource, etc.).
+- By default, each tip shows only once.
+- If several events happen at once, tips are queued; higher-priority tips (for example the welcome message or unit selection) are shown first.
+- Tutorials do not appear in Spectator mode (AI vs AI).
+
+How to manage tutorials:
+
+- Open **Options** → **Gameplay**.
+- Use **Show tutorials** to toggle all tutorials on or off.
+- Use **Reset tutorials** to see the tips again (useful if you skipped them accidentally).
+
+If a tutorial shows too early or too frequently, it might be linked to a game event — please report it and we'll adjust the trigger.
 
 ## ⚔️ Your First Steps in the Game
 

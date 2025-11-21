@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Iterable, Optional, Tuple
 
 import esper
+import pygame
 import numpy as np
 
 from src.components.core.canCollideComponent import CanCollideComponent
@@ -89,7 +90,14 @@ class IslandResourceManager:
 
         if team_component is not None and resource.gold_amount > 0:
             # Give gold to the player
-            self._add_player_gold(resource.gold_amount, is_enemy=gold_receiver_is_enemy)
+            amount = resource.gold_amount
+            self._add_player_gold(amount, is_enemy=gold_receiver_is_enemy)
+            # Notify the system that gold has been collected (tutorial hook)
+            try:
+                import pygame
+                pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "resource_collected", "amount": amount, "is_enemy": gold_receiver_is_enemy}))
+            except Exception:
+                pass
             # Remove the resource entity immediately so it disappears on collection
             try:
                 if esper.entity_exists(resource_entity):

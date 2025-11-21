@@ -13,6 +13,7 @@ import esper as es
 
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.teamComponent import TeamComponent
+from src.constants.team import Team
 from src.components.core.visionComponent import VisionComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
@@ -30,6 +31,9 @@ class VisionSystem:
         self.cloud_image = sprite_manager.load_sprite(SpriteID.TERRAIN_CLOUD)
         self._dirty_teams: Set[int] = set()
         self.unlimited_vision: dict[int, bool] = {}  # Vision illimitée par équipe
+        # If True, suppress the 'tile_explored' event during update_visibility.
+        # This is used to avoid firing tutorial tips during initial entity spawn.
+        self._suppress_explore_events: bool = False
         self._load_cloud_image()
 
     def _load_cloud_image(self):
@@ -143,6 +147,31 @@ class VisionSystem:
                         pass
 
         self.explored_tiles[self.current_team].update(self.visible_tiles[self.current_team])
+
+        # Notify that new tiles were explored (used to trigger tutorial on fog-of-war)
+        try:
+            if len(newly_visible) > 0 and not getattr(self, '_suppress_explore_events', False):
+                pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "tile_explored", "count": len(newly_visible)}))
+        except Exception:
+            pass
+
+        # Check for enemy units entering the newly-visible tiles and notify once
+        try:
+            # Iterate over entities that belong to a team and check their positions
+            for ent, (pos, team_comp) in es.get_components(PositionComponent, TeamComponent):
+                # Ignore neutral/other teams (team_id=0 or unknown)
+                if team_comp.team_id not in (Team.ALLY, Team.ENEMY):
+                    continue
+                if team_comp.team_id == self.current_team:
+                    continue
+                grid_x = int(pos.x / TILE_SIZE)
+                grid_y = int(pos.y / TILE_SIZE)
+                if (grid_x, grid_y) in newly_visible and not getattr(self, '_suppress_explore_events', False):
+                    # Found an enemy unit that was just revealed; post a single event
+                    pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "enemy_spotted", "entity": ent}))
+                    break
+        except Exception:
+            pass
         
         # Marquer cette équipe comme "sale" (dirty) car la visibilité a changé
         self._dirty_teams.add(self.current_team)

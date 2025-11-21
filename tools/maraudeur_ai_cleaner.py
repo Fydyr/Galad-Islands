@@ -65,6 +65,7 @@ CONFIG_PATH = PROJECT_ROOT / ".clean_models_gui.json"
 PATTERNS = [
     "barhamus_ai_*.pkl",
     "marauder_ai_*.pkl",
+    "maraudeur_ai_*.pkl", # French variant
 ]
 
 

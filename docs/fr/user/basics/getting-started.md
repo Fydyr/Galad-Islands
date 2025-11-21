@@ -17,6 +17,10 @@ Au lancement, vous arrivez sur le menu principal avec les options suivantes :
 - **👥 Crédits** : Découvrir l'équipe de développement
 - **🚪 Quitter** : Fermer le jeu
 
+### Modes de jeu (note rapide)
+
+En cliquant sur **Jouer**, vous pouvez choisir différents modes. Le mode **IA vs IA** (spectateur) vous permet d'observer deux IA s'affronter en direct. Dans ce mode la barre d'action affiche simultanément l'or des deux bases pour comparer les économies ; notez que les tutoriels ne s'affichent pas en mode spectateur.
+
 !!! tip "Configuration recommandée"
     **Avant votre première partie**, visitez le menu **Options** pour :
     - Ajuster la résolution à votre écran
@@ -48,6 +52,23 @@ Quand vous lancez une partie, vous vous retrouvez dans l'**archipel des Galad Is
 | **Échap** | Retour au menu |
 
 > 📖 **Pour plus de détails**, consultez le [guide des contrôles](../gameplay/controls.md)
+
+## 🎓 Tutoriels en jeu
+
+Les tutoriels en jeu vous aident à comprendre progressivement les mécaniques et l'interface pendant votre première partie. Ils apparaissent sous la forme de petites notifications en haut à droite, avec un titre, un message court et deux boutons : **Suivant** et **Passer**.
+
+- Ils sont contextuels : ils se déclenchent lorsqu'un événement de jeu important survient (début de partie, sélection d'une unité, ouverture de la boutique, découverte d'ennemis, ramassage d'un coffre ou d'une ressource, etc.).
+- Par défaut, chaque astuce ne s'affiche qu'une seule fois.
+- Si plusieurs événements surviennent en même temps, les astuces sont mises en file d'attente : les plus importantes (ex. message de bienvenue, sélection d'unité) sont affichées en priorité.
+- Les tutoriels ne s'affichent pas en mode Spectateur (AI vs AI).
+
+Comment gérer les tutoriels :
+
+- Ouvrez **Options** → **Gameplay**.
+- Activez/désactivez **Afficher les tutoriels** pour tout activer/désactiver.
+- Utilisez **Réinitialiser les tutoriels** pour revoir toutes les astuces (utile si vous les avez passées trop vite).
+
+Si un tutoriel apparaît trop tôt ou trop souvent, cela peut venir d'un déclencheur en jeu — signalez-nous l'emplacement et nous ajusterons le déclencheur dans une prochaine mise à jour.
 
 ## ⚔️ Vos premiers pas dans le jeu
 

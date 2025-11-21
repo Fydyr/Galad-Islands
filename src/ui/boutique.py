@@ -535,6 +535,18 @@ class UnifiedShop:
                     print(f"Status bases: Alliés={ally_units} unités, Ennemis={enemy_units} unités")
                     
                     self._show_purchase_feedback(f"Unité {unit_name} recrutée!", True)
+                    # If the player bought a second unit, show the AI mode tutorial tip
+                    try:
+                        if not is_enemy and not self_play_mode and ally_units >= 2:
+                            pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "ai_mode"}))
+                            # Fallback: directly show the tip if the event isn't consumed
+                            if hasattr(self, 'game_engine') and getattr(self.game_engine, 'tutorial_manager', None) is not None:
+                                try:
+                                    self.game_engine.tutorial_manager.show_tip('ai_mode')
+                                except Exception:
+                                    pass
+                    except Exception:
+                        pass
                     return True
                 else:
                     print(f"Erreur lors de la création de l'unité {unit_id}")

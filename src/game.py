@@ -16,8 +16,9 @@ from src.settings.localization import t
 from src.settings.docs_manager import get_help_path
 from src.settings import controls
 from src.constants.team import Team
-from src.ui.team_selection_modal import TeamSelectionModal
 from src.components.core.team_enum import Team as TeamEnum
+from src.ui.team_selection_modal import TeamSelectionModal
+from src.managers.tutorial_manager import TutorialManager
 from src.ui.crash_window import show_crash_popup
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ from src.ia.ia_scout.processors.rapid_ai_processor import RapidTroopAIProcessor
 from src.processeurs.economy.passiveIncomeProcessor import PassiveIncomeProcessor
 from src.processeurs.ai.ai_processor_manager import AIProcessorManager
 from src.components.core.aiEnabledComponent import AIEnabledComponent
+from src.processeurs.explosionSoundProcessor import ExplosionSoundProcessor
 
 
 # Component imports
@@ -80,7 +82,6 @@ from src.processeurs.flyingChestProcessor import FlyingChestProcessor
 from src.managers.island_resource_manager import IslandResourceManager
 from src.processeurs.stormProcessor import StormProcessor
 from src.processeurs.combatRewardProcessor import CombatRewardProcessor
-from src.managers.display import get_display_manager
 
 # Factory and utility function imports
 from src.factory.unitFactory import UnitFactory
@@ -123,6 +124,18 @@ class EventHandler:
     def handle_events(self):
         """Handles all pygame events."""
         for event in pygame.event.get():
+            # Enregistrer les triggers tutoriels dynamiques (hors self_play_mode)
+            try:
+                if hasattr(self.game_engine, 'tutorial_manager') and not getattr(self.game_engine, 'self_play_mode', False):
+                    self.game_engine.tutorial_manager.handle_event(event)
+            except Exception:
+                pass
+            # Give priority to the notification handling if tutorial is active
+            if self.game_engine.tutorial_manager.is_active():
+                self.game_engine.tutorial_manager.handle_notification_event(event, self.game_engine.window.get_width(), self.game_engine.window.get_height())
+                # If the tutorial is active, it might consume events, so we can decide to stop propagation if needed.
+                # For now, we let other handlers process the event as well.
+
             if event.type == pygame.QUIT:
                 # Open confirmation modal instead of quitting directly
                 self.game_engine.open_exit_modal()
@@ -279,9 +292,20 @@ class EventHandler:
         self.game_engine.show_debug = not self.game_engine.show_debug
 
     def _open_shop(self):
-        """Opens the shop via the ActionBar."""
+        """Opens the shop via the ActionBar and trigger the tutorial if needed."""
         if self.game_engine.action_bar is not None:
+            # Ouvrir / fermer la boutique
             self.game_engine.action_bar._open_shop()
+            # Afficher l'astuce de la boutique seulement si la boutique est ouverte
+            try:
+                shop = getattr(self.game_engine.action_bar, 'shop', None)
+                shop_open = getattr(shop, 'is_open', False)
+            except Exception:
+                shop_open = False
+
+            # The Shop class already posts a pygame.USEREVENT "open_shop" which triggers tutorials,
+            # so we don't call show_tip here to avoid duplicate or premature displays.
+
 
     def _handle_group_shortcuts(self, event: pygame.event.Event) -> bool:
         """Handles keyboard shortcuts related to control groups."""
@@ -342,6 +366,10 @@ class GameRenderer:
         
         if show_debug:
             self._render_debug_info(window, camera, dt, self.game_engine)
+
+        # Draw the tutorial
+        if self.game_engine.tutorial_manager.is_active():
+            self.game_engine.tutorial_manager.draw(window)
             
         if self.game_engine.exit_modal.is_active():
             self.game_engine.exit_modal.render(window)
@@ -851,18 +879,20 @@ class GameRenderer:
 class GameEngine:
     """Main class managing all game logic."""
 
-    def __init__(self, window=None, bg_original=None, select_sound=None, self_play_mode=False):
+    def __init__(self, window=None, bg_original=None, select_sound=None, audio_manager=None, self_play_mode=False):
         """Initializes the game engine.
 
         Args:
             window: Existing pygame surface (optional)
             bg_original: Background image for modals (optional)
             select_sound: Selection sound for modals (optional)
+            audio_manager: AudioManager instance for sound effects (optional)
             self_play_mode: Activates AI vs AI mode (optional)
         """
         self.window = window
         self.bg_original = bg_original
         self.select_sound = select_sound
+        self.audio_manager = audio_manager
         self.running = True
         self.created_local_window = False
         self.show_debug = False
@@ -885,6 +915,7 @@ class GameEngine:
         self.maraudeur_ais = {}  # entity_id -> MaraudeurAI
         self.player = None
         self.notification_system = get_notification_system()
+        self.tutorial_manager = TutorialManager(config_manager=config_manager)
 
         # ECS processors
         self.movement_processor = None
@@ -1045,13 +1076,26 @@ class GameEngine:
         self._initialize_ecs()
 
         # Create les entities de base
+        # Avoid triggering 'tile_explored' during initial creation (base + scout spawn)
+        try:
+            vision_system._suppress_explore_events = True
+        except Exception:
+            pass
         self._create_initial_entities()
         
         # Configurer la caméra
         self._setup_camera()
         
+        # Signal game start for tutorials (handled by TutorialManager via event triggers)
+        if not self.self_play_mode:
+            pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "game_start"}))
         # Réinitialiser le système de vision after l'initialisation complète
         vision_system.reset()
+        # Re-enable exploration events so the fog-of-war tutorial can fire later
+        try:
+            vision_system._suppress_explore_events = False
+        except Exception:
+            pass
         
     def _initialize_game_map(self):
         """Initialise la carte du jeu."""
@@ -1109,6 +1153,8 @@ class GameEngine:
         self.event_processor = EventProcessor(15, 5, 10, 25)
         # Passive income to prevent stalemates when a team has zero units
         self.passive_income_processor = PassiveIncomeProcessor(gold_per_tick=1, interval=2.0)
+        # Explosion sound processor for damage sounds
+        self.explosion_sound_processor = ExplosionSoundProcessor(self.audio_manager) if self.audio_manager else None
 
         # AI - Initialize the AI processors with the grid
         self.druid_ai_processor = DruidAIProcessor(self.grid, es)
@@ -1153,6 +1199,8 @@ class GameEngine:
         es.add_processor(self.collision_processor, priority=4)
         es.add_processor(self.movement_processor, priority=5)
         es.add_processor(self.player_controls, priority=6)
+        if self.explosion_sound_processor:
+            es.add_processor(self.explosion_sound_processor, priority=9)  # Before passive income
         es.add_processor(self.passive_income_processor, priority=10)
         #es.add_processor(self.tower_processor, priority=5)
         #es.add_processor(self.lifetime_processor, priority=10)
@@ -1286,6 +1334,12 @@ class GameEngine:
         self.selection_team_filter = team
         self._clear_current_selection()
         self._update_selection_state()
+        # Envoyer un événement de tutoriel si une unité est sélectionnée et si on n'est pas en mode self-play
+        try:
+            if not getattr(self, 'self_play_mode', False) and self.selected_unit_id is not None:
+                pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "unit_selected"}))
+        except Exception:
+            pass
 
         if self.action_bar is not None:
             self.action_bar.set_camp(team, show_feedback=notify)
@@ -2317,13 +2371,14 @@ class GameEngine:
         elif not hasattr(self, '_ai_stats_timer'):
             self._ai_stats_timer = 10.0
 
-def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
+def game(window=None, bg_original=None, select_sound=None, audio_manager=None, mode="player_vs_ai"):
     """Main entry point for the game (compatibility with existing API).
 
     Args:
         window: Existing pygame surface (optional)
         bg_original: Background image for modals (optional)
         select_sound: Selection sound for modals (optional)
+        audio_manager: AudioManager instance for sound effects (optional)
         mode: "player_vs_ai" or "ai_vs_ai"
     """
     try:
@@ -2352,7 +2407,7 @@ def game(window=None, bg_original=None, select_sound=None, mode="player_vs_ai"):
             if team_chosen is not None:
                 selected_team = team_chosen
 
-        engine = GameEngine(window, bg_original, select_sound, self_play_mode=(mode == "ai_vs_ai"))
+        engine = GameEngine(window, bg_original, select_sound, audio_manager, self_play_mode=(mode == "ai_vs_ai"))
         if mode == "ai_vs_ai":
             engine.enable_self_play()
         # Apply team choice to the engine

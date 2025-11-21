@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Iterable, Optional, Tuple
 
 import esper
+import pygame
 import numpy as np
 
 from src.components.core.canCollideComponent import CanCollideComponent
@@ -112,7 +113,13 @@ class FlyingChestProcessor(esper.Processor):
             team_component = None
 
         if team_component is not None and chest.gold_amount > 0:
-            self._add_player_gold(chest.gold_amount, is_enemy=gold_receiver_is_enemy)
+            amount = chest.gold_amount
+            self._add_player_gold(amount, is_enemy=gold_receiver_is_enemy)
+            # Notify the system that gold has been collected (tutorial hook)
+            try:
+                pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "resource_collected", "amount": amount, "is_enemy": gold_receiver_is_enemy}))
+            except Exception:
+                pass
 
         chest.gold_amount = 0
         chest.is_collected = True

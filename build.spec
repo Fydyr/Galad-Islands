@@ -2,17 +2,27 @@
 
 import os
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules, collect_all, copy_metadata, collect_dynamic_libs
+import glob
 
-# --- Analyse des dépendances ---
-# On analyse les deux scripts pour trouver toutes les dépendances communes.
-analysis = Analysis(
-    ['main.py', 'tools/galad_config.py'], # Scripts d'entrée
-    pathex=[os.getcwd()], # Chemin racine du projet
-    datas=[
-        ('assets', 'assets'),
-        ('models/*.pkl', 'models')
-    ],
-    hiddenimports=[],
+# Collect model files (glob) to avoid path expansion issues across different CI runners
+model_datas = []
+for f in glob.glob('src/models/*.pkl'):
+    model_datas.append((f, 'models'))
+for f in glob.glob('src/ia/models/*.pkl'):
+    model_datas.append((f, 'models'))
+
+# NOTE: Building with a single Analysis (above) may add excluded modules or
+# heavy libs to all executables. To have finer control we create one
+# Analysis per executable. This mirrors the CI flags used in GitHub Actions.
+
+# --- Dependency analysis ---
+# We analyze each entry script to find its dependencies.
+# Game (main) Analysis: needs assets + models and sklearn forest import
+analysis_game = Analysis(
+    ['main.py'],
+    pathex=[os.getcwd()],
+    datas=[('assets', 'assets')] + model_datas,
+    hiddenimports=['sklearn.ensemble._forest'],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
@@ -22,29 +32,86 @@ analysis = Analysis(
     noarchive=False
 )
 
-# --- Création du PYZ (archive des modules Python) ---
-pyz = PYZ(analysis.pure, analysis.zipped_data, cipher=None)
+# Config tool: needs locales + src, exclude heavy libs to keep package small
+analysis_config = Analysis(
+    ['tools/galad_config.py'],
+    pathex=[os.getcwd()],
+    datas=[('assets/locales', 'assets/locales'), ('src', 'src')],
+    hiddenimports=[],
+    hookspath=[],
+    runtime_hooks=[],
+    excludes=['esper', 'llvmlite', 'numba', 'numpy', 'Pillow', 'sklearn', 'joblib'],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=None,
+    noarchive=False
+)
 
-# --- Définition des exécutables ---
-# On définit chaque exécutable SANS les rassembler.
-# Ils seront créés dans des dossiers temporaires par PyInstaller.
+# Maraudeur AI Cleaner: similar to config tool
+analysis_maraudeur = Analysis(
+    ['tools/maraudeur_ai_cleaner.py'],
+    pathex=[os.getcwd()],
+    datas=[('assets/locales', 'assets/locales'), ('src', 'src')],
+    hiddenimports=[],
+    hookspath=[],
+    runtime_hooks=[],
+    excludes=['esper', 'llvmlite', 'numba', 'numpy', 'Pillow', 'sklearn', 'joblib', 'pygame'],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=None,
+    noarchive=False
+)
+
+# --- Create PYZ (Python modules archive) ---
+pyz_game = PYZ(analysis_game.pure, analysis_game.zipped_data, cipher=None)
+pyz_config = PYZ(analysis_config.pure, analysis_config.zipped_data, cipher=None)
+pyz_maraudeur = PYZ(analysis_maraudeur.pure, analysis_maraudeur.zipped_data, cipher=None)
+
+# --- EXE definitions ---
+# Define each executable WITHOUT merging them.
+# They will be created in temporary folders by PyInstaller.
 exe_game = EXE(
-    pyz,
-    analysis.scripts,
+    pyz_game,
+    analysis_game.scripts,
+    [],
+    exclude_binaries=True,
     name='galad-islands',
-    console=False, # Pas de console pour le jeu
+    console=False,  # No console for the game
     icon='assets/logo.ico'
 )
 
 exe_config_tool = EXE(
-    pyz,
-    analysis.scripts,
+    pyz_config,
+    analysis_config.scripts,
+    [],
+    exclude_binaries=True,
     name='galad-config-tool',
-    console=False, # Pas de console pour l'outil de config
+    console=False,  # No console for the config tool
     icon='assets/logo.ico'
 )
 
-# --- Rassemblement final ---
-# C'est ici que tout est mis en commun dans le dossier de sortie final.
-# Cette structure est la bonne pratique pour les applications multi-exécutables.
-coll = COLLECT(exe_game, exe_config_tool, analysis.binaries, analysis.datas, name='galad-dist')
+exe_maraudeur = EXE(
+    pyz_maraudeur,
+    analysis_maraudeur.scripts,
+    [],
+    exclude_binaries=True,
+    name='MaraudeurAiCleaner',
+    console=False,
+    icon='assets/logo.ico'
+)
+
+# --- Final collect ---
+# This is where all exe outputs and related files are placed into
+# the final output directories. This structure is the recommended
+# practice for multi-executable applications.
+coll_game = COLLECT(exe_game,
+                    analysis_game.binaries, analysis_game.datas,
+                    name='galad-islands')
+
+coll_config = COLLECT(exe_config_tool,
+                      analysis_config.binaries, analysis_config.datas,
+                      name='galad-config-tool')
+
+coll_maraudeur = COLLECT(exe_maraudeur,
+                         analysis_maraudeur.binaries, analysis_maraudeur.datas,
+                         name='MaraudeurAiCleaner')
