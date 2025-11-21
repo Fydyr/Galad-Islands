@@ -141,6 +141,12 @@ class LocalizationManager:
                 translation = translation.format(**kwargs)
             except (KeyError, ValueError):
                 pass
+
+        # Normalize common escaped sequences produced by some translation files
+        # (some locale modules used "\\n" i.e. literal backslash+n). Convert
+        # those to actual newline characters so UI splitting logic works.
+        if isinstance(translation, str):
+            translation = translation.replace('\\n', '\n')
         
         if translation == key and default is not None:
             try:
