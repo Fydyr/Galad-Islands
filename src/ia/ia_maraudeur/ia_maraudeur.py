@@ -1031,19 +1031,24 @@ class MaraudeurAI:
         """Calcule la priorité d'une cible"""
         priority = 0
         
-        # Priorité basée sur la santé (cibles faibles = priorité haute)
-        if world.has_component(entity, HealthComponent):
-            health = world.component_for_entity(entity, HealthComponent)
-            health_ratio = health.currentHealth / health.maxHealth
-            priority += (1.0 - health_ratio) * 3
-        
-        # Priorité basée sur l'attaque (cibles dangereuses = priorité haute)
-        if world.has_component(entity, AttackComponent):
-            attack = world.component_for_entity(entity, AttackComponent)
-            if attack.hitPoints >= 45:  # Léviathan
-                priority += 5
-            else:
-                priority += attack.hitPoints / 20.0
+        try:
+            # Priorité basée sur la santé (cibles faibles = priorité haute)
+            if world.has_component(entity, HealthComponent):
+                health = world.component_for_entity(entity, HealthComponent)
+                if health.maxHealth > 0:
+                    health_ratio = health.currentHealth / health.maxHealth
+                    priority += (1.0 - health_ratio) * 3
+            
+            # Priorité basée sur l'attaque (cibles dangereuses = priorité haute)
+            if world.has_component(entity, AttackComponent):
+                attack = world.component_for_entity(entity, AttackComponent)
+                if attack.hitPoints >= 45:  # Léviathan
+                    priority += 5
+                else:
+                    priority += attack.hitPoints / 20.0
+        except Exception as e:
+            print(f"Erreur calcul priorité cible: {e}")
+            priority = 1.0  # Priorité par défaut
         
         return priority
     
