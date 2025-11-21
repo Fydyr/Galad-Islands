@@ -9,6 +9,7 @@ TRANSLATIONS = {
     "tutorial.select_unit.message": "Ceci est votre première unité. Vous pouvez la sélectionner en cliquant dessus.",
     "tutorial.attack_unit.title": "Attaquer une Unité Ennemie",
     "tutorial.attack_unit.message": "Oh ! Une unité ennemie approche ! Appuyez sur A pour tirer sur lui !",
+    "tutorial.spe_attack_unit.message": "Lancer votre capacité spéciale en appuyant sur la touche E ! cela peut changer le cours de la bataille mais attention, elle a un temps de recharge !",
     "tutorial.ai_mode.title": "Mode IA",
     "tutorial.ai_mode.message": "Vous pouvez basculer entre le contrôle manuel et le mode IA en appuyant sur T. En mode IA, l'unité agira automatiquement. Sachez que la base possède également une IA pour acheter des unités.",
     "tutorial.ai_mode.messagetwo": "Attention: vous ne pouvez pas contrôler les unités en mode IA.",
