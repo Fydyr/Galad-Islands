@@ -127,6 +127,9 @@ class MenuState:
         self.running = True
         self.tip_rotator = TipRotator()
         self.language_watcher = LanguageWatcher()
+        # Flag set when the language is changed so callers can react once
+        # (allows a single place to handle UI text refresh without double-checking)
+        self.language_changed = False
         self.resize_debouncer = ResizeDebouncer()
         self.button_animator = ButtonPressAnimator()
         self.layout_dirty = True
@@ -141,8 +144,11 @@ class MenuState:
 
         # Check for language changes
         if self.language_watcher.check_for_changes():
+            # Signal callers that a language change has occurred so they can
+            # refresh textual UI components (main menu labels, captions, etc.)
             self.tip_rotator.refresh()
             self.layout_dirty = True
+            self.language_changed = True
 
         # Resize debouncing
         resize_result = self.resize_debouncer.update(dt)

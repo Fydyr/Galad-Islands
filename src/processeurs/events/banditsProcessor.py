@@ -74,6 +74,8 @@ class BanditsProcessor:
             # Move for 10 seconds (very slow)
             bandits.movement_duration = 10.0
             bandits.wait_duration = 5.0      # Wait for 5 seconds
+            # Random speed between 5.0 and 10.0 for each bandit
+            bandits.individual_speed = random.uniform(5.0, 10.0)
 
         # Update phase timer
         bandits.phase_timer += dt
@@ -93,11 +95,11 @@ class BanditsProcessor:
                 # Resume moving
                 bandits.movement_phase = 'moving'
                 bandits.phase_timer = 0.0
-                # Restart movement at reduced speed
+                # Restart movement at individual speed
                 if esper.has_component(entity, Velocity):
                     vel = esper.component_for_entity(entity, Velocity)
-                    # Very reduced speed: 7 pixels/s (very slow)
-                    vel.currentSpeed = 7.0
+                    # Use the bandit's individual speed
+                    vel.currentSpeed = bandits.individual_speed
 
     @staticmethod
     def _attack_nearby_entities(entity, bandits):

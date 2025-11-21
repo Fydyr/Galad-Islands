@@ -384,10 +384,13 @@ class MainMenu:
                     self.surface = self.display_manager.apply_changes()
                     self.state.mark_layout_dirty()
 
-                # Check for language changes
-                if self.state.language_watcher.check_for_changes():
+                # Check if the language changed earlier during state.update()
+                # (MenuState sets language_changed so we only refresh once here.)
+                if getattr(self.state, 'language_changed', False):
                     self._update_button_labels()
                     pygame.display.set_caption(t("system.main_window_title"))
+                    # reset the signal so subsequent loops don't re-run this
+                    self.state.language_changed = False
 
                 # Recalculate layout if needed
                 current_size = self.surface.get_size()

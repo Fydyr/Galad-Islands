@@ -212,6 +212,13 @@ class TestGlobalFunctions:
         result = t("menu.play")
         assert result == "Play"
 
+    def test_newline_unescaping_in_translations(self, localization_manager):
+        """Les traductions contenant des séquences '\\n' doivent être renvoyées avec de vrais retours à la ligne."""
+        localization_manager.set_language("en")
+        val = localization_manager.translate("tooltip.ai_toggle")
+        assert "\\n" not in val
+        assert "\n" in val
+
     def test_global_set_language(self):
         """Test fonction globale set_language()."""
         original_lang = get_current_language()
