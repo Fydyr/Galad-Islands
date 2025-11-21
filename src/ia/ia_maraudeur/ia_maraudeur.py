@@ -26,53 +26,15 @@ class MaraudeurAI:
         self.shield_active = False
         self.grid = None
         
-        # Système d'apprentissage avec scikit-learn
-        self.decision_tree = DecisionTreeClassifier(random_state=42, max_depth=8)
-        self.scaler = StandardScaler()
-        self.pathfinding_nn = NearestNeighbors(n_neighbors=5, algorithm='ball_tree')
+        # Stratégie déterministe : choix aléatoire au début seulement
+        self.mode = random.choice(["offensive", "defensive"])
+        print(f"Maraudeur {self.entity}: Mode choisi = {self.mode}")
         
-        # Base de données d'expérience
-        self.experiences = []
-        self.training_data = []
-        self.training_labels = []
-        self.is_trained = False
-        
-        # État actuel pour apprentissage
-        self.last_state = None
-        self.last_action = None
-        self.last_reward = 0
-        # Death penalty tracking (forte pénalité pour encourager la survie)
-        self.death_penalty = 100.0  # montant soustrait si l'unité meurt
-        self.death_penalized = False
-        
-        # Performance tracking
+        # Statistiques simples
         self.survival_time = 0.0
-        # Timer for periodic survival reward (grant at most once every N seconds)
-        self.last_survival_reward_time = -9999.0
-        self.damage_dealt = 0
-        self.damage_taken = 0
-        self.successful_attacks = 0
-        self.failed_attacks = 0
-        
-        # Comportement adaptatif
-        self.current_strategy = "balanced"  # balanced, aggressive, defensive, tactical
-        self.strategy_performance = {
-            "balanced": {"success": 0, "failure": 0},
-            "aggressive": {"success": 0, "failure": 0},
-            "defensive": {"success": 0, "failure": 0},
-            "tactical": {"success": 0, "failure": 0}
-        }
-        
-        # Pathfinding intelligent
-        self.safe_positions = []
-        self.dangerous_positions = []
-        self.optimal_distances = {}
-        
-        # Initialiser avec des données de base
-        self._initialize_base_knowledge()
-        
-        # Charger modèle sauvegardé si disponible
-        self._load_model()
+        self.last_obstacle_check = 0.0
+        self.stuck_counter = 0
+        self.last_position = None
 
     def update(self, world, dt):
         """Mise à jour principale de l'IA avec apprentissage"""
@@ -93,57 +55,35 @@ class MaraudeurAI:
 
         # Mettre à jour les statistiques de survie
         self.survival_time += dt
+        self.last_obstacle_check += dt
         
         # Gestion du cooldown
         if self.cooldown > 0:
             self.cooldown -= dt
 
-        # Analyser la situation tactique
-        try:
-            current_state = self._analyze_situation(world, pos, health, team)
-            
-            # LOGIQUE TACTIQUE PRINCIPALE
-            base_position = self._find_team_base(world, team)
-            enemies_near_base = self._check_enemies_near_base(world, team, base_position)
-            
-            # Décision tactique: Défendre ou Attaquer
-            if enemies_near_base:
-                print(f"Barhamus {self.entity}: DÉFENSE - Ennemis détectés près de la base!")
-                action = self._decide_defensive_action(world, pos, team, base_position)
+        # Détecter si bloqué
+        if self.last_position:
+            dist_moved = math.sqrt((pos.x - self.last_position[0])**2 + (pos.y - self.last_position[1])**2)
+            if dist_moved < 5 and vel.currentSpeed > 1.0:  # Bloqué !
+                self.stuck_counter += 1
             else:
-                print(f"Barhamus {self.entity}: ATTAQUE - Base sécurisée, mode offensif")
-                action = self._decide_offensive_action(world, pos, team)
+                self.stuck_counter = 0
+        self.last_position = (pos.x, pos.y)
+
+        # Logique simple et déterministe
+        try:
+            if self.mode == "defensive":
+                self._defensive_behavior(world, pos, vel, team, health)
+            else:  # offensive
+                self._offensive_behavior(world, pos, vel, team, health)
             
-            # Calculer la récompense de l'action précédente
-            if self.last_state is not None and self.last_action is not None:
-                reward = self._calculate_reward(current_state, health)
-                self._record_experience(self.last_state, self.last_action, reward, current_state)
-            
-            action_names = ["Approche", "Attaque", "Patrouille", "Évitement", "Bouclier", "Défensif", "Retraite", "Embuscade"]
-            print(f"Barhamus {self.entity}: Exécute action {action} ({action_names[action]})")
-            
-            # Exécuter l'action avec tir en salve si nécessaire
-            self._execute_action_with_combat(action, world, pos, vel, health, team, spe)
+            # Tirer si ennemi à portée
+            self._auto_fire(world, pos, team)
             
         except Exception as e:
-            print(f"Erreur IA Barhamus {self.entity}: {e}")
-            # Action par défaut: défendre la base
-            self._default_defense_behavior(world, pos, vel, team)
-        
-        # Sauvegarder l'état pour le prochain cycle
-        self.last_state = current_state.copy()
-        self.last_action = action
-        
-        # Entraîner le modèle BEAUCOUP PLUS SOUVENT pour apprentissage rapide
-        if len(self.experiences) >= 10 and len(self.experiences) % 5 == 0:
-            self._retrain_model()
-        
-        # Adapter la stratégie basée sur les performances
-        self._adapt_strategy()
-        
-        # Sauvegarder le modèle périodiquement
-        if self.survival_time > 0 and int(self.survival_time) % 30 == 0:
-            self._save_model()
+            print(f"Erreur IA Maraudeur {self.entity}: {e}")
+            vel.currentSpeed = 2.0
+            pos.direction = (pos.direction + 45) % 360
 
     def _analyze_situation(self, world, pos, health, team):
         """Analyse la situation actuelle et retourne un vecteur d'état"""
@@ -229,17 +169,120 @@ class MaraudeurAI:
         else:
             return 0  # Approche
     
-    def _execute_action_with_combat(self, action, world, pos, vel, health, team, spe):
-        """Exécute l'action avec gestion du combat tactique"""
-        # Exécuter l'action de mouvement
-        self._execute_movement_action(action, world, pos, vel, team, spe)
+    def _defensive_behavior(self, world, pos, vel, team, health):
+        """Comportement défensif : protéger la base"""
+        base_pos = self._find_team_base(world, team)
+        if not base_pos:
+            base_pos = (500, 500)
         
-        # Gestion spéciale du bouclier
-        if action == 4:
-            self._action_shield_management(spe, health)
+        # Distance à la base
+        base_dist = math.sqrt((pos.x - base_pos[0])**2 + (pos.y - base_pos[1])**2)
         
-        # Gestion du combat en parallèle
-        self._handle_tactical_combat(action, world, pos, team)
+        # Chercher ennemis proches
+        enemies = self._find_nearby_enemies(world, pos, team)
+        
+        if enemies and enemies[0][1] < 10 * TILE_SIZE:
+            # Ennemi proche : l'attaquer
+            target_pos = world.component_for_entity(enemies[0][0], PositionComponent)
+            target_angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
+            
+            # Éviter obstacles
+            if self._check_obstacle_ahead(pos, target_angle):
+                target_angle = self._find_clear_direction(pos, target_angle)
+            
+            pos.direction = self._smooth_turn(pos.direction, target_angle, max_delta=15.0)
+            vel.currentSpeed = 3.5
+            print(f"Maraudeur {self.entity} (DEF): Attaque ennemi proche")
+        
+        elif base_dist > 8 * TILE_SIZE:
+            # Trop loin de la base : y retourner
+            target_angle = self._angle_to(pos.x - base_pos[0], pos.y - base_pos[1])
+            
+            # Éviter obstacles
+            if self._check_obstacle_ahead(pos, target_angle):
+                target_angle = self._find_clear_direction(pos, target_angle)
+            
+            pos.direction = self._smooth_turn(pos.direction, target_angle, max_delta=15.0)
+            vel.currentSpeed = 3.0
+            print(f"Maraudeur {self.entity} (DEF): Retour à la base")
+        
+        else:
+            # Patrouiller autour de la base
+            patrol_angle = self._angle_to(pos.x - base_pos[0], pos.y - base_pos[1]) + 90
+            pos.direction = self._smooth_turn(pos.direction, patrol_angle, max_delta=10.0)
+            vel.currentSpeed = 2.0
+            print(f"Maraudeur {self.entity} (DEF): Patrouille base")
+    
+    def _offensive_behavior(self, world, pos, vel, team, health):
+        """Comportement offensif : attaquer la base ennemie"""
+        # Chercher ennemis proches d'abord
+        enemies = self._find_nearby_enemies(world, pos, team)
+        
+        # Si santé basse, reculer
+        health_ratio = health.currentHealth / health.maxHealth
+        if health_ratio < 0.3 and enemies:
+            # Fuir
+            target_pos = world.component_for_entity(enemies[0][0], PositionComponent)
+            retreat_angle = self._angle_to(target_pos.x - pos.x, target_pos.y - pos.y)
+            
+            if self._check_obstacle_ahead(pos, retreat_angle):
+                retreat_angle = self._find_clear_direction(pos, retreat_angle)
+            
+            pos.direction = self._smooth_turn(pos.direction, retreat_angle, max_delta=20.0)
+            vel.currentSpeed = 4.0
+            print(f"Maraudeur {self.entity} (OFF): Retraite (santé basse)")
+            return
+        
+        # Attaquer ennemi proche
+        if enemies and enemies[0][1] < 8 * TILE_SIZE:
+            target_pos = world.component_for_entity(enemies[0][0], PositionComponent)
+            target_angle = self._angle_to(pos.x - target_pos.x, pos.y - target_pos.y)
+            
+            if self._check_obstacle_ahead(pos, target_angle):
+                target_angle = self._find_clear_direction(pos, target_angle)
+            
+            pos.direction = self._smooth_turn(pos.direction, target_angle, max_delta=15.0)
+            vel.currentSpeed = 3.5
+            print(f"Maraudeur {self.entity} (OFF): Attaque ennemi proche")
+        
+        else:
+            # Aller vers la base ennemie
+            enemy_base = self._find_enemy_base(world, team)
+            if enemy_base:
+                target_angle = self._angle_to(pos.x - enemy_base[0], pos.y - enemy_base[1])
+                
+                # Éviter obstacles
+                if self._check_obstacle_ahead(pos, target_angle):
+                    target_angle = self._find_clear_direction(pos, target_angle)
+                
+                pos.direction = self._smooth_turn(pos.direction, target_angle, max_delta=15.0)
+                vel.currentSpeed = 4.0
+                print(f"Maraudeur {self.entity} (OFF): Fonce vers base ennemie")
+            else:
+                # Chercher la base ennemie
+                pos.direction = (pos.direction + 20) % 360
+                vel.currentSpeed = 3.0
+                print(f"Maraudeur {self.entity} (OFF): Recherche base ennemie")
+    
+    def _auto_fire(self, world, pos, team):
+        """Tir automatique sur les ennemis à portée"""
+        if self.cooldown > 0:
+            return
+        
+        enemies = self._find_nearby_enemies(world, pos, team)
+        if not enemies:
+            return
+        
+        # Tirer sur les ennemis à portée
+        for enemy_ent, distance, _ in enemies[:3]:  # Max 3 cibles
+            if distance <= 8 * TILE_SIZE:
+                try:
+                    world.dispatch_event("attack_event", self.entity)
+                    self.cooldown = 1.5
+                    print(f"Maraudeur {self.entity}: TIR !")
+                    break
+                except Exception as e:
+                    print(f"Erreur tir: {e}")
     
     def _execute_movement_action(self, action, world, pos, vel, team, spe):
         """Exécute seulement la partie mouvement de l'action"""
@@ -1078,3 +1121,41 @@ class MaraudeurAI:
             return target_dir
         else:
             return (current_dir + math.copysign(max_delta, diff)) % 360.0
+    
+    def _check_obstacle_ahead(self, pos, direction, check_distance=4):
+        """Vérifie s'il y a un obstacle devant dans la direction donnée"""
+        if not self.grid:
+            return False
+        
+        # Vérifier plusieurs points devant
+        for dist in range(1, check_distance + 1):
+            angle_rad = math.radians(direction)
+            # IMPORTANT: MovementProcessor soustrait cos/sin, donc on inverse
+            check_x = pos.x - dist * TILE_SIZE * math.cos(angle_rad)
+            check_y = pos.y - dist * TILE_SIZE * math.sin(angle_rad)
+            
+            grid_x = int(check_x // TILE_SIZE)
+            grid_y = int(check_y // TILE_SIZE)
+            
+            if 0 <= grid_y < len(self.grid) and 0 <= grid_x < len(self.grid[0]):
+                tile = self.grid[grid_y][grid_x]
+                if tile in [TileType.ISLAND, TileType.MINE, TileType.WALL]:
+                    return True
+        
+        return False
+    
+    def _find_clear_direction(self, pos, preferred_direction):
+        """Trouve une direction libre d'obstacles proche de la direction préférée"""
+        # Si bloqué, essayer des angles autour de la direction préférée
+        angles_to_try = [0, 30, -30, 60, -60, 90, -90, 120, -120, 180]
+        
+        for angle_offset in angles_to_try:
+            test_direction = (preferred_direction + angle_offset) % 360
+            if not self._check_obstacle_ahead(pos, test_direction, check_distance=3):
+                if angle_offset != 0:
+                    print(f"Maraudeur {self.entity}: Évitement obstacle, déviation de {angle_offset}°")
+                return test_direction
+        
+        # Aucune direction libre trouvée, faire demi-tour
+        print(f"Maraudeur {self.entity}: Bloqué ! Demi-tour")
+        return (preferred_direction + 180) % 360
