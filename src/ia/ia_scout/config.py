@@ -23,7 +23,7 @@ class DangerSettings:
     decay_per_second: float = 2.0  # Augmenté pour que le danger disparaisse plus vite et réduise l'oscillation
     damage_impulse_radius: float = 2.5  # tiles
     projectile_radius: float = 3.0  # tiles
-    mine_radius: float = 2.0  # tiles
+    mine_radius: float = 3.0  # tiles
     storm_radius: float = 6.0  # tiles
     bandit_radius: float = 6.0  # tiles
     safe_threshold: float = 0.45
@@ -42,12 +42,11 @@ class PathfindingSettings:
     storm_weight: float = 6.0
     danger_weight: float = 4.0
     diagonal_cost: float = 1.4
-    island_perimeter_weight: float = 999.0  # Quasi-infini pour éviter complètement les îles
     island_perimeter_radius: int = 1
     mine_perimeter_radius: int = 1
     blocked_margin_radius: int = 2
     blocked_margin_weight: float = 15
-    map_border_radius: int = 1
+    map_border_radius: int = 3
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),
         int(TileType.ENEMY_BASE),

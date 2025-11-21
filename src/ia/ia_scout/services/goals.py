@@ -41,7 +41,7 @@ class TargetInfo:
     entity_id: int
     position: Tuple[float, float]
     speed: float
-    team_id: int
+    team_id: int = 0
 
 
 class GoalEvaluator:
@@ -108,7 +108,7 @@ class GoalEvaluator:
         if mobile_attack_objective:
             return mobile_attack_objective, self._priority_score(mobile_attack_objective.type)
 
-        base_objective = self._select_attack_base(context)
+        base_objective = self._select_attack_base(context, pathfinding)
         if base_objective:
             # Ajuster la position si elle est infranchissable
             if pathfinding is not None:
@@ -236,7 +236,7 @@ class GoalEvaluator:
                 best_candidate = (distance, candidate)
         return best_candidate[1] if best_candidate else None
 
-    def _select_attack_base(self, context) -> Optional[Objective]:
+    def _select_attack_base(self, context, pathfinding: Optional["PathfindingService"]) -> Optional[Objective]:
         if not enemy_base_registry.is_enemy_base_known(context.team_id):
             return None
         target_base = (
@@ -253,16 +253,35 @@ class GoalEvaluator:
         health_ratio = context.health / max(context.max_health, 1.0)
         if health_ratio <= self.settings.flee_health_ratio:
             return None
-        # Choose a random position around the base to attack from
-        import random
+        # Reuse a previously assigned, still-valid target to avoid churn
+        current = context.current_objective
+        if (
+            current
+            and current.type == "attack_base"
+            and current.target_entity == target_base
+            and current.target_position is not None
+        ):
+            if pathfinding is None or not pathfinding.is_world_blocked(current.target_position):
+                return Objective("attack_base", current.target_position, target_base)
+
+        # Choose a deterministic offset around the base (stable per entity) to reduce replans
         import math
-        angle = random.uniform(0, 2 * math.pi)
+        import random
+
+        seed = hash((context.entity_id, target_base)) & 0xFFFF
+        rng = random.Random(seed)
+        angle = rng.uniform(0.0, 2 * math.pi)
         distance = 100.0
         dx = math.cos(angle) * distance
         dy = math.sin(angle) * distance
         target_x = base_position.x + dx
         target_y = base_position.y + dy
         target_position = (target_x, target_y)
+        # If pathfinding available, nudge to an accessible world cell
+        if pathfinding is not None and hasattr(pathfinding, "find_accessible_world"):
+            accessible = pathfinding.find_accessible_world(target_position, max_radius_tiles=8.0)
+            if accessible is not None:
+                target_position = accessible
         return Objective("attack_base", target_position, target_base)
 
     def _priority_score(self, objective_type: str) -> float:

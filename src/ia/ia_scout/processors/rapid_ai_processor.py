@@ -75,6 +75,7 @@ class RapidTroopAIProcessor(esper.Processor):
         self._debug_overlay = []
         self.world = cast(Optional["World"], None)
         self._position_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        self._danger_unit_snapshot: List[Tuple[int, Tuple[float, float]]] = []
         self._danger_update_interval = max(0.2, 2.0 / max(self.settings.tick_frequency, 1e-3))
         self._danger_update_accumulator = 0.0
         # L'attribut world est renseigné par Esper lors de l'attachement du processor.
@@ -112,9 +113,9 @@ class RapidTroopAIProcessor(esper.Processor):
     def _tick(self, dt: float) -> None:
         self.context_manager.tick(dt)
         self._cleanup_dead_entities()
+        self._refresh_position_snapshot()
         self._refresh_services(dt)
         self._push_env_events()
-        self._refresh_position_snapshot()
         collect_debug = self.settings.debug.enabled and self.settings.debug.overlay_enabled
         if collect_debug:
             self._debug_overlay.clear()
@@ -122,7 +123,7 @@ class RapidTroopAIProcessor(esper.Processor):
         for entity, components in self._iter_controlled_units():
             controller = self._ensure_controller(entity, components)
             controller.set_position_snapshot(self._position_snapshot)
-            controller.update(dt)
+            controller.update(dt, components=components)
             if collect_debug and controller.context is not None:
                 self._debug_overlay.append(
                     {
@@ -176,7 +177,10 @@ class RapidTroopAIProcessor(esper.Processor):
             return
         budget = self._danger_update_accumulator
         self._danger_update_accumulator = 0.0
-        self.danger_map.update(budget)
+        self.danger_map.update(budget, enemy_units=self._danger_unit_snapshot)
+        # Keep path costs in sync with fresh danger values.
+        if hasattr(self.pathfinding, "rebuild_cost_map"):
+            self.pathfinding.rebuild_cost_map()
 
     def _cleanup_dead_entities(self) -> None:
         """Supprime les contrôleurs des entités disparues ou mortes."""
@@ -221,6 +225,7 @@ class RapidTroopAIProcessor(esper.Processor):
             position_snapshot.append((entity, (pos.x, pos.y)))
 
         target_cache: List[TargetInfo] = []
+        danger_snapshot: List[Tuple[int, Tuple[float, float]]] = []
         for entity, (team, pos, velocity) in esper.get_components(
             TeamComponent,
             PositionComponent,
@@ -234,8 +239,10 @@ class RapidTroopAIProcessor(esper.Processor):
                     team_id=team.team_id,
                 )
             )
+            danger_snapshot.append((team.team_id, (pos.x, pos.y)))
 
         self._position_snapshot = position_snapshot
+        self._danger_unit_snapshot = danger_snapshot
         self.goal_evaluator.prime_target_cache(target_cache)
 
     def _resolve_path_requests(self) -> None:
@@ -732,8 +739,8 @@ class RapidUnitController:
         return context.health / max(context.max_health, 1.0) >= self.settings.follow_druid_health_ratio
 
     # Update ----------------------------------------------------------------
-    def update(self, dt: float) -> None:
-        ctx = self.context_manager.refresh(self.entity_id, dt)
+    def update(self, dt: float, components=None) -> None:
+        ctx = self.context_manager.refresh(self.entity_id, dt, components=components)
         if ctx is None:
             return
         self.context = ctx

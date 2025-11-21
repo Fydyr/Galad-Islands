@@ -115,34 +115,42 @@ class AIContextManager:
     def context_for(self, entity_id: int) -> Optional[UnitContext]:
         return self._contexts.get(entity_id)
 
-    def ensure_context(self, entity_id: int) -> Optional[UnitContext]:
+    def ensure_context(self, entity_id: int, components: Optional[tuple] = None) -> Optional[UnitContext]:
         ctx = self._contexts.get(entity_id)
         if ctx is None:
-            ctx = self._build_context(entity_id)
+            ctx = self._build_context(entity_id, components=components)
             if ctx is not None:
                 self._contexts[entity_id] = ctx
         return ctx
 
-    def _build_context(self, entity_id: int) -> Optional[UnitContext]:
+    def _build_context(self, entity_id: int, components: Optional[tuple] = None) -> Optional[UnitContext]:
         if not esper.entity_exists(entity_id):
             return None
 
-        try:
-            team_comp = esper.component_for_entity(entity_id, TeamComponent)
-            health_comp = esper.component_for_entity(entity_id, HealthComponent)
-            velocity_comp = esper.component_for_entity(entity_id, VelocityComponent)
-            radius_comp = esper.component_for_entity(entity_id, RadiusComponent)
-            pos_comp = esper.component_for_entity(entity_id, PositionComponent)
-        except KeyError:
-            return None
+        if components is None:
+            try:
+                team_comp = esper.component_for_entity(entity_id, TeamComponent)
+                health_comp = esper.component_for_entity(entity_id, HealthComponent)
+                velocity_comp = esper.component_for_entity(entity_id, VelocityComponent)
+                radius_comp = esper.component_for_entity(entity_id, RadiusComponent)
+                pos_comp = esper.component_for_entity(entity_id, PositionComponent)
+            except KeyError:
+                return None
+        else:
+            team_comp, classe_comp, scout_comp, health_comp, pos_comp, velocity_comp, radius_comp = components
 
-        try:
-            classe = esper.component_for_entity(entity_id, ClasseComponent)
-            unit_type = classe.unit_type
-        except KeyError:
-            unit_type = None
-
-        scout_component = esper.component_for_entity(entity_id, SpeScout) if esper.has_component(entity_id, SpeScout) else None
+        if components is None:
+            try:
+                classe = esper.component_for_entity(entity_id, ClasseComponent)
+                unit_type = classe.unit_type
+            except KeyError:
+                unit_type = None
+            scout_component = esper.component_for_entity(entity_id, SpeScout) if esper.has_component(entity_id, SpeScout) else None
+        else:
+            # classe_comp/scout_comp may be None depending on tuple guarantees
+            classe = classe_comp
+            unit_type = classe.unit_type if classe is not None else None
+            scout_component = scout_comp
 
         context = UnitContext(
             entity_id=entity_id,
@@ -165,24 +173,28 @@ class AIContextManager:
         context.is_enemy = team_comp.team_id == Team.ENEMY
         return context
 
-    def refresh(self, entity_id: int, dt: float) -> Optional[UnitContext]:
-        ctx = self.ensure_context(entity_id)
+    def refresh(self, entity_id: int, dt: float, components: Optional[tuple] = None) -> Optional[UnitContext]:
+        """Refresh a context, optionally reusing already-fetched ECS components."""
+        ctx = self.ensure_context(entity_id, components=components)
         if ctx is None:
             return None
 
-        self._refresh_components(ctx, dt)
+        self._refresh_components(ctx, dt, components=components)
         return ctx
 
-    def _refresh_components(self, ctx: UnitContext, dt: float) -> None:
+    def _refresh_components(self, ctx: UnitContext, dt: float, components: Optional[tuple] = None) -> None:
         # Refresh components in place to avoid creating new contexts
         if not esper.entity_exists(ctx.entity_id):
             self.remove_context(ctx.entity_id)
             return
-
-        pos = esper.component_for_entity(ctx.entity_id, PositionComponent)
-        vel = esper.component_for_entity(ctx.entity_id, VelocityComponent)
-        health = esper.component_for_entity(ctx.entity_id, HealthComponent)
-        radius = esper.component_for_entity(ctx.entity_id, RadiusComponent)
+        if components is None:
+            pos = esper.component_for_entity(ctx.entity_id, PositionComponent)
+            vel = esper.component_for_entity(ctx.entity_id, VelocityComponent)
+            health = esper.component_for_entity(ctx.entity_id, HealthComponent)
+            radius = esper.component_for_entity(ctx.entity_id, RadiusComponent)
+        else:
+            # components ordering mirrors `_iter_controlled_units` hot path
+            _, _, _, health, pos, vel, radius = components
 
         ctx.position = (pos.x, pos.y)
         ctx.direction = pos.direction
