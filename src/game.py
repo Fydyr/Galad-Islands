@@ -227,7 +227,18 @@ class EventHandler:
         elif controls.matches_action(controls.ACTION_SYSTEM_DEBUG, event):
             self._toggle_debug()
         elif controls.matches_action(controls.ACTION_SYSTEM_SHOP, event):
-            self._open_shop()
+            # Open the shop via keybind unless we're running in self-play (AI vs AI).
+            # Previously the condition incorrectly blocked access when dev_mode was enabled.
+            # The intended behavior: shop is allowed in normal and dev modes, but disabled in self_play_mode.
+            try:
+                dev_mode_enabled = config_manager.get('dev_mode', False)
+            except Exception:
+                dev_mode_enabled = False
+
+            # Allow opening the shop when not running in self-play (AI vs AI),
+            # or when dev_mode is explicitly enabled (developers can inspect shop in self-play).
+            if not getattr(self.game_engine, 'self_play_mode', False) or dev_mode_enabled:
+                self._open_shop()
         elif controls.matches_action(controls.ACTION_CAMERA_FOLLOW_TOGGLE, event):
             self.game_engine.toggle_camera_follow_mode()
             return
