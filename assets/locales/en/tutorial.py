@@ -9,6 +9,7 @@ TRANSLATIONS = {
     "tutorial.start.message": "This quick tutorial will guide you through the game's basics — move units, open the shop and more. Let's get started!",
     "tutorial.attack_unit.title": "Attack an Enemy Unit",
     "tutorial.attack_unit.message": "An enemy unit is approaching! Press the attack key (default: A) to fire at it.",
+    "tutorial.spe_attack_unit.title": "Special Ability",
     "tutorial.spe_attack_unit.message": "Activate your special ability by pressing the E key! This can change the course of battle, but be careful, it has a cooldown time!",
     "tutorial.ai_mode.title": "AI Mode",
     "tutorial.ai_mode.message": "Press T to toggle between manual control and AI mode. In AI mode the unit acts automatically; the base also has an AI that can buy units.",

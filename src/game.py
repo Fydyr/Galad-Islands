@@ -1664,12 +1664,14 @@ class GameEngine:
             if team.team_id != Team.ALLY:
                 return
 
+        activated = False
 
         # Scout: evasion maneuver
         if es.has_component(entity, SpeScout):
             scout_comp = es.component_for_entity(entity, SpeScout)
             if scout_comp.can_activate():
                 scout_comp.activate()
+                activated = True
                 print(f"Capacité spéciale Scout activée pour l'unité {entity}")
             else:
                 print(f"Capacité Scout en cooldown pour l'unité {entity}")
@@ -1679,6 +1681,7 @@ class GameEngine:
             maraudeur_comp = es.component_for_entity(entity, SpeMaraudeur)
             if maraudeur_comp.can_activate():
                 maraudeur_comp.activate()
+                activated = True
                 print(f"Capacité spéciale Maraudeur activée pour l'unité {entity}")
             else:
                 print(f"Capacité Maraudeur en cooldown pour l'unité {entity}")
@@ -1688,8 +1691,9 @@ class GameEngine:
             leviathan_comp = es.component_for_entity(entity, SpeLeviathan)
             if leviathan_comp.can_activate():
                 # Activate the ability and immediately fire a second volley
-                activated = leviathan_comp.activate()
-                if activated:
+                activated_success = leviathan_comp.activate()
+                if activated_success:
+                    activated = True
                     # Consume the ability immediately: fire now
                     # We don't leave pending (is_active) true because we consume immediately
                     try:
@@ -1723,6 +1727,7 @@ class GameEngine:
                 # For now, just activate the system
                 druid_comp.available = False
                 druid_comp.cooldown = druid_comp.cooldown_duration
+                activated = True
                 print(f"Capacité spéciale Druid activée pour l'unité {entity}")
             else:
                 print(f"Capacité Druid en cooldown pour l'unité {entity}")
@@ -1746,6 +1751,7 @@ class GameEngine:
                                 affected_units.append(ally_entity)
 
                     architect_comp.activate(affected_units, 10.0)  # 10 seconds effect
+                    activated = True
                     print(f"Capacité spéciale Architect activée pour l'unité {entity} affectant {len(affected_units)} unités")
                 else:
                     print(f"Impossible d'activer la capacité Architect - pas de position")
@@ -1754,6 +1760,11 @@ class GameEngine:
 
         else:
             print(f"Aucune capacité spéciale disponible pour l'unité {entity}")
+
+        # Trigger tutorial if special ability was used
+        if activated and not self.self_play_mode:
+            event = pygame.event.Event(pygame.USEREVENT, user_type='special_ability_used')
+            pygame.event.post(event)
 
     def _get_player_units(self) -> List[int]:
         """Return the sorted list of units for the active faction."""

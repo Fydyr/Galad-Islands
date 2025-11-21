@@ -42,6 +42,7 @@ class TutorialManager:
             "resource_collected": 60,
             "gold": 60,
             "attack_unit": 80,
+            "spe_attack_unit": 75,
             "fog_of_war": 10,
             "base_found": 50,
         }
@@ -135,6 +136,12 @@ class TutorialManager:
                 "title": t("tutorial.attack_unit.title"),
                 "message": t("tutorial.attack_unit.message"),
                 "trigger": "enemy_spotted",
+            },
+            {
+                "key": "spe_attack_unit",
+                "title": t("tutorial.spe_attack_unit.title"),
+                "message": t("tutorial.spe_attack_unit.message"),
+                "trigger": "special_ability_used",
             },
             {
                 "key": "fog_of_war",
