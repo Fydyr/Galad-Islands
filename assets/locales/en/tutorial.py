@@ -6,7 +6,7 @@ TRANSLATIONS = {
     "tutorial.select_unit.title": "Your First Unit",
     "tutorial.select_unit.message": "This is your first unit. You can select it by clicking on it.",
     "tutorial.start.title": "Welcome to Galad Islands",
-    "tutorial.start.message": "This quick tutorial will guide you through the game's basics — move units, open the shop and more. Let's get started!",
+    "tutorial.start.message": "This quick tutorial will guide you through the game's basics — move units, open the shop and more. You can press F1 for help at any time. Let's get started!",
     "tutorial.attack_unit.title": "Attack an Enemy Unit",
     "tutorial.attack_unit.message": "An enemy unit is approaching! Press the attack key (default: A) to fire at it.",
     "tutorial.spe_attack_unit.title": "Special Ability",

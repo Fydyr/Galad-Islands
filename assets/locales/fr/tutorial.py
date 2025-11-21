@@ -2,7 +2,7 @@ TRANSLATIONS = {
     "tutorial.next_button": "Suivant",
     "tutorial.skip_button": "Passer",
     "tutorial.start.title": "Bienvenue à Galad Islands",
-    "tutorial.start.message": "Ce tutoriel rapide vous guidera à travers les bases du jeu. Vous apprendrez à déplacer vos unités, ouvrir la boutique, et plus encore. Commençons !",
+    "tutorial.start.message": "Ce tutoriel rapide vous guidera à travers les bases du jeu. Vous apprendrez à déplacer vos unités, ouvrir la boutique, et plus encore. Vous pouvez appuyer sur F1 pour accéder à l'aide à tout moment. Commençons !",
     "tutorial.move_unit.title": "Déplacer Votre Unité",
     "tutorial.move_unit.message": "Déplacez votre unité sélectionné en utilisant ZQSD ou une autre touche si vous avez reconfiguré les contrôles.",
     "tutorial.select_unit.title": "Votre Première Unité",
