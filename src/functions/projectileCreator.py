@@ -27,6 +27,7 @@ from src.constants.team import Team
 def create_projectile(entity, type: str = "bullet"):
     pos = esper.component_for_entity(entity, PositionComponent)
     team = esper.component_for_entity(entity, TeamComponent)
+    speed = esper.component_for_entity(entity, VelocityComponent) if esper.has_component(entity, VelocityComponent) else None
     team_id = team.team_id
     druidMaxX = 150
     druidMaxY = 150
@@ -100,8 +101,8 @@ def create_projectile(entity, type: str = "bullet"):
             # Traiter 'leviathan' comme un 'bullet' pour les components (vitesse, dégâts, sprite)
             if type in ("bullet", "leviathan"):
                 esper.add_component(bullet_entity, VelocityComponent(
-                    currentSpeed=PROJECTILE_SPEED,
-                    maxUpSpeed=PROJECTILE_SPEED,
+                    currentSpeed=PROJECTILE_SPEED + speed.currentSpeed if speed else 0,
+                    maxUpSpeed=PROJECTILE_SPEED + speed.currentSpeed if speed else 0,
                 ))
 
                 esper.add_component(bullet_entity, LifetimeComponent(1.2))
