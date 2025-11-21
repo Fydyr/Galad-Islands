@@ -935,6 +935,8 @@ class GameEngine:
         self.notification_system = get_notification_system()
         self.tutorial_manager = TutorialManager(config_manager=config_manager)
         self.previous_base_known = {Team.ALLY: False, Team.ENEMY: False}
+        self.camera_tutorial_triggered = False
+        self.initial_camera_state = None
 
         # ECS processors
         self.movement_processor = None
@@ -1104,6 +1106,7 @@ class GameEngine:
         
         # Configurer la caméra
         self._setup_camera()
+        self.initial_camera_state = (self.camera.x, self.camera.y, self.camera.zoom) if self.camera else None
         
         # Signal game start for tutorials (handled by TutorialManager via event triggers)
         if not self.self_play_mode:
@@ -2054,6 +2057,15 @@ class GameEngine:
                 self._update_camera_follow(dt, keys, modifiers_state)
             else:
                 self.camera.update(dt, keys, modifiers_state)
+
+        # Check for camera tutorial trigger
+        if self.camera and self.initial_camera_state and not self.camera_tutorial_triggered:
+            current_state = (self.camera.x, self.camera.y, self.camera.zoom)
+            if current_state != self.initial_camera_state:
+                self.camera_tutorial_triggered = True
+                if not self.self_play_mode:
+                    event = pygame.event.Event(pygame.USEREVENT, user_type='camera_used')
+                    pygame.event.post(event)
 
         # Update the ActionBar
         if self.action_bar is not None:

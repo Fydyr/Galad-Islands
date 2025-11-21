@@ -498,6 +498,10 @@ TRANSLATIONS = {
     "tutorial.fog_of_war.message": "Dark areas of the map are unexplored or out of view. Move your units to reveal the map and spot enemies.",
     "tutorial.gold.title": "Earning Gold",
     "tutorial.gold.message": "Gold is crucial to recruit units and build defenses. Earn it by destroying enemies and collecting flying chests or island resources.",
+    "tutorial.base_found.title": "Base Discovered",
+    "tutorial.base_found.message": "You've discovered the enemy base on the map. This is a key objective — destroy it and defend your own to win the game. Good luck, commander!",
+    "tutorial.camera.title": "Camera Controls",
+    "tutorial.camera.message": "Use the mouse wheel to zoom in and out. Hold the middle mouse button or right-click and drag to pan the camera. You can also use the arrow keys or WASD for precise movement.",
 }
 
 # Merge new categorized translations if present (keeps backwards compatibility)

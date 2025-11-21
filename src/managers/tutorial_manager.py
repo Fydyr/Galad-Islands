@@ -43,6 +43,7 @@ class TutorialManager:
             "gold": 60,
             "attack_unit": 80,
             "spe_attack_unit": 75,
+            "camera": 85,
             "fog_of_war": 10,
             "base_found": 50,
         }
@@ -118,6 +119,12 @@ class TutorialManager:
                 "title": t("tutorial.move_unit.title"),
                 "message": t("tutorial.move_unit.message"),
                 "trigger": "unit_moved",
+            },
+            {
+                "key": "camera",
+                "title": t("tutorial.camera.title"),
+                "message": t("tutorial.camera.message"),
+                "trigger": "camera_used",
             },
             {
                 "key": "shop_open",

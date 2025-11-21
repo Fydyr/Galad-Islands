@@ -24,4 +24,6 @@ TRANSLATIONS = {
     "tutorial.gold.message": "L'argent est crucial pour recruter des unités et construire des défenses. Gagnez de l'or en détruisant des unités ennemies et en ramassant des coffres volants ou de l'or sur les îles.",
     "tutorial.base_found.title": "Base découverte",
     "tutorial.base_found.message": "Vous avez découvert la base ennemie sur la carte. C'est un objectif important — détruisez-la tout en défendant la vôtre pour gagner la partie. Bonne chance, commandant !",
+    "tutorial.camera.title": "Contrôles de la Caméra",
+    "tutorial.camera.message": "Utilisez la molette de la souris pour zoomer. Maintenez le bouton du milieu ou faites un clic droit et glissez pour déplacer la caméra. Vous pouvez aussi utiliser les flèches ou WASD pour un mouvement précis.",
 }
