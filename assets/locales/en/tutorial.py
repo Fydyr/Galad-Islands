@@ -21,5 +21,6 @@ TRANSLATIONS = {
     "tutorial.fog_of_war.messagetwo": "Units have a field of vision range, with some seeing further than others. Even though the fog of war disappears during exploration, you only see the map with the islands and the base. Enemy ships, mines, the kraken, and bandits are not visible until they are within the field of vision of one of your units.",
     "tutorial.gold.title": "Earning Gold",
     "tutorial.gold.message": "Gold is crucial to recruit units and build defenses. Earn it by destroying enemies and collecting flying chests or island resources.",
-    "tutorial.conclusion.message": "Your objective is to destroy the enemy base while defending your own. Good luck, commander!",
+    "tutorial.base_found.title": "Base Discovered",
+    "tutorial.base_found.message": "You've discovered the enemy base on the map. This is a key objective — destroy it and defend your own to win the game. Good luck, commander!",
 }

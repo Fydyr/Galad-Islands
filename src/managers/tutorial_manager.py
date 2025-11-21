@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional
 from collections import deque
 from src.ui.tutorial_notification import TutorialNotification
 from src.settings.localization import t
+from src.processeurs.KnownBaseProcessor import enemy_base_registry
 
 class TutorialManager:
     """
@@ -42,7 +43,12 @@ class TutorialManager:
             "gold": 60,
             "attack_unit": 80,
             "fog_of_war": 10,
+            "base_found": 50,
         }
+
+        # Check for pre-existing base knowledge and show tutorial if needed
+        if enemy_base_registry.is_enemy_base_known(1):  # Assuming team 1 is the player
+            self.show_tip("base_found")
 
     def get_tip_by_key(self, key: str):
         """Returns the tip (dict) corresponding to the key, or None."""
@@ -141,6 +147,12 @@ class TutorialManager:
                 "title": t("tutorial.ai_mode.title"),
                 "message": t("tutorial.ai_mode.message"),
                 "trigger": "ai_mode",
+            },
+            {
+                "key": "base_found",
+                "title": t("tutorial.base_found.title"),
+                "message": t("tutorial.base_found.message"),
+                "trigger": "enemy_base_discovered",
             },
         ]
 

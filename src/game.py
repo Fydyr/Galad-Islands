@@ -934,6 +934,7 @@ class GameEngine:
         self.player = None
         self.notification_system = get_notification_system()
         self.tutorial_manager = TutorialManager(config_manager=config_manager)
+        self.previous_base_known = {Team.ALLY: False, Team.ENEMY: False}
 
         # ECS processors
         self.movement_processor = None
@@ -2088,6 +2089,14 @@ class GameEngine:
 
         # Process ECS logic (without dt for other processors)
         es.process(dt=dt)
+
+        # Check for base discovery tutorial trigger
+        current_team = self.selection_team_filter
+        if enemy_base_registry.is_enemy_base_known(current_team) and not self.previous_base_known.get(current_team, False):
+            self.previous_base_known[current_team] = True
+            if not self.self_play_mode:
+                event = pygame.event.Event(pygame.USEREVENT, user_type='enemy_base_discovered')
+                pygame.event.post(event)
 
         # Update all Marauder AIs
         self._update_all_maraudeur_ais(es, dt)

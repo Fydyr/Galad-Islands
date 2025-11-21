@@ -21,5 +21,6 @@ TRANSLATIONS = {
     "tutorial.fog_of_war.messagetwo": "Les unités, ont une porté de champ de vision, certains voient plus loin que d'autres. Même si pendant l'exploration le brouillard de guerre disparaît, vous voyez seulement la carte avec les îles et la base. Les vaisseaux ennemies, les mines, le kraken et les bandits ne sont pas visibles tant qu'ils ne sont pas dans le champ de vision d'une de vos unités.",
     "tutorial.gold.title": "Faire de l'Or",
     "tutorial.gold.message": "L'argent est crucial pour recruter des unités et construire des défenses. Gagnez de l'or en détruisant des unités ennemies et en ramassant des coffres volants ou de l'or sur les îles.",
-    "tutorial.conclusion.message": "Votre objectif détruire la base ennemie tout en défendant la vôtre. Bonne chance, commandant !",
+    "tutorial.base_found.title": "Base découverte",
+    "tutorial.base_found.message": "Vous avez découvert la base ennemie sur la carte. C'est un objectif important — détruisez-la tout en défendant la vôtre pour gagner la partie. Bonne chance, commandant !",
 }
