@@ -31,6 +31,10 @@ from src.constants.gameplay import (
 )
 from src.settings.settings import config_manager
 
+# Import for building logic
+from src.functions.buildingCreator import createDefenseTower, createHealTower
+from src.components.core.positionComponent import PositionComponent
+
 # Couleurs de l'interface améliorées
 class UIColors:
     # Couleurs principales
@@ -592,7 +596,7 @@ class ActionBar:
 
 
     def _build_defense_tower(self):
-        """Callback: construit une tour d'attaque. L'utilisateur doit ensuite cliquer sur une île."""
+        """Callback: builds an attack tower near the selected Architect."""
         if not hasattr(self, 'game_engine') or self.game_engine is None:
             self.notification_system.add_notification(t("shop.cannot_purchase"), NotificationType.ERROR)
             return
@@ -620,18 +624,24 @@ class ActionBar:
             self.notification_system.add_notification(t('shop.insufficient_gold'), NotificationType.WARNING)
             return
 
-        # Activer le mode de placement de tour
-        self.game_engine.tower_placement_mode = True
-        self.game_engine.tower_type_to_place = "defense"
-        self.game_engine.tower_team_id = team.team_id
-        self.game_engine.tower_cost = cost
-        
-        # Afficher un message d'instruction
-        self.notification_system.add_notification(t("tooltip.click_to_place_tower"), NotificationType.INFO, duration=5.0)
+        # Get architect's position
+        pos = esper.component_for_entity(entity_id, PositionComponent)
+
+        # Attempt to create the tower
+        if createDefenseTower(self.game_engine.grid, pos, team):
+            # Deduct cost and show success feedback
+            self._set_current_player_gold(current_gold - cost)
+            self.notification_system.add_notification(
+                t("feedback.tower_built", default="Defense tower built!"),
+                NotificationType.SUCCESS
+            )
+        else:
+            # Show failure feedback
+            self.notification_system.add_notification(t("feedback.no_build_location"), NotificationType.ERROR)
 
 
     def _build_heal_tower(self):
-        """Callback: construit une tour de soin. L'utilisateur doit ensuite cliquer sur une île."""
+        """Callback: builds a healing tower near the selected Architect."""
         if not hasattr(self, 'game_engine') or self.game_engine is None:
             self.notification_system.add_notification(t("shop.cannot_purchase"), NotificationType.ERROR)
             return
@@ -659,14 +669,20 @@ class ActionBar:
             self.notification_system.add_notification(t('shop.insufficient_gold'), NotificationType.WARNING)
             return
 
-        # Activer le mode de placement de tour
-        self.game_engine.tower_placement_mode = True
-        self.game_engine.tower_type_to_place = "heal"
-        self.game_engine.tower_team_id = team.team_id
-        self.game_engine.tower_cost = cost
-        
-        # Afficher un message d'instruction
-        self.notification_system.add_notification(t("tooltip.click_to_place_tower"), NotificationType.INFO, duration=5.0)
+        # Get architect's position
+        pos = esper.component_for_entity(entity_id, PositionComponent)
+
+        # Attempt to create the tower
+        if createHealTower(self.game_engine.grid, pos, team):
+            # Deduct cost and show success feedback
+            self._set_current_player_gold(current_gold - cost)
+            self.notification_system.add_notification(
+                t("feedback.tower_built_heal", default="Heal tower built!"),
+                NotificationType.SUCCESS
+            )
+        else:
+            # Show failure feedback
+            self.notification_system.add_notification(t("feedback.no_build_location"), NotificationType.ERROR)
 
     def update_special_cooldowns(self, dt: float):
         """Met à jour les cooldowns des capacités spéciales."""
