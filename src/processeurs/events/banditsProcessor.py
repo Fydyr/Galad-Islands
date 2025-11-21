@@ -174,55 +174,15 @@ class BanditsProcessor:
         # Fire in movement direction if a target is detected and cooldown is ready
         if target_entity is not None and target_pos is not None and bandits.can_attack():
             # Fire in the bandit's movement direction, not directly at the target
-            BanditsProcessor._fire_projectile_in_direction(entity, bandit_pos, bandit_direction)
+            BanditsProcessor._fire_projectile_in_direction(entity)
             bandits.trigger_attack()
 
     @staticmethod
-    def _fire_projectile_in_direction(bandit_entity, bandit_pos, fire_direction):
+    def _fire_projectile_in_direction(bandit_entity):
         """Fires a projectile in the specified direction (bandit's movement direction)"""
         if not esper.has_component(bandit_entity, Position):
             return
-
-        # Convert direction to radians to calculate directional vector
-        # fire_direction is in degrees (game format)
-        direction_rad = math.radians(-fire_direction + 180)
-        dir_x = math.cos(direction_rad)
-        dir_y = math.sin(direction_rad)
-
-        # Create the projectile
-        projectile_entity = esper.create_entity()
-
-        # Projectile position: slightly in front of the bandit in the firing direction
-        projectile_x = bandit_pos.x + dir_x * TILE_SIZE * 0.5
-        projectile_y = bandit_pos.y + dir_y * TILE_SIZE * 0.5
-
-        esper.add_component(projectile_entity, Position(
-            projectile_x, projectile_y, fire_direction))
-
-        # Projectile speed
-        projectile_speed = 200  # Bandit projectile speed
-        esper.add_component(projectile_entity, Velocity(
-            currentSpeed=projectile_speed, maxUpSpeed=projectile_speed, terrain_modifier=1.0))
-
-        esper.add_component(projectile_entity, Health(1, 1))  # Projectiles have 1 HP
-        # Bandit projectile damage
-        esper.add_component(projectile_entity, Attack(15))
-        esper.add_component(projectile_entity, CanCollide())  # Bandit projectiles can collide
-        esper.add_component(projectile_entity, Team(0))  # Neutral team
-
-        # Add projectile component with the bandit as owner
-        from src.components.core.projectileComponent import ProjectileComponent
-        esper.add_component(projectile_entity, ProjectileComponent(projectile_type="bullet", owner_entity=bandit_entity))
-
-        # Use ball.png sprite with default size (20x15)
-        sprite_component = sprite_manager.create_sprite_component(
-            SpriteID.PROJECTILE_BULLET, 20, 15)
-        esper.add_component(projectile_entity, sprite_component)
-
-        # Limited lifetime for projectiles
-        from src.components.core.lifetimeComponent import LifetimeComponent
-        # 5 seconds lifetime
-        esper.add_component(projectile_entity, LifetimeComponent(5.0))
+        esper.dispatch_event("attack_event", bandit_entity, "bullet")
 
     @staticmethod
     def spawn_bandits_wave(grid, num_boats):
