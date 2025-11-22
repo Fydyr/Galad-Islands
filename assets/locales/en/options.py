@@ -10,7 +10,7 @@ TRANSLATIONS = {
     "options.audio": "Audio",
     "options.master_volume": "Master Volume",
     "options.music_volume": "Music Volume",
-    "options.effects_volume": "Effects Volume",
+        "options.volume_effects_label": "Effects volume: {volume}%",
     "options.language": "Language",
     "options.performance": "Performance",
     "options.performance_section": "Performance",
@@ -108,5 +108,5 @@ TRANSLATIONS = {
     "options.detected_screen": "Detected screen: {width}x{height}",
     "options.info_manual_fix": "If this happens to you, launch Galad Config Tool and set a smaller resolution",
     "options.resolution_advice": "(Tip: Choose a resolution lower than your screen to avoid display issues)",
-    "options.resolution_section": "Resolution (windowed mode only)",
+    "options.resolution_section": "Resolution",
 }

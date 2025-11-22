@@ -4,6 +4,7 @@ System translations for Galad Islands
 """
 
 TRANSLATIONS = {
+    "main_window_title": "Galad Islands",
     "feedback.ability_cooldown": "Capacité en cooldown: {:.1f}s",
     "feedback.ability_used": "Capacité {} utilisée (visuel uniquement)!",
     "feedback.already_active": "Déjà actif!",

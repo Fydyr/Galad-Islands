@@ -9,6 +9,7 @@ TRANSLATIONS = {
     "options.apply": "Appliquer",
     "options.audio": "Audio",
     "options.master_volume": "Volume principal",
+    "options.volume_effects_label": "Volume des effets: {volume}%",
     "options.music_volume": "Volume musique",
     "options.effects_volume": "Volume effets",
     "options.language": "Langue",
@@ -108,5 +109,5 @@ TRANSLATIONS = {
     "options.detected_screen": "Écran détecté: {width}x{height}",
     "options.info_manual_fix": "Si cela vous arrive, lancer Galad Config Tool et remettez une résolution plus petite",
     "options.resolution_advice": "(Conseil: Choisissez une résolution inférieure à celle de votre écran pour éviter les problèmes d'affichage)",
-    "options.resolution_section": "Résolution (mode fenêtré uniquement)",
+    "options.resolution_section": "Résolution",
 }

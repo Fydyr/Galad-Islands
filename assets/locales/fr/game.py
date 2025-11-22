@@ -41,4 +41,13 @@ TRANSLATIONS = {
     "mode.normal": "Normal",
     "placement.must_be_on_island": "Les bâtiments doivent être construits sur des tuiles îles !",
     "placement.tower_already_here": "Une tour est déjà présente à cet endroit",
+    
+    # Messages de feedback
+    "feedback.unit_created": "{} créé (camp {})!",
+    "feedback.ability_used": "Capacité {} utilisée (visuel uniquement)!",
+    "feedback.ability_cooldown": "Capacité en cooldown: {:.1f}s",
+    "feedback.already_active": "Déjà actif!",
+    "feedback.no_unit_selected": "Aucune unité sélectionnée!",
+    "feedback.dev_gold_given": "500 or ajoutés (mode debug)",
+    "feedback.error": "Erreur",
 }
