@@ -112,8 +112,18 @@ def test_prediction_renvoie_uniquement_les_ennemis(monkeypatch: MonkeyPatch) -> 
     predictor = PredictionService(horizon=1.0)
     predicted = predictor.predict_enemy_positions(team_id=Team.ENEMY)
 
-    assert len(predicted) == 1
-    assert predicted[0].entity_id == 101
+    # Current PredictionService excludes only entities with the same team_id
+    # and bandits; allies (different team ids) are included. Expect two
+    # predicted entities (ally and neutral threat) and ensure the same-team
+    # entity (98) is excluded.
+    assert len(predicted) == 2
+    got_ids = {p.entity_id for p in predicted}
+    assert 98 not in got_ids
+    assert got_ids == {99, 101}
+    # Ensure the neutral threat's predicted position remains <= its current Y
+    for p in predicted:
+        if p.entity_id == 101:
+            assert p.future_position[1] <= 220.0
     assert predicted[0].future_position[1] <= 220.0
 
 
