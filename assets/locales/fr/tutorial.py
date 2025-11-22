@@ -26,4 +26,6 @@ TRANSLATIONS = {
     "tutorial.base_found.message": "Vous avez découvert la base ennemie sur la carte. C'est un objectif important — détruisez-la tout en défendant la vôtre pour gagner la partie. Bonne chance, commandant !",
     "tutorial.camera.title": "Contrôles de la Caméra",
     "tutorial.camera.message": "Utilisez la molette de la souris pour zoomer. Maintenez le bouton du milieu ou faites un clic droit et glissez pour déplacer la caméra. Vous pouvez aussi utiliser les flèches ou WASD pour un mouvement précis.",
+    "tutorial.architect.title": "Architecte & Tours",
+    "tutorial.architect.message": "L'Architecte peut construire des tours pour votre équipe. Sélectionnez un Architecte pour accéder aux boutons de construction dans la barre d'action — il peut construire des tours d'attaque (infligent des dégâts) ou des tours de soin (réparent les unités). L'Architecte possède également une capacité spéciale qui accélère la recharge des tours dans une zone.",
 }

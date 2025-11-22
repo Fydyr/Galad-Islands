@@ -26,4 +26,6 @@ TRANSLATIONS = {
     "tutorial.base_found.message": "You've discovered the enemy base on the map. This is a key objective — destroy it and defend your own to win the game. Good luck, commander!",
     "tutorial.camera.title": "Camera Controls",
     "tutorial.camera.message": "Use the mouse wheel to zoom in and out. Hold the middle mouse button or right-click and drag to pan the camera. You can also use the arrow keys or WASD for precise movement.",
+    "tutorial.architect.title": "Architect & Towers",
+    "tutorial.architect.message": "Architect units can construct towers for your team. Select an Architect to access build buttons on the action bar — they can build attack towers (deal damage) or heal towers (repair allies). Architects also have a special ability that speeds up tower reloads in an area.",
 }

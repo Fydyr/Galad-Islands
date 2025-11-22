@@ -44,6 +44,7 @@ class TutorialManager:
             "attack_unit": 80,
             "spe_attack_unit": 75,
             "camera": 85,
+            "architect": 55,
             "fog_of_war": 10,
             "base_found": 50,
         }
@@ -137,6 +138,12 @@ class TutorialManager:
                 "title": t("tutorial.gold.title"),
                 "message": t("tutorial.gold.message"),
                 "trigger": "resource_collected",
+            },
+            {
+                "key": "architect",
+                "title": t("tutorial.architect.title"),
+                "message": t("tutorial.architect.message"),
+                "trigger": "architect_selected",
             },
             {
                 "key": "attack_unit",

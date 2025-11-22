@@ -937,6 +937,7 @@ class GameEngine:
         self.previous_base_known = {Team.ALLY: False, Team.ENEMY: False}
         self.camera_tutorial_triggered = False
         self.initial_camera_state = None
+        self.architect_tutorial_triggered = False
 
         # ECS processors
         self.movement_processor = None
@@ -1818,6 +1819,19 @@ class GameEngine:
             unit_info = self._build_unit_info(self.selected_unit_id)
             self.action_bar.select_unit(unit_info)
 
+        # Architect tutorial: first time we select an Architect for the current player team,
+        # trigger the 'architect_selected' tutorial (only when not in self-play mode).
+        try:
+            if not getattr(self, 'architect_tutorial_triggered', False) and not getattr(self, 'self_play_mode', False):
+                if es.has_component(self.selected_unit_id, SpeArchitect):
+                    team_comp = es.component_for_entity(self.selected_unit_id, TeamComponent)
+                    if team_comp.team_id == self.selection_team_filter:
+                        self.architect_tutorial_triggered = True
+                        pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "architect_selected"}))
+        except Exception:
+            # Safely ignore any lookup errors
+            pass
+
     def _set_selected_entity(self, entity_id: Optional[int]) -> None:
         """Update the unit currently controlled by the player."""
         if self.selected_unit_id == entity_id:
@@ -2358,6 +2372,8 @@ class GameEngine:
             self.tower_type_to_place = None
             self.tower_team_id = None
             self.tower_cost = 0
+
+            # (tower tutorial removed) previously posted a 'tower_placed' event here
 
             return True
 
