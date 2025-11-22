@@ -103,6 +103,8 @@ class OptionsState:
     """État des options de configuration."""
     window_mode: str
     music_volume: float
+    effects_volume: float
+    master_volume: float
     camera_sensitivity: float
     current_language: str
     selected_resolution: Optional[Tuple[int, int, str]]
@@ -145,6 +147,8 @@ class OptionsState:
         return cls(
             window_mode=config_manager.get("window_mode", "windowed"),
             music_volume=config_manager.get("volume_music", 0.5),
+            effects_volume=config_manager.get("volume_effects", 0.7),
+            master_volume=config_manager.get("volume_master", 0.8),
             camera_sensitivity=config_manager.get("camera_sensitivity", 1.0),
             current_language=get_current_language(),
             selected_resolution=selected_resolution,
@@ -530,7 +534,7 @@ class OptionsWindow:
         surface.blit(section_surf, (0, y_pos))
         y_pos += 40
         
-        # Label du volume
+        # Music volume label
         volume_text = t("options.volume_music_label", volume=int(self.state.music_volume * 100))
         volume_surf = self.font_normal.render(volume_text, True, Colors.WHITE)
         surface.blit(volume_surf, (0, y_pos))
@@ -548,6 +552,40 @@ class OptionsWindow:
         self.components.append(volume_slider)
         y_pos += 50
         
+        # Effects volume
+        effects_text = t("options.volume_effects_label", volume=int(self.state.effects_volume * 100))
+        effects_surf = self.font_normal.render(effects_text, True, Colors.WHITE)
+        surface.blit(effects_surf, (0, y_pos))
+        y_pos += 25
+
+        slider_rect = pygame.Rect(0, y_pos, self.modal_width - 100, UIConstants.SLIDER_HEIGHT)
+        effects_slider = Slider(
+            slider_rect,
+            min_value=0.0,
+            max_value=1.0,
+            initial_value=self.state.effects_volume,
+            callback=self._on_effects_changed
+        )
+        self.components.append(effects_slider)
+        y_pos += 50
+
+        # Master volume
+        master_text = t("options.master_volume", )
+        master_surf = self.font_normal.render(master_text, True, Colors.WHITE)
+        surface.blit(master_surf, (0, y_pos))
+        y_pos += 25
+
+        slider_rect = pygame.Rect(0, y_pos, self.modal_width - 100, UIConstants.SLIDER_HEIGHT)
+        master_slider = Slider(
+            slider_rect,
+            min_value=0.0,
+            max_value=1.0,
+            initial_value=self.state.master_volume,
+            callback=self._on_master_changed
+        )
+        self.components.append(master_slider)
+        y_pos += 50
+
         return y_pos
     
     def _create_language_section(self, surface: pygame.Surface, y_pos: int) -> int:
@@ -923,6 +961,36 @@ class OptionsWindow:
         """Callback pour le changement de sensibilité."""
         set_camera_sensitivity(sensitivity)
         self.state.camera_sensitivity = sensitivity
+
+    def _on_effects_changed(self, volume: float) -> None:
+        """Callback pour le changement du volume des effets (sons)."""
+        set_audio_volume("effects", volume)
+        self.state.effects_volume = volume
+        # Apply immediately if an AudioManager instance is available
+        try:
+            from src.managers.audio import get_audio_manager
+            am = get_audio_manager()
+            if am:
+                am.update_effects_volume()
+        except Exception:
+            pass
+
+    def _on_master_changed(self, volume: float) -> None:
+        """Callback pour le changement du volume maître (global)."""
+        set_audio_volume("master", volume)
+        self.state.master_volume = volume
+        # Apply immediately if an AudioManager instance is available
+        try:
+            from src.managers.audio import get_audio_manager
+            am = get_audio_manager()
+            if am:
+                am.update_all_volumes()
+                # Ensure music immediate update too
+                if pygame.mixer.get_init():
+                    # Music volume will be updated by update_all_volumes but keep safety
+                    pygame.mixer.music.set_volume(config_manager.get("volume_music", 0.5) * config_manager.get("volume_master", 0.8))
+        except Exception:
+            pass
     
     def _on_language_changed(self, lang_code: str) -> None:
         """Callback pour le changement de langue."""

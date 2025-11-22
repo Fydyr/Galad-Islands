@@ -39,6 +39,11 @@ class AudioManager:
 
         self._load_assets()
 
+        # Register ourselves as the global audio manager instance if none exists
+        global _global_audio_manager
+        if _global_audio_manager is None:
+            _global_audio_manager = self
+
     def _load_assets(self):
         """Loads audio assets."""
         self.play_music(MUSIC_MAIN_THEME)
@@ -287,3 +292,12 @@ class VolumeWatcher:
             print(f"⚠️ Erreur lors du chargement du volume: {e}")
             # Fallback: utiliser les valeurs By default
             pygame.mixer.music.set_volume(0.4)  # 0.5 * 0.8
+
+
+# Module-level singleton for the audio manager (set when the first instance is created)
+_global_audio_manager: Optional[AudioManager] = None
+
+
+def get_audio_manager() -> Optional[AudioManager]:
+    """Return the globally created AudioManager instance if available."""
+    return _global_audio_manager
