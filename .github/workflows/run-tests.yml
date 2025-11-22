@@ -43,10 +43,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          # Install core requirements (contains runtime deps like pygame)
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+          # Install dev/test requirements if present
           if [ -f requirements-dev.txt ]; then
             pip install -r requirements-dev.txt
           else
-            pip install -r requirements.txt
             pip install pytest
           fi
 
@@ -76,4 +80,5 @@ jobs:
           Please review the logs for more details:
           ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          gh issue create --title "$TITLE" --body "$BODY" --label "bug,automated-test-failure"
+          # Add an explicit common label to avoid failures when custom labels are missing
+          gh issue create --title "$TITLE" --body "$BODY" --label "bug"
