@@ -58,7 +58,7 @@ jobs:
         id: tests
         # continue-on-error permet aux étapes suivantes de s'exécuter même si les tests échouent
         continue-on-error: true
-        run: pytest
+        run: python3 run_tests.py
 
 
       - name: Create issue on failure
