@@ -45,10 +45,41 @@ class DisplayManager:
     def _create_window(self) -> pygame.Surface:
         """Creates a new window according to current parameters."""
         if self.is_fullscreen:
+            # In fullscreen we prefer the native display size if the requested
+            # resolution matches it; otherwise try to use SCALED to allow a
+            # logical (requested) resolution that is scaled to the native size.
             info = pygame.display.Info()
-            self.width = info.current_w
-            self.height = info.current_h
-            return pygame.display.set_mode((self.width, self.height), pygame.FULLSCREEN)
+            native_w, native_h = info.current_w, info.current_h
+
+            # If the requested size equals native, create a native fullscreen
+            if (self.width, self.height) == (native_w, native_h):
+                return pygame.display.set_mode((native_w, native_h), pygame.FULLSCREEN)
+
+            # Try to create a scaled fullscreen window (logical resolution = requested)
+            flags = pygame.FULLSCREEN
+            if hasattr(pygame, 'SCALED'):
+                flags |= pygame.SCALED
+
+            try:
+                surface = pygame.display.set_mode((self.width, self.height), flags)
+                # If set_mode returns a surface whose size does not match the
+                # requested logical size (older pygame versions/drivers), fall
+                # back to native fullscreen to keep the display stable.
+                surf_w, surf_h = surface.get_size()
+                if (surf_w, surf_h) != (self.width, self.height) and (surf_w, surf_h) == (native_w, native_h):
+                    # We got native-sized surface despite requesting custom size;
+                    # keep size set to native so subsequent layout matches actual surface.
+                    self.width, self.height = native_w, native_h
+                return surface
+            except Exception:
+                # Fallback: use native fullscreen to avoid crashing on unsupported modes
+                try:
+                    self.width, self.height = native_w, native_h
+                    return pygame.display.set_mode((native_w, native_h), pygame.FULLSCREEN)
+                except Exception:
+                    # As an ultimate fallback, fall back to a resizable window
+                    self.is_fullscreen = False
+                    return pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
         else:
             if sys.platform != "win32":
                 import os
@@ -115,16 +146,17 @@ class DisplayManager:
             changed = True
 
         # Check resolution (read dynamic config manager so changes are detected immediately)
-        if not self.is_fullscreen:
-            try:
-                config_resolution = settings.config_manager.get_resolution()
-            except Exception:
-                config_resolution = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
+        # Allow resolution changes regardless of fullscreen/windowed state: users
+        # should be able to change resolution while in fullscreen as well.
+        try:
+            config_resolution = settings.config_manager.get_resolution()
+        except Exception:
+            config_resolution = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
 
-            if config_resolution != (self.width, self.height):
-                self.width, self.height = config_resolution
-                self.dirty = True
-                changed = True
+        if config_resolution != (self.width, self.height):
+            self.width, self.height = config_resolution
+            self.dirty = True
+            changed = True
 
         return changed
 
