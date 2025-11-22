@@ -937,7 +937,12 @@ class GameEngine:
         self.previous_base_known = {Team.ALLY: False, Team.ENEMY: False}
         self.camera_tutorial_triggered = False
         self.initial_camera_state = None
+        self.scout_tutorial_triggered = False
+        self.maraudeur_tutorial_triggered = False
+        self.leviathan_tutorial_triggered = False
+        self.druid_tutorial_triggered = False
         self.architect_tutorial_triggered = False
+        self.kamikaze_tutorial_triggered = False
 
         # ECS processors
         self.movement_processor = None
@@ -1765,10 +1770,29 @@ class GameEngine:
         else:
             print(f"Aucune capacité spéciale disponible pour l'unité {entity}")
 
-        # Trigger tutorial if special ability was used
-        if activated and not self.self_play_mode:
+        # Trigger tutorials: both a generic 'special_ability_used' and a unit-specific used trigger
+        if activated and not getattr(self, 'self_play_mode', False):
+            # Generic signal
             event = pygame.event.Event(pygame.USEREVENT, user_type='special_ability_used')
             pygame.event.post(event)
+
+            # Also post unit-specific 'used' triggers when applicable
+            try:
+                if es.has_component(entity, SpeScout):
+                    pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "scout_used"}))
+                elif es.has_component(entity, SpeMaraudeur):
+                    pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "maraudeur_used"}))
+                elif es.has_component(entity, SpeLeviathan):
+                    pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "leviathan_used"}))
+                elif es.has_component(entity, SpeDruid):
+                    pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "druid_used"}))
+                elif es.has_component(entity, SpeArchitect):
+                    pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "architect_used"}))
+                elif es.has_component(entity, SpeKamikazeComponent):
+                    pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "kamikaze_used"}))
+            except Exception:
+                # Ignore lookup errors when posting events
+                pass
 
     def _get_player_units(self) -> List[int]:
         """Return the sorted list of units for the active faction."""
@@ -1822,12 +1846,43 @@ class GameEngine:
         # Architect tutorial: first time we select an Architect for the current player team,
         # trigger the 'architect_selected' tutorial (only when not in self-play mode).
         try:
-            if not getattr(self, 'architect_tutorial_triggered', False) and not getattr(self, 'self_play_mode', False):
-                if es.has_component(self.selected_unit_id, SpeArchitect):
+            # Post per-unit 'selected' tutorials once per unit class for the player's team
+            if not getattr(self, 'self_play_mode', False):
+                team_comp = None
+                if es.has_component(self.selected_unit_id, TeamComponent):
                     team_comp = es.component_for_entity(self.selected_unit_id, TeamComponent)
-                    if team_comp.team_id == self.selection_team_filter:
+
+                # Ensure this unit belongs to the player's current selection filter
+                if team_comp is not None and team_comp.team_id == self.selection_team_filter:
+                    # Scout
+                    if not getattr(self, 'scout_tutorial_triggered', False) and es.has_component(self.selected_unit_id, SpeScout):
+                        self.scout_tutorial_triggered = True
+                        pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "scout_selected"}))
+
+                    # Maraudeur
+                    if not getattr(self, 'maraudeur_tutorial_triggered', False) and es.has_component(self.selected_unit_id, SpeMaraudeur):
+                        self.maraudeur_tutorial_triggered = True
+                        pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "maraudeur_selected"}))
+
+                    # Leviathan
+                    if not getattr(self, 'leviathan_tutorial_triggered', False) and es.has_component(self.selected_unit_id, SpeLeviathan):
+                        self.leviathan_tutorial_triggered = True
+                        pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "leviathan_selected"}))
+
+                    # Druid
+                    if not getattr(self, 'druid_tutorial_triggered', False) and es.has_component(self.selected_unit_id, SpeDruid):
+                        self.druid_tutorial_triggered = True
+                        pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "druid_selected"}))
+
+                    # Architect (existing)
+                    if not getattr(self, 'architect_tutorial_triggered', False) and es.has_component(self.selected_unit_id, SpeArchitect):
                         self.architect_tutorial_triggered = True
                         pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "architect_selected"}))
+
+                    # Kamikaze
+                    if not getattr(self, 'kamikaze_tutorial_triggered', False) and es.has_component(self.selected_unit_id, SpeKamikazeComponent):
+                        self.kamikaze_tutorial_triggered = True
+                        pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"user_type": "kamikaze_selected"}))
         except Exception:
             # Safely ignore any lookup errors
             pass

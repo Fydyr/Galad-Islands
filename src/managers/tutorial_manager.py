@@ -45,6 +45,16 @@ class TutorialManager:
             "spe_attack_unit": 75,
             "camera": 85,
             "architect": 55,
+            "scout": 55,
+            "scout_special": 65,
+            "maraudeur": 55,
+            "maraudeur_special": 65,
+            "leviathan": 55,
+            "leviathan_special": 65,
+            "druid": 55,
+            "druid_special": 65,
+            "kamikaze": 55,
+            "kamikaze_special": 65,
             "fog_of_war": 10,
             "base_found": 50,
         }
@@ -140,10 +150,76 @@ class TutorialManager:
                 "trigger": "resource_collected",
             },
             {
+                "key": "scout",
+                "title": t("tutorial.scout.title"),
+                "message": t("tutorial.scout.message"),
+                "trigger": "scout_selected",
+            },
+            {
+                "key": "scout_special",
+                "title": t("tutorial.scout_special.title"),
+                "message": t("tutorial.scout_special.message"),
+                "trigger": "scout_used",
+            },
+            {
+                "key": "maraudeur",
+                "title": t("tutorial.maraudeur.title"),
+                "message": t("tutorial.maraudeur.message"),
+                "trigger": "maraudeur_selected",
+            },
+            {
+                "key": "maraudeur_special",
+                "title": t("tutorial.maraudeur_special.title"),
+                "message": t("tutorial.maraudeur_special.message"),
+                "trigger": "maraudeur_used",
+            },
+            {
+                "key": "leviathan",
+                "title": t("tutorial.leviathan.title"),
+                "message": t("tutorial.leviathan.message"),
+                "trigger": "leviathan_selected",
+            },
+            {
+                "key": "leviathan_special",
+                "title": t("tutorial.leviathan_special.title"),
+                "message": t("tutorial.leviathan_special.message"),
+                "trigger": "leviathan_used",
+            },
+            {
+                "key": "druid",
+                "title": t("tutorial.druid.title"),
+                "message": t("tutorial.druid.message"),
+                "trigger": "druid_selected",
+            },
+            {
+                "key": "druid_special",
+                "title": t("tutorial.druid_special.title"),
+                "message": t("tutorial.druid_special.message"),
+                "trigger": "druid_used",
+            },
+            {
                 "key": "architect",
                 "title": t("tutorial.architect.title"),
                 "message": t("tutorial.architect.message"),
                 "trigger": "architect_selected",
+            },
+            {
+                "key": "architect_special",
+                "title": t("tutorial.architect_special.title"),
+                "message": t("tutorial.architect_special.message"),
+                "trigger": "architect_used",
+            },
+            {
+                "key": "kamikaze",
+                "title": t("tutorial.kamikaze.title"),
+                "message": t("tutorial.kamikaze.message"),
+                "trigger": "kamikaze_selected",
+            },
+            {
+                "key": "kamikaze_special",
+                "title": t("tutorial.kamikaze_special.title"),
+                "message": t("tutorial.kamikaze_special.message"),
+                "trigger": "kamikaze_used",
             },
             {
                 "key": "attack_unit",
@@ -186,6 +262,43 @@ class TutorialManager:
             trigger = event.user_type
             for step in self.steps:
                 if step["trigger"] == trigger:
+                    # If the start tutorial hasn't been read yet, queue unit-selection tips
+                    # instead of showing them immediately. This prevents unit tips from
+                    # appearing before the user has received the welcome/start message.
+                    key = step.get("key")
+                    unit_keys = {"scout", "maraudeur", "leviathan", "druid", "architect", "kamikaze"}
+                    if key in unit_keys and "start" not in self.read_tips:
+                        # Ensure select_unit gets queued first if it's not already read/queued/current
+                        if (
+                            "select_unit" not in self.read_tips
+                            and "select_unit" != self.current_tip_key
+                            and "select_unit" not in self._queued_tips
+                        ):
+                            # insert according to priority
+                            priority = self._tip_priority.get("select_unit", 0)
+                            inserted = False
+                            for i, queued_key in enumerate(self._queued_tips):
+                                queued_priority = self._tip_priority.get(queued_key, 0)
+                                if priority > queued_priority:
+                                    self._queued_tips.insert(i, "select_unit")
+                                    inserted = True
+                                    break
+                            if not inserted:
+                                self._queued_tips.append("select_unit")
+
+                        # Now queue the unit-specific tip (avoid duplicates)
+                        if key not in self.read_tips and key != self.current_tip_key and key not in self._queued_tips:
+                            priority = self._tip_priority.get(key, 0)
+                            inserted = False
+                            for i, queued_key in enumerate(self._queued_tips):
+                                queued_priority = self._tip_priority.get(queued_key, 0)
+                                if priority > queued_priority:
+                                    self._queued_tips.insert(i, key)
+                                    inserted = True
+                                    break
+                            if not inserted:
+                                self._queued_tips.append(key)
+                        return
                     # Special case: opening the shop should only trigger when the shop is opened
                     if trigger == 'open_shop':
                         is_open = getattr(event, 'is_open', None)

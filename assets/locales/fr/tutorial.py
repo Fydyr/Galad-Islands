@@ -28,4 +28,28 @@ TRANSLATIONS = {
     "tutorial.camera.message": "Utilisez la molette de la souris pour zoomer. Maintenez le bouton du milieu ou faites un clic droit et glissez pour déplacer la caméra. Vous pouvez aussi utiliser les flèches ou WASD pour un mouvement précis.",
     "tutorial.architect.title": "Architecte & Tours",
     "tutorial.architect.message": "L'Architecte peut construire des tours pour votre équipe. Sélectionnez un Architecte pour accéder aux boutons de construction dans la barre d'action — il peut construire des tours d'attaque (infligent des dégâts) ou des tours de soin (réparent les unités). L'Architecte possède également une capacité spéciale qui accélère la recharge des tours dans une zone.",
+    "tutorial.scout.title": "Éclaireur (Évasion)",
+    "tutorial.scout.message": "Les éclaireurs sont rapides et peuvent éviter brièvement les dégâts avec leur capacité spéciale. Sélectionnez un éclaireur pour en savoir plus.\n\nUtilisez l'évasion de l'éclaireur (touche E) pour le rendre temporairement invincible et éviter les dégâts. Utilisez-la judicieusement — elle a un temps de recharge.",
+    "tutorial.scout_special.title": "Éclaireur : Manœuvre d'Évasion",
+    "tutorial.scout_special.message": "Utilisez l'évasion de l'éclaireur (touche E) pour le rendre temporairement invincible et éviter les dégâts. Utilisez-la judicieusement — elle a un temps de recharge.",
+
+    "tutorial.maraudeur.title": "Maraudeur (Bouclier)",
+    "tutorial.maraudeur.message": "Les maraudeurs sont des combattants de première ligne capables d'activer un bouclier pour absorber les dégâts. Sélectionnez un Maraudeur pour voir sa capacité spéciale.\n\nActivez le bouclier de mana du Maraudeur pour encaisser des dégâts pendant un court instant. Cela coûte du mana et a un temps de recharge.",
+    "tutorial.maraudeur_special.title": "Maraudeur : Bouclier de Mana",
+    "tutorial.maraudeur_special.message": "Activez le bouclier de mana du Maraudeur pour encaisser des dégâts pendant un court instant. Cela coûte du mana et a un temps de recharge.",
+
+    "tutorial.leviathan.title": "Léviathan (Double Salve)",
+    "tutorial.leviathan.message": "Les Léviathans peuvent tirer des salves puissantes. Sélectionnez-en un pour découvrir ses mécaniques d'attaque uniques.\n\nQuand activée, la capacité du Léviathan déclenche une seconde salve immédiate — utile pour éliminer rapidement des ennemis importants.",
+    "tutorial.leviathan_special.title": "Léviathan : Seconde Salve",
+    "tutorial.leviathan_special.message": "Quand activée, la capacité du Léviathan déclenche une seconde salve immédiate — utile pour éliminer rapidement des ennemis importants.",
+
+    "tutorial.druid.title": "Druide (Soutien)",
+    "tutorial.druid.message": "Les Druides soutiennent leurs alliés avec des sorts de soin et de contrôle. Sélectionnez un Druide pour inspecter sa capacité spéciale.\n\nLancez l'Ivy pour affecter les ennemis ou créer des avantages tactiques sur le champ de bataille. Le lancer du Druide a un temps de recharge.",
+    "tutorial.druid_special.title": "Druide : Lance-Heureux",
+    "tutorial.druid_special.message": "Lancez l'Ivy pour affecter les ennemis ou créer des avantages tactiques sur le champ de bataille. Le lancer du Druide a un temps de recharge.",
+
+    "tutorial.kamikaze.title": "Kamikaze (Attaque Suicide)",
+    "tutorial.kamikaze.message": "Les unités kamikazes foncent sur les ennemis puis se font exploser — efficace pour neutraliser une cible unique au prix de l'unité.\n\nDéclenchez l'explosif pour provoquer une grande explosion, endommageant les unités et structures proches. À utiliser avec précaution.",
+    "tutorial.kamikaze_special.title": "Kamikaze : Détonation",
+    "tutorial.kamikaze_special.message": "Déclenchez l'explosif pour provoquer une grande explosion, endommageant les unités et structures proches. À utiliser avec précaution.",
 }

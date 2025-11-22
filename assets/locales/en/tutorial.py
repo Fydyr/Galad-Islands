@@ -28,4 +28,28 @@ TRANSLATIONS = {
     "tutorial.camera.message": "Use the mouse wheel to zoom in and out. Hold the middle mouse button or right-click and drag to pan the camera. You can also use the arrow keys or WASD for precise movement.",
     "tutorial.architect.title": "Architect & Towers",
     "tutorial.architect.message": "Architect units can construct towers for your team. Select an Architect to access build buttons on the action bar — they can build attack towers (deal damage) or heal towers (repair allies). Architects also have a special ability that speeds up tower reloads in an area.",
+    "tutorial.scout.title": "Scout (Evasion)",
+    "tutorial.scout.message": "Scouts are fast and can briefly evade damage using their special ability. Select a Scout to learn more.\n\nUse the Scout's evasion ability (E) to make it temporarily invincible and dodge incoming damage. Use wisely — it has a cooldown.",
+    "tutorial.scout_special.title": "Scout: Evasion Maneuver",
+    "tutorial.scout_special.message": "Use the Scout's evasion ability (E) to make it temporarily invincible and dodge incoming damage. Use wisely — it has a cooldown.",
+
+    "tutorial.maraudeur.title": "Marauder (Shield)",
+    "tutorial.maraudeur.message": "Marauders are frontline fighters that can activate a shield to absorb damage. Select a Marauder to see its special ability.\n\nActivate the Marauder's mana shield to soak damage for a short time. It costs mana and has a cooldown.",
+    "tutorial.maraudeur_special.title": "Marauder: Mana Shield",
+    "tutorial.maraudeur_special.message": "Activate the Marauder's mana shield to soak damage for a short time. It costs mana and has a cooldown.",
+
+    "tutorial.leviathan.title": "Leviathan (Double Volley)",
+    "tutorial.leviathan.message": "Leviathans can fire powerful salvos. Select one to discover its unique attack mechanics.\n\nWhen activated, the Leviathan immediately fires a second volley of shots — a great way to burst down tough enemies.",
+    "tutorial.leviathan_special.title": "Leviathan: Second Volley",
+    "tutorial.leviathan_special.message": "When activated, the Leviathan immediately fires a second volley of shots — a great way to burst down tough enemies.",
+
+    "tutorial.druid.title": "Druid (Support)",
+    "tutorial.druid.message": "Druids support allies with healing and control spells. Select a Druid to inspect its special ability.\n\nCast Ivy to affect enemies or create strategic advantages on the battlefield. The Druid's cast has a cooldown.",
+    "tutorial.druid_special.title": "Druid: Ivy Cast",
+    "tutorial.druid_special.message": "Cast Ivy to affect enemies or create strategic advantages on the battlefield. The Druid's cast has a cooldown.",
+
+    "tutorial.kamikaze.title": "Kamikaze (Suicide Attack)",
+    "tutorial.kamikaze.message": "Kamikaze units rush at enemies and detonate — effective at taking out single targets at the cost of the unit itself.\n\nTrigger the detonator to cause a large explosion, damaging nearby units and structures. Use with caution.",
+    "tutorial.kamikaze_special.title": "Kamikaze: Detonate",
+    "tutorial.kamikaze_special.message": "Trigger the detonator to cause a large explosion, damaging nearby units and structures. Use with caution.",
 }

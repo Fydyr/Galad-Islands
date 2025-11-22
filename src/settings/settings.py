@@ -217,6 +217,16 @@ class ConfigManager:
                 self.config["key_bindings"] = {}
             self.config["key_bindings"][action] = list(bindings)
 
+    def add_read_tip(self, tip_id: str) -> None:
+        """Ajoute un ID de conseil à la liste des lus et sauvegarde la config."""
+        if "read_tips" not in self.config or not isinstance(self.config["read_tips"], list):
+            self.config["read_tips"] = []
+        
+        if tip_id not in self.config["read_tips"]:
+            self.config["read_tips"].append(tip_id)
+            self.save_config()  # Sauvegarde immédiate après modification
+
+
     def _merge_nested_dicts(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
         """Fusionne récursivement deux dictionnaires sans perdre les valeurs By default."""
         result = deepcopy(base)
