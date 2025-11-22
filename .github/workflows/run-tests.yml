@@ -1,0 +1,79 @@
+name: Run Tests and Report Failures
+
+on:
+  push:
+    branches:
+      - main
+      - unstable
+  pull_request:
+    branches:
+      - main
+      - unstable
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write # Nécessaire pour créer des issues
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Determine pip cache directory
+        id: pip-cache
+        run: |
+          echo "cache_dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pip-cache.outputs.cache_dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          else
+            pip install -r requirements.txt
+            pip install pytest
+          fi
+
+      - name: Run tests
+        id: tests
+        # continue-on-error permet aux étapes suivantes de s'exécuter même si les tests échouent
+        continue-on-error: true
+        run: pytest
+
+
+      - name: Create issue on failure
+        if: steps.tests.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          TITLE="CI Tests Failed on ${{ github.ref_name }} (${{ github.sha }})"
+          BODY="### 🚨 Automated tests failed
+
+          A failure was detected in the test suite for commit \`${{ github.sha }}\` on branch \`${{ github.ref_name }}\`.
+
+          **Details:**
+          - **Workflow:** \`${{ github.workflow }}\`
+          - **Run ID:** \`${{ github.run_id }}\`
+          - **Triggered by:** \`${{ github.event_name }}\`
+
+          Please review the logs for more details:
+          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          gh issue create --title "$TITLE" --body "$BODY" --label "bug,automated-test-failure"
