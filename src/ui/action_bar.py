@@ -92,6 +92,7 @@ class ActionType(Enum):
     BUILD_DEFENSE_TOWER = "build_defense_tower"
     BUILD_HEAL_TOWER = "build_heal_tower"
     AI_TOGGLE = "ai_toggle"
+    AI_TOGGLE_ALL = "ai_toggle_all"
     DEV_GIVE_GOLD = "dev_give_gold"
     SWITCH_CAMP = "switch_camp"
     OPEN_SHOP = "open_shop"
@@ -167,6 +168,7 @@ class ActionBar:
         self.button_rects: List[pygame.Rect] = []
 
         # Synchroniser le mode self-play avec the game engine si disponible
+        self.self_play_mode = False
         if self.game_engine is not None and hasattr(self.game_engine, 'self_play_mode'):
             self.self_play_mode = bool(self.game_engine.self_play_mode)
         self.global_button_rects: List[pygame.Rect] = []
@@ -272,6 +274,15 @@ class ActionBar:
                 hotkey=self._get_hotkey_for_action("system_shop"),
                 tooltip=t("tooltip.shop"),
                 callback=self._open_shop
+            ),
+            ActionButton(
+                action_type=ActionType.AI_TOGGLE_ALL,
+                icon_path="assets/sprites/ui/ai_toggle_all.png",
+                text=t("actionbar.ai_toggle_all"),
+                cost=0,
+                hotkey="",
+                tooltip=t("tooltip.ai_toggle_all"),
+                callback=self._toggle_all_ai
             )
         ]
         # Boutons de construction (l'Architect peut les activer quand sélectionné)
@@ -359,6 +370,9 @@ class ActionBar:
                 elif button.action_type == ActionType.DEV_GIVE_GOLD:
                     button.text = t("actionbar.debug_menu")
                     button.tooltip = t("debug.modal.title")
+                elif button.action_type == ActionType.AI_TOGGLE_ALL:
+                    button.text = t("actionbar.ai_toggle_all")
+                    button.tooltip = t("tooltip.ai_toggle_all")
 
             # Recreate fonts if needed (keep sizes)
             # Force re-render in draw cycle by updating fonts
@@ -481,9 +495,12 @@ class ActionBar:
                 # Le bouton de la boutique est toujours visible sauf en self-play
                 elif btn.action_type == ActionType.OPEN_SHOP:
                     btn.visible = True
-                # Les boutons globaux (comme le debug) ne sont pas affectés
-                    # Les boutons globaux (comme le debug) ne sont pas affectés
+                # Le bouton AI Toggle All est toujours visible en mode joueur vs IA
+                elif btn.action_type == ActionType.AI_TOGGLE_ALL:
                     btn.visible = True
+                # Les boutons globaux (comme le debug) gardent leur visibilité par défaut
+                elif btn.is_global:
+                    pass  # La visibilité est gérée ailleurs (ex: dev_mode pour debug)
 
         # # DIAGNOSTIC : Affichage de l'état self_play_mode et des boutons visibles
         # print(f"[ActionBar] self_play_mode={self.self_play_mode}")
@@ -717,6 +734,11 @@ class ActionBar:
             else:
                 self.game_engine.toggle_selected_unit_ai(toggle_all=True)
 
+    def _toggle_all_ai(self):
+        """Bascule l'IA de toutes les unités."""
+        if self.game_engine:
+            self.game_engine.toggle_selected_unit_ai(toggle_all=True)
+
     def _is_selected_unit_ai_enabled(self) -> bool:
         """Vérifie si l'IA de l'unité sélectionnée est activée."""
         if not self.game_engine or not self.selected_unit:
@@ -731,6 +753,22 @@ class ActionBar:
             return ai_comp.enabled
 
         return False
+
+    def _are_all_ai_enabled(self) -> bool:
+        """Vérifie si toutes les IA sont activées."""
+        if not esper:
+            return False
+
+        # Parcourir toutes les entités avec AIEnabledComponent
+        ai_entities = list(esper.get_component(AIEnabledComponent))
+        if not ai_entities:
+            return True  # Pas d'unités avec IA = considéré comme "toutes activées"
+
+        for entity, ai_comp in ai_entities:
+            if not ai_comp.enabled:
+                return False
+
+        return True
     
     def _get_hotkey_for_action(self, action: str) -> str:
         """Retourne le raccourci clavier pour une action donnée."""
@@ -1044,6 +1082,12 @@ class ActionBar:
         elif button.action_type == ActionType.AI_TOGGLE:
             ai_enabled = self._is_selected_unit_ai_enabled()
             if ai_enabled:
+                color = UIColors.AI_ENABLED_HOVER if is_hovered else UIColors.AI_ENABLED
+            else:
+                color = UIColors.AI_DISABLED_HOVER if is_hovered else UIColors.AI_DISABLED
+        elif button.action_type == ActionType.AI_TOGGLE_ALL:
+            all_ai_enabled = self._are_all_ai_enabled()
+            if all_ai_enabled:
                 color = UIColors.AI_ENABLED_HOVER if is_hovered else UIColors.AI_ENABLED
             else:
                 color = UIColors.AI_DISABLED_HOVER if is_hovered else UIColors.AI_DISABLED
