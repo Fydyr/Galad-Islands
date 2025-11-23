@@ -693,17 +693,18 @@ class CollisionProcessor(esper.Processor):
             # Move back while keeping sign (moving back in opposite direction)
             dx = magnitude * math.cos(dir_rad)
             dy = magnitude * math.sin(dir_rad)
-            # New bounce logic: calculate reflection angle
-            # We assume obstacle is vertical or horizontal surface
-            # for simplicity. Reverse perpendicular velocity component.
+            # New bounce logic: deflect by 45° to 90° instead of 180°
+            # This makes units turn sideways rather than reversing completely
             current_angle_rad = math.radians(pos.direction)
 
-            # Reverse direction by 180 degrees as base
-            new_direction_rad = current_angle_rad + math.pi
+            # Choose deflection between 45° and 90°
+            deflection_angle = math.radians(random.uniform(45, 90))
 
-            # Add random angle to avoid perfect blocking
-            random_angle_offset = math.radians(random.uniform(-30, 30))
-            new_direction_rad += random_angle_offset
+            # Randomly choose left or right turn
+            if random.random() < 0.5:
+                deflection_angle = -deflection_angle
+
+            new_direction_rad = current_angle_rad + deflection_angle
 
             # Apply recoil displacement
             dx = magnitude * math.cos(new_direction_rad)
