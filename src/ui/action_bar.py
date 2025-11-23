@@ -22,6 +22,7 @@ from src.components.core.baseComponent import BaseComponent
 from src.settings import controls
 from src.managers.sprite_manager import sprite_manager, SpriteID
 from src.components.special.speArchitectComponent import SpeArchitect
+from src.components.core.aiEnabledComponent import AIEnabledComponent
 
 # Imports moved from inline positions for better code quality
 from src.constants.gameplay import (
@@ -53,6 +54,12 @@ class UIColors:
     ATTACK_HOVER = (220, 80, 80)       # Rouge clair
     DEFENSE_BUTTON = (60, 140, 60)     # Vert pour défense
     DEFENSE_HOVER = (80, 180, 80)      # Vert clair
+
+    # Couleurs pour l'état de l'IA
+    AI_ENABLED = (60, 180, 60)         # Vert pour IA activée
+    AI_ENABLED_HOVER = (80, 220, 80)   # Vert clair hover
+    AI_DISABLED = (180, 60, 60)        # Rouge pour IA désactivée
+    AI_DISABLED_HOVER = (220, 80, 80)  # Rouge clair hover
     
     # Texte
     TEXT_NORMAL = (240, 240, 250)      # Blanc cassé
@@ -709,6 +716,21 @@ class ActionBar:
                 self.game_engine.toggle_selected_unit_ai(toggle_all=False)
             else:
                 self.game_engine.toggle_selected_unit_ai(toggle_all=True)
+
+    def _is_selected_unit_ai_enabled(self) -> bool:
+        """Vérifie si l'IA de l'unité sélectionnée est activée."""
+        if not self.game_engine or not self.selected_unit:
+            return False
+
+        entity_id = self.game_engine.selected_unit_id
+        if entity_id is None or not esper.entity_exists(entity_id):
+            return False
+
+        if esper.has_component(entity_id, AIEnabledComponent):
+            ai_comp = esper.component_for_entity(entity_id, AIEnabledComponent)
+            return ai_comp.enabled
+
+        return False
     
     def _get_hotkey_for_action(self, action: str) -> str:
         """Retourne le raccourci clavier pour une action donnée."""
@@ -1013,30 +1035,26 @@ class ActionBar:
         shortcut_rect.bottom = self.camp_button_rect.bottom - 2
         surface.blit(shortcut_surface, shortcut_rect)
     
-    def _draw_button(self, surface: pygame.Surface, button: ActionButton, rect: pygame.Rect, 
+    def _draw_button(self, surface: pygame.Surface, button: ActionButton, rect: pygame.Rect,
                      is_hovered: bool, is_global: bool = False):
         """Dessine un bouton individuel."""
         # Couleur du bouton
         if not button.enabled:
             color = UIColors.BUTTON_DISABLED
+        elif button.action_type == ActionType.AI_TOGGLE:
+            ai_enabled = self._is_selected_unit_ai_enabled()
+            if ai_enabled:
+                color = UIColors.AI_ENABLED_HOVER if is_hovered else UIColors.AI_ENABLED
+            else:
+                color = UIColors.AI_DISABLED_HOVER if is_hovered else UIColors.AI_DISABLED
         elif is_hovered:
             color = UIColors.BUTTON_HOVER
         else:
             color = UIColors.BUTTON_NORMAL
-        
-        # Effet de lueur si bouton global actif (désactivé pour avoid la surbrillance inutile)
-        # if is_global:
-        #     glow_size = int(5 + 3 * math.sin(self.button_glow_timer * 3))
-        #     glow_rect = rect.inflate(glow_size, glow_size)
-        #     pygame.draw.rect(surface, UIColors.GLOW[:3], glow_rect, border_radius=12)
-        
-        # Fond du bouton avec dégradé
-        for y in range(rect.height):
-            alpha = int(255 * (1 - y / rect.height * 0.3))
-            current_color = (*color, alpha)
-            line_rect = pygame.Rect(rect.x, rect.y + y, rect.width, 1)
-            pygame.draw.rect(surface, current_color, line_rect)
-        
+
+        # Fond du bouton (couleur unie avec coins arrondis)
+        pygame.draw.rect(surface, color, rect, border_radius=8)
+
         # Bordure
         border_color = UIColors.BORDER_LIGHT if button.enabled else UIColors.BORDER
         pygame.draw.rect(surface, border_color, rect, 2, border_radius=8)
