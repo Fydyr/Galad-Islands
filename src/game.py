@@ -12,6 +12,7 @@ import esper as es
 import src.settings.settings as settings
 import src.components.globals.mapComponent as game_map
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, config_manager
+from src.constants.gameplay import INITIAL_EVENT_DELAY
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path
 from src.settings import controls
@@ -1178,7 +1179,8 @@ class GameEngine:
         self.capacities_processor = CapacitiesSpecialesProcessor()
         self.lifetime_processor = LifetimeProcessor()
         self.architect_ai_processor = ArchitectAIProcessor()
-        self.event_processor = EventProcessor(15, 5, 10, 25)
+        # Use gameplay constant for initial delay so events don't spawn immediately
+        self.event_processor = EventProcessor(int(INITIAL_EVENT_DELAY), 5, 10, 25)
         # Passive income to prevent stalemates when a team has zero units
         self.passive_income_processor = PassiveIncomeProcessor(gold_per_tick=1, interval=2.0)
         # Explosion sound processor for damage sounds

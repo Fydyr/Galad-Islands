@@ -1,5 +1,7 @@
 import random
 import esper as es
+import pygame
+import math
 from typing import Optional, Tuple, Dict
 import logging
 
@@ -9,6 +11,7 @@ from src.components.core.spriteComponent import SpriteComponent
 from src.components.core.healthComponent import HealthComponent
 from src.components.core.teamComponent import TeamComponent
 from src.settings.settings import TILE_SIZE, MAP_WIDTH, MAP_HEIGHT
+from src.constants.gameplay import INITIAL_EVENT_DELAY
 from src.constants.map_tiles import TileType
 from src.managers.sprite_manager import SpriteID, sprite_manager
 
@@ -35,6 +38,12 @@ class StormProcessor(es.Processor):
         self.spawn_chance = 0.05  # 5%
         self.check_interval = 5.0  # Check every 5 seconds
         self.time_since_check = 0.0
+        # Time since the processor was created (used for initial spawn delay)
+        self.time_since_start = 0.0
+        # Allow configuring a delay before storms can appear at game start
+        # read initial delay from the project's global ConfigManager
+        # Use the constant defined in gameplay constants
+        self.initial_spawn_delay = float(INITIAL_EVENT_DELAY)
 
         # Storm configuration
         self.stormDamage = 30
@@ -62,6 +71,10 @@ class StormProcessor(es.Processor):
 
         # Periodically check for new storm spawns
         self.time_since_check += dt
+        self.time_since_start += dt
+        # Respect initial spawn delay configured by game settings
+        if self.time_since_start < self.initial_spawn_delay:
+            return
         if self.time_since_check >= self.check_interval:
             self.time_since_check = 0.0
             self.trySpawnStorm()
@@ -126,7 +139,6 @@ class StormProcessor(es.Processor):
         distance = self.stormMoveSpeed * self.stormMoveInterval * TILE_SIZE
 
         # Calculate new position
-        import math
         direction_rad = math.radians(random_direction)
         new_x = pos.x + distance * math.cos(direction_rad)
         new_y = pos.y + distance * math.sin(direction_rad)
@@ -237,6 +249,12 @@ class StormProcessor(es.Processor):
                 'entity_attacks': {}  # entity_id -> last_attack_time
             }
             logger.info(f"Storm spawned at position {position}")
+            # Notify UI / tutorial system
+            try:
+                evt = pygame.event.Event(pygame.USEREVENT, user_type='storm_appeared', entity_id=stormEntity)
+                pygame.event.post(evt)
+            except Exception:
+                pass
 
     def findValidSpawnPosition(self) -> Optional[Tuple[float, float]]:
         """Find a valid position to spawn a storm (at sea)."""

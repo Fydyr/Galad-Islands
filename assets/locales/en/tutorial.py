@@ -52,4 +52,11 @@ TRANSLATIONS = {
     "tutorial.kamikaze.message": "Kamikaze units rush at enemies and detonate — effective at taking out single targets at the cost of the unit itself.\n\nTrigger the detonator to cause a large explosion, damaging nearby units and structures. Use with caution.",
     "tutorial.kamikaze_special.title": "Kamikaze: Detonate",
     "tutorial.kamikaze_special.message": "Trigger the detonator to cause a large explosion, damaging nearby units and structures. Use with caution.",
+    
+    "tutorial.kraken.title": "Kraken",
+    "tutorial.kraken.message": "A colossal kraken has emerged from the deep! It can damage ships and disrupt the battlefield. Watch for tentacles and avoid getting too close.",
+    "tutorial.bandits.title": "Bandits Raid",
+    "tutorial.bandits.message": "A wave of bandit ships is attacking nearby sea lanes. Bandits are not destroyed by normal weapons or mines — they are effectively invulnerable to standard attacks. Avoid direct confrontation !",
+    "tutorial.storm.title": "Storms",
+    "tutorial.storm.message": "A severe storm is sweeping the area: units inside the storm take damage over time and visibility is reduced. Move your units out of the storm's radius or suffer heavy losses.",
 }

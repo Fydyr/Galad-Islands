@@ -56,6 +56,10 @@ class TutorialManager:
             "kamikaze": 55,
             "kamikaze_special": 65,
             "fog_of_war": 10,
+            # Event tutorials (high priority)
+            "kraken_event": 95,
+            "bandits_event": 95,
+            "storm_event": 95,
             "base_found": 50,
         }
 
@@ -250,6 +254,25 @@ class TutorialManager:
                 "title": t("tutorial.base_found.title"),
                 "message": t("tutorial.base_found.message"),
                 "trigger": "enemy_base_discovered",
+            },
+            # Events
+            {
+                "key": "kraken_event",
+                "title": t("tutorial.kraken.title"),
+                "message": t("tutorial.kraken.message"),
+                "trigger": "kraken_appeared",
+            },
+            {
+                "key": "bandits_event",
+                "title": t("tutorial.bandits.title"),
+                "message": t("tutorial.bandits.message"),
+                "trigger": "bandits_appeared",
+            },
+            {
+                "key": "storm_event",
+                "title": t("tutorial.storm.title"),
+                "message": t("tutorial.storm.message"),
+                "trigger": "storm_appeared",
             },
         ]
 

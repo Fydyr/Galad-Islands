@@ -126,6 +126,12 @@ SHOP_TEXT_X_OFFSET = 30
 # Constantes de la boutique - Or du joueur By default
 SHOP_DEFAULT_PLAYER_GOLD = 100
 
+# =============================================================================
+# EVENEMENTS / TEMPO
+# =============================================================================
+# Delay (s) before global events (kraken/storms/bandits) start appearing after game start
+INITIAL_EVENT_DELAY = 15.0
+
 # Constantes de la boutique - Polices
 SHOP_FONT_SIZE_TITLE = 32
 SHOP_FONT_SIZE_SUBTITLE = 26

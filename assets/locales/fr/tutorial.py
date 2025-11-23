@@ -37,6 +37,13 @@ TRANSLATIONS = {
     "tutorial.maraudeur.message": "Les maraudeurs sont des combattants de première ligne capables d'activer un bouclier pour absorber les dégâts. Sélectionnez un Maraudeur pour voir sa capacité spéciale.\n\nActivez le bouclier de mana du Maraudeur pour encaisser des dégâts pendant un court instant. Cela coûte du mana et a un temps de recharge.",
     "tutorial.maraudeur_special.title": "Maraudeur : Bouclier de Mana",
     "tutorial.maraudeur_special.message": "Activez le bouclier de mana du Maraudeur pour encaisser des dégâts pendant un court instant. Cela coûte du mana et a un temps de recharge.",
+    
+    "tutorial.kraken.title": "Kraken",
+    "tutorial.kraken.message": "Un colossal kraken a émergé des profondeurs ! Il peut endommager les navires et perturber le champ de bataille. Méfiez‑vous des tentacules et évitez de vous en approcher.",
+    "tutorial.bandits.title": "Raid de bandits",
+    "tutorial.bandits.message": "Une vague de navires bandits attaque les voies maritimes à proximité. Les bandits ne peuvent pas être détruits par les armes usuelles ni par les mines — évitez la confrontation directe !",
+    "tutorial.storm.title": " Tempête",
+    "tutorial.storm.message": "Une violente tempête balaie la zone : les unités à l'intérieur subissent des dégâts au fil du temps et la visibilité est réduite. Sortez vos unités du rayon de la tempête ou subissez de lourdes pertes.",
 
     "tutorial.leviathan.title": "Léviathan (Double Salve)",
     "tutorial.leviathan.message": "Les Léviathans peuvent tirer des salves puissantes. Sélectionnez-en un pour découvrir ses mécaniques d'attaque uniques.\n\nQuand activée, la capacité du Léviathan déclenche une seconde salve immédiate — utile pour éliminer rapidement des ennemis importants.",

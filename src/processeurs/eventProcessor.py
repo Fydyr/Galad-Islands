@@ -1,5 +1,6 @@
 import esper
 import random
+import pygame
 from src.components.core.spriteComponent import SpriteComponent as Sprite
 from src.components.core.teamComponent import TeamComponent as Team
 from src.components.core.attackComponent import AttackComponent as Attack
@@ -21,7 +22,8 @@ class EventProcessor(esper.Processor):
     def __init__(self, eventCooldown: int = 0, maxEventCooldown: int = 0, krakenSpawn: int = 0, banditSpawn: int = 0):
         self.eventCooldown = eventCooldown
         self.maxEventCooldown = maxEventCooldown
-        self.krakenSpawn = eventCooldown
+        # probability thresholds (0..100)
+        self.krakenSpawn = krakenSpawn
         self.banditSpawn = banditSpawn
 
     def process(self, dt, grid):
@@ -53,6 +55,12 @@ class EventProcessor(esper.Processor):
                 esper.add_component(krakenEnt, Event(0, 20, 20))
                 esper.add_component(krakenEnt, Kraken(0, 10, 3))
                 sprite_manager.add_sprite_to_entity(krakenEnt, SpriteID.KRAKEN)
+                # Notify the UI/tutorials that a kraken has appeared
+                try:
+                    evt = pygame.event.Event(pygame.USEREVENT, user_type='kraken_appeared', entity_id=krakenEnt)
+                    pygame.event.post(evt)
+                except Exception:
+                    pass
             return
         
         pourcent = random.randint(0, 100)
@@ -63,6 +71,11 @@ class EventProcessor(esper.Processor):
             created_entities = BanditsProcessor.spawn_bandits_wave(grid, num_boats)
             if created_entities:
                 print(f"[EVENT] {len(created_entities)} bandit ships created")
+                try:
+                    evt = pygame.event.Event(pygame.USEREVENT, user_type='bandits_appeared', wave_size=len(created_entities))
+                    pygame.event.post(evt)
+                except Exception:
+                    pass
 
     def _getNewPosition(self, grid):
         newPositiion = None
