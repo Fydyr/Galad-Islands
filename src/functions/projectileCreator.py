@@ -19,6 +19,7 @@ from src.constants.gameplay import (
     DRUID_PROJECTILE_SPEED
 )
 from src.managers.sprite_manager import SpriteID, sprite_manager
+from src.managers.audio import get_audio_manager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,11 @@ def create_projectile(entity, type: str = "bullet"):
 
     # Debug log for projectile creation
     print(f"[DEBUG] create_projectile - entity: {entity}, type: {type}")
+
+    # Play shoot sound
+    audio_manager = get_audio_manager()
+    if audio_manager:
+        audio_manager.play_shoot_sound()
 
     if not esper.has_component(entity, SpeArchitect) and not esper.has_component(entity, SpeDruid):
         # Récupère le radius pour savoir si on tire sur les côtés

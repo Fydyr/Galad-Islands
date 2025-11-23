@@ -53,6 +53,11 @@ class AudioManager:
         self.explosion_channel = None
         self._explosion_initialized = False
 
+        # Shoot sounds management
+        self.shoot_sounds: List[pygame.mixer.Sound] = []
+        self.shoot_channel = None
+        self._shoot_initialized = False
+
         self._load_assets()
 
         # Register ourselves as the global audio manager instance if none exists
@@ -180,6 +185,7 @@ class AudioManager:
 
         self.select_sound.set_volume(final_volume)
         self._update_explosion_volume()
+        self._update_shoot_volume()
 
     def update_all_volumes(self):
         """Updates all volumes from configuration."""
@@ -238,6 +244,108 @@ class AudioManager:
         """Stops all explosion sounds currently playing."""
         if self.explosion_channel:
             self.explosion_channel.stop()
+
+    def _ensure_shoot_initialized(self):
+        """Initializes the dedicated shoot channel if not already done."""
+        if self._shoot_initialized:
+            return
+
+        try:
+            # Reserve a dedicated channel for shoot sounds (channel 1)
+            pygame.mixer.set_reserved(2)  # Reserve channels 0 and 1
+            self.shoot_channel = pygame.mixer.Channel(1)
+            self._load_shoot_sounds()
+            self._shoot_initialized = True
+        except pygame.error as e:
+            print(f"⚠️ Unable to initialize shoot manager: {e}")
+
+    def _load_shoot_sounds(self):
+        """Loads all shoot sounds from assets/sounds/shoot folder."""
+        shoot_dir = os.path.join("assets", "sounds", "shoot")
+        full_path = get_resource_path(shoot_dir)
+
+        if not os.path.exists(full_path):
+            print(f"⚠️ Shoot folder not found: {full_path}")
+            return
+
+        try:
+            # List all audio files in the folder
+            sound_files = [
+                f for f in os.listdir(full_path)
+                if f.endswith(('.ogg', '.mp3', '.wav'))
+            ]
+
+            if not sound_files:
+                print(f"⚠️ No audio files found in {shoot_dir}")
+                return
+
+            # Load each sound file
+            for sound_file in sound_files:
+                sound_path = os.path.join(shoot_dir, sound_file)
+                try:
+                    sound = pygame.mixer.Sound(get_resource_path(sound_path))
+                    self.shoot_sounds.append(sound)
+                except Exception as e:
+                    print(f"⚠️ Unable to load {sound_file}: {e}")
+
+            if self.shoot_sounds:
+                print(f"🔫 {len(self.shoot_sounds)} shoot sound(s) loaded")
+                self._update_shoot_volume()
+            else:
+                print("⚠️ No shoot sounds could be loaded")
+
+        except Exception as e:
+            print(f"⚠️ Error loading shoot sounds: {e}")
+
+    def _update_shoot_volume(self):
+        """Updates the volume of all shoot sounds."""
+        if not self.shoot_sounds:
+            return
+
+        effects_volume = settings.config_manager.get("volume_effects", 0.7)
+        master_volume = settings.config_manager.get("volume_master", 0.8)
+        final_volume = effects_volume * master_volume
+
+        for sound in self.shoot_sounds:
+            sound.set_volume(final_volume)
+
+    def play_shoot_sound(self):
+        """
+        Plays a random shoot sound.
+        Only plays the sound if no shoot sound is already playing.
+        """
+        # Ensure the manager is initialized
+        self._ensure_shoot_initialized()
+
+        if not self.shoot_sounds:
+            return  # No sounds available
+
+        # Check if a sound is already playing on the dedicated channel
+        if self.shoot_channel and self.shoot_channel.get_busy():
+            return  # A shoot sound is already playing, don't play another
+
+        # Select a random sound
+        sound = random.choice(self.shoot_sounds)
+
+        # Play the sound on the dedicated channel
+        if self.shoot_channel:
+            self.shoot_channel.play(sound)
+
+    def is_shoot_playing(self) -> bool:
+        """
+        Checks if a shoot sound is currently playing.
+
+        Returns:
+            True if a shoot sound is playing, False otherwise
+        """
+        if self.shoot_channel:
+            return self.shoot_channel.get_busy()
+        return False
+
+    def stop_all_shoots(self):
+        """Stops all shoot sounds currently playing."""
+        if self.shoot_channel:
+            self.shoot_channel.stop()
 
 
 class VolumeWatcher:
