@@ -16,11 +16,27 @@ from src.functions.resource_path import get_resource_path
 # Force UTF-8 encoding for console output on Windows
 if sys.platform == 'win32':
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-    except AttributeError:
-        # Python < 3.7
-        import codecs
-        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        # Some frozen executables (PyInstaller) or special environments may
+        # set sys.stdout to None. Guard against that and avoid AttributeError.
+        if getattr(sys, 'stdout', None) is not None and hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8')
+        elif getattr(sys, 'stdout', None) is not None and hasattr(sys.stdout, 'buffer'):
+            # Python < 3.7 fallback
+            import codecs
+            try:
+                sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+            except Exception:
+                # If wrapping fails, fall back to a safe null writer
+                import io
+                sys.stdout = io.TextIOWrapper(open(os.devnull, 'wb'), encoding='utf-8')
+        else:
+            # No usable stdout (frozen app). Provide a safe no-op text writer so
+            # later prints don't crash when stdout is None.
+            import io
+            sys.stdout = io.TextIOWrapper(open(os.devnull, 'wb'), encoding='utf-8')
+    except Exception:
+        # Best-effort only; do not let audio manager import fail due to stdout issues
+        pass
 
 
 class AudioManager:
