@@ -55,14 +55,9 @@ class MovementProcessor(esper.Processor):
                 is_projectile = esper.has_component(ent, ProjectileComponent)
                 
                 if is_projectile:
-                    # Pour les projectiles : Check siils sortent des limites et les supprimer
-                    if self._is_out_of_bounds(new_x, new_y):
-                        esper.delete_entity(ent)
-                        continue
-                    else:
-                        # Projectile encore in les limites, appliquer le mouvement
-                        pos.x = new_x
-                        pos.y = new_y
+                    # Pour les projectiles : appliquer le mouvement sans suppression aux limites
+                    pos.x = new_x
+                    pos.y = new_y
                 else:
                     # Pour les troupes : contraindre la position et arrêter si nécessaire
                     # Les bandits ne sont pas contraints par les limites de terrain

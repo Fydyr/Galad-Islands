@@ -565,10 +565,11 @@ class CollisionProcessor(esper.Processor):
             # Check grid bounds for future position
             if (future_grid_x < 0 or future_grid_x >= len(self.graph[0]) or
                 future_grid_y < 0 or future_grid_y >= len(self.graph)):
-                # Check if it's a bandit - they can leave the map
+                # Check if it's a bandit or projectile - they can leave the map
                 is_bandit = esper.has_component(ent, Bandits)
-                if is_bandit:
-                    # Bandits can leave the map freely
+                is_projectile = esper.has_component(ent, ProjectileComponent)
+                if is_bandit or is_projectile:
+                    # Bandits and projectiles can leave the map freely
                     velocity.terrain_modifier = 1.0
                     continue
                 # Out of bounds - block movement for other entities
