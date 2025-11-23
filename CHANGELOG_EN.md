@@ -1,5 +1,26 @@
 # 🧾 Changelog
 
+## v0.13.0 (2025-11-23)
+
+### ✨ New Features
+
+- In-game tutorials: interactive, step-by-step guides for events, camera controls, discovering the enemy base and several units (Scout, Marauder, Leviathan, Druid, Kamikaze, Architect). Tutorials are translated (EN/FR) and include helpful notifications.
+- AI improvements: more stable, smoother Marauder behavior, better handling for scout limits and the option to enable/disable unit AI from bases and individual units.
+- Sound and music: new sound effects and a new in-match music theme; audio conversion scripts updated for wider format support.
+- UI and display: improved fullscreen resolution handling and clearer HUD information (for example: both teams' gold in AI vs AI mode).
+
+### 🐛 Bug Fixes
+
+- Fixed translations and improved UTF-8/accent handling.
+- Fixed bandit firing and behavior; safety added when switching units (prevents switching if no unit exists).
+- Improved the tutorial UI and wording (removed unnecessary buttons, clarified texts).
+- Misc stability fixes for AI and UI.
+
+### 🔧 Refactoring
+
+- Cleanups and tests: improvements to the localization system, additional tests for tutorials and audio handling.
+- Packaging improvements: faster and more reliable release builds by optimizing dependency and build caching.
+
 ## v0.12.0 (2025-11-14)
 
 ### ✨ New Features

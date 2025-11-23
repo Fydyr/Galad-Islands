@@ -2,72 +2,25 @@
 
 ## v0.13.0 (2025-11-23)
 
-### Feat
+### ✨ Nouvelles fonctionnalités
 
-- ajout  d'un tutoriel pour les evenements en jeu et d'un délai avant apparaition en début de partie
-- ajout de nouveaux tutoriels et messages pour les unités, y compris Éclaireur, Maraudeur, Léviathan, Druide et Kamikaze
-- ajout du tutoriel pour l'Architecte, y compris les traductions et les tests unitaires
-- restauration et ajout de nouvelles traductions pour les messages de feedback et les unités, mise à jour des options et du tutoriel
-- ajout de la gestion des volumes des effets et maître, avec tests unitaires
-- amélioration de la gestion de la résolution en mode plein écran et ajout de tests unitaires
-- Add position logging and stuck detection for MaraudeurAI
-- Refactor MaraudeurAI for simplified behavior and obstacle avoidance
-- Implement enhanced AI for Maraudeur using scikit-learn
-- ajout d'un tutoriel sur les contrôles de la caméra
-- ajout de la capacité spéciale dans les tutoriels et activation dans le moteur de jeu
-- ajout d'un tutoriel pour la découverte de la base ennemie
-- ajout de vitesse différentes pour les bandits
-- ajout de son lorsque une entité se prend des dégâts
-- ajout de l'affichage des or des deux équipes pour les modes AI vs AI
-- ajout de notifications dynamiques pour le tutoriel
-- amélioration du système de tutoriel avec des étapes et des notifications dynamiques
-- ajout d'un système de tutoriel
-- added speed to bullet based on velocity
-- ajout de la gestion des limites de Scouts dans l'IA de la base
-- ajout de nouveaux fichiers sonores et mise à jour du script de conversion pour inclure les fichiers WAV
-- ajout d'un nouvel effet sonore sf_canon_01.ogg
-- ajout de nouveaux effets sonores et script de conversion MP3 vers OGG
-- implémentation d'un nouveau thème musical pour les parties en jeu
-- ajouter la gestion de l'activation/désactivation de l'IA pour les bases et mettre à jour l'interface utilisateur
-- ajouter l'ID de l'équipe active à la factory d'unités pour mieux gérer l'activation/désactivatiion de l'IA des unités
-- ajouter la gestion de l'activation/désactivation de l'IA pour les unités et mettre à jour les traductions
+- Nouveaux tutoriels in‑game : parcours pas à pas pour les événements, la caméra, la découverte de la base ennemie et plusieurs unités (Éclaireur, Maraudeur, Léviathan, Druide, Kamikaze, Architecte). Les tutoriels sont interactifs et traduits FR/EN.
+- Améliorations de l'IA : comportement plus stable et plus fluide du Maraudeur, meilleure gestion des unités de reconnaissance et possibilité d'activer/désactiver l'IA au besoin.
+- Son & ambiance : nouveaux effets sonores et un thème musical pour les parties, avec prise en charge améliorée des formats audio.
+- Interface : meilleure gestion des résolutions plein écran et affichage amélioré des informations (ex. or des deux équipes en mode IA vs IA).
 
-### Fix
+### 🐛 Corrections de bugs
 
-- amélioration de la gestion de la sortie standard pour le support UTF-8 sur Windows
-- restauration des traductions système pour les messages d'erreur et de lancement du jeu
-- mise à jour du script de test pour exécuter les tests via run_tests.py et suppression du test désactivé pour le système d'IA
-- Add error handling for target priority calculation in MaraudeurAI
-- rétablissement des traductions des noms d'unités
-- ajout de la mention de la fenetre d'aide dans le tutoriel + nettoyage des anciens fichiers de traduction
-- corriger l'accès à la boutique en mode dev et self-play
-- restreindre le changement de sélection d'équipe aux modes dev et self_play
-- ajout de la notion de capacité_spécial dans les tutoriels anglais et français
-- **localization**: normalize escaped newline sequences in translations
-- removed unnecessary buttons in tutorial modals
-- **menu_state**: handle language change detection and UI refresh
-- Increased vision radius
-- ajout de plusieurs éléments dans le tutoriel (précision et notions manquantes), désormais il est complet
-- **action_bar**: current function used to build towers
-- change select sound format from mp3 to ogg for better compatibility
-- Repaired bandit firing function
-- added security to unit switching if no units exists
-- Bandit right sided up, health bar immovable over entity, and removal of unused rendering processor
-- ajout des sons de victoire et défaite en fin de partie, modifications apporté dans victory_modal
-- activation de l'IA pour les nouvelles unités créées par BaseAi
-- correction de la visibilité des boutons globaux et amélioration de la bascule de l'IA
-- mise à jour des bandits
-- vérifier correctement si l'unité sélectionnée est une base en utilisant BaseComponent pour l'affiichage des boutons dans l'action bar
-- ajout d'un manquement dans le code de l'IA de la base pour l'activation/désactivation de l'IA
+- Correction des traductions et meilleures prises en charge des accents/UTF‑8.
+- Correction du comportement des bandits et protections lors du changement d'unité (empêchements si aucune unité n'est disponible).
+- Améliorations et nettoyages du système de tutoriel (boutons inutiles retirés, textes clarifiés).
+- Divers correctifs pour la stabilité de l'IA et de l'interface.
 
-### Refactor
+### 🔧 Refactorisation
 
-- ajout de la mise en cache des dépendances pip et des builds PyInstaller dans les workflows de release
-- amélioration du processus de packaging en unifiant les bibliothèques internes et en évitant les duplications
-- refactor build process to use onedir structure and add packaging scripts
-- Refactor localization system to modular structure and add unit tests
-- déplacement de fichiers
-- simplification du chargement et de la sauvegarde des modèles d'IA
+- Nettoyage et tests : améliorations du système de traduction, tests supplémentaires pour les tutoriels et l'audio.
+- Packaging : optimisations du processus de build et gestion des dépendances pour des releases plus fiables.
+
 
 ## v0.12.0 (2025-11-14)
 
