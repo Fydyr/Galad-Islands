@@ -34,7 +34,7 @@ def create_projectile(entity, type: str = "bullet"):
     druidMaxY = 150
 
     # Debug log for projectile creation
-    print(f"[DEBUG] create_projectile - entity: {entity}, type: {type}")
+    # print(f"[DEBUG] create_projectile - entity: {entity}, type: {type}")
 
     # Play shoot sound
     audio_manager = get_audio_manager()
@@ -73,8 +73,6 @@ def create_projectile(entity, type: str = "bullet"):
 
             # Normaliser les angles in [0, 360)
             angles = [a % 360 for a in angles]
-
-            print(angles)
 
         # Mode Leviathan: tir omnidirectionnel (all directions autour de l'entity)
         elif type == "leviathan":

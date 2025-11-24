@@ -29,6 +29,8 @@ venv/
 *.swo
 *~
 .github/instructions
+.github/copilot-instructions.md
+AGENTS.md
 
 # Pygame et fichiers temporaires
 *.tmp

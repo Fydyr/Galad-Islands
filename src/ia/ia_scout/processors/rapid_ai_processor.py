@@ -25,11 +25,9 @@ from src.factory.unitType import UnitType
 from src.constants.team import Team
 from src.constants.map_tiles import TileType
 from src.settings.settings import TILE_SIZE
-from src.constants.gameplay import UNIT_VISION_SCOUT
 
 from ..config import get_settings
 from ..log import get_logger
-from src.settings.settings import config_manager
 from ..services import (
     AIContextManager,
     CoordinationService,
@@ -37,16 +35,17 @@ from ..services import (
     GoalEvaluator,
     IAEventBus,
     PathfindingService,
-    PredictionService,
     Objective,
+    exploration_planner,
+    exploration_observer,
 )
+from ..services.goals import TargetInfo, is_event_entity
 from ..services.context import UnitContext
 from ..fsm.machine import StateMachine, Transition
 from ..states import (
     AttackState,
     IdleState,
     GoToState,
-    FleeState,
     FollowDruidState,
     FollowToDieState,
     ExploreState,
@@ -61,15 +60,14 @@ LOGGER = get_logger()
 
 
 class RapidTroopAIProcessor(esper.Processor):
-    """Processor updating the FSM of each rapid troop (enemy Zasper)."""
+    """Processor updating the FSM of each rapid troop (scout) for a specific team."""
 
-    def __init__(self, grid: Iterable[Iterable[int]], ai_team_id: int = Team.ENEMY) -> None:
+    def __init__(self, grid: Iterable[Iterable[int]], *, ai_team_id: int = Team.ENEMY) -> None:
         super().__init__()
+        self.ai_team_id = ai_team_id
         self.settings = get_settings()
-        self.ai_team_id = ai_team_id  # L'équipe contrôlée par ce processor
-        self.danger_map = DangerMapService(grid, self.settings, ai_team_id)
+        self.danger_map = DangerMapService(grid, self.settings)
         self.pathfinding = PathfindingService(grid, self.danger_map, self.settings)
-        self.prediction = PredictionService()
         self.goal_evaluator = GoalEvaluator(self.settings)
         self.context_manager = AIContextManager(self.settings)
         self.event_bus = IAEventBus(history=self.settings.event_bus_history)
@@ -81,18 +79,24 @@ class RapidTroopAIProcessor(esper.Processor):
         self._last_time: float = time.perf_counter()
         self._debug_overlay = []
         self.world = cast(Optional["World"], None)
+        self._position_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        self._danger_unit_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        self._danger_update_interval = max(0.2, 2.0 / max(self.settings.tick_frequency, 1e-3))
+        self._danger_update_accumulator = 0.0
         # L'attribut world est renseigné par Esper lors de l'attachement du processor.
-        # Ce buffer accumule les informations affichées in l'overlay de débogage.
+        # Ce buffer accumule les informations affichées dans l'overlay de débogage.
 
     # Esper API ------------------------------------------------------------
-    def process(self, *args, **kwargs) -> None:
+    def process(self, *_, **kwargs) -> None:
+        # Esper peut fournir un dt optionnel mais l'IA conserve sa boucle fixe interne.
+        _ = kwargs.get("dt")
         now = time.perf_counter()
         elapsed = now - self._last_time
         self._last_time = now
         step = 1.0 / max(self.settings.tick_frequency, 1e-3)
         self._accumulator += elapsed
 
-        # Limiter l'accumulateur pour avoid les gros rattrapages after une pause
+        # Limiter l'accumulateur pour éviter les gros rattrapages après une pause
         max_accumulator = 0.5  # Maximum 0.5 secondes d'accumulation
         self._accumulator = min(self._accumulator, max_accumulator)
 
@@ -103,26 +107,20 @@ class RapidTroopAIProcessor(esper.Processor):
     def rebind_grid(self, grid: Iterable[Iterable[int]]) -> None:
         """Recreate spatial services from a new grid definition."""
 
-        self.danger_map = DangerMapService(grid, self.settings, self.ai_team_id)
+        self.danger_map = DangerMapService(grid, self.settings)
         self.pathfinding = PathfindingService(grid, self.danger_map, self.settings)
         for controller in self.controllers.values():
+            controller.cancel_pending_path()
             controller.danger_map = self.danger_map
             controller.pathfinding = self.pathfinding
 
     # Internal helpers ----------------------------------------------------
     def _tick(self, dt: float) -> None:
-        import time
-        t0 = time.perf_counter()
         self.context_manager.tick(dt)
         self._cleanup_dead_entities()
+        self._refresh_position_snapshot()
         self._refresh_services(dt)
         self._push_env_events()
-        
-        # Mettre à jour les groupes pour toutes les équipes
-        teams_to_update = set()
-        for state in self.coordination.shared_states():
-            teams_to_update.add(state.entity_id)  # Approximation - on utilisera team_id plus tard
-        
         collect_debug = self.settings.debug.enabled and self.settings.debug.overlay_enabled
         if collect_debug:
             self._debug_overlay.clear()
@@ -136,11 +134,8 @@ class RapidTroopAIProcessor(esper.Processor):
             
             t_entity0 = time.perf_counter()
             controller = self._ensure_controller(entity, components)
-            controller.update(dt)
-            t_entity1 = time.perf_counter()
-            duration = (t_entity1 - t_entity0) * 1000.0
-            if duration > 10.0:
-                pass
+            controller.set_position_snapshot(self._position_snapshot)
+            controller.update(dt, components=components)
             if collect_debug and controller.context is not None:
                 self._debug_overlay.append(
                     {
@@ -151,10 +146,9 @@ class RapidTroopAIProcessor(esper.Processor):
                         "state": hash(controller.state_machine.current_state.name) % 1_000_000,
                     }
                 )
-        t1 = time.perf_counter()
-        total_duration = (t1 - t0) * 1000.0
-        if total_duration > 30.0:
-            pass
+        exploration_observer.flush()
+        self._resolve_path_requests()
+        self.goal_evaluator.clear_target_cache()
 
     def _iter_controlled_units(self):
         for entity, (team, classe, scout, health, position, velocity, radius) in esper.get_components(
@@ -166,11 +160,9 @@ class RapidTroopAIProcessor(esper.Processor):
             VelocityComponent,
             RadiusComponent,
         ):
-
-            if classe.unit_type != UnitType.SCOUT:
-                continue
-            # Filtrer par équipe - chaque processor ne traite que son équipe
             if team.team_id != self.ai_team_id:
+                continue
+            if classe.unit_type != UnitType.SCOUT:
                 continue
             yield entity, (team, classe, scout, health, position, velocity, radius)
 
@@ -182,24 +174,30 @@ class RapidTroopAIProcessor(esper.Processor):
                 context_manager=self.context_manager,
                 danger_map=self.danger_map,
                 pathfinding=self.pathfinding,
-                prediction=self.prediction,
                 goal_evaluator=self.goal_evaluator,
                 event_bus=self.event_bus,
                 coordination=self.coordination,
                 settings=self.settings,
             )
             self.controllers[entity_id] = controller
-            if config_manager.get('dev_mode', False):
-                pass
+            LOGGER.debug("[AI] Created controller for entity %s", entity_id)
         return controller
 
     def _refresh_services(self, dt: float) -> None:
-        self.danger_map.update(dt)
+        self._danger_update_accumulator += dt
+        if self._danger_update_accumulator < self._danger_update_interval:
+            return
+        budget = self._danger_update_accumulator
+        self._danger_update_accumulator = 0.0
+        self.danger_map.update(budget, enemy_units=self._danger_unit_snapshot)
+        # Keep path costs in sync with fresh danger values.
+        if hasattr(self.pathfinding, "rebuild_cost_map"):
+            self.pathfinding.rebuild_cost_map()
 
     def _cleanup_dead_entities(self) -> None:
-        """Supprime les contrôleurs des entities disparues ou mortes."""
+        """Supprime les contrôleurs des entités disparues ou mortes."""
         if self.world is None:
-            # Le monde n'est pas encore initialisé - ne pas Clean up
+            # Le monde n'est pas encore initialisé - ne pas nettoyer
             return
 
         existing_entities = set(self.world._entities.keys())
@@ -227,14 +225,63 @@ class RapidTroopAIProcessor(esper.Processor):
         alive_entities = existing_entities.difference(dead_set)
         self.coordination.cleanup(alive_entities)
 
+    def _refresh_position_snapshot(self) -> None:
+        """Capture uniquement les unités contrôlées et prépare le cache des cibles."""
+
+        position_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        for entity in tuple(self.controllers.keys()):
+            try:
+                pos = esper.component_for_entity(entity, PositionComponent)
+            except KeyError:
+                continue
+            position_snapshot.append((entity, (pos.x, pos.y)))
+
+        target_cache: List[TargetInfo] = []
+        danger_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        for entity, (team, pos, velocity) in esper.get_components(
+            TeamComponent,
+            PositionComponent,
+            VelocityComponent,
+        ):
+            if is_event_entity(entity):
+                continue
+            target_cache.append(
+                TargetInfo(
+                    entity_id=entity,
+                    position=(pos.x, pos.y),
+                    speed=abs(velocity.currentSpeed),
+                    team_id=team.team_id,
+                )
+            )
+            danger_snapshot.append((team.team_id, (pos.x, pos.y)))
+
+        self._position_snapshot = position_snapshot
+        self._danger_unit_snapshot = danger_snapshot
+        self.goal_evaluator.prime_target_cache(target_cache)
+
+    def _resolve_path_requests(self) -> None:
+        """Distribue les chemins calculés en batch aux contrôleurs concernés."""
+
+        completions = self.pathfinding.process_pending_requests()
+        if not completions:
+            return
+        for entity_id, request_id, path in completions:
+            controller = self.controllers.get(entity_id)
+            if controller is None:
+                continue
+            controller.apply_path_result(request_id, path)
+
     def _discard_entity_state(self, entity_id: int) -> None:
-        """Retire all références internes associées à l'entity fournie."""
+        """Retire toutes les références internes associées à l'entité fournie."""
         controller = self.controllers.pop(entity_id, None)
-        if controller and controller.context and controller.context.assigned_chest_id is not None:
-            self.coordination.release_chest(controller.context.assigned_chest_id)
+        if controller is not None:
+            controller.cancel_pending_path()
+            if controller.context and controller.context.assigned_chest_id is not None:
+                self.coordination.release_chest(controller.context.assigned_chest_id)
+        exploration_planner.release(entity_id, completed=False)
+        exploration_planner.drop_window(entity_id)
         self.context_manager.remove_context(entity_id)
-        if config_manager.get('dev_mode', False):
-            pass
+        LOGGER.debug("[AI] Removed controller for entity %s", entity_id)
 
     def _push_env_events(self) -> None:
         # Publish chest events
@@ -287,7 +334,6 @@ class RapidUnitController:
         context_manager: AIContextManager,
         danger_map: DangerMapService,
         pathfinding: PathfindingService,
-        prediction: PredictionService,
         goal_evaluator: GoalEvaluator,
         event_bus: IAEventBus,
         coordination: CoordinationService,
@@ -297,7 +343,6 @@ class RapidUnitController:
         self.context_manager = context_manager
         self.danger_map = danger_map
         self.pathfinding = pathfinding
-        self.prediction = prediction
         self.goal_evaluator = goal_evaluator
         self.event_bus = event_bus
         self.coordination = coordination
@@ -306,9 +351,8 @@ class RapidUnitController:
         waypoint_radius = TILE_SIZE * self.settings.pathfinding.waypoint_reached_radius_factor
         if getattr(self.pathfinding, "sub_tile_factor", 1) > 1:
             waypoint_radius /= self.pathfinding.sub_tile_factor
-        # Augmenter significativement le rayon de waypoint pour éviter les micro-mouvements
-        self._waypoint_radius = max(TILE_SIZE * 1.5, waypoint_radius)
-        self._navigation_tolerance = max(TILE_SIZE, self._waypoint_radius * 0.8)
+        self._waypoint_radius = max(32.0, waypoint_radius)
+        self._navigation_tolerance = max(24.0, self._waypoint_radius * 0.75)
         self.state_machine = self._build_state_machine()
         self.last_objective_refresh = -999.0
         self._last_state_name = ""
@@ -319,20 +363,51 @@ class RapidUnitController:
         self._persistent_nav_target: Optional[tuple[float, float]] = None
         self._persistent_nav_owner: Optional[str] = None
         self._persistent_nav_return: Optional[str] = None
-        # Timer pour limiter la fréquence de recalcul du pathfinding
-        self._last_path_request_time = -999.0
-        # Détection de blocage
-        self._stuck_timer = 0.0
-        self._last_position_check = (0, 0)
+        self._position_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        tick_rate = max(self.settings.tick_frequency, 1e-3)
+        frames = max(1, int(self.settings.danger.sample_interval_frames))
+        self._danger_sample_interval = frames / tick_rate
+        self._danger_sample_distance_sq = float(TILE_SIZE * 1.5) ** 2
 
-        self._last_path_request_time = -999.0
-        # Cache de chemin par destination (clé: (x, y), valeur: chemin)
-        self._path_cache = {}
+    def apply_path_result(self, request_id: int, waypoints: List[Tuple[float, float]]) -> None:
+        """Applique un chemin calculé si la requête correspond toujours au contexte courant."""
+
+        ctx = self.context_manager.context_for(self.entity_id)
+        if ctx is None or ctx.path_request_id != request_id:
+            return
+        ctx.path_pending = False
+        ctx.path_request_id = None
+        ctx.pending_target = None
+        ctx.path_requested_at = 0.0
+        ctx.share_channel.pop("goto_path_pending_since", None)
+        if waypoints:
+            ctx.set_path(waypoints)
+        else:
+            ctx.reset_path()
+
+    def cancel_pending_path(self) -> None:
+        """Annule proprement une requête différée encore en file."""
+
+        ctx = self.context_manager.context_for(self.entity_id)
+        if ctx is None or ctx.path_request_id is None:
+            return
+        self.pathfinding.cancel_request(ctx.path_request_id)
+        ctx.path_pending = False
+        ctx.path_request_id = None
+        ctx.pending_target = None
+        ctx.share_channel.pop("goto_path_pending_since", None)
+        self._persistent_nav_target: Optional[tuple[float, float]] = None
+        self._persistent_nav_owner: Optional[str] = None
+        self._persistent_nav_return: Optional[str] = None
+        self._position_snapshot: List[Tuple[int, Tuple[float, float]]] = []
+        tick_rate = max(self.settings.tick_frequency, 1e-3)
+        frames = max(1, int(self.settings.danger.sample_interval_frames))
+        self._danger_sample_interval = frames / tick_rate
+        self._danger_sample_distance_sq = float(TILE_SIZE * 1.5) ** 2
 
     def _build_state_machine(self) -> StateMachine:
         idle = IdleState("Idle", self)
         goto = GoToState("GoTo", self)
-        flee = FleeState("Flee", self)
         attack = AttackState("Attack", self)
         follow = FollowDruidState("FollowDruid", self)
         follow_die = FollowToDieState("FollowToDie", self)
@@ -342,7 +417,6 @@ class RapidUnitController:
         self._state_lookup = {
             "Idle": idle,
             "GoTo": goto,
-            "Flee": flee,
             "Attack": attack,
             "FollowDruid": follow,
             "FollowToDie": follow_die,
@@ -351,15 +425,11 @@ class RapidUnitController:
 
         # Global transitions highest priority first
         fsm.add_global_transition(
-            Transition(condition=self._should_flee, target=flee, priority=100, name="Danger")
-        )
-        fsm.add_global_transition(
-            Transition(condition=self._should_follow_druid, target=follow, priority=30, name="FollowDruid")
+            Transition(condition=self._should_follow_druid, target=follow, priority=80, name="FollowDruid")
         )
         fsm.add_global_transition(
             Transition(condition=self._has_navigation_request, target=goto, priority=70, name="Navigation")
         )
-        # Exploration prioritaire si la base ennemie n'est pas connue
         fsm.add_global_transition(
             Transition(condition=self._should_explore, target=explore, priority=60, name="Explore")
         )
@@ -389,7 +459,7 @@ class RapidUnitController:
         )
 
         # Attack transitions
-        # Coffres prioritaires - forcer la sortie to GoTo from l'attaque
+        # Coffres prioritaires - forcer la sortie vers GoTo depuis l'attaque
         fsm.add_transition(
             attack,
             Transition(condition=self._has_goto_objective, target=goto, priority=25)
@@ -407,16 +477,24 @@ class RapidUnitController:
             Transition(condition=self._healed, target=idle, priority=10)
         )
 
+        # Explore transitions
+        fsm.add_transition(
+            explore,
+            Transition(condition=self._has_goto_objective, target=goto, priority=50, name="ExploreGoto")
+        )
+        fsm.add_transition(
+            explore,
+            Transition(condition=self._has_attack_objective, target=attack, priority=40, name="ExploreAttack")
+        )
+        fsm.add_transition(
+            explore,
+            Transition(condition=self._explore_done, target=idle, priority=5, name="ExploreIdle")
+        )
+
         # Follow to die fallback to idle
         fsm.add_transition(
             follow_die,
             Transition(condition=self._attack_done, target=idle, priority=5)
-        )
-
-        # Explore transitions - sortir de l'exploration si base trouvée ou objectif important
-        fsm.add_transition(
-            explore,
-            Transition(condition=self._exploration_complete, target=idle, priority=10, name="ExplorationDone")
         )
 
         # Dummy transition to register GoTo state in FSM
@@ -435,14 +513,41 @@ class RapidUnitController:
     def navigation_tolerance(self) -> float:
         return self._navigation_tolerance
 
+    @property
+    def position_snapshot(self) -> List[Tuple[int, Tuple[float, float]]]:
+        return self._position_snapshot
+
+    def set_position_snapshot(self, snapshot: List[Tuple[int, Tuple[float, float]]]) -> None:
+        self._position_snapshot = snapshot
+
     def get_shooting_range(self, context: UnitContext) -> float:
-        """Retourne la portée de tir effective de l'unit en pixels."""
+        """Retourne la portée de tir effective de l'unité en pixels."""
 
         if context.shooting_range > 0.0:
             return context.shooting_range
         if context.radius_component is not None and context.radius_component.radius > 0.0:
             return context.radius_component.radius
         return float(self.settings.shooting_range_tiles) * float(TILE_SIZE)
+
+    def get_support_objective(self, context: UnitContext) -> Optional[Objective]:
+        """Propose un objectif d'escorte vers l'allié le plus exposé."""
+
+        best: Optional[Tuple[float, Tuple[float, float], int]] = None
+        for state in self.coordination.shared_states():
+            if state.entity_id == self.entity_id:
+                continue
+            if state.objective not in {"attack", "attack_mobile", "attack_base", "follow_die"}:
+                continue
+            distance = math.hypot(state.position[0] - context.position[0], state.position[1] - context.position[1])
+            if best is None or distance < best[0]:
+                best = (distance, state.position, state.entity_id)
+        if best is None:
+            return None
+        return Objective(
+            "goto_support",
+            best[1],
+            metadata={"escort": best[2]},
+        )
 
     def _get_state(self, name: str):
         return self._state_lookup.get(name)
@@ -466,26 +571,29 @@ class RapidUnitController:
 
     def start_navigation(self, context: UnitContext, target: Optional[tuple[float, float]], return_state: str) -> bool:
         if target is None:
+            LOGGER.info("[AI] %s start_navigation: target is None", self.entity_id)
             return False
         current_target = context.share_channel.get("nav_target") or self._persistent_nav_target
-        context.share_channel["nav_return"] = return_state if isinstance(return_state, str) else str(return_state)
-        self._persistent_nav_return = return_state if isinstance(return_state, str) else str(return_state)
-        if (self._persistent_nav_active or self.is_navigation_active(context)) and current_target is not None and isinstance(current_target, tuple):
+        context.share_channel["nav_return"] = return_state
+        self._persistent_nav_return = return_state
+        if (self._persistent_nav_active or self.is_navigation_active(context)) and current_target is not None:
             if self._navigation_distance(current_target, target) <= self.navigation_tolerance * 0.25:
-                if config_manager.get('dev_mode', False):
-                    # Log désactivé
-                    pass
+                LOGGER.info("[AI] %s start_navigation: already navigating to same target", self.entity_id)
                 return False
-        context.share_channel["nav_target"] = target if isinstance(target, tuple) else (0.0, 0.0)
-        self._persistent_nav_target = target if isinstance(target, tuple) else (0.0, 0.0)
-        context.share_channel["nav_owner"] = self.state_machine.current_state.name if isinstance(self.state_machine.current_state.name, str) else str(self.state_machine.current_state.name)
-        self._persistent_nav_owner = self.state_machine.current_state.name if isinstance(self.state_machine.current_state.name, str) else str(self.state_machine.current_state.name)
+        context.share_channel["nav_target"] = target
+        self._persistent_nav_target = target
+        context.share_channel["nav_owner"] = self.state_machine.current_state.name
+        self._persistent_nav_owner = self.state_machine.current_state.name
         context.share_channel["nav_active"] = True
         self._persistent_nav_active = True
         context.share_channel["nav_request_time"] = self.context_manager.time
         if not self.navigation_target_matches(context, target, tolerance=self.navigation_tolerance * 0.25):
             context.reset_path()
         context.share_channel.pop("goto_last_replan", None)
+        context.share_channel.pop("goto_last_replan_pos", None)
+        LOGGER.info("[AI] %s start_navigation: navigation started to (%.1f,%.1f), nav_active=%s, nav_owner=%s", 
+                   self.entity_id, target[0], target[1], 
+                   context.share_channel.get("nav_active"), context.share_channel.get("nav_owner"))
         return True
 
     def cancel_navigation(self, context: UnitContext) -> None:
@@ -538,104 +646,28 @@ class RapidUnitController:
         return True
 
     # Transition predicates ------------------------------------------------
-    def _should_flee(self, dt: float, context: UnitContext) -> bool:
-        danger = self.danger_map.sample_world(context.position)
-        health_ratio = context.health / max(context.max_health, 1.0)
-        now = self.context_manager.time
-        nav_active = self.is_navigation_active(context)
-        nav_return_state = context.share_channel.get("nav_return") or self._persistent_nav_return
-        
-        # Hysteresis : seuil d'entrée > seuil de sortie pour avoid l'oscillation
-        if context.in_flee_state:
-            # En fuite : on continue tant que danger > seuil_liberation OU santé très basse
-            should_still_flee = danger >= self.settings.danger.flee_release_threshold or health_ratio <= 0.2
-            # Log désactivé
-            if not should_still_flee:
-                context.in_flee_state = False
-                context.flee_exit_time = now
-                # Log désactivé
-                return False
-
-            if nav_active and nav_return_state == "Flee":
-                # Log désactivé
-                return False
-
-            return True
-
-        # Pas en fuite : délai minimum before de pouvoir re-entrer en fuite (1.0s au lieu de 0.5s)
-        if now - context.flee_exit_time < 1.0:
-            # Log désactivé
-            return False
-
-        # Si la santé est supérieure à 50%, interdire l'entrée en état flee
-        if health_ratio > 0.5:
-            # Log désactivé
-            return False
-
-        # Check les conditions d'entrée en fuite
-        should_start_flee = danger >= self.settings.danger.flee_threshold or health_ratio <= self.settings.flee_health_ratio
-        # Log désactivé
-        if should_start_flee:
-            context.in_flee_state = True
-            # Log désactivé
-        return should_start_flee
 
     def _should_follow_druid(self, dt: float, context: UnitContext) -> bool:
-        # Ne jamais forcer FollowDruid, privilégier la retraite (Flee) à la place
-        # FollowDruid n'est activé QUE si :
-        # 1. Un Druide existe
-        # 2. Le Scout a déjà un objectif explicite de type "follow_druid"
         if not self.goal_evaluator.has_druid(context.team_id):
             return False
         objective = context.current_objective
         if objective and objective.type == "follow_druid":
             return True
-        # Sinon, même si la santé est basse, on laisse Flee gérer la situation
-        return False
-
-    def _should_explore(self, dt: float, context: UnitContext) -> bool:
-        """Détermine si le Scout doit passer en mode exploration."""
-        from src.processeurs.KnownBaseProcessor import enemy_base_registry
-        
-        # Ne pas explorer si la base ennemie est déjà connue
-        if enemy_base_registry.is_enemy_base_known(context.team_id):
-            return False
-        
-        # Ne pas explorer si on est déjà en exploration
-        if self.state_machine.current_state.name == "Explore":
-            return False
-        
-        # Ne pas explorer si on a un objectif important (coffre, ressource d'île)
-        if context.current_objective and context.current_objective.type in {"goto_chest", "goto_island_resource"}:
-            return False
-        
-        # Ne JAMAIS interrompre une navigation active (évite l'oscillation GoTo ↔ Explore)
-        if self.is_navigation_active(context):
-            return False
-        
-        # Assouplir la condition : permettre l'exploration même avec des ennemis distants
-        # Seulement bloquer si ennemis TRÈS proches (moins de la moitié de la vision)
-        predicted_targets = list(self.prediction.predict_enemy_positions(context.team_id))
-        close_range = (UNIT_VISION_SCOUT * TILE_SIZE) * 0.5  # Réduire le rayon d'interdiction
-        for target in predicted_targets:
-            distance = math.hypot(
-                context.position[0] - target.current_position[0],
-                context.position[1] - target.current_position[1]
-            )
-            if distance <= close_range:
-                # Ennemi très proche, ne pas explorer, laisser l'IA attaquer
-                return False
-        
-        # Explorer si on n'a pas d'objectif d'attaque ou si on est en Idle ou GoTo
-        current_state = self.state_machine.current_state.name
-        # Permettre l'exploration depuis plus d'états, sauf si navigation active
-        return current_state in ["Idle", "GoTo", "Attack"] or context.current_objective is None
+        health_ratio = context.health / max(context.max_health, 1.0)
+        return health_ratio < self.settings.follow_druid_health_ratio
 
     def _has_goto_objective(self, dt: float, context: UnitContext) -> bool:
         return bool(context.current_objective and context.current_objective.type.startswith("goto"))
 
+    def _should_explore(self, dt: float, context: UnitContext) -> bool:
+        return bool(context.current_objective and context.current_objective.type == "explore")
+
+    def _explore_done(self, dt: float, context: UnitContext) -> bool:
+        return not self._should_explore(dt, context)
+
     def _has_attack_objective(self, dt: float, context: UnitContext) -> bool:
         if not context.current_objective:
+            LOGGER.debug("[AI] %s _has_attack_objective: no objective", self.entity_id)
             return False
         # Si on est en navigation lancée par Attack, reste en Attack/GoTo
         # Check both persistent and context storage
@@ -643,6 +675,9 @@ class RapidUnitController:
         if (self._persistent_nav_active or self.is_navigation_active(context)) and return_state == "Attack":
             return False
         result = context.current_objective.type in {"attack", "attack_mobile", "attack_base"}
+        LOGGER.info("[AI] %s _has_attack_objective: returning %s (objective_type=%s, nav_active=%s, nav_return=%s)", 
+                    self.entity_id, result, context.current_objective.type, 
+                    self.is_navigation_active(context), return_state)
         return result
 
     def _has_follow_to_die(self, dt: float, context: UnitContext) -> bool:
@@ -664,47 +699,44 @@ class RapidUnitController:
         dx = objective.target_position[0] - context.position[0]
         dy = objective.target_position[1] - context.position[1]
         distance = math.hypot(dx, dy)
-        
-        # Pour les coffres et ressources d'îles, utiliser une tolérance plus grande
-        if objective.type in {"goto_chest", "goto_island_resource"}:
-            tolerance = self.waypoint_radius * 1.5  # Tolérance augmentée
-        else:
-            tolerance = self.waypoint_radius
-        
-        return distance <= tolerance
+        return distance <= self.waypoint_radius
 
     def _attack_done(self, dt: float, context: UnitContext) -> bool:
         """
-        Détermine si l'attaque est terminée et que l'unit doit quitter l'état Attack.
-        Les coffres ont
+        Détermine si l'attaque est terminée et que l'unité doit quitter l'état Attack.
+        Les coffres ont priorité et forcer la sortie de l'attaque.
         """
         objective = context.current_objective
         if objective is None:
+            LOGGER.info("[AI] %s _attack_done: no objective, returning True", self.entity_id)
             return True
         
-        # Les coffres et ressources d'îles sont prioritaires - forcer la sortie de l'
-        if objective.type in {"goto_chest", "goto_island_resource"}:
+        # Les coffres sont prioritaires - forcer la sortie de l'attaque
+        if objective.type in {"goto_chest"}:
+            LOGGER.info("[AI] %s _attack_done: chest objective detected, returning True (priority switch)", self.entity_id)
             return True
         
         # Pour les objectifs de position fixe comme attack_base, l'attaque ne se termine jamais
         if objective.type in {"attack_base"}:
             result = False
+            LOGGER.info("[AI] %s _attack_done: attack_base objective, returning %s", self.entity_id, result)
             return result
         
-        # Pour les objectifs d'attaque: l'attaque se termine si l'entity cible n'existe plus
+        # Pour les objectifs d'attaque: l'attaque se termine si l'entité cible n'existe plus
         if objective.type in {"attack", "attack_mobile"}:
             if objective.target_entity is None:
+                LOGGER.info("[AI] %s _attack_done: attack objective without target entity, returning True", self.entity_id)
                 return True
             try:
                 esper.component_for_entity(objective.target_entity, PositionComponent)
+                LOGGER.info("[AI] %s _attack_done: attack target still exists, returning False", self.entity_id)
                 return False
             except KeyError:
+                LOGGER.info("[AI] %s _attack_done: attack target no longer exists, returning True", self.entity_id)
                 return True
         
         # Fallback pour types inconnus
-        if config_manager.get('dev_mode', False):
-            # Log désactivé
-            pass
+        LOGGER.info("[AI] %s _attack_done: unknown objective type=%s, returning True", self.entity_id, objective.type)
         return True
 
     def _near_druid(self, dt: float, context: UnitContext) -> bool:
@@ -720,53 +752,26 @@ class RapidUnitController:
     def _healed(self, dt: float, context: UnitContext) -> bool:
         return context.health / max(context.max_health, 1.0) >= self.settings.follow_druid_health_ratio
 
-    def _exploration_complete(self, dt: float, context: UnitContext) -> bool:
-        """Détermine si l'exploration doit se terminer."""
-        from src.processeurs.KnownBaseProcessor import enemy_base_registry
-        
-        # Terminer si la base ennemie est trouvée
-        if enemy_base_registry.is_enemy_base_known(context.team_id):
-            return True
-        
-        # Terminer si un objectif prioritaire apparaît (coffre, ressource)
-        if context.current_objective and context.current_objective.type in {"goto_chest", "goto_island_resource"}:
-            return True
-        
-        # Terminer s'il y a des ennemis à proximité
-        predicted_targets = list(self.prediction.predict_enemy_positions(context.team_id))
-        from src.constants.gameplay import UNIT_VISION_SCOUT
-        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
-        for target in predicted_targets:
-            distance = math.hypot(
-                context.position[0] - target.current_position[0],
-                context.position[1] - target.current_position[1]
-            )
-            if distance <= vision_radius:
-                # Ennemi proche, sortir de l'exploration pour attaquer
-                return True
-        
-        return False
-
     # Update ----------------------------------------------------------------
-    def update(self, dt: float) -> None:
-        ctx = self.context_manager.refresh(self.entity_id, dt)
+    def update(self, dt: float, components=None) -> None:
+        ctx = self.context_manager.refresh(self.entity_id, dt, components=components)
         if ctx is None:
             return
         self.context = ctx
         self._tick_attack_cooldown(ctx, dt)
-        ctx.danger_level = self.danger_map.sample_world(ctx.position)
-        # Log désactivé
+        self._refresh_danger_level(ctx)
+        self._timeout_pending_path(ctx)
         self._refresh_objective(ctx)
-
-        # Mettre à jour le groupe toutes les secondes
-        if int(self.context_manager.time) != int(self.context_manager.time - dt):
-            self.coordination.update_group(ctx.team_id, self.context_manager.time)
-
         previous_state = self.state_machine.current_state.name
         self.state_machine.update(dt, ctx)
         current_state = self.state_machine.current_state.name
         if current_state != previous_state:
-            # Log désactivé
+            LOGGER.info(
+                "[AI] %s changement d'état : %s → %s",
+                self.entity_id,
+                previous_state,
+                current_state,
+            )
             self._last_state_name = current_state
         # NOTE: Do NOT manually force to GoTo here - let the FSM handle transitions
         # The global transition _has_navigation_request (priority 70) will trigger
@@ -780,138 +785,49 @@ class RapidUnitController:
             self.context_manager.time,
         )
         ctx.share_channel["global_danger"] = self.coordination.broadcast_danger()
-        self._try_continuous_shoot(self.context)
+        self._try_continuous_shoot(ctx)
 
     def _try_continuous_shoot(self, context: UnitContext) -> None:
-        """Fait tirer l'unit en continu sauf sur les mines."""
+        """Fait tirer l'unité en continu peu importe l'état."""
         radius = context.radius_component
         if radius is None:
             return
         if radius.cooldown > 0:
             return
-
+        
         # Déterminer la cible de tir
         projectile_target = None
-        target_entity = None
         
-        # Obtenir la position du Scout
-        try:
-            scout_pos = esper.component_for_entity(context.entity_id, PositionComponent)
-        except KeyError:
-            return
-        
-        # Définir les rayons de vision et de tir
-        vision_radius = UNIT_VISION_SCOUT * TILE_SIZE
-        shooting_radius = self.get_shooting_range(context)
-
-        # Priorité : cible actuelle si elle existe et est un ennemi DANS LE CHAMP DE VISION
+        # Priorité : cible actuelle si elle existe
         if context.target_entity is not None and esper.entity_exists(context.target_entity):
             try:
-                target_team = esper.component_for_entity(context.target_entity, TeamComponent)
-                # Ne tirer que sur une équipe adverse (pas alliée, pas neutre)
-                if target_team.team_id != context.team_id and target_team.team_id != 0:
-                    target_pos = esper.component_for_entity(context.target_entity, PositionComponent)
-                    distance = math.hypot(scout_pos.x - target_pos.x, scout_pos.y - target_pos.y)
-                    # Vérifier que la cible est dans le champ de vision ET à portée de tir
-                    if distance <= vision_radius and distance <= shooting_radius:
-                        projectile_target = (target_pos.x, target_pos.y)
-                        target_entity = context.target_entity
+                target_pos = esper.component_for_entity(context.target_entity, PositionComponent)
+                projectile_target = (target_pos.x, target_pos.y)
             except KeyError:
                 pass
-
-        # Sinon, utiliser l'objectif actuel uniquement si c'est une entity ennemie DANS LE CHAMP DE VISION
+        
+        # Sinon, utiliser l'objectif actuel
         if projectile_target is None and context.current_objective:
             objective = context.current_objective
             if objective.target_entity and esper.entity_exists(objective.target_entity):
                 try:
-                    target_team = esper.component_for_entity(objective.target_entity, TeamComponent)
-                    # Ne tirer que sur une équipe adverse
-                    if target_team.team_id != context.team_id and target_team.team_id != 0:
-                        target_pos = esper.component_for_entity(objective.target_entity, PositionComponent)
-                        distance = math.hypot(scout_pos.x - target_pos.x, scout_pos.y - target_pos.y)
-                        # Vérifier que la cible est dans le champ de vision ET à portée de tir
-                        if distance <= vision_radius and distance <= shooting_radius:
-                            projectile_target = (target_pos.x, target_pos.y)
-                            target_entity = objective.target_entity
+                    target_pos = esper.component_for_entity(objective.target_entity, PositionComponent)
+                    projectile_target = (target_pos.x, target_pos.y)
                 except KeyError:
                     pass
+            elif objective.target_position:
+                projectile_target = objective.target_position
         
-        # Si aucune cible valide trouvée, ne pas tirer
-        if projectile_target is None or target_entity is None:
-            return
-
-
-
-        # Check sila cible est une mine (entity de la team neutre)
-        is_mine = False
-        NEUTRAL_TEAM_ID = 0
-        if target_entity is not None:
-            try:
-                target_team = esper.component_for_entity(target_entity, TeamComponent)
-                if target_team.team_id == NEUTRAL_TEAM_ID:
-                    is_mine = True
-            except Exception:
-                pass
-
-        # Check sila position de la cible est sur une mine (entity neutre proche)
-        if not is_mine and projectile_target is not None:
-            try:
-                for entity, team_comp in esper.get_component(TeamComponent):
-                    if team_comp.team_id == NEUTRAL_TEAM_ID:
-                        mine_pos = esper.component_for_entity(entity, PositionComponent)
-                        if math.hypot(mine_pos.x - projectile_target[0], mine_pos.y - projectile_target[1]) < 32.0:
-                            is_mine = True
-                            break
-            except Exception:
-                pass
-
-        # Check sila cible est un allié
-        is_ally = False
-        if target_entity is not None:
-            try:
-
-                target_team = esper.component_for_entity(target_entity, TeamComponent)
-                my_team = esper.component_for_entity(context.entity_id, TeamComponent)
-                if target_team.team_id == my_team.team_id:
-                    is_ally = True
-            except Exception:
-                pass
-
-        # Si la cible est une mine ou un allié, ne pas tirer
-        if is_mine or is_ally:
-            return
-        # Filtre supplémentaire : ne tirer que sur une entity ayant TeamComponent et team adverse
-        if target_entity is None:
-            return # Ne pas tirer si aucune entity n'est ciblée
-
-        try:
-            target_team = esper.component_for_entity(target_entity, TeamComponent)
-            my_team = esper.component_for_entity(context.entity_id, TeamComponent)
-            if target_team.team_id == my_team.team_id:
-                return  # Ne pas tirer sur sa propre équipe
-        except Exception:
-            return # Ne pas tirer si la cible n'a pas de component d'équipe
-
-        # Orienter to la cible (ou garder la direction actuelle)
+        # Orienter vers la cible (ou garder la direction actuelle)
         if projectile_target is not None:
             try:
                 pos = esper.component_for_entity(context.entity_id, PositionComponent)
                 dx = pos.x - projectile_target[0]
                 dy = pos.y - projectile_target[1]
-                base_angle = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
-                
-                # Obtenir le compteur de tirs et alterner l'angle
-                shot_counter = context.share_channel.get("shot_counter", 0)
-                context.share_channel["shot_counter"] = shot_counter + 1
-                
-                # Variation d'angle : alterner entre -5°, 0°, +5° pour varier les trajectoires
-                angle_variations = [-5.0, 0.0, 5.0, -3.0, 3.0]
-                angle_offset = angle_variations[int(shot_counter) % len(angle_variations)]
-                
-                pos.direction = (base_angle + angle_offset) % 360.0
+                pos.direction = (math.degrees(math.atan2(dy, dx)) + 360.0) % 360.0
             except KeyError:
                 pass
-
+        
         # TIRER en continu
         esper.dispatch_event("attack_event", context.entity_id, "bullet")
         radius.cooldown = radius.bullet_cooldown
@@ -926,6 +842,34 @@ class RapidUnitController:
             radius.cooldown = 0.0
             return
         radius.cooldown = max(0.0, radius.cooldown - dt)
+
+    def _timeout_pending_path(self, context: UnitContext) -> None:
+        """Annule les requêtes de chemin trop anciennes pour relancer un calcul propre."""
+
+        if not context.path_pending or context.path_request_id is None:
+            return
+        elapsed = self.context_manager.time - context.path_requested_at
+        if elapsed < self.settings.pathfinding.pending_request_timeout:
+            return
+        self.pathfinding.cancel_request(context.path_request_id)
+        context.path_pending = False
+        context.path_request_id = None
+        context.pending_target = None
+
+    def _refresh_danger_level(self, context: UnitContext) -> None:
+        """Met à jour le danger en cache à fréquence bornée pour limiter les échantillonnages."""
+
+        elapsed = self.context_manager.time - context.last_danger_sample
+        need_sample = elapsed >= self._danger_sample_interval
+        if not need_sample:
+            dx = context.position[0] - context.last_danger_position[0]
+            dy = context.position[1] - context.last_danger_position[1]
+            need_sample = (dx * dx + dy * dy) >= self._danger_sample_distance_sq
+        if not need_sample:
+            return
+        context.danger_level = self.danger_map.sample_world(context.position)
+        context.last_danger_sample = self.context_manager.time
+        context.last_danger_position = (context.position[0], context.position[1])
 
     def _refresh_objective(self, context: UnitContext) -> None:
         now = self.context_manager.time
@@ -954,81 +898,72 @@ class RapidUnitController:
             objective, score = self.goal_evaluator.evaluate(
                 context,
                 self.danger_map,
-                self.prediction,
                 self.pathfinding,
             )
             if objective.type == "goto_chest" and objective.target_entity is not None:
                 owner = self.coordination.chest_owner(objective.target_entity)
                 if owner not in (None, self.entity_id):
-                    # Le coffre est déjà pris par un autre: chercher un autre coffre libre et atteignable
-                    from src.components.events.flyChestComponent import FlyingChestComponent
-                    best_alt = None
-                    best_cost = float("inf")
-                    start = (int(round(context.position[0])), int(round(context.position[1])))
-                    for entity, chest in esper.get_component(FlyingChestComponent):
-                        if chest.is_sinking or chest.is_collected:
-                            continue
-                        if self.coordination.chest_owner(entity) not in (None, self.entity_id):
-                            continue
-                        pos_comp = esper.component_for_entity(entity, PositionComponent)
-                        end = (int(round(pos_comp.x)), int(round(pos_comp.y)))
-                        path = self.pathfinding.find_path(start, end)
-                        if not path:
-                            continue
-                        # Coût = longueur du chemin
-                        path_cost = 0.0
-                        for i in range(1, len(path)):
-                            dx = path[i][0] - path[i-1][0]
-                            dy = path[i][1] - path[i-1][1]
-                            path_cost += (dx*dx + dy*dy) ** 0.5
-                        if path_cost < best_cost:
-                            best_cost = path_cost
-                            best_alt = (entity, (pos_comp.x, pos_comp.y))
-                    if best_alt is not None:
-                        objective = Objective("goto_chest", best_alt[1], best_alt[0])
-                        score = 100.0
-                    else:
-                        objective = Objective("survive", context.position)
-                        score = 0.0
-                if (
-                    context.assigned_chest_id is not None
-                    and context.assigned_chest_id != objective.target_entity
-                ):
-                    self.coordination.release_chest(context.assigned_chest_id)
-                if owner in (None, self.entity_id) and objective.target_entity is not None:
-                    self.coordination.assign_chest(self.entity_id, int(objective.target_entity), now)
-                    context.assigned_chest_id = int(objective.target_entity)
-            elif objective.type == "goto_island_resource":
-                # Release any assigned chest when going for island resource
-                if context.assigned_chest_id is not None:
-                    self.coordination.release_chest(context.assigned_chest_id)
-                    context.assigned_chest_id = None
+                    LOGGER.info(
+                        "[AI] %s coffre %s déjà pris par %s, bascule en survie",
+                        self.entity_id,
+                        objective.target_entity,
+                        owner,
+                    )
+                    objective = Objective("survive", context.position)
+                    score = 0.0
+                else:
+                    if (
+                        context.assigned_chest_id is not None
+                        and context.assigned_chest_id != objective.target_entity
+                    ):
+                        self.coordination.release_chest(context.assigned_chest_id)
+                    self.coordination.assign_chest(self.entity_id, objective.target_entity, now)
+                    context.assigned_chest_id = objective.target_entity
+                    LOGGER.info(
+                        "[AI] %s coffre %s assigné",
+                        self.entity_id,
+                        objective.target_entity,
+                    )
             elif context.assigned_chest_id is not None:
                 self.coordination.release_chest(context.assigned_chest_id)
+                LOGGER.info(
+                    "[AI] %s coffre %s libéré",
+                    self.entity_id,
+                    context.assigned_chest_id,
+                )
                 context.assigned_chest_id = None
-            # Check sil'objectif attack_base est valide (pas d'units ennemies près de la base)
+            
+            # Vérifier si l'objectif attack_base est valide (pas d'unités ennemies près de la base)
             if objective.type == "attack_base" and objective.target_entity is not None:
                 base_block_until = context.share_channel.get("attack_base_block_until", 0.0)
                 base_protection_radius = 200.0
                 if self._is_base_protected(context, objective.target_entity, base_protection_radius):
                     if now >= base_block_until:
-                        # Autoriser l'attaque même si protégée
-                        pass
+                        LOGGER.info(
+                            "[AI] %s base protégée par des unités ennemies, autorisation d'attaque",
+                            self.entity_id,
+                        )
+                    # Autoriser l'attaque même si protégée
                 else:
                     if base_block_until > 0.0 and base_block_until > now:
                         context.share_channel["attack_base_block_until"] = 0.0
+            
             new_signature = (objective.type, objective.target_entity)
             if new_signature != self._last_objective_signature:
+                LOGGER.info(
+                    "[AI] %s objectif %s → %s (score=%.2f)",
+                    self.entity_id,
+                    previous_type,
+                    objective.type,
+                    score,
+                )
                 self._last_objective_signature = new_signature
             self.context_manager.assign_objective(context, objective, score)
             self.target_position = objective.target_position
-            # Recalcule le chemin dès qu'un nouvel objectif est assigné
-            if objective.target_position is not None:
-                self.request_path(objective.target_position)
         if skip_attack_flag:
             context.share_channel.pop("skip_attack_base", None)
 
-        # Check sil'IA est coincée in le même état trop longtemps
+        # Vérifier si l'IA est coincée dans le même état trop longtemps
         now = self.context_manager.time
         current_state = self.state_machine.current_state.name
         if current_state != context.debug_last_state:
@@ -1036,95 +971,40 @@ class RapidUnitController:
             context.stuck_state_time = 0.0
             context.debug_last_state = current_state
         else:
-            # Calculer elapsed time from le dernier changement d'état
+            # Calculer le temps écoulé depuis le dernier changement d'état
             time_in_state = now - context.last_state_change
             context.stuck_state_time = time_in_state
-        # Si coincée in Idle/Attack/Flee from plus de 5 secondes, abandonner l'objectif
-        if (
-            context.stuck_state_time > 5.0
-            and current_state in ["Idle", "Attack", "Flee"]
-            and context.current_objective is not None
-        ):
+        
+        # Si coincée dans Idle ou Attack depuis plus de 5 secondes, abandonner l'objectif
+        if (context.stuck_state_time > 5.0 and 
+            current_state in ["Idle", "Attack"] and 
+            context.current_objective is not None):
+            LOGGER.info(
+                "[AI] %s coincée dans %s depuis %.1fs, abandon objectif %s",
+                self.entity_id,
+                current_state,
+                context.stuck_state_time,
+                context.current_objective.type,
+            )
             context.current_objective = None
             context.stuck_state_time = 0.0
             context.last_state_change = now
             self.cancel_navigation(context)
-
-        # Détection de blocage de navigation - ASSOUPLIR pour éviter les faux positifs
-        if current_state == "GoTo" and context.path:
-            dist_moved = math.hypot(context.position[0] - self._last_position_check[0], context.position[1] - self._last_position_check[1])
-            # Augmenter la distance minimale et le temps avant de considérer comme coincé
-            if dist_moved < TILE_SIZE * 0.3: # Seuil plus bas
-                # Utiliser le temps absolu au lieu de dt
-                if self._stuck_timer == 0.0:
-                    self._stuck_timer = now
-                elif now - self._stuck_timer > 5.0: # Augmenter de 3s à 5s avant d'intervenir
-                    context.advance_path() # Forcer le passage au waypoint suivant
-                    self._stuck_timer = 0.0
-            else:
-                self._stuck_timer = 0.0
-                self._last_position_check = context.position
 
     # Movement helpers ------------------------------------------------------
     def move_towards(self, target_position) -> None:
         if self.context is None or target_position is None:
             return
         
-        # Ne déplacer l'unit que si le centre de la cible reste sur une zone valide
-        # Exception pour les ressources d'îles : permettre le mouvement même sur positions bloquées
-        objective = self.context.current_objective
-        allow_blocked = objective and objective.type == "goto_island_resource"
-        if self.pathfinding.is_world_blocked(target_position) and not allow_blocked:
+        # Ne déplacer l'unité que si le centre de la cible reste sur une zone valide
+        if self.pathfinding.is_world_blocked(target_position):
             return
         
         pos = esper.component_for_entity(self.entity_id, PositionComponent)
         vel = esper.component_for_entity(self.entity_id, VelocityComponent)
 
-        # Évitement des alliés - SEULEMENT pour collisions imminentes
-        # La distance passée (96.0) sera réduite à 40% dans compute_avoidance_vector
-        avoidance = self.coordination.compute_avoidance_vector(self.entity_id, (pos.x, pos.y), 96.0)
-        projectile_avoid = self.prediction.projectile_threat_vector((pos.x, pos.y))
-        
-        # DÉSACTIVÉ : Cohésion de groupe (causait des passages à travers les îles)
-        # cohesion = self.coordination.get_cohesion_vector(self.entity_id, (pos.x, pos.y), self.context.team_id)
-        cohesion = (0.0, 0.0)
-
-        # Évitement des obstacles - simplifié pour réduire les oscillations
-        obstacle_repulse = (0.0, 0.0)
-        try:
-            # Vérifier seulement si on est TRÈS proche d'un obstacle (imminent)
-            check_radius = TILE_SIZE * 0.6
-            samples = []
-            for angle_deg in (0, 90, 180, 270):
-                rad = math.radians(angle_deg)
-                sx = pos.x + math.cos(rad) * check_radius
-                sy = pos.y + math.sin(rad) * check_radius
-                if self.pathfinding.is_world_blocked((sx, sy)):
-                    dx = pos.x - sx
-                    dy = pos.y - sy
-                    dist = max(1.0, math.hypot(dx, dy))
-                    weight = 1.0 / dist
-                    samples.append((dx * weight, dy * weight))
-            if samples:
-                rx = sum(v[0] for v in samples)
-                ry = sum(v[1] for v in samples)
-                norm = math.hypot(rx, ry)
-                if norm > 1e-3:
-                    obstacle_repulse = (rx / norm, ry / norm)
-        except Exception:
-            pass
-
-        # Combinaison des forces : cible principale + évitements (PAS de cohésion pour éviter passages à travers îles)
-        adjusted_target = (
-            target_position[0] + avoidance[0] * 32.0 - projectile_avoid[0] * 20.0 + obstacle_repulse[0] * 16.0,
-            target_position[1] + avoidance[1] * 32.0 - projectile_avoid[1] * 20.0 + obstacle_repulse[1] * 16.0,
-        )
-
-        if self.pathfinding.is_world_blocked(adjusted_target):
-            adjusted_target = target_position
-
-        dx = pos.x - adjusted_target[0]
-        dy = pos.y - adjusted_target[1]
+        dx = pos.x - target_position[0]
+        dy = pos.y - target_position[1]
         if abs(dx) < 1 and abs(dy) < 1:
             vel.currentSpeed = max(0.0, vel.currentSpeed - 0.5)
             return
@@ -1174,36 +1054,64 @@ class RapidUnitController:
         vel = esper.component_for_entity(self.entity_id, VelocityComponent)
         vel.currentSpeed = max(0.0, vel.currentSpeed * 0.85)
 
-    def request_path(self, target_position):
+    def _grid_signature(self, origin: Tuple[float, float], target: Tuple[float, float]) -> Tuple[int, int, int, int]:
+        start_grid = self.pathfinding.world_to_grid(origin)
+        target_grid = self.pathfinding.world_to_grid(target)
+        return (start_grid[0], start_grid[1], target_grid[0], target_grid[1])
+
+    def request_path(
+        self,
+        target_position,
+        *,
+        hint_nodes: Optional[List[Tuple[float, float]]] = None,
+    ) -> None:
+        """Planifie un calcul de chemin en batch et mémorise la requête."""
+
         if self.context is None or target_position is None:
             return
-        # Clé de cache arrondie pour avoid les recalculs sur des positions très proches
-        cache_key = (round(target_position[0], 1), round(target_position[1], 1))
-        # Si le chemin est déjà en cache et la position de départ n'a pas trop changé, réutiliser
-        if cache_key in self._path_cache:
-            cached_path = self._path_cache[cache_key]
-            # Check quele chemin existe et que la destination finale est correcte
-            if cached_path and math.hypot(target_position[0] - cached_path[-1][0], target_position[1] - cached_path[-1][1]) < 8.0:
-                # Check quele Scout est encore sur le chemin ou proche du début
-                if math.hypot(self.context.position[0] - cached_path[0][0], self.context.position[1] - cached_path[0][1]) < 32.0:
-                    self.context.set_path(cached_path)
-                    return
-        # Si le Scout a déjà un chemin en cours qui mène à la bonne destination, ne rien faire
-        if self.context.path:
-            last = self.context.path[-1]
-            if math.hypot(target_position[0] - last[0], target_position[1] - last[1]) < 8.0:
-                return
-        now = self.context_manager.time if hasattr(self.context_manager, "time") else time.time()
-        # Ne recalculer le chemin que si au moins 0.5s se sont écoulées
-        if now - self._last_path_request_time < 0.5:
+
+        ctx = self.context
+        nodes: List[Tuple[float, float]] = list(hint_nodes or []) + [target_position]
+        if not nodes:
+            ctx.reset_path()
             return
-        self._last_path_request_time = now
-        # Conversion des coordonnées en entiers pour le pathfinding
-        start_pos = (int(round(self.context.position[0])), int(round(self.context.position[1])))
-        end_pos = (int(round(target_position[0])), int(round(target_position[1])))
-        path = self.pathfinding.find_path(start_pos, end_pos)
-        if path:
-            self.context.set_path(path)
-            self._path_cache[cache_key] = path
-        else:
-            self.context.reset_path()
+
+        now = self.context_manager.time
+        if ctx.path_pending and ctx.path_request_id is not None:
+            ctx.share_channel.setdefault("goto_path_pending_since", now)
+            return
+
+        origin = ctx.position
+        signature = self._grid_signature(origin, nodes[-1])
+        last_signature = ctx.share_channel.get("goto_last_request_signature")
+        last_request_time = ctx.share_channel.get("goto_last_request_time", -999.0)
+        min_interval = float(getattr(self.settings.pathfinding, "min_request_interval_seconds", 0.65))
+        repeat_window = max(min_interval * 1.5, float(getattr(self.settings.pathfinding, "repeat_request_window", 1.2)))
+        has_active_path = bool(ctx.path)
+        recently_requested = (now - last_request_time) < min_interval
+        repeating_same = last_signature == signature and (now - last_request_time) < repeat_window
+        if has_active_path and (recently_requested or repeating_same):
+            return
+
+        dx = origin[0] - nodes[-1][0]
+        dy = origin[1] - nodes[-1][1]
+        distance = math.hypot(dx, dy)
+        priority = 1.0 / max(distance, 1.0)
+        request_id = self.pathfinding.enqueue_request(
+            entity_id=self.entity_id,
+            origin=origin,
+            nodes=nodes,
+            priority=priority,
+            replace_request_id=ctx.path_request_id,
+        )
+        ctx.path_pending = True
+        ctx.path_request_id = request_id
+        ctx.path_requested_at = now
+        ctx.pending_target = nodes[-1]
+        ctx.share_channel["goto_last_request_time"] = now
+        ctx.share_channel["goto_last_request_signature"] = signature
+        ctx.share_channel["goto_path_pending_since"] = now
+        ctx.share_channel["goto_last_target_sample"] = nodes[-1]
+        ctx.share_channel["goto_last_request_origin"] = origin
+
+

@@ -11,6 +11,7 @@ import esper
 
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
+from src.components.core.radiusComponent import RadiusComponent
 
 from .base import RapidAIState
 
@@ -42,6 +43,9 @@ class AttackState(RapidAIState):
         self._anchor = None
         self._last_anchor_update = 0.0
         context.share_channel.pop("attack_anchor", None)
+        context.share_channel.pop("attack_last_target_pos", None)
+        context.share_channel.pop("attack_last_target_time", None)
+        context.share_channel.pop("shot_counter", None)
 
     def update(self, dt: float, context: "UnitContext") -> None:
         target_position = self._resolve_target_position(context)
@@ -144,11 +148,19 @@ class AttackState(RapidAIState):
                     LOGGER.debug("[AI] %s Attack: no valid position found around attack_base target, attacking base directly", context.entity_id)
                     return target_position
         
-        return target_position
+        if target_position is None:
+            return None
+        return self._predict_target_future(context, target_position)
 
     def _select_anchor(self, context: "UnitContext", target_position: Tuple[float, float]) -> Optional[Tuple[float, float]]:
         now = self.controller.context_manager.time
-        if self._anchor is None or (now - self._last_anchor_update) > 0.5:
+        stored_anchor = context.share_channel.get("attack_anchor")
+        if stored_anchor is not None and self._anchor is None:
+            self._anchor = tuple(stored_anchor)
+        if self._anchor is not None:
+            if not self._has_clear_line(self._anchor, target_position):
+                self._anchor = None
+        if self._anchor is None or (now - self._last_anchor_update) > 0.4:
             self._anchor = self._compute_anchor(context, target_position)
             self._last_anchor_update = now
         return self._anchor
@@ -169,10 +181,11 @@ class AttackState(RapidAIState):
 
         candidates: list[tuple[float, Tuple[float, float]]] = []
         # Récupérer all positions des units pour avoid les collisions
-        occupied_positions = set()
-        for ent, pos_comp in esper.get_component(PositionComponent):
-            if ent != context.entity_id:
-                occupied_positions.add((round(pos_comp.x, 1), round(pos_comp.y, 1)))
+        occupied_positions = [
+            (ent, pos)
+            for ent, pos in self.controller.position_snapshot
+            if ent != context.entity_id
+        ]
 
         # Tester plusieurs angles pour trouver des positions valides autour de la cible
         for angle in range(0, 360, 30):
@@ -186,9 +199,14 @@ class AttackState(RapidAIState):
                 continue
             if np.isinf(self.controller.pathfinding._tile_cost(grid)):
                 continue
+            if not self._has_clear_line(candidate, target_position):
+                continue
             # avoid les positions occupées par une autre unit (tolérance 32px)
             rounded_candidate = (round(candidate[0], 1), round(candidate[1], 1))
-            collision = any(math.hypot(rounded_candidate[0] - op[0], rounded_candidate[1] - op[1]) < 32.0 for op in occupied_positions)
+            collision = any(
+                math.hypot(rounded_candidate[0] - pos[0], rounded_candidate[1] - pos[1]) < 32.0
+                for _, pos in occupied_positions
+            )
             if collision:
                 continue
             distance_to_unit = self.distance(context.position, candidate)
@@ -230,9 +248,7 @@ class AttackState(RapidAIState):
 
     def _try_shoot(self, context: "UnitContext", fallback_target: Optional[tuple[float, float]] = None) -> None:
         radius = context.radius_component
-        if radius is None:
-            return
-        if radius.cooldown > 0:
+        if not self._weapon_ready(radius):
             return
         try:
             velocity = esper.component_for_entity(context.entity_id, VelocityComponent)
@@ -255,6 +271,10 @@ class AttackState(RapidAIState):
         # Orienter to la cible (ou fallback sur direction actuelle)
         # Ajouter une variation d'angle pour éviter que les projectiles se détruisent mutuellement
         if projectile_target is not None:
+            if not self.controller.pathfinding.has_line_of_fire(context.position, projectile_target):
+                self._anchor = None
+                context.share_channel.pop("attack_anchor", None)
+                return
             try:
                 pos = esper.component_for_entity(context.entity_id, PositionComponent)
                 dx = pos.x - projectile_target[0]
@@ -276,3 +296,36 @@ class AttackState(RapidAIState):
         # TOUJOURS tirer, peu importe si prédiction réussit ou pas
         esper.dispatch_event("attack_event", context.entity_id, "bullet")
         radius.cooldown = radius.bullet_cooldown
+
+    def _weapon_ready(self, radius: Optional[RadiusComponent]) -> bool:
+        """Valide la capacité de tir pour synchroniser avec la boucle globale."""
+
+        if radius is None:
+            return False
+        if radius.bullet_cooldown <= 0.0:
+            return False
+        return radius.cooldown <= 0.0
+
+    def _has_clear_line(self, origin: Tuple[float, float], target: Tuple[float, float]) -> bool:
+        """Vérifie rapidement la ligne de tir pour éviter les ancres impossibles."""
+
+        return self.controller.pathfinding.has_line_of_fire(origin, target)
+
+    def _predict_target_future(self, context: "UnitContext", target_position: Tuple[float, float]) -> Tuple[float, float]:
+        """Projette légèrement la cible pour améliorer la précision."""
+
+        now = self.controller.context_manager.time
+        last_pos = context.share_channel.get("attack_last_target_pos")
+        last_time = context.share_channel.get("attack_last_target_time", 0.0)
+        context.share_channel["attack_last_target_pos"] = target_position
+        context.share_channel["attack_last_target_time"] = now
+        if not last_pos:
+            return target_position
+        dt = max(now - float(last_time), 1e-3)
+        vx = (target_position[0] - last_pos[0]) / dt
+        vy = (target_position[1] - last_pos[1]) / dt
+        lead = min(0.5, self.controller.settings.tick_frequency * 0.05)
+        return (
+            target_position[0] + vx * lead,
+            target_position[1] + vy * lead,
+        )

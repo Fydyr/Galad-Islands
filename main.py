@@ -24,6 +24,7 @@ from src.settings.settings import get_project_version, is_dev_mode_enabled
 from src.utils.update_checker import check_for_updates
 from src.ui.update_notification import UpdateNotification
 
+
 # Configure logging level: DEBUG in dev mode, WARNING otherwise (to improve runtime fluidity)
 logging.basicConfig(level=logging.DEBUG if is_dev_mode_enabled() else logging.WARNING)
 

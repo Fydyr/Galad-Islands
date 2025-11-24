@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 from typing import List, Tuple
+from types import SimpleNamespace
 
 import sys
 from pathlib import Path
 
 import esper
+import pytest
 from pytest import MonkeyPatch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,11 +22,10 @@ from src.settings.settings import TILE_SIZE
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.velocityComponent import VelocityComponent
 from src.components.core.teamComponent import TeamComponent
+from src.ia.ia_scout.services import AIContextManager, UnitContext
 from src.ia.ia_scout.services.danger_map import DangerMapService
 from src.ia.ia_scout.services.pathfinding import PathfindingService
 from src.ia.ia_scout.services.prediction import PredictionService
-from src.ia.ia_scout.services.context import AIContextManager, UnitContext
-from src.ia.ia_scout.states.flee import FleeState
 
 
 def _empty_get_components(*_: object, **__: object) -> List[Tuple[int, Tuple]]:
@@ -75,56 +75,13 @@ def test_pathfinding_evite_les_tuiles_risquees(monkeypatch: MonkeyPatch) -> None
     assert couples  # Un chemin existe
 
 
-def test_prediction_renvoie_uniquement_les_ennemis(monkeypatch: MonkeyPatch) -> None:
-    """Contrôle que la prédiction ignore les alliés et respecte l'horizon."""
+def test_prediction_service_desactive() -> None:
+    """Vérifie que le service de prédiction déclenche une erreur lorsqu'on l'appelle."""
 
-    def _fake_get_components(*_: object, **__: object) -> List[Tuple[int, Tuple[PositionComponent, VelocityComponent, TeamComponent]]]:
-        same_team = (
-            98,
-            (
-                PositionComponent(x=80.0, y=180.0, direction=90.0),
-                VelocityComponent(currentSpeed=8.0),
-                TeamComponent(team_id=Team.ENEMY),
-            ),
-        )
-        ally = (
-            99,
-            (
-                PositionComponent(x=100.0, y=200.0, direction=180.0),
-                VelocityComponent(currentSpeed=10.0),
-                TeamComponent(team_id=Team.ALLY),
-            ),
-        )
-        neutral_threat = (
-            101,
-            (
-                PositionComponent(x=180.0, y=220.0, direction=0.0),
-                VelocityComponent(currentSpeed=12.0),
-                TeamComponent(team_id=42),
-            ),
-        )
-        return [same_team, ally, neutral_threat]
-
-    monkeypatch.setattr(esper, "get_components", _fake_get_components)
-
-    # Éviter les échecs d'Esper.has_component dans ce test spécifique
-    monkeypatch.setattr(esper, "has_component", lambda *_: False)
     predictor = PredictionService(horizon=1.0)
-    predicted = predictor.predict_enemy_positions(team_id=Team.ENEMY)
 
-    # Current PredictionService excludes only entities with the same team_id
-    # and bandits; allies (different team ids) are included. Expect two
-    # predicted entities (ally and neutral threat) and ensure the same-team
-    # entity (98) is excluded.
-    assert len(predicted) == 2
-    got_ids = {p.entity_id for p in predicted}
-    assert 98 not in got_ids
-    assert got_ids == {99, 101}
-    # Ensure the neutral threat's predicted position remains <= its current Y
-    for p in predicted:
-        if p.entity_id == 101:
-            assert p.future_position[1] <= 220.0
-    assert predicted[0].future_position[1] <= 220.0
+    with pytest.raises(RuntimeError, match="PredictionService has been removed"):
+        predictor.predict_enemy_positions(team_id=Team.ENEMY)
 
 
 class _DummySpecial:
@@ -184,6 +141,7 @@ class _DummyController:
         return
 
 
+@pytest.mark.skip(reason="FleeState a été retiré de l'IA rapide.")
 def test_flee_state_declenche_l_invincibilite(monkeypatch: MonkeyPatch) -> None:
     """Valide que l'état de fuite active la capacité spéciale quand la vie est basse."""
 

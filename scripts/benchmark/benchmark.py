@@ -893,9 +893,7 @@ class GaladBenchmark:
         # Stop profiling
         if enable_profiling and pr is not None:
             pr.disable()
-            s = io.StringIO()
-            ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
-            cprofile_data = s
+            cprofile_data = pstats.Stats(pr).strip_dirs().sort_stats('cumulative')
 
         # Calculate FPS statistics
         if frame_times:
@@ -951,7 +949,7 @@ class GaladBenchmark:
                 if cprofile_data:
                     print(f"\n🎯 TOP 10 MOST EXPENSIVE FUNCTIONS:")
                     print("-" * 60)
-                    ps.print_stats(10)
+                    cprofile_data.print_stats(40)
             
             print(f"🏗️  Final entities: {len(esper._entities)}")
 
