@@ -1,6 +1,7 @@
 TRANSLATIONS = {
     "options.title": "Options",
     "options.display": "Display",
+    "options.gameplay_section": "Gameplay",
     "options.window_mode": "Window Mode",
     "options.resolution": "Resolution",
     "options.custom_resolution": "Custom Resolution",
@@ -23,6 +24,7 @@ TRANSLATIONS = {
     "options.disable_shadows": "Disable shadows",
     "options.disable_ai_learning": "Disable AI learning (Marauders)",
     "options.disable_ai_learning_description": "Disables in-game learning for Marauders to improve performance.\nAI will no longer evolve and adapt during gameplay.",
+    "options.enable_tutorial": "Enable tutorial",
     "options.check_updates": "Check for updates on startup",
     "options.check_updates_description": "Automatically checks if a new version is available on GitHub.\nIgnored in development mode. Maximum 1 check per day.",
     "options.check_now": "Check now",

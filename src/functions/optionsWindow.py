@@ -570,7 +570,12 @@ class OptionsWindow:
         y_pos += 50
 
         # Master volume
-        master_text = t("options.master_volume", )
+        # Show master volume with percentage for clarity
+        try:
+            master_pct = int(round(self.state.master_volume * 100))
+        except Exception:
+            master_pct = 0
+        master_text = f"{t('options.master_volume')}: {master_pct}%"
         master_surf = self.font_normal.render(master_text, True, Colors.WHITE)
         surface.blit(master_surf, (0, y_pos))
         y_pos += 25

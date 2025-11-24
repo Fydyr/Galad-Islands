@@ -34,4 +34,13 @@ TRANSLATIONS = {
     "apply_paths.warn.res_dir_missing": "Resolutions: folder {parent} not found",
     "apply_paths.ok": "Paths applied successfully",
     "apply_paths.error": "Error: {error}",
+    "button_reset_tutorials": "Reset tutorials",
+    "gameplay_info": "Gameplay-related options (tutorials, etc.)",
+    "button_check_updates": "Check now",
+    "updates_info": "Update checks and release options",
+    "options.check_updates": "Check for updates",
+    "options.check_updates_result": "Check result: {result}",
+    "options.check_updates_error": "Error checking updates: {error}",
+    "options.check_updates_none": "No update found",
+    "options.check_updates_available": "New version available: {version}\n{url}",
 }

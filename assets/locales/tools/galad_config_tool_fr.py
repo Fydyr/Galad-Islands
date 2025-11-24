@@ -34,4 +34,13 @@ TRANSLATIONS = {
     "apply_paths.warn.res_dir_missing": "Résolutions: dossier {parent} introuvable",
     "apply_paths.ok": "Chemins appliqués avec succès",
     "apply_paths.error": "Erreur: {error}",
+    "button_reset_tutorials": "Réinitialiser les tutoriels",
+    "gameplay_info": "Options liées au gameplay (tutoriels, etc.)",
+    "button_check_updates": "Vérifier maintenant",
+    "updates_info": "Vérification des mises à jour et options de release",
+    "options.check_updates": "Vérifier les mises à jour",
+    "options.check_updates_result": "Résultat de la vérification: {result}",
+    "options.check_updates_error": "Erreur lors de la vérification: {error}",
+    "options.check_updates_none": "Aucune mise à jour trouvée",
+    "options.check_updates_available": "Nouvelle version disponible : {version}\n{url}",
 }

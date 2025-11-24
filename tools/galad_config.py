@@ -35,6 +35,8 @@ from src.settings.localization import (
     get_available_languages, get_current_language, set_language, t
 )
 from src.settings.resolutions import load_custom_resolutions
+from src.utils.update_checker import check_for_updates_force
+import threading
 from src.constants.key_bindings import KEY_BINDING_GROUPS
 from src.settings import controls
 import pygame  # just to make it run
@@ -89,7 +91,7 @@ class GaladConfigApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(_T('window.title', default='Galad Config Tool'))
-        self.geometry("700x800")
+        self.geometry("900x900")
         self.resizable(True, True)
 
         # load current settings
@@ -204,17 +206,20 @@ class GaladConfigApp(tk.Tk):
         ai_desc_label = ttk.Label(frm, text=t('options.disable_ai_learning_description'), font=("", 8, "italic"), foreground="gray", wraplength=400, justify="left")
         ai_desc_label.grid(row=21, column=0, columnspan=3, sticky=tk.W, pady=(2, 6))
 
-                # Camera sensitivity (placed after performance settings)
-        ttk.Separator(frm).grid(row=22, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        
+        # (Gameplay and Updates options moved to their own tabs)
+
+        # Camera sensitivity (placed after gameplay & updates)
+        ttk.Separator(frm).grid(row=26, column=0, columnspan=3, sticky='ew', pady=(6, 6))
         self.camera_var = tk.DoubleVar(value=self.config_data.get('camera_sensitivity', 1.0))
         self.camera_label = ttk.Label(frm, text=t('options.camera_sensitivity', sensitivity=self.camera_var.get()))
-        self.camera_label.grid(row=23, column=0, sticky=tk.W)
+        self.camera_label.grid(row=27, column=0, sticky=tk.W)
         self.camera_scale = ttk.Scale(frm, from_=0.2, to=3.0, orient=tk.HORIZONTAL, variable=self.camera_var, command=self._on_camera_changed)
-        self.camera_scale.grid(row=24, column=0, columnspan=3, sticky='ew')
+        self.camera_scale.grid(row=28, column=0, columnspan=3, sticky='ew')
 
         # Language (placed after camera)
-        ttk.Separator(frm).grid(row=25, column=0, columnspan=3, sticky='ew', pady=(6, 6))
-        ttk.Label(frm, text=t('options.language_section')).grid(row=26, column=0, sticky=tk.W)
+        ttk.Separator(frm).grid(row=29, column=0, columnspan=3, sticky='ew', pady=(6, 6))
+        ttk.Label(frm, text=t('options.language_section')).grid(row=30, column=0, sticky=tk.W)
         
         # Language dropdown for extensibility
         self.lang_var = tk.StringVar(value=self.config_data.get('language', get_current_language()))
@@ -225,25 +230,56 @@ class GaladConfigApp(tk.Tk):
         self.lang_combo = ttk.Combobox(frm, values=lang_names, state="readonly", width=15)
         self.lang_combo.set(current_lang_name)
         self.lang_combo.bind("<<ComboboxSelected>>", self._on_lang_combo_changed)
-        self.lang_combo.grid(row=27, column=0, sticky=tk.W, padx=(0, 10))
+        self.lang_combo.grid(row=31, column=0, sticky=tk.W, padx=(0, 10))
 
         # Language restart note
         self.lang_note_label = ttk.Label(frm, text=t('options.language_restart_note'), font=("", 8, "italic"), foreground="gray")
-        self.lang_note_label.grid(row=28, column=0, sticky=tk.W, pady=(2, 0))
+        self.lang_note_label.grid(row=32, column=0, sticky=tk.W, pady=(2, 0))
 
-        # Ensure the frame has three columns so buttons can align
+        # Ensure the display frame has three columns (keeps layout consistent)
         frm.columnconfigure(0, weight=1)
         frm.columnconfigure(1, weight=1)
         frm.columnconfigure(2, weight=1)
 
-        # Action buttons (aligned across three columns)
-        self.default_btn = ttk.Button(frm, text=t('options.button_default'), command=self._on_reset)
-        self.default_btn.grid(row=30, column=0, sticky=tk.W, pady=(12, 0), padx=(4, 4))
-        self.apply_btn = ttk.Button(frm, text=t('options.apply'), command=self._on_apply)
-        self.apply_btn.grid(row=30, column=1, sticky='', pady=(12, 0))
-        self.close_btn = ttk.Button(frm, text=t('options.button_close'), command=self.destroy)
-        self.close_btn.grid(row=30, column=2, sticky=tk.E, pady=(12, 0), padx=(4, 4))
+        # Action bar (global buttons visible on every tab)
+        action_frame = ttk.Frame(root_frm, padding=(6, 8))
+        action_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        action_frame.columnconfigure(0, weight=1)
+        action_frame.columnconfigure(1, weight=1)
+        action_frame.columnconfigure(2, weight=1)
+
+        self.default_btn = ttk.Button(action_frame, text=t('options.button_default'), command=self._on_reset)
+        self.default_btn.grid(row=0, column=0, sticky=tk.W, padx=(8, 8))
+
+        self.apply_btn = ttk.Button(action_frame, text=t('options.apply'), command=self._on_apply)
+        self.apply_btn.grid(row=0, column=1)
+
+        self.close_btn = ttk.Button(action_frame, text=t('options.button_close'), command=self.destroy)
+        self.close_btn.grid(row=0, column=2, sticky=tk.E, padx=(8, 8))
         
+
+        # Gameplay tab (moved from Display)
+        gameplay_frm = ttk.Frame(self.notebook, padding=pad)
+        self.notebook.add(gameplay_frm, text=t('options.gameplay_section'))
+
+        # Show tutorial checkbox and reset button
+        self.show_tutorial_var = tk.BooleanVar(value=self.config_data.get('show_tutorial', True))
+        ttk.Checkbutton(gameplay_frm, text=t('options.enable_tutorial'), variable=self.show_tutorial_var).grid(row=0, column=0, sticky=tk.W, pady=(4, 4))
+        ttk.Button(gameplay_frm, text=_T('button_reset_tutorials', default='Reset tutorials'), command=self._on_reset_tutorials).grid(row=0, column=1, sticky=tk.W, padx=(6, 0))
+
+        # Info label for gameplay tab
+        ttk.Label(gameplay_frm, text=_T('gameplay_info', default='Gameplay-related options (tutorials, etc.)'), foreground='gray').grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(4, 10))
+
+        # Updates tab
+        updates_frm = ttk.Frame(self.notebook, padding=pad)
+        self.notebook.add(updates_frm, text=t('options.updates_section'))
+
+        self.check_updates_var = tk.BooleanVar(value=self.config_data.get('check_updates', False))
+        ttk.Checkbutton(updates_frm, text=t('options.check_updates', default='Automatically check for updates'), variable=self.check_updates_var).grid(row=0, column=0, sticky=tk.W)
+        ttk.Button(updates_frm, text=_T('button_check_updates', default='Check now'), command=self._on_check_now).grid(row=0, column=1, sticky=tk.W, padx=(6,0))
+
+        # Info label for updates
+        ttk.Label(updates_frm, text=_T('updates_info', default='Update checks and release options'), foreground='gray').grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(4, 10))
 
         # Audio tab
         audio_frm = ttk.Frame(self.notebook, padding=pad)
@@ -251,10 +287,31 @@ class GaladConfigApp(tk.Tk):
 
         ttk.Label(audio_frm, text=t('options.audio')).grid(row=0, column=0, sticky=tk.W)
         self.music_var = tk.DoubleVar(value=self.config_data.get('volume_music', 0.5))
+        self.effects_var = tk.DoubleVar(value=self.config_data.get('volume_effects', 0.7))
+        self.master_var = tk.DoubleVar(value=self.config_data.get('volume_master', 0.8))
+
+        # Music
         self.music_label = ttk.Label(audio_frm, text=t('options.volume_music_label', volume=int(self.music_var.get() * 100)))
         self.music_label.grid(row=1, column=0, sticky=tk.W)
         self.music_scale = ttk.Scale(audio_frm, from_=0.0, to=1.0, orient=tk.HORIZONTAL, variable=self.music_var, command=self._on_music_changed)
         self.music_scale.grid(row=2, column=0, columnspan=3, sticky='ew')
+
+        # Effects
+        self.effects_label = ttk.Label(audio_frm, text=t('options.volume_effects_label', volume=int(self.effects_var.get() * 100)))
+        self.effects_label.grid(row=3, column=0, sticky=tk.W)
+        self.effects_scale = ttk.Scale(audio_frm, from_=0.0, to=1.0, orient=tk.HORIZONTAL, variable=self.effects_var, command=self._on_effects_changed)
+        self.effects_scale.grid(row=4, column=0, columnspan=3, sticky='ew')
+
+        # Master volume
+        # show master volume with percent for immediate user feedback
+        try:
+            master_pct = int(round(self.master_var.get() * 100))
+        except Exception:
+            master_pct = 0
+        self.master_label = ttk.Label(audio_frm, text=f"{t('options.master_volume')}: {master_pct}%")
+        self.master_label.grid(row=5, column=0, sticky=tk.W)
+        self.master_scale = ttk.Scale(audio_frm, from_=0.0, to=1.0, orient=tk.HORIZONTAL, variable=self.master_var, command=self._on_master_changed)
+        self.master_scale.grid(row=6, column=0, columnspan=3, sticky='ew')
 
         # Controls tab (editable) with scrollbar
         controls_frm = ttk.Frame(self.notebook, padding=pad)
@@ -286,6 +343,7 @@ class GaladConfigApp(tk.Tk):
         
         # Config file selection
         ttk.Label(config_frm, text=t('options.config_file_label')).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        
         
         config_frame = ttk.Frame(config_frm)
         config_frame.grid(row=1, column=0, columnspan=3, sticky='ew', pady=(0, 10))
@@ -397,10 +455,41 @@ class GaladConfigApp(tk.Tk):
         except Exception:
             pass
 
+    def _on_effects_changed(self, _=None):
+        val = self.effects_var.get()
+        try:
+            pct = int(round(val * 100))
+            self.effects_label.configure(text=t('options.volume_effects_label', volume=pct))
+        except Exception:
+            pass
+
+    def _on_master_changed(self, _=None):
+        # master label doesn't show percent name in current translations, keep default label
+        val = self.master_var.get()
+        try:
+            pct = int(round(val * 100))
+            self.master_label.configure(text=f"{t('options.master_volume')}: {pct}%")
+        except Exception:
+            # if something bad happens keep the basic label
+            try:
+                self.master_label.configure(text=t('options.master_volume'))
+            except Exception:
+                pass
+
     def _on_reset(self):
         reset_to_defaults()
         messagebox.showinfo(_T('dialog.ok.title', default='OK'), _T('msg.reset_done', default='Settings reset to defaults'))
         self.config_data = load_config()
+        # refresh UI controls with new defaults if present
+        try:
+            self.music_var.set(self.config_data.get('volume_music', self.music_var.get()))
+            self.effects_var.set(self.config_data.get('volume_effects', self.effects_var.get()))
+            self.master_var.set(self.config_data.get('volume_master', self.master_var.get()))
+            # update labels
+            self._on_music_changed()
+            self._on_effects_changed()
+        except Exception:
+            pass
         self._populate_resolutions()
 
     def _on_apply(self):
@@ -414,6 +503,8 @@ class GaladConfigApp(tk.Tk):
             apply_resolution(w,h)
         # audio
         set_audio_volume('music', float(self.music_var.get()))
+        set_audio_volume('effects', float(self.effects_var.get()))
+        set_audio_volume('master', float(self.master_var.get()))
         # camera sensitivity
         set_camera_sensitivity(float(self.camera_var.get()))
         # performance settings
@@ -422,8 +513,23 @@ class GaladConfigApp(tk.Tk):
         config_manager.set("disable_particles", self.particles_var.get())
         config_manager.set("disable_shadows", self.shadows_var.get())
         config_manager.set("disable_ai_learning", self.disable_ai_learning_var.get())
+        # save audio volumes to config
+        try:
+            config_manager.set("volume_music", float(self.music_var.get()))
+            config_manager.set("volume_effects", float(self.effects_var.get()))
+            config_manager.set("volume_master", float(self.master_var.get()))
+        except Exception:
+            pass
+
         # max FPS
         config_manager.set("max_fps", self.fps_var.get())
+        # save new gameplay & updates options
+        try:
+            config_manager.set("show_tutorial", bool(self.show_tutorial_var.get()))
+            config_manager.set("check_updates", bool(self.check_updates_var.get()))
+        except Exception:
+            # in case variables aren't present, ignore
+            pass
         config_manager.save_config()
         # language
         set_language(self.lang_var.get())
@@ -456,6 +562,39 @@ class GaladConfigApp(tk.Tk):
                 return
         
         messagebox.showinfo(_T('dialog.ok.title', default='OK'), _T('msg.apply_done', default='Settings applied'))
+
+    def _on_reset_tutorials(self):
+        try:
+            config_manager.set("read_tips", [])
+            config_manager.save_config()
+            messagebox.showinfo(_T('dialog.ok.title', default='OK'), _T('msg.reset_done', default='Tutorial progress has been reset'))
+        except Exception as e:
+            messagebox.showerror(_T('dialog.error.title', default='Error'), str(e))
+
+    def _on_check_now(self):
+        # Run quick update check in a thread to avoid freezing UI
+        def _check():
+            try:
+                res = check_for_updates_force()
+                # res is either None or (version, url)
+                if res is None:
+                    messagebox.showinfo(
+                        _T('options.check_updates', default='Check for updates'),
+                        _T('options.check_updates_none', default='No update found')
+                    )
+                else:
+                    new_ver, url = res
+                    messagebox.showinfo(
+                        _T('options.check_updates', default='Check for updates'),
+                        _T('options.check_updates_available', default='New version available: {version}\n{url}', version=new_ver, url=url)
+                    )
+            except Exception as e:
+                messagebox.showerror(
+                    _T('dialog.error.title', default='Error'),
+                    _T('options.check_updates_error', default='Error checking updates: {error}', error=str(e))
+                )
+
+        threading.Thread(target=_check, daemon=True).start()
 
     def _build_controls_tab(self, parent):
         """Create editable controls bindings UI: label + combobox for each action."""
