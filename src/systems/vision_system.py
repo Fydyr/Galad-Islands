@@ -16,7 +16,7 @@ from src.components.core.teamComponent import TeamComponent
 from src.constants.team import Team
 from src.components.core.visionComponent import VisionComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, config_manager, get_fog_render_mode
-from src.managers.surface_cache import get_filled_surface
+from src.managers.surface_cache import get_filled_surface, get_cloud_texture
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
 from src.functions.resource_path import get_resource_path
 from src.managers.sprite_manager import sprite_manager, SpriteID
@@ -292,22 +292,16 @@ class VisionSystem:
         explored_fog_color = (0, 0, 0, 120) # Brouillard léger pour les zones explorées
         unexplored_fog_color = (0, 0, 0, 255) # Brouillard total pour les zones non explorées
 
-        # If tile-based mode, prepare two filled surfaces to blit for performance
-        if fog_mode == "tiles":
-            explored_tile_surf = get_filled_surface(tile_size, tile_size, (0,0,0), 120)
-            unexplored_tile_surf = get_filled_surface(tile_size, tile_size, (255,255,255), 255)
-
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
                 if not self.is_tile_visible(x, y, team_id):
                     screen_x, screen_y = camera.world_to_screen(x * TILE_SIZE, y * TILE_SIZE)
-                    
+
                     if fog_mode == "tiles":
-                        # Tile-based rendering: use filled cached surfaces for rectangle fog
-                        if not self.is_tile_explored(x, y, team_id):
-                            fog_surface.blit(unexplored_tile_surf, (screen_x, screen_y))
-                        else:
-                            fog_surface.blit(explored_tile_surf, (screen_x, screen_y))
+                        # Tile-based rendering: use procedural cloud textures
+                        is_explored = self.is_tile_explored(x, y, team_id)
+                        cloud_surf = get_cloud_texture(tile_size, tile_size, x, y, is_explored)
+                        fog_surface.blit(cloud_surf, (screen_x, screen_y))
                     else:
                         # Image mode: render clouds for unexplored tiles (original behavior)
                         if not self.is_tile_explored(x, y, team_id):
