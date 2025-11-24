@@ -48,24 +48,11 @@ analysis_config = Analysis(
 )
 
 # Maraudeur AI Cleaner: similar to config tool
-analysis_maraudeur = Analysis(
-    ['tools/maraudeur_ai_cleaner.py'],
-    pathex=[os.getcwd()],
-    datas=[('assets/locales', 'assets/locales'), ('src', 'src')],
-    hiddenimports=[],
-    hookspath=[],
-    runtime_hooks=[],
-    excludes=['esper', 'llvmlite', 'numba', 'numpy', 'Pillow', 'sklearn', 'joblib', 'pygame'],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=None,
-    noarchive=False
-)
 
 # --- Create PYZ (Python modules archive) ---
 pyz_game = PYZ(analysis_game.pure, analysis_game.zipped_data, cipher=None)
 pyz_config = PYZ(analysis_config.pure, analysis_config.zipped_data, cipher=None)
-pyz_maraudeur = PYZ(analysis_maraudeur.pure, analysis_maraudeur.zipped_data, cipher=None)
+# Removed old standalone Maraudeur AI Cleaner (merged into galad-config-tool)
 
 # --- EXE definitions ---
 # Define each executable WITHOUT merging them.
@@ -90,15 +77,6 @@ exe_config_tool = EXE(
     icon='assets/logo.ico'
 )
 
-exe_maraudeur = EXE(
-    pyz_maraudeur,
-    analysis_maraudeur.scripts,
-    [],
-    exclude_binaries=True,
-    name='MaraudeurAiCleaner',
-    console=False,
-    icon='assets/logo.ico'
-)
 
 # --- Final collect ---
 # This is where all exe outputs and related files are placed into
@@ -112,6 +90,4 @@ coll_config = COLLECT(exe_config_tool,
                       analysis_config.binaries, analysis_config.datas,
                       name='galad-config-tool')
 
-coll_maraudeur = COLLECT(exe_maraudeur,
-                         analysis_maraudeur.binaries, analysis_maraudeur.datas,
-                         name='MaraudeurAiCleaner')
+# Note: MaraudeurAiCleaner has been retired; functionality moved into galad-config-tool

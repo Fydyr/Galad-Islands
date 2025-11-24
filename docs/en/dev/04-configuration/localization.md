@@ -38,8 +38,8 @@ assets/locales/                 # Translation files
 ├── english.py                  # English compatibility (loads en/)
 ├── french.py                   # French compatibility (loads fr/)
 ├── tools/                      # GUI tools translations
-│   ├── clean_models_gui_fr.py  # Model cleaner (FR)
-│   ├── clean_models_gui_en.py  # Model cleaner (EN)
+│   ├── galad_config_tool_fr.py # Config tool (FR) - includes Marauder models UI
+│   ├── galad_config_tool_en.py # Config tool (EN) - includes Marauder models UI
 │   ├── galad_config_tool_fr.py # Config tool (FR)
 │   └── galad_config_tool_en.py # Config tool (EN)
 └── README.md                   # Localization workflow documentation
@@ -135,18 +135,19 @@ title = t("menu.play")                           # "Jouer" or "Play"
 volume_text = t("options.volume_music_label", volume=75)  # With parameters
 
 # Usage in GUI tool with namespace
-button_text = t("btn.refresh", tool="clean_models_gui", default="Refresh")
+button_text = t("btn.refresh", tool="galad_config_tool", default="Refresh")
 dialog_title = t("dialog.confirm.title", tool="galad_config_tool", default="Confirm")
 ```
 
 ### Translations for GUI tools
 
-GUI tools (like `galad-config-tool` or `MaraudeurAiCleaner`) have their own translations separate from the game:
+GUI tools (like `galad-config-tool`) have their own translations separate from the game. For instance the configuration tool exposes its own keys under the `galad_config_tool` namespace and now contains translations for the built-in "Marauder models" tab:
 
 ```python
-# assets/locales/tools/clean_models_gui_en.py
+# assets/locales/tools/galad_config_tool_en.py
 TRANSLATIONS = {
-    "window.title": "Marauder Models Cleaner",
+    "window.title": "Galad Config Tool",
+    "tab.models.title": "Marauder models",
     "btn.refresh": "Refresh",
     "btn.choose_folder": "Choose folder…",
     "btn.delete_selected": "Delete selected",
@@ -157,10 +158,10 @@ TRANSLATIONS = {
 from src.settings.localization import t as game_t
 
 def _t(key: str, default: str = None, **kwargs) -> str:
-    return game_t(key, tool='clean_models_gui', default=default, **kwargs)
+    return game_t(key, tool='galad_config_tool', default=default, **kwargs)
 
 # In the interface
-self.title(self._t("window.title", default="Marauder Models Cleaner"))
+self.title(self._t("window.title", default="Galad Config Tool"))
 ```
 
 **Benefits**:

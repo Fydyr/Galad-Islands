@@ -37,6 +37,7 @@ TRANSLATIONS = {
     "options.add_current_resolution": "Ajouter actuel",
     "options.remove_resolution": "Supprimer",
     "options.configuration": "Configuration",
+    "options.config_file_tab": "Fichier de configuration",
     "options.config_file_label": "Fichier de configuration:",
     "options.resolutions_file_label": "Fichier des résolutions personnalisées:",
     "options.browse_button": "Parcourir...",

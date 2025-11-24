@@ -101,17 +101,20 @@ Settings can be accessed in two ways:
 - **Description**: When enabled, Marauder (Barhamus) units continuously learn during gameplay and save models to the `models/` folder. This can increase CPU usage and disk writes over long sessions.
 
 !!! info "Managing Marauder models"
-  You can clean up or reset learning models with the provided GUI tool:
-    
-  ```bash
-  # Launch the GUI tool (provided in releases)
-  ./MaraudeurAiCleaner          # Linux/macOS
-  MaraudeurAiCleaner.exe        # Windows
-  ```
-    
-  Deleting models is safe; the AI will recreate them automatically.
+  You can clean up or reset learning models either via the command-line utility or the integrated GUI inside the `galad-config-tool`.
 
-  Tip: the MaraudeurAiCleaner tool automatically follows the language configured in the game (`galad_config.json`).
+  GUI — open `galad-config-tool` and select the "Marauder models" tab to list, delete, keep N most recent, or remove older models.
+
+  CLI — the scripts in `scripts/` still provide commands for automated or remote cleaning:
+
+  ```bash
+  # Examples (script-based)
+  python scripts/clean_models.py --marauder --list
+  python scripts/clean_models.py --marauder --keep 5
+  python scripts/clean_models.py --marauder --older-than 7
+  ```
+
+  Deleting models is safe; the AI will recreate them automatically.
 
 ## Controls Settings
 
