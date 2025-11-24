@@ -339,6 +339,17 @@ Le brouillard de guerre transforme chaque partie en une danse stratégique entre
 
 ---
 
+#### Modes de rendu du brouillard et performances
+
+Le jeu propose deux modes de rendu pour le brouillard de guerre afin de s'adapter aux capacités matérielles et aux préférences de l'utilisateur :
+
+- `Nuages (image)` : Utilise des sprites de nuage pour représenter les tuiles inexplorées. Mode visuellement riche mais plus coûteux en CPU/GPU, surtout quand beaucoup de tuiles sont visibles.
+- `Tuiles (rapide)` : Rend le brouillard comme des rectangles remplis semi-transparents par tuile. Ce mode est bien plus rapide car il évite la découpe d'image par tuile et le redimensionnement répété.
+
+Vous pouvez changer ce réglage dans le menu Options → Performance → "Rendu du brouillard". Le choix est sauvegardé dans `galad_config.json` et s'applique au prochain lancement du jeu.
+
+Recommandation : Utilisez `Nuages (image)` pour un rendu artistique sur des machines modernes et passez en `Tuiles (rapide)` si votre système est CPU-limité ou si vous cherchez la meilleure fluidité.
+
 *Maîtrisez ces mécaniques territoriales et vous deviendrez un stratège accompli dans les Galad Islands !*
 
 ---

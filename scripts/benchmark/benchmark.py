@@ -153,7 +153,8 @@ class GaladBenchmark:
     def _get_system_info(self) -> Dict[str, Any]:
         """Collecte les informations système pour l'export CSV."""
         try:
-            return {
+                from src.settings.settings import config_manager
+                return {
                 'timestamp': datetime.now().isoformat(),
                 'os': platform.system(),
                 'os_version': platform.release(),
@@ -166,6 +167,8 @@ class GaladBenchmark:
                 'memory_available_gb': round(psutil.virtual_memory().available / (1024**3), 2),
                 'cpu_usage_percent': psutil.cpu_percent(interval=0.1),
                 'memory_usage_percent': psutil.virtual_memory().percent,
+                'vsync': config_manager.get('vsync', True),
+                'max_fps': int(config_manager.get('max_fps', 60)),
             }
         except Exception as e:
             if self.verbose:
@@ -537,8 +540,21 @@ class GaladBenchmark:
             if not pygame.font.get_init():
                 pygame.font.init()
             
-            # Create the pygame window
-            screen = pygame.display.set_mode((800, 600))
+            # Create a controlled pygame window of 800x600 to avoid large display sizes in CI
+            vsync_enabled = False
+            try:
+                from src.settings.settings import config_manager
+                vsync_enabled = bool(config_manager.get('vsync', True))
+            except Exception:
+                vsync_enabled = False
+
+            flags = pygame.RESIZABLE | pygame.DOUBLEBUF
+            try:
+                # Use explicit vsync if supported by SDL/driver
+                screen = pygame.display.set_mode((800, 600), flags, vsync=1 if vsync_enabled else 0)
+            except TypeError:
+                # fallback if vsync kw is not supported
+                screen = pygame.display.set_mode((800, 600), flags)
             pygame.display.set_caption(f"Galad Islands - Benchmark ({num_ai_teams} AI)")
 
             # Initialize the game
@@ -563,6 +579,60 @@ class GaladBenchmark:
                 ai_teams.append(ai_team_2)
                 if self.verbose:
                     print(f"✅ AI Team 2 initialized")
+
+            # --- SPECIAL: If no AI teams requested, remove any pre-registered AI processors
+            # from esper to ensure a clean "0 AI" benchmark (some processors may still
+            # be registered by the game during initialization). We keep a list so we can
+            # restore them afterwards.
+            removed_processors: List = []
+            if num_ai_teams == 0:
+                try:
+                    for proc in list(esper._processors):
+                        # Identify AI processors by class name or BaseAi instances
+                        clsname = proc.__class__.__name__
+                        if 'AI' in clsname or 'Ai' in clsname or isinstance(proc, BaseAi):
+                            removed_processors.append(proc)
+                            try:
+                                esper._processors.remove(proc)
+                            except Exception:
+                                # Best effort: ignore if already removed
+                                pass
+
+                    if self.verbose:
+                        print(f"🔕 Removed {len(removed_processors)} AI processors for 0-AI benchmark")
+                except Exception as e:
+                    if self.verbose:
+                        print(f"⚠️  Warning while disabling AI processors: {e}")
+                    # Also remove any entities that carry AI-specific components so they won't
+                    # skew the 0-AI benchmark (clear allied/enemy AI-controlled units)
+                    try:
+                        from src.components.ai.DruidAiComponent import DruidAiComponent
+                        from src.components.ai.architectAIComponent import ArchitectAIComponent
+                        from src.components.ai.aiLeviathanComponent import AILeviathanComponent
+                        from src.components.core.KamikazeAiComponent import KamikazeAiComponent
+                        from src.components.core.aiEnabledComponent import AIEnabledComponent
+
+                        ai_components = [DruidAiComponent, ArchitectAIComponent, AILeviathanComponent,
+                                         KamikazeAiComponent, AIEnabledComponent]
+
+                        removed_entities = 0
+                        for comp in ai_components:
+                            try:
+                                for ent, _ in list(esper.get_component(comp)):
+                                    try:
+                                        esper.delete_entity(ent)
+                                        removed_entities += 1
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                # If a component isn't present or get_component fails, continue
+                                pass
+
+                        if self.verbose:
+                            print(f"🗑️  Removed {removed_entities} entities that had AI components for 0-AI benchmark")
+                    except Exception:
+                        # Non-blocking: if imports or deletes fail, continue
+                        pass
 
             # Configurer l'apprentissage du Maraudeur si demandé
             original_learning_setting = config_manager.get("disable_ai_learning", False)
@@ -956,6 +1026,22 @@ class GaladBenchmark:
         # Restore AI processors
         if enable_profiling:
             restore_ai_processors()
+
+        # Restore any processors we removed for the 0-AI run
+        try:
+            if 'removed_processors' in locals() and removed_processors:
+                for p in removed_processors:
+                    try:
+                        # Avoid duplicates
+                        if p not in esper._processors:
+                            esper._processors.append(p)
+                    except Exception:
+                        pass
+                if self.verbose:
+                    print(f"🔁 Restored {len(removed_processors)} AI processors after 0-AI benchmark")
+        except Exception as e:
+            if self.verbose:
+                print(f"⚠️  Error while restoring removed processors: {e}")
             
         # Restaurer les méthodes patchées
         if enable_profiling and original_maraudeur_update and hasattr(game_engine, '_update_all_maraudeur_ais'):
@@ -1356,6 +1442,10 @@ def main():
                        help="Output file for JSON results")
     parser.add_argument("--verbose", "-v", action="store_true",
                        help="Verbose mode")
+    parser.add_argument("--no-vsync", action="store_true",
+                       help="Disable vsync during benchmark runs (may improve CPU-limited profiling)")
+    parser.add_argument("--max-fps", type=int, default=None,
+                       help="Override max FPS during the benchmark (0 = unlimited)")
     parser.add_argument("--full-game-only", action="store_true",
                        help="Run only the full game simulation benchmark")
     parser.add_argument("--ai-benchmark", action="store_true",
@@ -1377,6 +1467,24 @@ def main():
         print("🔍 Detailed profiling enabled")
 
     benchmark = GaladBenchmark(duration=args.duration, verbose=args.verbose)
+
+    # Apply benchmark-specific config override if requested
+    try:
+        if args.no_vsync:
+            from src.settings.settings import config_manager
+            config_manager.set("vsync", False)
+            config_manager.save_config()
+            if args.verbose:
+                print("🔧 VSync disabled for benchmark run")
+        if args.max_fps is not None:
+            from src.settings.settings import config_manager
+            config_manager.set("max_fps", int(args.max_fps))
+            config_manager.save_config()
+            if args.verbose:
+                print(f"🔧 Max FPS set to {args.max_fps} for benchmark run")
+    except Exception:
+        # Non-critical: continue without overrides if any issue occurs
+        pass
 
     if args.ai_benchmark:
         print("🤖 Running AI performance comparison...")

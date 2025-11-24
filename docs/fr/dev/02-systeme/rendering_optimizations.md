@@ -72,6 +72,30 @@ elif val == TileType.ALLY_BASE and (i, j) not in processed_bases:
 - **Approche:** Rendu simplifié des éléments lointains
 - **Bénéfices attendus:** Amélioration des performances à zoom arrière
 
+### Optimisation du rendu du brouillard de guerre (Implémentée)
+
+**Date:** Novembre 2025
+**Fichiers affectés:** `src/systems/vision_system.py`, `src/managers/surface_cache.py`, `src/functions/optionsWindow.py`
+
+**Résumé:** Le rendu du brouillard utilisait auparavant des sprites de nuage pour les tuiles inexplorées. Bien que visuellement riche, cette approche impliquait de nombreuses opérations de subsurface et de blit par tuile, coûteuses en CPU/GPU. La nouvelle implémentation ajoute un mode alternatif basé sur des tuiles rectangulaires pleines qui dessinent des rectangles remplis pour les tuiles non explorées / explorées, en utilisant des surfaces remplies mises en cache pour réduire significativement la charge.
+
+**Principaux changements:**
+
+- Ajout du paramètre `fog_render_mode` : `image` (par défaut) | `tiles` (rapide)
+- Implémentation du rendu par tuiles dans `VisionSystem.create_fog_surface()` en utilisant `get_filled_surface()` du `surface_cache` pour des blits rapides et mis en cache
+- Ajout du contrôle dans la fenêtre Options pour basculer le mode sous Performance
+- Ajout d'options du benchmark pour désactiver le vsync et désactiver la limite de FPS pour le profilage
+
+**Impact:**
+
+- Le mode `Tuiles (rapide)` réduit les opérations image par tuile et peut améliorer le framerate sur les systèmes CPU-limité
+- Le mode `Nuages (image)` conserve le rendu précédent mais est plus coûteux et peut être limité par le vsync du driver
+
+**Comment tester :**
+
+- Utilisez le benchmark pour comparer les modes: `python scripts/benchmark/benchmark.py --full-game-only --no-vsync --max-fps 0 --duration 30 --profile --export-csv` et comparez les CSV
+
+
 ## Métriques de Performance
 
 ### Avant Optimisations
