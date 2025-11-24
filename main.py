@@ -23,17 +23,6 @@ from src.settings.settings import get_project_version, is_dev_mode_enabled
 from src.utils.update_checker import check_for_updates
 from src.ui.update_notification import UpdateNotification
 
-# delete recursive pycache directories
-for root, dirs, files in os.walk('.'):
-    for dir_name in dirs:
-        if dir_name == '__pycache__':
-            pycache_path = os.path.join(root, dir_name)
-            try:
-                import shutil
-                shutil.rmtree(pycache_path)
-            except Exception as e:
-                print(f"Error deleting {pycache_path}: {e}")
-
 
 # Configure logging level: DEBUG in dev mode, WARNING otherwise (to improve runtime fluidity)
 logging.basicConfig(level=logging.DEBUG if is_dev_mode_enabled() else logging.WARNING)
