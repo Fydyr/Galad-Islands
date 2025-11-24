@@ -19,6 +19,7 @@ from src.components.core.positionComponent import PositionComponent
 from src.components.core.baseComponent import BaseComponent
 from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
 from src.managers.sprite_manager import sprite_manager, SpriteID
+from src.managers.surface_cache import get_scaled as _get_scaled
 from src.factory.unitType import UnitType
 from src.constants.gameplay import (
     COLOR_WHITE, COLOR_GOLD, COLOR_BLACK, COLOR_GREEN_SUCCESS, COLOR_RED_ERROR,
@@ -429,8 +430,8 @@ class UnifiedShop:
                     # Charger via le gestionnaire de sprites
                     sprite_surface = sprite_manager.load_sprite(sprite_id)
                     if sprite_surface:
-                        # Redimensionner à la taille souhaitée
-                        icon = pygame.transform.scale(sprite_surface, (64, 64))
+                        # Redimensionner à la taille souhaitée (cache)
+                        icon = _get_scaled(sprite_surface, (64, 64))
                         self.icons[item.id] = icon
                         print(f"Icône chargée via sprite manager: {item.id} -> {sprite_id.value}")
                     else:
@@ -448,8 +449,8 @@ class UnifiedShop:
             if sprite_id:
                 sprite_surface = sprite_manager.load_sprite(sprite_id)
                 if sprite_surface:
-                    # Redimensionner à la taille souhaitée pour les onglets
-                    self.tab_icons[tab_name] = pygame.transform.scale(sprite_surface, (24, 24))
+                    # Redimensionner à la taille souhaitée pour les onglets (cache)
+                    self.tab_icons[tab_name] = _get_scaled(sprite_surface, (24, 24))
                     print(f"Icône d'onglet chargée via sprite manager: {tab_name} -> {sprite_id.value}")
                 else:
                     print(f"Impossible de charger le sprite pour l'onglet: {sprite_id.value}")
@@ -1077,7 +1078,7 @@ class UnifiedShop:
         if item.id in self.icons and self.icons[item.id]:
             icon = self.icons[item.id]
             if icon:  # Check quel'icône n'est pas None
-                scaled_icon = pygame.transform.scale(icon, (icon_size, icon_size))
+                scaled_icon = _get_scaled(icon, (icon_size, icon_size))
                 surface.blit(scaled_icon, icon_rect.topleft)
         
         # Zone de texte
@@ -1102,7 +1103,7 @@ class UnifiedShop:
             cost_gold_icon = None
 
         if cost_gold_icon:
-            cost_icon_surface = pygame.transform.scale(cost_gold_icon, (SHOP_ICON_SIZE_TINY, SHOP_ICON_SIZE_TINY))
+            cost_icon_surface = _get_scaled(cost_gold_icon, (SHOP_ICON_SIZE_TINY, SHOP_ICON_SIZE_TINY))
             surface.blit(cost_icon_surface, (cost_x, rect.y + 28))
             cost_x += SHOP_ICON_SIZE_TINY + 4
             cost_text = str(item.cost)

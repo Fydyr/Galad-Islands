@@ -35,6 +35,8 @@ from src.settings.settings import config_manager
 # Import for building logic
 from src.functions.buildingCreator import createDefenseTower, createHealTower
 from src.components.core.positionComponent import PositionComponent
+from src.managers.surface_cache import get_scaled as _get_scaled
+from src.managers.font_cache import get_font as _get_font
 
 # Couleurs de l'interface améliorées
 class UIColors:
@@ -376,10 +378,11 @@ class ActionBar:
 
             # Recreate fonts if needed (keep sizes)
             # Force re-render in draw cycle by updating fonts
-            self.font_normal = pygame.font.Font(None, self.font_normal.get_height())
-            self.font_small = pygame.font.Font(None, self.font_small.get_height())
-            self.font_large = pygame.font.Font(None, self.font_large.get_height())
-            self.font_title = pygame.font.Font(None, self.font_title.get_height())
+            
+            self.font_normal = _get_font(None, int(self.font_normal.get_height()))
+            self.font_small = _get_font(None, int(self.font_small.get_height()))
+            self.font_large = _get_font(None, int(self.font_large.get_height()))
+            self.font_title = _get_font(None, int(self.font_title.get_height()))
         except Exception:
             # Silencieux : avoid de faire planter la boucle principale
             pass
@@ -412,10 +415,11 @@ class ActionBar:
         font_scale = min(new_width, new_height) / 800  # Base sur 800px
         font_scale = max(0.8, min(1.5, font_scale))  # Limiter l'échelle
         
-        self.font_normal = pygame.font.Font(None, int(24 * font_scale))
-        self.font_small = pygame.font.Font(None, int(18 * font_scale))
-        self.font_large = pygame.font.Font(None, int(32 * font_scale))
-        self.font_title = pygame.font.Font(None, int(28 * font_scale))
+        
+        self.font_normal = _get_font(None, int(24 * font_scale))
+        self.font_small = _get_font(None, int(18 * font_scale))
+        self.font_large = _get_font(None, int(32 * font_scale))
+        self.font_title = _get_font(None, int(28 * font_scale))
     
     def _create_placeholder_icon(self, text: str, is_global: bool = False) -> pygame.Surface:
         """creates une icône de remplacement avec du texte."""
@@ -963,7 +967,8 @@ class ActionBar:
         # Bannière self-play (au dessus de la barre)
         try:
             if getattr(self, 'self_play_mode', False):
-                banner_font = pygame.font.Font(None, 28)
+                
+                banner_font = _get_font(None, 28)
                 banner_text = "IA vs IA — Contrôles joueur désactivés"
                 banner_surf = banner_font.render(banner_text, True, (255, 200, 0))
                 banner_rect = banner_surf.get_rect()
@@ -1111,9 +1116,10 @@ class ActionBar:
                 darkened_icon = icon.copy()
                 darkened_icon.fill((100, 100, 100, 128), special_flags=pygame.BLEND_RGBA_MULT)
                 icon = darkened_icon
+
+            # Redimensionner l'icône selon la taille du bouton (cache des surfaces)
             
-            # Redimensionner l'icône selon la taille du bouton
-            icon = pygame.transform.scale(icon, (rect.width - 8, rect.height - 8))
+            icon = _get_scaled(icon, (rect.width - 8, rect.height - 8))
             icon_rect = icon.get_rect(center=rect.center)
             surface.blit(icon, icon_rect)
         
@@ -1183,7 +1189,8 @@ class ActionBar:
             gold_str = str(current_gold)
             # No drawing here — drawing will be done after info_rect is computed so we can center correctly
             if gold_icon:
-                icon_surface = pygame.transform.scale(gold_icon, (28, 28))
+                
+                icon_surface = _get_scaled(gold_icon, (28, 28))
                 gold_text = self.font_title.render(gold_str, True, UIColors.GOLD)
                 gold_line_width = icon_surface.get_width() + gold_text.get_width() + 16
             else:

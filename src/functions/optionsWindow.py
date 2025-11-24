@@ -119,6 +119,7 @@ class OptionsState:
     disable_shadows: bool
     disable_ai_learning: bool
     check_updates: bool
+    fog_render_mode: str
     vsync: bool
     max_fps: int
     checking_update: bool  # Indicateur de vérification en cours
@@ -163,6 +164,7 @@ class OptionsState:
             disable_shadows=get_disable_shadows(),
             disable_ai_learning=get_disable_ai_learning(),
             check_updates=config_manager.get("check_updates", True),
+            fog_render_mode=config_manager.get("fog_render_mode", "image"),
             vsync=config_manager.get("vsync", True),
             max_fps=int(config_manager.get("max_fps", 60)),
             checking_update=False,
@@ -396,6 +398,31 @@ class OptionsWindow:
         )
         self.components.append(vsync_checkbox)
         y_pos += UIConstants.LINE_HEIGHT
+
+        # Fog render mode (image or tiles)
+        fog_label = self.font_normal.render(t("options.fog_render_mode", default="Fog render mode"), True, Colors.WHITE)
+        surface.blit(fog_label, (0, y_pos))
+        y_pos += UIConstants.LINE_HEIGHT
+
+        for mode, label_key in [("image", "options.fog_render_image"), ("tiles", "options.fog_render_tiles")]:
+            radio_rect = pygame.Rect(20, y_pos, self.modal_width - 80, UIConstants.LINE_HEIGHT)
+            radio = RadioButton(
+                radio_rect,
+                t(label_key, default=label_key),
+                self.font_normal,
+                mode,
+                selected=(self.state.fog_render_mode == mode),
+                callback=self._on_fog_render_mode_changed
+            )
+            self.components.append(radio)
+            y_pos += UIConstants.LINE_HEIGHT
+
+        # Description text for fog render mode
+        desc_lines = t("options.fog_render_mode_description", default="Tiles mode is more performant but less detailed; Clouds keeps the original artistic rendering.").split("\n")
+        for line in desc_lines:
+            desc_surf = self.font_small.render(line, True, Colors.GRAY)
+            surface.blit(desc_surf, (20, y_pos))
+            y_pos += 18
 
         # Choix du framerate
         fps_text = t("options.max_fps_label", fps=self.state.max_fps if self.state.max_fps > 0 else "Illimité")
@@ -989,6 +1016,15 @@ class OptionsWindow:
         """Callback pour le changement de mode de performance."""
         set_performance_mode(mode)
         self.state.performance_mode = mode
+
+    def _on_fog_render_mode_changed(self, mode: str) -> None:
+        """Callback pour le changement du mode de rendu du brouillard de guerre."""
+        try:
+            config_manager.set_fog_render_mode(mode)
+            config_manager.save_config()
+            self.state.fog_render_mode = mode
+        except Exception as e:
+            print(f"Erreur lors du changement du mode de rendu du brouillard: {e}")
     
     def _on_disable_particles_changed(self) -> None:
         """Callback pour l'activation/désactivation des particules."""

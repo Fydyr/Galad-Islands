@@ -107,6 +107,8 @@ from src.ui.notification_system import get_notification_system
 from src.ia.ia_scout import ensure_ai_processors
 
 from src.constants.gameplay import PLAYER_DEFAULT_GOLD
+from src.managers.font_cache import get_font as _get_font
+from src.managers.surface_cache import get_filled_surface as _get_filled
 # Color used to highlight the selected unit
 SELECTION_COLOR = (255, 215, 0)
 
@@ -770,7 +772,7 @@ class GameRenderer:
         if camera is None:
             return
             
-        font = pygame.font.Font(None, 36)
+        font = _get_font(None, 36)
         debug_info = [
             t("debug.camera_position", x=camera.x, y=camera.y),
             t("debug.zoom_level", zoom=camera.zoom),
@@ -853,14 +855,11 @@ class GameRenderer:
             return
 
         # Create a semi-transparent surface for the background
-        overlay = pygame.Surface((window.get_width(), window.get_height()))
-        overlay.set_alpha(128)  # 50% transparency
-        overlay.fill((0, 0, 0))  # Black
+        overlay = _get_filled(window.get_width(), window.get_height(), (0,0,0), 128)
         window.blit(overlay, (0, 0))
 
-        # Prepare the text
-        font_large = pygame.font.Font(None, 72)
-        font_medium = pygame.font.Font(None, 48)
+        font_large = _get_font(None, 72)
+        font_medium = _get_font(None, 48)
 
         # Split the message into lines
         lines = self.game_engine.game_over_message.split('\n')
@@ -887,7 +886,7 @@ class GameRenderer:
             window.blit(text_surface, text_rect)
 
         # Add instruction to return to menu
-        instruction_font = pygame.font.Font(None, 36)
+        instruction_font = _get_font(None, 36)
         instruction_text = "Retour au menu principal dans {:.0f}s...".format(self.game_engine.game_over_timer)
         instruction_surface = instruction_font.render(instruction_text, True, (200, 200, 200))
         instruction_rect = instruction_surface.get_rect()

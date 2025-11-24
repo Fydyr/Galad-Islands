@@ -1,5 +1,6 @@
 from dataclasses import dataclass as component
 import pygame
+from src.managers.surface_cache import get_scaled as _get_scaled
 
 @component
 class SpriteComponent:
@@ -43,4 +44,8 @@ class SpriteComponent:
 
     def scale_sprite(self, width, height):
         if self.image is not None:
-            self.surface = pygame.transform.scale(self.image, (width, height))
+            try:
+                self.surface = _get_scaled(self.image, (int(width), int(height)))
+            except Exception:
+                # Fallback
+                self.surface = pygame.transform.scale(self.image, (int(width), int(height)))
