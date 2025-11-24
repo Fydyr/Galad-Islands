@@ -21,13 +21,13 @@ from src.version import __version__
 CONFIG_FILE = "galad_config.json"
 
 DEFAULT_CONFIG = {
-    "screen_width": 1168,
-    "screen_height": 629,
+    "screen_width": 1280,
+    "screen_height": 720,
     "window_mode": "fullscreen",  # "windowed", "fullscreen"
     "volume_master": 0.8,
     "volume_music": 0.5,
     "volume_effects": 0.7,
-    "vsync": True,
+    "vsync": False,
     "performance_mode": "auto",  # "auto", "high", "medium", "low"
     "disable_particles": False,
     "disable_shadows": False,
@@ -37,7 +37,7 @@ DEFAULT_CONFIG = {
     "dev_mode": False,  # Mode développement pour les actions debug
     "language": "fr",
     "check_updates": True,  # Vérification automatique des mises à jour au démarrage
-    "fog_render_mode": "image",  # "image" or "tiles"
+    "fog_render_mode": "tiles",  # "image" or "tiles"
     "camera_sensitivity": 1.0,
     "camera_fast_multiplier": 2.5,
     "show_tutorial": True,  # Affichage du tutoriel activé/désactivé
