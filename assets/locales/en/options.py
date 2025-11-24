@@ -68,6 +68,7 @@ TRANSLATIONS = {
     "options.info_custom_resolution": "Custom resolutions are saved automatically.",
     "options.info_resize_window": "You can resize the window by dragging its edges.",
     "options.info_resolution_warning": "Warning: too high resolution may affect performance.",
+    "options.resolution_will_apply_on_restart": "Resolution saved — it will be applied after restarting the game: {width}x{height}",
     "options.custom_resolution_format": "{width}x{height} (custom)",
     "options.button_default": "Default",
     "options.button_close": "Close",

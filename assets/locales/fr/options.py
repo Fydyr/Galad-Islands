@@ -69,6 +69,7 @@ TRANSLATIONS = {
     "options.info_custom_resolution": "Les résolutions personnalisées sont sauvegardées automatiquement.",
     "options.info_resize_window": "Vous pouvez redimensionner la fenêtre en faisant glisser ses bords.",
     "options.info_resolution_warning": "Attention: une résolution trop élevée peut affecter les performances.",
+    "options.resolution_will_apply_on_restart": "Résolution enregistrée — elle sera appliquée après le redémarrage du jeu : {width}x{height}",
     "options.custom_resolution_format": "{width}x{height} (personnalisé)",
     "options.button_default": "Par défaut",
     "options.button_close": "Fermer",
