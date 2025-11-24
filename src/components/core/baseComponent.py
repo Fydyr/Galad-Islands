@@ -229,3 +229,44 @@ class BaseComponent:
             return base_component.troopList.copy()  # Copy to avoid external modifications
 
         return []
+
+    @classmethod
+    def count_units_by_type(cls, unit_type: str, is_enemy: bool = False) -> int:
+        """Counts the number of living units of a specific type for a team.
+
+        Args:
+            unit_type: The type of unit to count (e.g., "SCOUT", "MARAUDEUR")
+            is_enemy: True for enemy team, False for ally team
+
+        Returns:
+            The count of living units of the specified type
+        """
+        if not cls._initialized:
+            return 0
+
+        base_entity = cls._enemy_base_entity if is_enemy else cls._ally_base_entity
+
+        if not base_entity or not esper.has_component(base_entity, BaseComponent):
+            return 0
+
+        base_component = esper.component_for_entity(base_entity, BaseComponent)
+        count = 0
+
+        # Filter out dead entities and count by type
+        living_units = []
+        for unit_entity in base_component.troopList:
+            try:
+                # Check if entity still exists and has required components
+                if esper.entity_exists(unit_entity) and esper.has_component(unit_entity, ClasseComponent):
+                    classe_comp = esper.component_for_entity(unit_entity, ClasseComponent)
+                    living_units.append(unit_entity)
+                    if classe_comp.unit_type == unit_type:
+                        count += 1
+            except (KeyError, Exception):
+                # Entity was deleted, skip it
+                continue
+
+        # Clean up the troop list by removing dead entities
+        base_component.troopList = living_units
+
+        return count
