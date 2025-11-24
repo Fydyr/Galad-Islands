@@ -35,7 +35,8 @@ from src.constants.gameplay import (
         SHOP_FONT_SIZE_TINY,
         UNIT_COST_SCOUT, UNIT_COST_MARAUDEUR, UNIT_COST_LEVIATHAN,
         UNIT_COST_DRUID, UNIT_COST_ARCHITECT, UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER,
-        UNIT_COST_KAMIKAZE
+        UNIT_COST_KAMIKAZE,
+        MAX_UNITS_PER_TYPE
     )
 
 
@@ -500,9 +501,17 @@ class UnifiedShop:
                     print(f"Erreur: Type d'unité inconnu pour {unit_id}")
                     self._show_purchase_feedback(f"Erreur: Type d'unité inconnu!", False)
                     return False
-                
+
                 # Déterminer si c'est un ennemi selon la faction de la boutique
                 is_enemy = (self.faction == ShopFaction.ENEMY)
+
+                # Vérifier la limite d'unités par type
+                if unit_type in MAX_UNITS_PER_TYPE:
+                    current_count = BaseComponent.count_units_by_type(unit_type, is_enemy)
+                    max_count = MAX_UNITS_PER_TYPE[unit_type]
+                    if current_count >= max_count:
+                        self._show_purchase_feedback(f"Limite atteinte! ({current_count}/{max_count})", False)
+                        return False
                 
                 # Calculer la position de spawn près de la base appropriée
                 spawn_position = self._get_base_spawn_position(is_enemy)
@@ -711,6 +720,17 @@ class UnifiedShop:
             return False
         if item.max_quantity > 0 and item.current_quantity >= item.max_quantity:
             return False
+
+        # Vérifier la limite d'unités par type pour les unités
+        if item.category == ShopCategory.UNITS:
+            unit_type = self._map_boutique_id_to_unit_type(item.id)
+            if unit_type and unit_type in MAX_UNITS_PER_TYPE:
+                is_enemy = (self.faction == ShopFaction.ENEMY)
+                current_count = BaseComponent.count_units_by_type(unit_type, is_enemy)
+                max_count = MAX_UNITS_PER_TYPE[unit_type]
+                if current_count >= max_count:
+                    return False
+
         return True
     
     def _purchase_item(self, item: ShopItem):
