@@ -1158,8 +1158,18 @@ class ActionBar:
         if is_self_play:
             ally_gold = self._get_player_gold_direct(is_enemy=False)
             enemy_gold = self._get_player_gold_direct(is_enemy=True)
-            ally_label = f"{t('camp.ally')}: {ally_gold}"
-            enemy_label = f"{t('camp.enemy')}: {enemy_gold}"
+            # Also show the unit counts for both teams in self-play / spectator mode
+            try:
+                ally_units_count = len(BaseComponent.get_base_units(is_enemy=False))
+            except Exception:
+                ally_units_count = 0
+            try:
+                enemy_units_count = len(BaseComponent.get_base_units(is_enemy=True))
+            except Exception:
+                enemy_units_count = 0
+
+            ally_label = f"{t('camp.ally')}: {ally_gold} ({ally_units_count})"
+            enemy_label = f"{t('camp.enemy')}: {enemy_gold} ({enemy_units_count})"
             gold_text_ally = self.font_title.render(ally_label, True, UIColors.GOLD)
             gold_text_enemy = self.font_title.render(enemy_label, True, UIColors.GOLD)
             gold_line_width = gold_text_ally.get_width() + gold_text_enemy.get_width() + 30
@@ -1195,7 +1205,7 @@ class ActionBar:
         # Affichage ligne 1 : or
         gold_y = info_rect.y + 14
         if is_self_play:
-            # Draw both gold labels centered
+            # Draw both gold+unit-count labels centered
             ally_x = info_rect.x + 12
             surface.blit(gold_text_ally, (ally_x, gold_y))
             enemy_x = info_rect.x + info_width - 12 - gold_text_enemy.get_width()
