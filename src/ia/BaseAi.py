@@ -27,7 +27,7 @@ from src.components.core.classeComponent import ClasseComponent
 from src.components.core.towerComponent import TowerComponent
 from src.components.core.projectileComponent import ProjectileComponent
 from src.components.core.aiEnabledComponent import AIEnabledComponent
-from src.constants.gameplay import UNIT_COSTS
+from src.constants.gameplay import UNIT_COSTS, MAX_UNITS_PER_TYPE
 from src.factory.unitFactory import UnitFactory
 from src.factory.unitType import UnitType, UnitKey
 from src.components.core.positionComponent import PositionComponent
@@ -403,6 +403,32 @@ class BaseAi(esper.Processor):
                     q_values[3] += 8.0
                 affordable_actions = [a for a in affordable_actions if a not in (4, 6)]
 
+            # ==================================================
+            # Respecter les limites par type définies dans MAX_UNITS_PER_TYPE
+            # ==================================================
+            filtered_actions = []
+            for a in affordable_actions:
+                details = self.ACTION_MAPPING.get(a)
+                unit_type = details and details.get('unit_type')
+                # If the action produces a unit, check the per-type cap
+                try:
+                    if unit_type and unit_type in MAX_UNITS_PER_TYPE:
+                        # is_enemy for the AI team depends on the ai_team_id
+                        is_enemy = (ai_team_id == Team.ENEMY)
+                        current_count = BaseComponent.count_units_by_type(unit_type, is_enemy=is_enemy)
+                        max_allowed = MAX_UNITS_PER_TYPE.get(unit_type, -1)
+                        if max_allowed >= 0 and current_count >= max_allowed:
+                            # skip this action (limit reached)
+                            if self.debug_mode:
+                                print(f"[BaseAI] Team {self.default_team_id}: limite atteinte pour {unit_type} ({current_count}/{max_allowed}) — action {a} ignorée")
+                            continue
+                except Exception:
+                    # ignore counting errors and allow fallback
+                    pass
+                filtered_actions.append(a)
+
+            affordable_actions = filtered_actions
+
             if not affordable_actions:
                 return 0
 
@@ -448,6 +474,18 @@ class BaseAi(esper.Processor):
                 return False
 
             unit_to_spawn = action_details["unit_type"]
+            # Vérifier la limite par type avant de dépenser
+            try:
+                if unit_to_spawn and unit_to_spawn in MAX_UNITS_PER_TYPE:
+                    is_enemy = (ai_team_id == Team.ENEMY)
+                    current_count = BaseComponent.count_units_by_type(unit_to_spawn, is_enemy=is_enemy)
+                    max_allowed = MAX_UNITS_PER_TYPE.get(unit_to_spawn, -1)
+                    if max_allowed >= 0 and current_count >= max_allowed:
+                        if self.debug_mode:
+                            print(f"[BaseAI] Team {self.default_team_id}: tentative de production bloquée - {unit_to_spawn} atteint ({current_count}/{max_allowed})")
+                        return False
+            except Exception:
+                pass
             cost = action_details["cost"]
             
             if player_comp.can_afford(cost):
@@ -479,6 +517,17 @@ class BaseAi(esper.Processor):
             if base_pos_comp is None: return
 
             is_enemy = (ai_team_id == Team.ENEMY)
+            # Sécurité : vérifier la limite par type (au cas où d'autres chemins l'appellent directement)
+            try:
+                if unit_type and unit_type in MAX_UNITS_PER_TYPE:
+                    current_count = BaseComponent.count_units_by_type(unit_type, is_enemy=is_enemy)
+                    max_allowed = MAX_UNITS_PER_TYPE.get(unit_type, -1)
+                    if max_allowed >= 0 and current_count >= max_allowed:
+                        if self.debug_mode:
+                            print(f"[BaseAI] Team {self.default_team_id}: _spawn_unit annulé - {unit_type} limite atteinte ({current_count}/{max_allowed})")
+                        return
+            except Exception:
+                pass
             spawn_x, spawn_y = BaseComponent.get_spawn_position(base_pos_comp.x, base_pos_comp.y, is_enemy=is_enemy)
             pos = PositionComponent(spawn_x, spawn_y, 0)
             new_entity = UnitFactory(unit_type, is_enemy, pos, enable_ai=True, self_play_mode=self.self_play_mode, active_team_id=self.active_player_team_id)

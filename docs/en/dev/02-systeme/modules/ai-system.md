@@ -697,18 +697,14 @@ Keeps the 10 most recent models, deletes the others.
 ##### Graphical Interface (optional)
 
 
-```bash
-# Use the compiled program (provided in releases)
-./MaraudeurAiCleaner          # Linux/macOS
-MaraudeurAiCleaner.exe        # Windows
+Use the graphical management features inside the `galad-config-tool` instead of a standalone executable. Open `galad-config-tool` and select the "Marauder models" tab to:
 
-# Or for developers with Python
-python tools/maraudeur_ai_cleaner.py
-```
+- list existing model files
+- delete selected files
+- keep the N most recent files
+- remove model files older than a given number of days
 
-List, delete by selection, keep N most recent, or delete models older than X days without using the command line.
-
-Note: the tool automatically follows the language configured in the game (defined in `galad_config.json`). French by default, with fallback to English if the language is not supported.
+These GUI features provide an easy alternative to the command-line scripts and follow the current game language configured in `galad_config.json`.
 
 ##### Important Notes
 

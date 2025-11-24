@@ -34,6 +34,7 @@ from src.settings import controls
 from src.managers.display import get_display_manager
 from src.settings.settings import config_manager
 from src.managers.tutorial_manager import TutorialManager
+from src.ui.notification_system import get_notification_system, NotificationType
 from src.utils.update_checker import check_for_updates_force
 from src.constants.key_bindings import (
     BASIC_BINDINGS,
@@ -918,41 +919,22 @@ class OptionsWindow:
     def _on_resolution_changed(self, resolution: Tuple[int, int, str]) -> None:
         """Callback pour le changement de résolution."""
         width, height = resolution[0], resolution[1]
-        # Save the resolution in config
+        # Save the resolution in config (do not apply immediately to avoid runtime bugs)
+        # The actual screen resolution will only take effect after the game restarts.
         saved = apply_resolution(width, height)
         self.state.selected_resolution = resolution
         self.state.custom_width = str(width)
         self.state.custom_height = str(height)
 
-        # Delegate to the shared DisplayManager to apply and recreate the window
+        # Important: we do NOT recreate the display in-game to avoid runtime issues
+        # (changing resolution at runtime can cause bugs on some platforms). Instead
+        # we inform the player that the change will be applied after restart.
         try:
-            dm = get_display_manager()
-            new_surface = dm.apply_resolution_and_recreate(width, height)
-            # Update our local references to the new surface and sizes
-            if new_surface is not None:
-                self.surface = new_surface
-                self.screen_width, self.screen_height = self.surface.get_size()
-
-                # Recompute modal sizes and surfaces to match new resolution
-                self.modal_width = max(UIConstants.MODAL_MIN_WIDTH,
-                                     min(UIConstants.MODAL_MAX_WIDTH,
-                                         int(self.screen_width * 0.7)))
-                self.modal_height = max(UIConstants.MODAL_MIN_HEIGHT,
-                                      min(UIConstants.MODAL_MAX_HEIGHT,
-                                          int(self.screen_height * 0.8)))
-                self.modal_surface = pygame.Surface((self.modal_width, self.modal_height))
-                self.modal_rect = self.modal_surface.get_rect(
-                    center=(self.screen_width//2, self.screen_height//2)
-                )
-                self.content_rect = pygame.Rect(20, 50, self.modal_width - 40, self.modal_height - 70)
-
-                # Re-setup fonts and refresh state/components
-                self._setup_fonts()
-                self._refresh_state()
-
-            print(t("options.resolution_applied", width=width, height=height))
-        except Exception as e:
-            print(f"⚠️ Erreur lors de l'application de la résolution via DisplayManager: {e}")
+            ns = get_notification_system()
+            ns.add_notification(t('options.resolution_will_apply_on_restart', width=width, height=height), NotificationType.INFO)
+        except Exception:
+            # Best-effort: fall back to console output if the notification system isn't available
+            print(t('options.resolution_will_apply_on_restart', width=width, height=height))
     
     def _on_volume_changed(self, volume: float) -> None:
         """Callback pour le changement de volume."""

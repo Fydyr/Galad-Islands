@@ -701,18 +701,14 @@ Garde les 10 modèles les plus récents, supprime les autres.
 ##### Interface graphique (optionnelle)
 
  
-```bash
-# Utilisez le programme compilé (fourni dans les releases)
-./MaraudeurAiCleaner          # Linux/macOS
-MaraudeurAiCleaner.exe        # Windows
+Utilisez les outils graphiques intégrés dans `galad-config-tool`. Ouvrez `galad-config-tool` et sélectionnez l'onglet « Modèles Maraudeur » pour :
 
-# Ou pour les développeurs avec Python
-python tools/maraudeur_ai_cleaner.py
-```
- 
-Permet de lister, supprimer par sélection, ne garder que les N plus récents, ou supprimer les modèles plus anciens que X jours, sans ligne de commande.
+- lister les fichiers modèles existants
+- supprimer les fichiers sélectionnés
+- conserver les N fichiers les plus récents
+- supprimer les fichiers modèles plus anciens qu'un nombre de jours donné
 
-Note : l'outil suit automatiquement la langue configurée dans le jeu (définie dans `galad_config.json`). Français par défaut, avec fallback sur l'anglais si la langue n'est pas supportée.
+Ces fonctionnalités GUI sont une alternative conviviale aux scripts en ligne de commande et suivent la langue configurée dans `galad_config.json`.
 
 ##### Notes importantes
 

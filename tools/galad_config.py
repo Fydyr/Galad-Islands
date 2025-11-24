@@ -9,6 +9,8 @@ Run:
     python tools/galad_config.py
 """
 from pathlib import Path
+import time
+from datetime import datetime
 import json
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -339,7 +341,8 @@ class GaladConfigApp(tk.Tk):
 
         # Configuration tab
         config_frm = ttk.Frame(self.notebook, padding=pad)
-        self.notebook.add(config_frm, text=t('options.configuration'))
+        # Rename the tab to a clearer "Fichier de configuration" label (translatable)
+        self.notebook.add(config_frm, text=t('options.config_file_tab', default='Fichier de configuration'))
         
         # Config file selection
         ttk.Label(config_frm, text=t('options.config_file_label')).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
@@ -372,6 +375,218 @@ class GaladConfigApp(tk.Tk):
         # Info label
         self.info_label = ttk.Label(config_frm, text=t('options.default_paths_used'), foreground="green")
         self.info_label.grid(row=5, column=0, columnspan=3, pady=(10, 0))
+
+        # ------------------------------------------------------------------
+        # Marauder models tab (ported from tools/maraudeur_ai_cleaner.py)
+        # ------------------------------------------------------------------
+        models_frm = ttk.Frame(self.notebook, padding=pad)
+        self.notebook.add(models_frm, text=_T('tab.models.title', default='Marauder models'))
+
+        # Default models dir (prefer repo models/ if present)
+        def _get_default_models_dir() -> Path:
+            proj_root = Path(__file__).resolve().parents[1]
+            candidates = [proj_root / 'models', proj_root / 'src' / 'models', proj_root / 'src' / 'ia' / 'models']
+            for c in candidates:
+                if c.exists():
+                    return c
+            return proj_root / 'models'
+
+        self.models_dir = Path(self.config_data.get('models_dir', _get_default_models_dir()))
+        self.models = []
+
+        top = ttk.Frame(models_frm)
+        top.pack(side=tk.TOP, fill=tk.X, padx=6, pady=6)
+
+        ttk.Button(top, text=_T('btn.choose_folder', default='Choose folder…'), command=lambda: self._models_choose_folder(models_frm)).pack(side=tk.LEFT, padx=4)
+        ttk.Button(top, text=_T('btn.refresh', default='Refresh'), command=lambda: self._models_refresh(models_frm)).pack(side=tk.LEFT, padx=4)
+        ttk.Button(top, text=_T('btn.open_folder', default='Open folder'), command=lambda: self._models_open_folder(models_frm)).pack(side=tk.LEFT, padx=4)
+        ttk.Button(top, text=_T('btn.delete_selected', default='Delete selected'), command=lambda: self._models_delete_selected(models_frm)).pack(side=tk.LEFT, padx=4)
+        ttk.Button(top, text=_T('btn.delete_all', default='Delete ALL'), command=lambda: self._models_delete_all(models_frm)).pack(side=tk.LEFT, padx=4)
+
+        filters = ttk.Frame(models_frm)
+        filters.pack(side=tk.TOP, fill=tk.X, padx=6, pady=(0,6))
+
+        keep_frame = ttk.Frame(filters)
+        keep_frame.pack(side=tk.LEFT, padx=(0,8))
+        ttk.Label(keep_frame, text=_T('label.keep_n', default='Keep most recent N:')).pack(side=tk.LEFT)
+        self._keep_n_var = tk.StringVar(value='5')
+        ttk.Entry(keep_frame, width=5, textvariable=self._keep_n_var).pack(side=tk.LEFT, padx=4)
+        ttk.Button(keep_frame, text=_T('btn.apply', default='Apply'), command=lambda: self._models_keep_n(models_frm)).pack(side=tk.LEFT)
+
+        older_frame = ttk.Frame(filters)
+        older_frame.pack(side=tk.LEFT, padx=8)
+        ttk.Label(older_frame, text=_T('label.delete_older_days', default='Delete older than days:')).pack(side=tk.LEFT)
+        self._older_days_var = tk.StringVar(value='7')
+        ttk.Entry(older_frame, width=5, textvariable=self._older_days_var).pack(side=tk.LEFT, padx=4)
+        ttk.Button(older_frame, text=_T('btn.apply', default='Apply'), command=lambda: self._models_delete_older_than(models_frm)).pack(side=tk.LEFT)
+
+        # listbox
+        mid = ttk.Frame(models_frm)
+        mid.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=6, pady=4)
+        self.models_listbox = tk.Listbox(mid, selectmode=tk.EXTENDED)
+        self.models_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        models_scroll = ttk.Scrollbar(mid, orient=tk.VERTICAL, command=self.models_listbox.yview)
+        models_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.models_listbox.config(yscrollcommand=models_scroll.set)
+
+        # status
+        self.models_status = tk.StringVar(value='')
+        ttk.Label(models_frm, textvariable=self.models_status, relief=tk.SUNKEN, anchor=tk.W).pack(side=tk.BOTTOM, fill=tk.X)
+
+        # initial refresh
+        self._models_refresh(models_frm)
+    # -----------------------
+    # Models tab helpers
+    # -----------------------
+    def _models_find_files(self):
+        PATTERNS = ["barhamus_ai_*.pkl", "marauder_ai_*.pkl", "maraudeur_ai_*.pkl"]
+        base = Path(self.models_dir)
+        if not base.exists():
+            return []
+        files = []
+        for pat in PATTERNS:
+            files.extend(list(base.glob(pat)))
+        # dedupe and sort by mtime desc
+        files = list({p.resolve(): p for p in files}.keys())
+        files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        return files
+
+    def _human_size(self, nbytes: float) -> str:
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if nbytes < 1024.0:
+                return f"{nbytes:3.1f} {unit}"
+            nbytes /= 1024.0
+        return f"{nbytes:.1f} PB"
+
+    def _describe_model_file(self, p: Path) -> str:
+        try:
+            st = p.stat()
+            mtime = datetime.fromtimestamp(st.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            return f"{p.name} — {self._human_size(st.st_size)} — {mtime}"
+        except Exception:
+            return str(p)
+
+    def _models_refresh(self, parent=None):
+        try:
+            self.models = self._models_find_files()
+            self.models_listbox.delete(0, tk.END)
+            for p in self.models:
+                self.models_listbox.insert(tk.END, self._describe_model_file(p))
+            self.models_status.set(_T('status.found_in', default='Found {count} model file(s) in {path}', count=len(self.models), path=self.models_dir))
+        except Exception as e:
+            self.models_status.set(str(e))
+
+    def _models_choose_folder(self, parent=None):
+        sel = filedialog.askdirectory(title=_T('dialog.browse.title', default='Select models folder'), initialdir=str(self.models_dir if self.models_dir.exists() else Path(__file__).resolve().parents[1]))
+        if sel:
+            self.models_dir = Path(sel)
+            # persist in config_data so it's kept while the tool runs
+            self.config_data['models_dir'] = str(self.models_dir)
+            try:
+                # write back to config file on disk if present
+                CONFIG_PATH.write_text(json.dumps(self.config_data, indent=2))
+            except Exception:
+                pass
+            self._models_refresh(parent)
+
+    def _models_open_folder(self, parent=None):
+        # ensure dir exists then open with OS
+        self.models_dir.mkdir(parents=True, exist_ok=True)
+        path = str(self.models_dir)
+        if sys.platform.startswith('win'):
+            try:
+                import subprocess
+                subprocess.Popen(['explorer', path])
+            except Exception:
+                # fallback - try using start command
+                os.system(f'start "" "{path}"')
+        elif sys.platform == 'darwin':
+            os.system(f"open '{path}'")
+        else:
+            os.system(f"xdg-open '{path}' >/dev/null 2>&1 &")
+
+    def _models_get_selected_paths(self):
+        idxs = self.models_listbox.curselection()
+        return [self.models[i] for i in idxs]
+
+    def _models_delete_selected(self, parent=None):
+        items = self._models_get_selected_paths()
+        if not items:
+            messagebox.showinfo(_T('dialog.delete_selected.title', default='Delete selected'), _T('msg.no_selection', default='No models selected.'))
+            return
+        if not messagebox.askyesno(_T('dialog.confirm.title', default='Confirm'), _T('confirm.delete_selected', default='Delete {n} selected model(s)?', n=len(items))):
+            return
+        deleted = 0
+        for p in items:
+            try:
+                p.unlink(missing_ok=True)
+                deleted += 1
+            except Exception as e:
+                messagebox.showerror(_T('dialog.error.title', default='Error'), _T('error.delete_failed', default='Failed to delete {name}: {err}', name=p.name, err=e))
+        self._models_refresh(parent)
+        messagebox.showinfo(_T('dialog.done.title', default='Done'), _T('msg.deleted_n', default='Deleted {n} file(s).', n=deleted))
+
+    def _models_delete_all(self, parent=None):
+        files = self._models_find_files()
+        if not files:
+            messagebox.showinfo(_T('dialog.delete_all.title', default='Delete ALL'), _T('msg.no_models', default='No models to delete.'))
+            return
+        if not messagebox.askyesno(_T('dialog.confirm.title', default='Confirm'), _T('confirm.delete_all', default='Delete ALL ({n}) model file(s)?', n=len(files))):
+            return
+        for p in files:
+            try:
+                p.unlink(missing_ok=True)
+            except Exception as e:
+                messagebox.showerror(_T('dialog.error.title', default='Error'), _T('error.delete_failed', default='Failed to delete {name}: {err}', name=p.name, err=e))
+        self._models_refresh(parent)
+        messagebox.showinfo(_T('dialog.done.title', default='Done'), _T('msg.all_deleted', default='All models deleted.'))
+
+    def _models_keep_n(self, parent=None):
+        try:
+            n = int(self._keep_n_var.get().strip())
+            if n < 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror(_T('dialog.invalid_value.title', default='Invalid value'), _T('error.keep_n_invalid', default='Please enter a valid non-negative integer for N.'))
+            return
+        files = self._models_find_files()
+        if len(files) <= n:
+            messagebox.showinfo(_T('dialog.keep_n.title', default='Keep N'), _T('msg.nothing_to_delete', default='There are {count} models; nothing to delete.', count=len(files)))
+            return
+        to_delete = files[n:]
+        if not messagebox.askyesno(_T('dialog.confirm.title', default='Confirm'), _T('confirm.keep_n', default='Keep {n} most recent, delete {m} older model(s)?', n=n, m=len(to_delete))):
+            return
+        for p in to_delete:
+            try:
+                p.unlink(missing_ok=True)
+            except Exception as e:
+                messagebox.showerror(_T('dialog.error.title', default='Error'), _T('error.delete_failed', default='Failed to delete {name}: {err}', name=p.name, err=e))
+        self._models_refresh(parent)
+        messagebox.showinfo(_T('dialog.done.title', default='Done'), _T('msg.keep_n_done', default='Kept {n}, deleted {m}.', n=n, m=len(to_delete)))
+
+    def _models_delete_older_than(self, parent=None):
+        try:
+            days = int(self._older_days_var.get().strip())
+            if days < 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror(_T('dialog.invalid_value.title', default='Invalid value'), _T('error.days_invalid', default='Please enter a valid non-negative integer for days.'))
+            return
+        cutoff = time.time() - days * 86400
+        files = self._models_find_files()
+        to_delete = [p for p in files if p.stat().st_mtime < cutoff]
+        if not to_delete:
+            messagebox.showinfo(_T('dialog.delete_older.title', default='Delete older than'), _T('msg.none_older', default='No models older than the specified age.'))
+            return
+        if not messagebox.askyesno(_T('dialog.confirm.title', default='Confirm'), _T('confirm.delete_older', default='Delete {n} model(s) older than {days} day(s)?', n=len(to_delete), days=days)):
+            return
+        for p in to_delete:
+            try:
+                p.unlink(missing_ok=True)
+            except Exception as e:
+                messagebox.showerror(_T('dialog.error.title', default='Error'), _T('error.delete_failed', default='Failed to delete {name}: {err}', name=p.name, err=e))
+        self._models_refresh(parent)
+        messagebox.showinfo(_T('dialog.done.title', default='Done'), _T('msg.deleted_old', default='Deleted {n} old model(s).', n=len(to_delete)))
 
     def _populate_resolutions(self):
         self.res_listbox.delete(0, tk.END)

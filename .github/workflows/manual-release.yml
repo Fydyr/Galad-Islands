@@ -116,7 +116,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: build/
-          key: ${{ runner.os }}-pyinstaller-${{ hashFiles('build.spec', 'main.py', 'tools/galad_config.py', 'tools/maraudeur_ai_cleaner.py') }}
+          key: ${{ runner.os }}-pyinstaller-${{ hashFiles('build.spec', 'main.py', 'tools/galad_config.py') }}
           restore-keys: |
             ${{ runner.os }}-pyinstaller-
 
@@ -167,7 +167,6 @@ jobs:
             📦 **Each archive contains:**
             - `galad-islands`: The main game
             - `galad-config-tool`: Standalone configuration tool (Tkinter)
-            - `MaraudeurAiCleaner`: AI model cleanup tool (Tkinter)
             
             📖 See the included `README.md` file for installation instructions.
             
@@ -188,7 +187,6 @@ jobs:
             📦 **Chaque archive contient :**
             - `galad-islands` : Le jeu principal
             - `galad-config-tool` : Outil de configuration autonome (Tkinter)
-            - `MaraudeurAiCleaner` : Outil de nettoyage des modèles d'IA (Tkinter)
             
             📖 Consultez le fichier `README.md` inclus dans l'archive pour les instructions d'installation.
             

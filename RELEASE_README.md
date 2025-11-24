@@ -12,7 +12,7 @@
 galad-islands/
 ├── galad-islands (ou galad-islands.exe sur Windows)
 ├── galad-config-tool (ou galad-config-tool.exe sur Windows)
-├── MaraudeurAiCleaner (ou MaraudeurAiCleaner.exe sur Windows)
+├── (Les outils de gestion de modèles Maraudeur sont intégrés à `galad-config-tool`)
 └── models/ (créé automatiquement si nécessaire)
 ```
 
@@ -33,19 +33,10 @@ Configurez le jeu sans le lancer :
 3. Cliquer "Appliquer"
 4. Lancer le jeu
 
-### Maraudeur AI Cleaner
-Gérez les modèles d'apprentissage de l'IA des Maraudeurs :
+### Gestion des modèles Maraudeur
+Les fonctionnalités de gestion des modèles (visualiser, supprimer, garder les N plus récents, supprimer les plus vieux, ouvrir le dossier) sont maintenant accessibles directement depuis l'onglet "Maraudeur models" de l'outil `galad-config-tool`.
 
-- **Lancement** : Double-clic sur `MaraudeurAiCleaner`
-- **Fonctions** : 
-  - Visualiser les modèles existants
-  - Supprimer les modèles sélectionnés
-  - Garder uniquement les N plus récents
-  - Supprimer les modèles plus vieux que X jours
-  - Ouvrir le dossier des modèles
-- **Langue** : Suit automatiquement la langue du jeu (FR/EN)
-
-**Note** : Supprimer les modèles est sans risque - l'IA les recréera automatiquement lors du prochain jeu.
+**Note** : Supprimer les modèles est sans risque — l'IA les recréera automatiquement lors du prochain lancement du jeu.
 
 ## 🔧 Dépannage
 

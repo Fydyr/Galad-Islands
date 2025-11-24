@@ -101,17 +101,19 @@ Les paramètres sont accessibles de deux manières :
 - **Description** : Quand activé, les unités Maraudeur (Barhamus) apprennent en continu pendant la partie et sauvegardent des modèles dans le dossier `models/`. Cela peut augmenter l’usage CPU et les écritures disque sur de longues sessions.
 
 !!! info "Gérer les modèles Maraudeur"
-  Vous pouvez nettoyer ou réinitialiser les modèles d'apprentissage avec l'outil graphique fourni :
-    
-  ```bash
-  # Lancez l'outil graphique (fourni dans les releases)
-  ./MaraudeurAiCleaner          # Linux/macOS
-  MaraudeurAiCleaner.exe        # Windows
-  ```
-    
-  Supprimer les modèles est sans risque : l'IA les recréera automatiquement.
+  Vous pouvez gérer ou réinitialiser les modèles d'apprentissage soit via les scripts en ligne de commande, soit via l'interface graphique intégrée à `galad-config-tool`.
 
-  Astuce : l'outil MaraudeurAiCleaner suit automatiquement la langue configurée dans le jeu (`galad_config.json`).
+  GUI — Ouvrez `galad-config-tool` et sélectionnez l'onglet « Modèles Maraudeur » pour lister, supprimer, conserver les N plus récents ou supprimer les modèles plus vieux.
+
+  CLI — Exemples :
+
+  ```bash
+  python scripts/clean_models.py --marauder --list
+  python scripts/clean_models.py --marauder --keep 5
+  python scripts/clean_models.py --marauder --older-than 7
+  ```
+
+  Supprimer les modèles est sans risque : l'IA les recréera automatiquement.
 
 ## Paramètres de contrôles
 
