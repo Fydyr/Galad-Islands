@@ -2484,6 +2484,12 @@ class GameEngine:
         # Update all active AIs
         for entity_id, ai in self.maraudeur_ais.items():
             try:
+                # Check if AI is enabled for this entity
+                if es.has_component(entity_id, AIEnabledComponent):
+                    ai_enabled_comp = es.component_for_entity(entity_id, AIEnabledComponent)
+                    if not ai_enabled_comp.enabled:
+                        continue  # Skip this AI if disabled
+
                 # Pass the grid to the AI for obstacle avoidance
                 if hasattr(self, 'grid'):
                     ai.grid = self.grid

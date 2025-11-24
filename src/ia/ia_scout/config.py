@@ -23,13 +23,14 @@ class DangerSettings:
     decay_per_second: float = 2.0  # Augmenté pour que le danger disparaisse plus vite et réduise l'oscillation
     damage_impulse_radius: float = 2.5  # tiles
     projectile_radius: float = 3.0  # tiles
-    mine_radius: float = 2.0  # tiles
+    mine_radius: float = 3.0  # tiles
     storm_radius: float = 6.0  # tiles
     bandit_radius: float = 6.0  # tiles
     safe_threshold: float = 0.45
     flee_threshold: float = 0.7
     flee_release_threshold: float = 0.15  # Encore plus bas pour avoid l'oscillation
     max_value_cap: float = 12.0
+    sample_interval_frames: int = 3
 
 
 @dataclass
@@ -41,12 +42,11 @@ class PathfindingSettings:
     storm_weight: float = 6.0
     danger_weight: float = 4.0
     diagonal_cost: float = 1.4
-    island_perimeter_weight: float = 999.0  # Quasi-infini pour éviter complètement les îles
-    island_perimeter_radius: int = 2  # Réduire de 3 à 2 (1 tuile au lieu de 1.5 tuiles)
-    mine_perimeter_radius: int = 4  # Zone de sécurité de 2 tuiles autour des mines
-    blocked_margin_radius: int = 1  # Réduire encore de 2 à 1 
-    blocked_margin_weight: float = 8.0  # Réduire de 10.0 à 8.0
-    map_border_radius: int = 2  # Augmenté pour éviter les bords de carte
+    island_perimeter_radius: int = 1
+    mine_perimeter_radius: int = 1
+    blocked_margin_radius: int = 2
+    blocked_margin_weight: float = 15
+    map_border_radius: int = 3
     tile_blacklist: tuple[int, ...] = (
         int(TileType.ALLY_BASE),
         int(TileType.ENEMY_BASE),
@@ -54,6 +54,8 @@ class PathfindingSettings:
     tile_soft_block: tuple[int, ...] = (int(TileType.MINE),)
     recompute_distance_min: float = 64.0
     waypoint_reached_radius_factor: float = 1.2  # Augmenter de 0.5 à 1.2 pour éviter micro-mouvements
+    max_batch_per_tick: int = 3
+    pending_request_timeout: float = 0.5
 
 
 @dataclass
@@ -69,10 +71,15 @@ class ObjectiveWeights:
 
 @dataclass
 class DebugSettings:
-    enabled: bool = True  # Activer les logs par défaut
+    enabled: bool = False  # Activer les logs par défaut
     log_state_changes: bool = True
     log_objectives: bool = False
-    overlay_enabled: bool = False
+    overlay_enabled: bool = True
+
+
+@dataclass
+class ExplorationSettings:
+    window_size: int = 32
 
 
 @dataclass
@@ -83,6 +90,7 @@ class AISettings:
     pathfinding: PathfindingSettings = field(default_factory=PathfindingSettings)
     weights: ObjectiveWeights = field(default_factory=ObjectiveWeights)
     debug: DebugSettings = field(default_factory=DebugSettings)
+    exploration: ExplorationSettings = field(default_factory=ExplorationSettings)
     tick_frequency: float = 10.0  # updates per second
     flee_health_ratio: float = 0.35
     follow_druid_health_ratio: float = 0.95
@@ -115,8 +123,13 @@ class AISettings:
             if hasattr(self.debug, key):
                 setattr(self.debug, key, value)
 
+        exploration_data = data.get("exploration") or {}
+        for key, value in exploration_data.items():
+            if hasattr(self.exploration, key):
+                setattr(self.exploration, key, value)
+
         for key, value in data.items():
-            if key in {"danger", "pathfinding", "weights", "debug"}:
+            if key in {"danger", "pathfinding", "weights", "debug", "exploration"}:
                 continue
             if hasattr(self, key):
                 setattr(self, key, value)

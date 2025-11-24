@@ -47,6 +47,7 @@ TRANSLATIONS = {
     "tip.8": "Tip: Place your Architects near islands to build towers and secure your positions.",
     "tip.9": "Quote: 'Defending your land is already preparing for victory.'",
     "tooltip.ai_toggle": "Toggle AI (Auto/Manual)\\nHotkey: T\\nCtrl+Click: All units",
+    "tooltip.ai_toggle_all": "Toggle AI for all units",
     "tooltip.attack_mode": "Attack mode\\nHotkey: A",
     "tooltip.click_to_place_tower": "Click on an island to place your tower!",
     "tooltip.dev_give_gold": "Dev action not allowed",

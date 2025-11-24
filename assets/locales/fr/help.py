@@ -47,6 +47,7 @@ TRANSLATIONS = {
     "tip.8": "Astuce : Placez vos Architectes proche des îles pour construire des tours et sécuriser vos positions.",
     "tip.9": "Citation : 'Défendre ses terres, c'est déjà préparer la victoire.'",
     "tooltip.ai_toggle": "Basculer IA (Auto/Manuel)\\nRaccourci: T\\nCtrl+Clic: Toutes les unités",
+    "tooltip.ai_toggle_all": "Basculer l'IA de toutes les unités",
     "tooltip.attack_mode": "Mode d'attaque\\nRaccourci: A",
     "tooltip.click_to_place_tower": "Cliquez sur une île pour placer votre tour !",
     "tooltip.dev_give_gold": "Action de développement non autorisée",

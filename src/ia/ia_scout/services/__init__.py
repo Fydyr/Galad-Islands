@@ -3,19 +3,22 @@
 from .context import AIContextManager, UnitContext
 from .danger_map import DangerMapService
 from .pathfinding import PathfindingService
-from .prediction import PredictionService
-from .goals import GoalEvaluator, Objective
+from .goals import GoalEvaluator, Objective, TargetInfo
 from .event_bus import IAEventBus
 from .coordination import CoordinationService
+from .exploration import ExplorationPlanner, exploration_planner, exploration_observer
 
 __all__ = [
     "AIContextManager",
     "UnitContext",
     "DangerMapService",
     "PathfindingService",
-    "PredictionService",
     "GoalEvaluator",
     "Objective",
+    "TargetInfo",
     "IAEventBus",
     "CoordinationService",
+    "ExplorationPlanner",
+    "exploration_planner",
+    "exploration_observer",
 ]

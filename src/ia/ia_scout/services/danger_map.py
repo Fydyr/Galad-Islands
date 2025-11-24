@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import math
 import numpy as np
@@ -36,9 +36,8 @@ class DangerImpulse:
 class DangerMapService:
     """Maintains a 2D floating field representing danger around the world."""
 
-    def __init__(self, grid: Iterable[Iterable[int]], settings: Optional[AISettings] = None, ai_team_id: int = Team.ENEMY) -> None:
+    def __init__(self, grid: Iterable[Iterable[int]], settings: Optional[AISettings] = None) -> None:
         self.settings = settings or get_settings()
-        self.ai_team_id = ai_team_id  # L'équipe contrôlée par cette IA
         self._grid = np.asarray(list(grid), dtype=np.int16)
         if self._grid.shape != (MAP_HEIGHT, MAP_WIDTH):
             # Fallback to bounds from grid to avoid crashes during tests
@@ -49,12 +48,16 @@ class DangerMapService:
         self._static = np.zeros_like(self._field)
         self._impulses: List[DangerImpulse] = []
         self._mine_positions: Optional[np.ndarray] = None
+        self._kernel_cache: Dict[Tuple[int, int, int], np.ndarray] = {}
+        self._time: float = 0.0
+        self._slow_source_interval: float = 0.25
+        self._last_slow: Dict[str, float] = {"bandits": 0.0, "storms": 0.0, "enemies": 0.0}
 
         # Mines et cases voisines sont marquées comme dangereuses en continu
         mine_tile = int(TileType.MINE)
         mine_mask = self._grid == mine_tile
         if mine_mask.any():
-            # Adapter dynamiquement le rayon de danger des mines from la configuration
+            # Adapter dynamiquement le rayon de danger des mines depuis la configuration
             mine_radius_tiles = max(1, int(np.ceil(self.settings.danger.mine_radius)))
             window_size = 2 * mine_radius_tiles + 1
             padded = np.pad(mine_mask.astype(np.uint8), mine_radius_tiles, mode="constant")
@@ -70,65 +73,41 @@ class DangerMapService:
             self._mine_positions = indices.astype(np.int32)
 
         # Base ennemie marquée comme dangereuse
-        # Récupérer dynamiquement la position de la base ennemie
-        enemy_base_pos = self._get_enemy_base_position()
-        if enemy_base_pos:
-            enemy_base_center_x = enemy_base_pos[0] / TILE_SIZE
-            enemy_base_center_y = enemy_base_pos[1] / TILE_SIZE
-            
-            base_radius_tiles = 5.0  # Rayon de danger autour de la base ennemie
-            base_intensity = self.settings.pathfinding.danger_weight * 2.0  # Intensité plus élevée que les mines
+        enemy_base_center_x = self._grid_width - 3.0
+        enemy_base_center_y = self._grid_height - 2.8
+        base_radius_tiles = 5.0  # Rayon de danger autour de la base ennemie
+        base_intensity = self.settings.pathfinding.danger_weight * 2.0  # Intensité plus élevée que les mines
 
-            # Calculer les indices de grille pour la zone autour de la base
-            min_x = max(int(enemy_base_center_x - base_radius_tiles), 0)
-            max_x = min(int(enemy_base_center_x + base_radius_tiles), self._grid_width - 1)
-            min_y = max(int(enemy_base_center_y - base_radius_tiles), 0)
-            max_y = min(int(enemy_base_center_y + base_radius_tiles), self._grid_height - 1)
+        # Calculer les indices de grille pour la zone autour de la base
+        min_x = max(int(enemy_base_center_x - base_radius_tiles), 0)
+        max_x = min(int(enemy_base_center_x + base_radius_tiles), self._grid_width - 1)
+        min_y = max(int(enemy_base_center_y - base_radius_tiles), 0)
+        max_y = min(int(enemy_base_center_y + base_radius_tiles), self._grid_height - 1)
 
-            y_indices, x_indices = np.ogrid[min_y : max_y + 1, min_x : max_x + 1]
-            dx = (x_indices + 0.5) - enemy_base_center_x
-            dy = (y_indices + 0.5) - enemy_base_center_y
-            dist = np.sqrt(dx * dx + dy * dy)
-            mask = dist <= base_radius_tiles
-            if np.any(mask):
-                falloff = np.zeros_like(dist, dtype=np.float32)
-                falloff[mask] = 1.0 - (dist[mask] / base_radius_tiles)
-                addition = base_intensity * falloff
-                self._static[min_y : max_y + 1, min_x : max_x + 1] = np.maximum(
-                    self._static[min_y : max_y + 1, min_x : max_x + 1], addition
-                )
-    
-    def _get_enemy_base_position(self) -> Optional[Tuple[float, float]]:
-        """Récupère la position de la base ennemie en fonction de l'équipe contrôlée."""
-        try:
-            from src.components.core.baseComponent import BaseComponent
-            
-            if self.ai_team_id == Team.ALLY:
-                # Pour l'équipe ALLY, la base ennemie est celle de l'équipe ENEMY
-                base_id = BaseComponent.get_enemy_base()
-            else:
-                # Pour l'équipe ENEMY, la base ennemie est celle de l'équipe ALLY
-                base_id = BaseComponent.get_ally_base()
-            
-            if base_id and esper.has_component(base_id, PositionComponent):
-                pos = esper.component_for_entity(base_id, PositionComponent)
-                return (pos.x, pos.y)
-        except Exception:
-            pass
-        
-        return None
+        y_indices, x_indices = np.ogrid[min_y : max_y + 1, min_x : max_x + 1]
+        dx = (x_indices + 0.5) - enemy_base_center_x
+        dy = (y_indices + 0.5) - enemy_base_center_y
+        dist = np.sqrt(dx * dx + dy * dy)
+        mask = dist <= base_radius_tiles
+        if np.any(mask):
+            falloff = np.zeros_like(dist, dtype=np.float32)
+            falloff[mask] = 1.0 - (dist[mask] / base_radius_tiles)
+            addition = base_intensity * falloff
+            self._static[min_y : max_y + 1, min_x : max_x + 1] = np.maximum(
+                self._static[min_y : max_y + 1, min_x : max_x + 1], addition
+            )
 
     @property
     def field(self) -> np.ndarray:
         return self._field
 
-    def update(self, dt: float) -> None:
-        decay = np.float32(self.settings.danger.decay_per_second ** dt)
-        # Clamp decay to prevent overflow
-        decay = np.clip(decay, 0.0, 1.0)
-        self._field = np.multiply(self._field, decay, dtype=np.float32)
+    def update(self, dt: float, *, enemy_units: Optional[Iterable[Tuple[int, Tuple[float, float]]]] = None) -> None:
+        """Advance decay and inject new danger sources."""
+        self._time += dt
+        decay = self.settings.danger.decay_per_second ** dt
+        self._field *= decay
         np.maximum(self._field, self._static, out=self._field)
-        self._inject_dynamic_sources()
+        self._inject_dynamic_sources(enemy_units=enemy_units)
         self._apply_impulses()
 
     def _apply_impulses(self) -> None:
@@ -138,19 +117,25 @@ class DangerMapService:
             self._add_disk(impulse.position, impulse.radius_tiles, impulse.intensity)
         self._impulses.clear()
 
-    def _inject_dynamic_sources(self) -> None:
+    def _inject_dynamic_sources(self, *, enemy_units: Optional[Iterable[Tuple[int, Tuple[float, float]]]]) -> None:
         self._inject_projectiles()
-        self._inject_bandits()
-        self._inject_storms()
-        self._inject_enemy_units()
+        if (self._time - self._last_slow["bandits"]) >= self._slow_source_interval:
+            self._inject_bandits()
+            self._last_slow["bandits"] = self._time
+        if (self._time - self._last_slow["storms"]) >= self._slow_source_interval:
+            self._inject_storms()
+            self._last_slow["storms"] = self._time
+        if (self._time - self._last_slow["enemies"]) >= self._slow_source_interval:
+            self._inject_enemy_units(enemy_units)
+            self._last_slow["enemies"] = self._time
 
     def _inject_projectiles(self) -> None:
         radius = self.settings.danger.projectile_radius
         intensity = 2.5
         for entity, (pos, projectile) in esper.get_components(PositionComponent, ProjectileComponent):
             team = esper.component_for_entity(entity, TeamComponent) if esper.has_component(entity, TeamComponent) else None
-            if team and team.team_id == self.ai_team_id:
-                continue  # Ignore friendly projectiles (projectiles de notre équipe)
+            if team and team.team_id == Team.ENEMY:
+                continue  # Ignore friendly projectiles
             self._add_disk((pos.x, pos.y), radius, intensity)
 
     def _inject_bandits(self) -> None:
@@ -165,13 +150,17 @@ class DangerMapService:
         for entity, (pos, _) in esper.get_components(PositionComponent, Storm):
             self._add_disk((pos.x, pos.y), radius, intensity)
 
-    def _inject_enemy_units(self) -> None:
+    def _inject_enemy_units(self, cached_units: Optional[Iterable[Tuple[int, Tuple[float, float]]]]) -> None:
         intensity = 3.0
         radius = 3.5
-        # Déterminer l'équipe ennemie en fonction de notre équipe
-        enemy_team = Team.ALLY if self.ai_team_id == Team.ENEMY else Team.ENEMY
+        if cached_units is not None:
+            for team_id, pos in cached_units:
+                if team_id != Team.ALLY:
+                    continue
+                self._add_disk(pos, radius, intensity)
+            return
         for entity, (pos, team) in esper.get_components(PositionComponent, TeamComponent):
-            if team.team_id != enemy_team:  # Ne considérer que les unités ennemies comme menaces
+            if team.team_id != Team.ALLY:  # Player controlled units are the main threat
                 continue
             self._add_disk((pos.x, pos.y), radius, intensity)
 
@@ -179,28 +168,44 @@ class DangerMapService:
         center_x = position[0] / TILE_SIZE
         center_y = position[1] / TILE_SIZE
         radius = max(radius_tiles, 0.5)
+        window_radius = int(math.ceil(radius + 1.0))
+        kernel_size = 2 * window_radius + 1
 
-        min_x = max(int(center_x - radius - 1), 0)
-        max_x = min(int(center_x + radius + 1), self._grid_width - 1)
-        min_y = max(int(center_y - radius - 1), 0)
-        max_y = min(int(center_y + radius + 1), self._grid_height - 1)
+        # Quantize fractional offsets to limit cache size
+        frac_x = center_x - math.floor(center_x)
+        frac_y = center_y - math.floor(center_y)
+        frac_key_x = int(round(frac_x * 4.0))  # 0-4
+        frac_key_y = int(round(frac_y * 4.0))
+        kernel_key = (window_radius, frac_key_x, frac_key_y)
+        kernel = self._kernel_cache.get(kernel_key)
+        if kernel is None:
+            offsets = np.arange(-window_radius, window_radius + 1, dtype=np.float32) + 0.5
+            dx = offsets - (frac_key_x / 4.0)
+            dy = offsets - (frac_key_y / 4.0)
+            dx_grid, dy_grid = np.meshgrid(dx, dy, indexing="xy")
+            dist = np.sqrt(dx_grid * dx_grid + dy_grid * dy_grid)
+            kernel = np.zeros((kernel_size, kernel_size), dtype=np.float32)
+            mask = dist <= radius
+            if np.any(mask):
+                kernel[mask] = 1.0 - (dist[mask] / radius)
+            self._kernel_cache[kernel_key] = kernel
 
-        if min_x > max_x or min_y > max_y:
+        anchor_x = int(math.floor(center_x)) - window_radius
+        anchor_y = int(math.floor(center_y)) - window_radius
+        x0 = max(anchor_x, 0)
+        y0 = max(anchor_y, 0)
+        x1 = min(anchor_x + kernel_size, self._grid_width)
+        y1 = min(anchor_y + kernel_size, self._grid_height)
+        if x0 >= x1 or y0 >= y1:
             return
 
-        y_indices, x_indices = np.ogrid[min_y : max_y + 1, min_x : max_x + 1]
-        dx = (x_indices + 0.5) - center_x
-        dy = (y_indices + 0.5) - center_y
-        dist = np.sqrt(dx * dx + dy * dy)
-        mask = dist <= radius
-        if not np.any(mask):
-            return
+        kx0 = x0 - anchor_x
+        ky0 = y0 - anchor_y
+        kx1 = kx0 + (x1 - x0)
+        ky1 = ky0 + (y1 - y0)
 
-        falloff = np.zeros_like(dist, dtype=np.float32)
-        falloff[mask] = 1.0 - (dist[mask] / radius)
-        addition = intensity * falloff
-        window = self._field[min_y : max_y + 1, min_x : max_x + 1]
-        np.add(window, addition, out=window)
+        window = self._field[y0:y1, x0:x1]
+        np.add(window, kernel[ky0:ky1, kx0:kx1] * intensity, out=window)
         np.clip(window, 0.0, self.settings.danger.max_value_cap, out=window)
 
     def mark_damage(self, position: Tuple[float, float]) -> None:
@@ -265,26 +270,20 @@ class DangerMapService:
         base_grid_y = base_position[1] / TILE_SIZE
         max_bonus_radius = max(bonus_radius_tiles, 1.0)
 
-        best_value = math.inf
-        best_coord: Optional[Tuple[int, int]] = None
-
-        for grid_y in range(min_y, max_y + 1):
-            for grid_x in range(min_x, max_x + 1):
-                raw_value = float(self._field[grid_y, grid_x])
-                dist = math.hypot((grid_x + 0.5) - base_grid_x, (grid_y + 0.5) - base_grid_y)
-                bonus = 0.0
-                if dist <= max_bonus_radius:
-                    # Bonus décroissant pour favoriser les positions proches de la base alliée.
-                    bonus = bonus_intensity * (1.0 - (dist / max_bonus_radius))
-                adjusted_value = raw_value - bonus
-                if adjusted_value < best_value:
-                    best_value = adjusted_value
-                    best_coord = (grid_x, grid_y)
-
-        if best_coord is None:
-            return self.find_safest_point(position, search_radius_tiles)
-
-        best_x, best_y = best_coord
+        xs = np.arange(min_x, max_x + 1, dtype=np.float32) + 0.5
+        ys = np.arange(min_y, max_y + 1, dtype=np.float32) + 0.5
+        grid_xs, grid_ys = np.meshgrid(xs, ys, indexing="xy")
+        distances = np.sqrt((grid_xs - base_grid_x) ** 2 + (grid_ys - base_grid_y) ** 2)
+        bonus = np.zeros_like(distances, dtype=np.float32)
+        mask = distances <= max_bonus_radius
+        if np.any(mask):
+            bonus[mask] = bonus_intensity * (1.0 - (distances[mask] / max_bonus_radius))
+        window = self._field[min_y : max_y + 1, min_x : max_x + 1]
+        adjusted = window - bonus
+        flat_index = int(np.argmin(adjusted))
+        offset_y, offset_x = divmod(flat_index, adjusted.shape[1])
+        best_x = min_x + offset_x
+        best_y = min_y + offset_y
         return ((best_x + 0.5) * TILE_SIZE, (best_y + 0.5) * TILE_SIZE)
 
     def iter_mine_world_positions(self) -> Iterable[Tuple[float, float]]:

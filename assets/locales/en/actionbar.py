@@ -5,6 +5,7 @@ Actionbar translations for Galad Islands
 
 TRANSLATIONS = {
     "actionbar.ai_toggle": "Auto",
+    "actionbar.ai_toggle_all": "All AI",
     "actionbar.ally": "Ally",
     "actionbar.attack_mode": "Attack",
     "actionbar.build_defense": "Defense Tower",
