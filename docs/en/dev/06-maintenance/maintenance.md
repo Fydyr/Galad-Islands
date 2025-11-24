@@ -86,6 +86,24 @@ python benchmark.py --full-game-only --num-ai 2 --profile
 python benchmark.py --full-game-only --num-ai 2 --profile --export-csv
 ```
 
+### ⚙️ Benchmark Options for Developer Reproducibility
+
+When running full game simulations, framerate can be affected by the OS, driver vsync settings or in-game settings. To avoid accidental vsync or capping during profiling, the benchmark script allows overriding these settings:
+
+```bash
+# Disable vsync for the benchmark and allow an uncapped framerate (useful for raw CPU-bound profiling)
+python benchmark.py --full-game-only --no-vsync --max-fps 0 --profile --export-csv
+
+# Set an explicit cap for max FPS during benchmark (0 = unlimited)
+python benchmark.py --full-game-only --max-fps 120 --profile --export-csv
+```
+
+Notes:
+
+- `--no-vsync` sets the in-game configuration `vsync` to `false` before the benchmark run and ensures the display is created accordingly by the GameEngine.
+- `--max-fps` allows enforcing an upper limit for the internal game loop (0 means unlimited).
+ 
+
 #### 🧠 Marauder Benchmark (AI Learning)
 
 Compares the impact of machine learning on performance:

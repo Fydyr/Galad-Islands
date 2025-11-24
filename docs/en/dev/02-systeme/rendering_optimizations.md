@@ -72,6 +72,34 @@ elif val == TileType.ALLY_BASE and (i, j) not in processed_bases:
 - **Approach:** Simplified rendering of distant elements
 - **Expected Benefits:** Improved performance at zoom out
 
+### Fog of War Rendering Optimization (Implemented)
+
+**Date:** November 2025
+**Affected Files:** `src/systems/vision_system.py`, `src/managers/surface_cache.py`, `src/functions/optionsWindow.py`
+
+**Summary:** The fog-of-war rendering path previously used image-based cloud sprites for unexplored tiles. While visually rich, this approach involves many per-tile subsurface operations and blits, which can be costly on CPU/GPU. The new implementation adds an alternative tile-based rendering mode that draws filled rectangles for unexplored/explored tiles and uses cached filled surfaces to significantly reduce the overhead.
+
+**Key Changes:**
+
+- Added `fog_render_mode` config option: `image` (default) | `tiles` (fast)
+
+- Implemented tile-based rendering in `VisionSystem.create_fog_surface()` using `get_filled_surface()` from `surface_cache` for cached rectangle blits
+
+- Added Options UI control to toggle rendering mode in `OptionsWindow` under Performance
+
+- Included a benchmark flag to disable vsync and remove FPS cap during profiling
+
+**Impact:**
+
+- `Tiles (fast)` mode reduces the heavy per-tile image ops and can increase framerate on CPU-bound systems
+
+- `Image` mode keeps previous visuals but cost more CPU/GPU and may be limited by driver vsync
+
+**How to test:**
+
+- Use the benchmark script to compare both modes: `python scripts/benchmark/benchmark.py --full-game-only --no-vsync --max-fps 0 --duration 30 --profile --export-csv` and compare CSV outputs
+
+
 ## Performance Metrics
 
 ### Before Optimizations

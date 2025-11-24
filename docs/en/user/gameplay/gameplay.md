@@ -318,8 +318,19 @@ Fog of war transforms each game into a strategic dance between shadow and light:
 
 ### Tips for Mastering Fog
 
-#### Tips for Mastering Fog
+#### Fog Rendering Modes and Performance
 
+We provide two modes for rendering the Fog of War to accommodate different hardware and performance needs:
+
+- `Clouds (image)`: Uses cloud sprite tiles to render unexplored tiles, matching the artistic visuals you see in screenshots. This mode is more visually detailed but may be heavier on CPU/GPU, especially with many visible tiles.
+- `Tiles (fast)`: Renders fog as filled, semi-transparent rectangles per tile. This mode is significantly faster since it avoids per-tile image subsurface operations and repeated scaling. Use this mode if you detect lower framerates in large maps or during heavy battles.
+
+You can switch between these modes in the Options window under Performance -> Fog rendering. The selected mode is persisted to your `galad_config.json` and applied at the next game start.
+
+Recommended: For typical gameplay on modern machines use `Clouds (image)` for richer visuals. Switch to `Tiles (fast)` when your system is CPU-bound or if you want to maximize framerate.
+
+
+ 
 #### Methodical Exploration
 
 1. **Start local**: Secure your starting zone
