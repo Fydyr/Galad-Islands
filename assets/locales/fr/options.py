@@ -114,4 +114,8 @@ TRANSLATIONS = {
     "options.info_manual_fix": "Si cela vous arrive, lancer Galad Config Tool et remettez une résolution plus petite",
     "options.resolution_advice": "(Conseil: Choisissez une résolution inférieure à celle de votre écran pour éviter les problèmes d'affichage)",
     "options.resolution_section": "Résolution",
+    "options.fog_render_mode": "Rendu du brouillard",
+    "options.fog_render_image": "Nuages (par image)",
+    "options.fog_render_tiles": "Tuiles (rectangles rapides)",
+    "options.fog_render_mode_description": "Mode 'Tuiles' est plus performant mais rend le brouillard moins détaillé. 'Nuages' garde le rendu actuel.",
 }

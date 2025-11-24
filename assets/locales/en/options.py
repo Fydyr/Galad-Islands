@@ -113,4 +113,8 @@ TRANSLATIONS = {
     "options.info_manual_fix": "If this happens to you, launch Galad Config Tool and set a smaller resolution",
     "options.resolution_advice": "(Tip: Choose a resolution lower than your screen to avoid display issues)",
     "options.resolution_section": "Resolution",
+    "options.fog_render_mode": "Fog rendering",
+    "options.fog_render_image": "Clouds (image)",
+    "options.fog_render_tiles": "Tiles (fast rectangles)",
+    "options.fog_render_mode_description": "'Tiles' mode is more performant but less detailed; 'Clouds' keeps the original artistic rendering.",
 }

@@ -15,7 +15,8 @@ from src.components.core.positionComponent import PositionComponent
 from src.components.core.teamComponent import TeamComponent
 from src.constants.team import Team
 from src.components.core.visionComponent import VisionComponent
-from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE
+from src.settings.settings import MAP_WIDTH, MAP_HEIGHT, TILE_SIZE, config_manager, get_fog_render_mode
+from src.managers.surface_cache import get_filled_surface
 from src.processeurs.KnownBaseProcessor import enemy_base_registry
 from src.functions.resource_path import get_resource_path
 from src.managers.sprite_manager import sprite_manager, SpriteID
@@ -266,10 +267,14 @@ class VisionSystem:
             pygame.Surface | None: Une surface contenant le brouillard de guerre à afficher
                                    par-dessus le monde, ou None si non applicable.
         """
-        if not hasattr(self, '_cloud_image') or self.cloud_image is None:
-            self._load_cloud_image()
-            if self.cloud_image is None:
-                return None # Impossible de rendre le brouillard sans l'image
+        fog_mode = get_fog_render_mode() if callable(get_fog_render_mode) else config_manager.get("fog_render_mode", "image")
+
+        # Load cloud image only if needed by image mode
+        if fog_mode == "image":
+            if not hasattr(self, '_cloud_image') or self.cloud_image is None:
+                self._load_cloud_image()
+                if self.cloud_image is None:
+                    return None # Impossible de rendre le brouillard sans l'image
 
         # Create une surface de la taille de the window, avec transparence
         fog_surface = pygame.Surface(camera.get_screen_size(), pygame.SRCALPHA)
@@ -285,20 +290,33 @@ class VisionSystem:
 
         # Préparer les couleurs
         explored_fog_color = (0, 0, 0, 120) # Brouillard léger pour les zones explorées
+        unexplored_fog_color = (0, 0, 0, 255) # Brouillard total pour les zones non explorées
+
+        # If tile-based mode, prepare two filled surfaces to blit for performance
+        if fog_mode == "tiles":
+            explored_tile_surf = get_filled_surface(tile_size, tile_size, (0,0,0), 120)
+            unexplored_tile_surf = get_filled_surface(tile_size, tile_size, (255,255,255), 255)
 
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
                 if not self.is_tile_visible(x, y, team_id):
                     screen_x, screen_y = camera.world_to_screen(x * TILE_SIZE, y * TILE_SIZE)
                     
-                    if not self.is_tile_explored(x, y, team_id):
-                        # Zone non explorée : dessiner un nuage
-                        cloud_subsurface = self._get_cloud_subsurface(x, y, tile_size)
-                        if cloud_subsurface:
-                            fog_surface.blit(cloud_subsurface, (screen_x, screen_y))
+                    if fog_mode == "tiles":
+                        # Tile-based rendering: use filled cached surfaces for rectangle fog
+                        if not self.is_tile_explored(x, y, team_id):
+                            fog_surface.blit(unexplored_tile_surf, (screen_x, screen_y))
+                        else:
+                            fog_surface.blit(explored_tile_surf, (screen_x, screen_y))
                     else:
-                        # Zone explorée mais non visible : dessiner un rectangle semi-transparent
-                        pygame.draw.rect(fog_surface, explored_fog_color, (screen_x, screen_y, tile_size, tile_size))
+                        # Image mode: render clouds for unexplored tiles (original behavior)
+                        if not self.is_tile_explored(x, y, team_id):
+                            cloud_subsurface = self._get_cloud_subsurface(x, y, tile_size)
+                            if cloud_subsurface:
+                                fog_surface.blit(cloud_subsurface, (screen_x, screen_y))
+                        else:
+                            # Zone explorée mais non visible : dessiner un rectangle semi-transparent
+                            pygame.draw.rect(fog_surface, explored_fog_color, (screen_x, screen_y, tile_size, tile_size))
 
         return fog_surface
 

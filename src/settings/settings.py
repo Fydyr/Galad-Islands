@@ -37,6 +37,7 @@ DEFAULT_CONFIG = {
     "dev_mode": False,  # Mode développement pour les actions debug
     "language": "fr",
     "check_updates": True,  # Vérification automatique des mises à jour au démarrage
+    "fog_render_mode": "image",  # "image" or "tiles"
     "camera_sensitivity": 1.0,
     "camera_fast_multiplier": 2.5,
     "show_tutorial": True,  # Affichage du tutoriel activé/désactivé
@@ -175,6 +176,18 @@ class ConfigManager:
     def get_performance_mode(self) -> str:
         """Retourne le mode de performance actuel."""
         return str(self.config.get("performance_mode", "auto"))
+
+    def get_fog_render_mode(self) -> str:
+        """Retourne le mode de rendu pour le brouillard de guerre ('image' ou 'tiles')."""
+        return str(self.config.get("fog_render_mode", "image"))
+
+    def set_fog_render_mode(self, mode: str) -> None:
+        """Définit le mode de rendu du brouillard de guerre.
+
+        Accepted values: 'image' or 'tiles'
+        """
+        if mode in ["image", "tiles"]:
+            self.config["fog_render_mode"] = mode
 
     def set_performance_mode(self, mode: str) -> None:
         """Définit le mode de performance."""
@@ -378,6 +391,15 @@ def get_performance_mode() -> str:
 def set_performance_mode(mode: str) -> bool:
     """Définit le mode de performance et sauvegarde."""
     config_manager.set_performance_mode(mode)
+    return config_manager.save_config()
+
+def get_fog_render_mode() -> str:
+    """Retourne le mode de rendu du brouillard (top-level helper)."""
+    return config_manager.get_fog_render_mode()
+
+def set_fog_render_mode(mode: str) -> bool:
+    """Set le mode de rendu du brouillard et sauvegarde la config."""
+    config_manager.set_fog_render_mode(mode)
     return config_manager.save_config()
 
 def get_disable_particles() -> bool:
