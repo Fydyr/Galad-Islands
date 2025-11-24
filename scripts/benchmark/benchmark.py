@@ -33,13 +33,13 @@ sys.path.insert(0, project_root)
 
 import esper
 import pygame
-from components.core.positionComponent import PositionComponent
-from components.core.healthComponent import HealthComponent
-from components.core.teamComponent import TeamComponent
-from components.core.team_enum import Team
-from components.core.velocityComponent import VelocityComponent
-from components.core.spriteComponent import SpriteComponent
-from components.events.flyChestComponent import FlyingChestComponent
+from src.components.core.positionComponent import PositionComponent
+from src.components.core.healthComponent import HealthComponent
+from src.components.core.teamComponent import TeamComponent
+from src.components.core.team_enum import Team
+from src.components.core.velocityComponent import VelocityComponent
+from src.components.core.spriteComponent import SpriteComponent
+from src.components.events.flyChestComponent import FlyingChestComponent
 from src.game import GameEngine
 from src.factory.unitType import UnitType
 from src.factory.unitFactory import UnitFactory
