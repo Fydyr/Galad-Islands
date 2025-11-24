@@ -30,6 +30,20 @@ UNIT_COSTS = {
 }
 
 # =============================================================================
+# LIMITES D'UNITÉS PAR TYPE ET PAR ÉQUIPE
+# =============================================================================
+
+# Nombre maximum d'unités de chaque type par équipe sur le champ de bataille
+MAX_UNITS_PER_TYPE = {
+    "SCOUT": 5,
+    "MARAUDEUR": 4,
+    "LEVIATHAN": 3,
+    "DRUID": 3,
+    "ARCHITECT": 2,
+    "KAMIKAZE": 10,
+}
+
+# =============================================================================
 # CONSTANTES DE VISION ET BROUILLARD DE GUERRE
 # =============================================================================
 

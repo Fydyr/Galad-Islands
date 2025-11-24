@@ -73,7 +73,7 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             stats=MappingProxyType({
                 "armure_max": UNIT_HEALTH_SCOUT,
                 "degats_min": UNIT_ATTACK_SCOUT,
-                "degats_max": 15,
+                "degats_max": UNIT_ATTACK_SCOUT * 1*2,
             }),
         ),
         enemy=FactionUnitConfig(
@@ -83,7 +83,7 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             stats=MappingProxyType({
                 "armure_max": UNIT_HEALTH_SCOUT,
                 "degats_min": UNIT_ATTACK_SCOUT,
-                "degats_max": 18,
+                "degats_max": UNIT_ATTACK_SCOUT * 1*2,
             }),
         ),
     ),
@@ -96,7 +96,7 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             stats=MappingProxyType({
                 "armure_max": UNIT_HEALTH_MARAUDEUR,
                 "degats_min_salve": UNIT_ATTACK_MARAUDEUR,
-                "degats_max_salve": 30,
+                "degats_max_salve": UNIT_ATTACK_MARAUDEUR*1.5,
             }),
         ),
         enemy=FactionUnitConfig(
@@ -106,7 +106,7 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             stats=MappingProxyType({
                 "armure_max": UNIT_HEALTH_MARAUDEUR,
                 "degats_min_salve": UNIT_ATTACK_MARAUDEUR,
-                "degats_max_salve": 35,
+                "degats_max_salve": UNIT_ATTACK_MARAUDEUR*1.5,
             }),
         ),
     ),
@@ -119,7 +119,7 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             stats=MappingProxyType({
                 "armure_max": UNIT_HEALTH_LEVIATHAN,
                 "degats_min_salve": UNIT_ATTACK_LEVIATHAN,
-                "degats_max_salve": 60,
+                "degats_max_salve": UNIT_ATTACK_LEVIATHAN*2,
             }),
         ),
         enemy=FactionUnitConfig(
@@ -129,7 +129,7 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             stats=MappingProxyType({
                 "armure_max": UNIT_HEALTH_LEVIATHAN,
                 "degats_min_salve": UNIT_ATTACK_LEVIATHAN,
-                "degats_max_salve": 65,
+                "degats_max_salve": UNIT_ATTACK_LEVIATHAN*2,
             }),
         ),
     ),
@@ -184,7 +184,7 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             stats=MappingProxyType({
                 "armure_max": UNIT_HEALTH_KAMIKAZE,
                 "degats_min": UNIT_ATTACK_KAMIKAZE,
-                "degats_max": UNIT_ATTACK_KAMIKAZE,
+                "degats_max": UNIT_ATTACK_KAMIKAZE*1.3,
             }),
         ),
         enemy=FactionUnitConfig(
@@ -194,7 +194,7 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             stats=MappingProxyType({
                 "armure_max": UNIT_HEALTH_KAMIKAZE,
                 "degats_min": UNIT_ATTACK_KAMIKAZE,
-                "degats_max": UNIT_ATTACK_KAMIKAZE,
+                "degats_max": UNIT_ATTACK_KAMIKAZE*1.3,
             }),
         ),
     ),
@@ -206,8 +206,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="shop.defense_tower",
             description_key="shop.defense_tower_desc",
             stats=MappingProxyType({
-                "armure_max": 70,
-                "radius_action": 8,
+                "armure_max": 0,
+                "radius_action": 0,
             }),
         ),
         enemy=FactionUnitConfig(
@@ -215,31 +215,8 @@ _RAW_UNIT_METADATA: Dict[UnitKey, UnitMetadata] = {
             name_key="enemy_shop.attack_tower",
             description_key="enemy_shop.attack_tower_desc",
             stats=MappingProxyType({
-                "armure_max": 80,
-                "radius_action": 9,
-            }),
-        ),
-    ),
-    
-    # what is this part? is it still used?
-    UnitType.HEAL_TOWER: UnitMetadata(
-        order=102,
-        ally=FactionUnitConfig(
-            shop_id="heal_tower",
-            name_key="shop.heal_tower",
-            description_key="shop.heal_tower_desc",
-            stats=MappingProxyType({
-                "armure_max": 70,
-                "radius_action": 5,
-            }),
-        ),
-        enemy=FactionUnitConfig(
-            shop_id="enemy_heal_tower",
-            name_key="enemy_shop.heal_tower",
-            description_key="enemy_shop.heal_tower_desc",
-            stats=MappingProxyType({
-                "armure_max": 75,
-                "radius_action": 6,
+                "armure_max": 0,
+                "radius_action": 0,
             }),
         ),
     ),
