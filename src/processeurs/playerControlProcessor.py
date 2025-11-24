@@ -14,6 +14,8 @@ from src.components.special.speLeviathanComponent import SpeLeviathan
 from src.components.special.speKamikazeComponent import SpeKamikazeComponent
 from src.components.core.teamComponent import TeamComponent
 from src.functions.buildingCreator import createDefenseTower, createHealTower
+from src.components.core.playerComponent import PlayerComponent
+from src.constants.gameplay import UNIT_COST_ATTACK_TOWER, UNIT_COST_HEAL_TOWER
 from src.settings import controls
 
 class PlayerControlProcessor(esper.Processor):
@@ -193,19 +195,37 @@ class PlayerControlProcessor(esper.Processor):
 
             if esper.has_component(entity, SpeArchitect):
                 if controls.is_action_active(controls.ACTION_BUILD_DEFENSE_TOWER, keys, modifiers_state):
-                    pos = esper.component_for_entity(entity, PositionComponent)
                     team = esper.component_for_entity(entity, TeamComponent)
-                    createDefenseTower(self.grid, pos, team)
+                    player_comp = self._get_player_for_team(team.team_id)
+                    if player_comp and player_comp.get_gold() >= UNIT_COST_ATTACK_TOWER:
+                        player_comp.spend_gold(UNIT_COST_ATTACK_TOWER)
+                        pos = esper.component_for_entity(entity, PositionComponent)
+                        createDefenseTower(self.grid, pos, team)
+                    else:
+                        # Optionally, add feedback for insufficient funds
+                        print("Not enough gold to build a defense tower.")
 
                 if controls.is_action_active(controls.ACTION_BUILD_HEAL_TOWER, keys, modifiers_state):
-                    pos = esper.component_for_entity(entity, PositionComponent)
                     team = esper.component_for_entity(entity, TeamComponent)
-                    createHealTower(self.grid, pos, team)
+                    player_comp = self._get_player_for_team(team.team_id)
+                    if player_comp and player_comp.get_gold() >= UNIT_COST_HEAL_TOWER:
+                        player_comp.spend_gold(UNIT_COST_HEAL_TOWER)
+                        pos = esper.component_for_entity(entity, PositionComponent)
+                        createHealTower(self.grid, pos, team)
+                    else:
+                        # Optionally, add feedback for insufficient funds
+                        print("Not enough gold to build a heal tower.")
 
 
     def _activate_druid_ability(self, druid_entity, spe_druid):
         """Active la capacité Lierre volant du Druid"""
         spe_druid.launch_projectile(druid_entity)
+
+    def _get_player_for_team(self, team_id: int):
+        for _, (player, team) in esper.get_components(PlayerComponent, TeamComponent):
+            if team.team_id == team_id:
+                return player
+        return None
 
     def _activate_architect_ability(self, architect_entity, spe_architect):
         """Active la capacité Rechargement automatique de l'Architect"""
