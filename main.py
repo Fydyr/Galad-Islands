@@ -23,6 +23,7 @@ from src.functions.resource_path import get_resource_path
 from src.settings.settings import get_project_version, is_dev_mode_enabled
 from src.utils.update_checker import check_for_updates
 from src.ui.update_notification import UpdateNotification
+from src.ui.intro_cinematic import play_intro_cinematic
 
 
 # Configure logging level: DEBUG in dev mode, WARNING otherwise (to improve runtime fluidity)
@@ -74,6 +75,15 @@ class MainMenu:
 
         # Layout initialization
         self._initialize_ui()
+
+        # Jouer la cinématique d'introduction au premier lancement
+        self._play_intro()
+
+    def _play_intro(self):
+        """Joue la cinématique d'introduction."""
+        if not play_intro_cinematic(self.surface, self.audio_manager):
+            # L'utilisateur veut quitter
+            self.state.running = False
 
     def _load_background(self):
         """Loads the background image."""
