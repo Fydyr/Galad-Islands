@@ -105,6 +105,8 @@ class SpriteManager:
     def __init__(self):
         self._sprites_registry: Dict[SpriteID, SpriteData] = {}
         self._loaded_images: Dict[SpriteID, pygame.Surface] = {}
+        # Cache for scaled images: key (SpriteID, width, height)
+        self._scaled_images: Dict[Tuple[SpriteID, int, int], pygame.Surface] = {}
         self.image_loading_enabled = True  # Permet de désactiver le chargement d'images
         self._initialize_sprite_registry()
     
@@ -293,7 +295,28 @@ class SpriteManager:
     def clear_cache(self):
         """Clear the sprite cache to free memory."""
         self._loaded_images.clear()
+        self._scaled_images.clear()
         logger.info("Sprite cache cleared")
+
+    def get_scaled_sprite(self, sprite_id: SpriteID, size: Tuple[int, int]) -> Optional[pygame.Surface]:
+        """Return a scaled version of a sprite image (cached)."""
+        if sprite_id is None:
+            return None
+        key = (sprite_id, int(size[0]), int(size[1]))
+        if key in self._scaled_images:
+            return self._scaled_images[key]
+
+        img = self.load_sprite(sprite_id)
+        if img is None:
+            return None
+
+        try:
+            scaled = pygame.transform.smoothscale(img, (int(size[0]), int(size[1])))
+        except Exception:
+            scaled = pygame.transform.scale(img, (int(size[0]), int(size[1])))
+
+        self._scaled_images[key] = scaled
+        return scaled
     
     def get_sprite_info(self, sprite_id: SpriteID) -> str:
         """Get detailed information about a sprite."""

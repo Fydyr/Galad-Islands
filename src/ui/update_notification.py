@@ -6,6 +6,7 @@ import pygame
 import webbrowser
 import logging
 from src.settings.localization import t
+from src.managers.font_cache import get_font as _get_font
 
 logger = logging.getLogger(__name__)
 
@@ -148,15 +149,16 @@ class UpdateNotification:
         pygame.draw.rect(bg_surface, self.border_color, bg_surface.get_rect(), 2, border_radius=10)
         surface.blit(bg_surface, (self.x, self.y))
         
+        
         # Titre
         # Use larger fonts to match the larger notification size
-        font_title = pygame.font.Font(None, 28)
+        font_title = _get_font(None, 28)
         title_text = t("update.available_title")
         title_surface = font_title.render(title_text, True, self.text_color)
         surface.blit(title_surface, (self.x + self.padding, self.y + self.padding))
         
         # Message
-        font_msg = pygame.font.Font(None, 20)
+        font_msg = _get_font(None, 20)
         message = t("update.available_message").format(
             version=self.new_version,
             current_version=self.current_version
@@ -210,7 +212,7 @@ class UpdateNotification:
         pygame.draw.rect(surface, self.border_color, rect, 2, border_radius=5)
         
         # Texte centré
-        font = pygame.font.Font(None, 22)
+        font = _get_font(None, 22)
         text_surface = font.render(text, True, self.text_color)
         text_rect = text_surface.get_rect(center=rect.center)
         surface.blit(text_surface, text_rect)

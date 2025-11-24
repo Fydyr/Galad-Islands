@@ -5,6 +5,7 @@ Widget de notification pour le tutoriel.
 import pygame
 import logging
 from src.settings.localization import t
+from src.managers.font_cache import get_font as _get_font
 
 logger = logging.getLogger(__name__)
 
@@ -144,14 +145,14 @@ class TutorialNotification:
             
         # Message with wrapping (respect the notification width)
         # Use slightly larger fonts to match the larger window
-        font_title = pygame.font.Font(None, 28)
-        font_msg = pygame.font.Font(None, 20)
+        font_title = _get_font(None, 28)
+        font_msg = _get_font(None, 20)
         max_text_width = self.width - 2 * self.padding
         
         # Title will be drawn after the background is drawn (below)
         
         # Message with wrapping (respect the notification width)
-        font_msg = pygame.font.Font(None, 20)
+        font_msg = _get_font(None, 20)
         max_text_width = self.width - 2 * self.padding
 
         message_lines = []
@@ -169,6 +170,7 @@ class TutorialNotification:
         self.height = self.padding + title_height + 8 + content_height + self.padding + self.button_height + self.padding
 
         # Draw background with updated height
+        # Background panel (recreated when size changes) — keep as-is but ensure alpha surface creation is efficient
         bg_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         pygame.draw.rect(bg_surface, self.bg_color, bg_surface.get_rect(), border_radius=10)
         pygame.draw.rect(bg_surface, self.border_color, bg_surface.get_rect(), 2, border_radius=10)
@@ -210,7 +212,7 @@ class TutorialNotification:
         pygame.draw.rect(surface, self.border_color, rect, 2, border_radius=5)
         
         # Texte centré
-        font = pygame.font.Font(None, 20)
+        font = _get_font(None, 20)
         text_surface = font.render(text, True, self.text_color)
         text_rect = text_surface.get_rect(center=rect.center)
         surface.blit(text_surface, text_rect)

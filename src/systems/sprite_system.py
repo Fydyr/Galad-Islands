@@ -6,6 +6,7 @@ import pygame
 from typing import Dict, Optional
 from src.components.core.spriteComponent import SpriteComponent
 from src.functions.resource_path import get_resource_path
+from src.managers.surface_cache import get_scaled as _get_scaled
 
 
 class SpriteSystem:
@@ -55,10 +56,13 @@ class SpriteSystem:
             
         try:
             if sprite_component.image is not None:
-                sprite_component.scaled_surface = pygame.transform.scale(
-                    sprite_component.image, 
-                    (int(target_width), int(target_height))
-                )
+                try:
+                    sprite_component.scaled_surface = _get_scaled(sprite_component.image, (int(target_width), int(target_height)))
+                except Exception:
+                    sprite_component.scaled_surface = pygame.transform.scale(
+                        sprite_component.image,
+                        (int(target_width), int(target_height))
+                    )
             # Update component dimensions
             sprite_component.width = target_width
             sprite_component.height = target_height

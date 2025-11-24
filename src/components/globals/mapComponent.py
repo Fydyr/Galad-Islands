@@ -23,6 +23,8 @@ from src.settings.localization import t
 from src.components.globals.cameraComponent import Camera
 from src.functions.resource_path import get_resource_path
 from src.components.core.baseComponent import BaseComponent
+from src.managers.surface_cache import get_scaled as _get_scaled
+from src.managers.font_cache import get_font as _get_font
 
 
 def creer_grille():
@@ -247,7 +249,7 @@ def _pre_render_static_map(images, grid, zoom_level):
     static_surface = pygame.Surface((world_width_scaled, world_height_scaled))
     
     # Fond marin
-    sea_scaled = pygame.transform.scale(images['sea'], (tile_size_scaled, tile_size_scaled))
+    sea_scaled = _get_scaled(images['sea'], (int(tile_size_scaled), int(tile_size_scaled)))
     for i in range(MAP_HEIGHT):
         for j in range(MAP_WIDTH):
             static_surface.blit(sea_scaled, (j * tile_size_scaled, i * tile_size_scaled))
@@ -275,7 +277,7 @@ def _pre_render_static_map(images, grid, zoom_level):
 
             if img_key:
                 scaled_size = int(element_size * TILE_SIZE * zoom_level)
-                scaled_img = pygame.transform.scale(images[img_key], (scaled_size, scaled_size))
+                scaled_img = _get_scaled(images[img_key], (int(scaled_size), int(scaled_size)))
                 static_surface.blit(scaled_img, (j * tile_size_scaled, i * tile_size_scaled))
                 
     return static_surface
@@ -326,19 +328,19 @@ def afficher_grille(window, grid, images, camera, ally_base_pos, enemy_base_pos)
             if display_size > 0 and rects_intersect((screen_x, screen_y, display_size, display_size), (0, 0, window.get_width(), window.get_height())):
                 
                 # Rendre la mer en fond
-                scaled_sea = pygame.transform.scale(images['sea'], (display_size, display_size))
+                scaled_sea = _get_scaled(images['sea'], (int(display_size), int(display_size)))
                 window.blit(scaled_sea, (screen_x, screen_y))
                 
                 # Rendre les éléments par-dessus la mer
                 val = grid[i][j]
                 if val == TileType.GENERIC_ISLAND:
-                    scaled_img = pygame.transform.scale(images['generic_island'], (display_size, display_size))
+                    scaled_img = _get_scaled(images['generic_island'], (int(display_size), int(display_size)))
                     window.blit(scaled_img, (screen_x, screen_y))
                 elif val == TileType.MINE:
-                    scaled_img = pygame.transform.scale(images['mine'], (display_size, display_size))
+                    scaled_img = _get_scaled(images['mine'], (int(display_size), int(display_size)))
                     window.blit(scaled_img, (screen_x, screen_y))
                 elif val == TileType.CLOUD:
-                    scaled_img = pygame.transform.scale(images['cloud'], (display_size, display_size))
+                    scaled_img = _get_scaled(images['cloud'], (int(display_size), int(display_size)))
                     window.blit(scaled_img, (screen_x, screen_y))
 
     # --- DEBUT CORRECTION DU Rendering DES BASES ---
@@ -363,7 +365,7 @@ def afficher_grille(window, grid, images, camera, ally_base_pos, enemy_base_pos)
     ally_screen_x, ally_screen_y = camera.world_to_screen(ally_base_world_x, ally_base_world_y)
     ally_display_size = int(4 * TILE_SIZE * camera.zoom)
     if ally_display_size > 0 and rects_intersect((ally_screen_x, ally_screen_y, ally_display_size, ally_display_size), (0, 0, window.get_width(), window.get_height())):
-        scaled_ally_base = pygame.transform.scale(images['ally'], (ally_display_size, ally_display_size))
+        scaled_ally_base = _get_scaled(images['ally'], (int(ally_display_size), int(ally_display_size)))
         window.blit(scaled_ally_base, (ally_screen_x, ally_screen_y))
 
     # Base ennemie (position fixe en bas à droite)
@@ -371,7 +373,7 @@ def afficher_grille(window, grid, images, camera, ally_base_pos, enemy_base_pos)
     enemy_screen_x, enemy_screen_y = camera.world_to_screen(enemy_base_world_x, enemy_base_world_y)
     enemy_display_size = int(4 * TILE_SIZE * camera.zoom)
     if enemy_display_size > 0 and rects_intersect((enemy_screen_x, enemy_screen_y, enemy_display_size, enemy_display_size), (0, 0, window.get_width(), window.get_height())):
-        scaled_enemy_base = pygame.transform.scale(images['enemy'], (enemy_display_size, enemy_display_size))
+        scaled_enemy_base = _get_scaled(images['enemy'], (int(enemy_display_size), int(enemy_display_size)))
         window.blit(scaled_enemy_base, (enemy_screen_x, enemy_screen_y))
     # --- FIN CORRECTION DU Rendering DES BASES ---
 
@@ -445,7 +447,7 @@ def run_game_frame(window, game_state, dt):
     afficher_grille(window, grid, images, camera)
             
     # Instructions
-    font = pygame.font.Font(None, 36)
+    font = _get_font(None, 36)
     help_text = font.render(t("game.instructions"), True, (255, 255, 255))
     window.blit(help_text, (10, window.get_height() - 30))
     
