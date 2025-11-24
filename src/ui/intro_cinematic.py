@@ -8,6 +8,7 @@ import math
 import random
 from src.functions.resource_path import get_resource_path
 from src.settings.localization import t
+from src.constants.assets import MUSIC_MAIN_THEME
 
 
 class IntroCinematic:
@@ -35,6 +36,10 @@ class IntroCinematic:
 
         # Scene configuration
         self.scenes = self._create_scenes()
+
+        # Start cinematic music if audio manager is available
+        if self.audio_manager:
+            self.audio_manager.play_music(MUSIC_MAIN_THEME)
 
     def _load_assets(self):
         """Load images and fonts."""
@@ -216,6 +221,19 @@ class IntroCinematic:
             },
             {
                 "duration": 5.0,
+                "type": "enemy_units",
+                "title": t("cinematic.enemy_warriors_title"),
+                "text": [
+                    t("cinematic.enemy_warriors_line1"),
+                    t("cinematic.enemy_warriors_line2"),
+                    t("cinematic.enemy_warriors_line3"),
+                ],
+                "bg_color": (25, 10, 20),
+                "fade_in": 0.8,
+                "fade_out": 0.5,
+            },
+            {
+                "duration": 5.0,
                 "type": "call_to_action",
                 "title": t("cinematic.mission_title"),
                 "text": [
@@ -227,6 +245,24 @@ class IntroCinematic:
                 "bg_color": (10, 20, 50),
                 "fade_in": 0.8,
                 "fade_out": 1.0,
+            },
+            {
+                "duration": 8.0,
+                "type": "credits",
+                "title": t("cinematic.credits_title"),
+                "text": [
+                    t("cinematic.credits_line1"),
+                    t("cinematic.credits_line2"),
+                    "",
+                    t("cinematic.credits_line3"),
+                    t("cinematic.credits_line4"),
+                    t("cinematic.credits_line5"),
+                    "",
+                    t("cinematic.credits_line6"),
+                    ],
+                "bg_color": (5, 5, 15),
+                "fade_in": 1.0,
+                "fade_out": 1.5,
             },
         ]
         return scenes
@@ -334,8 +370,12 @@ class IntroCinematic:
             self._draw_fortresses_scene(scene)
         elif scene["type"] == "units":
             self._draw_units_scene(scene)
+        elif scene["type"] == "enemy_units":
+            self._draw_enemy_units_scene(scene)
         elif scene["type"] == "call_to_action":
             self._draw_call_to_action_scene(scene)
+        elif scene["type"] == "credits":
+            self._draw_credits_scene(scene)
 
         # Particles
         self._draw_particles()
@@ -746,6 +786,60 @@ class IntroCinematic:
             self.surface.blit(text_surf, text_rect)
             y_offset += 40
 
+    def _draw_enemy_units_scene(self, scene):
+        """Draw scene presenting the enemy units."""
+        # Title with ominous color
+        title_surf = self.subtitle_font.render(scene["title"], True, (200, 100, 150))
+        title_surf.set_alpha(self.alpha)
+        title_rect = title_surf.get_rect(center=(self.width // 2, self.height // 5))
+        self.surface.blit(title_surf, title_rect)
+
+        # Enemy units on parade with menacing appearance
+        units_to_show = ["scout", "maraudeur", "leviathan", "druid", "architect"]
+        unit_spacing = self.width // (len(units_to_show) + 1)
+
+        for i, unit in enumerate(units_to_show):
+            key = f"enemy_{unit}"
+            if key in self.unit_sprites:
+                sprite = self.unit_sprites[key]
+
+                # Progressive entry with slight delay
+                delay = i * 0.3
+                if self.scene_timer > delay:
+                    progress = min(1, (self.scene_timer - delay) / 0.5)
+
+                    size = int(70 * progress)
+                    if size > 0:
+                        sprite_scaled = pygame.transform.scale(sprite, (size, size))
+
+                        # Dark/purple tint for enemy units
+                        sprite_scaled = sprite_scaled.copy()
+                        dark_overlay = pygame.Surface((size, size), pygame.SRCALPHA)
+                        dark_overlay.fill((80, 40, 100, 100))
+                        sprite_scaled.blit(dark_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+                        sprite_scaled.set_alpha(int(self.alpha * progress))
+
+                        x = unit_spacing * (i + 1) - size // 2
+                        y = self.height // 2 - size // 2
+
+                        # Menacing floating animation (opposite phase from allies)
+                        float_offset = math.sin(self.scene_timer * 2.5 + i * 0.7 + math.pi) * 12
+                        self.surface.blit(sprite_scaled, (x, y + float_offset))
+
+                        # Dark particles around enemy units
+                        if random.random() < 0.1:
+                            self._spawn_particles(x + size // 2, y + size // 2 + float_offset, (150, 50, 200), 1, 0.5)
+
+        # Text with warning tone
+        y_offset = 2 * self.height // 3 + 30
+        for line in scene["text"]:
+            text_surf = self.text_font.render(line, True, (255, 200, 200))
+            text_surf.set_alpha(self.alpha)
+            text_rect = text_surf.get_rect(center=(self.width // 2, y_offset))
+            self.surface.blit(text_surf, text_rect)
+            y_offset += 40
+
     def _draw_call_to_action_scene(self, scene):
         """Draw call to action scene."""
         # Title with dramatic pulsing effect
@@ -780,6 +874,49 @@ class IntroCinematic:
             text_rect = text_surf.get_rect(center=(self.width // 2, y_offset))
             self.surface.blit(text_surf, text_rect)
             y_offset += 40
+
+    def _draw_credits_scene(self, scene):
+        """Draw credits scene with scrolling effect."""
+        # Title with golden color
+        title_surf = self.subtitle_font.render(scene["title"], True, (255, 215, 0))
+        title_surf.set_alpha(self.alpha)
+        title_rect = title_surf.get_rect(center=(self.width // 2, self.height // 4))
+        self.surface.blit(title_surf, title_rect)
+
+        # Scrolling text effect
+        base_y = self.height // 2 - 50
+        scroll_offset = -self.scene_timer * 15  # Slow scrolling upward
+
+        for i, line in enumerate(scene["text"]):
+            if line == "":
+                continue
+
+            # Calculate y position with scroll
+            y_pos = base_y + i * 35 + scroll_offset
+
+            # Only draw if visible on screen
+            if -50 < y_pos < self.height + 50:
+                # Choose font size based on content
+                if i == 0 or i == 1:  # Project title lines
+                    text_surf = self.text_font.render(line, True, (255, 255, 150))
+                elif line == t("cinematic.credits_line3"):  # "Développé par:"
+                    text_surf = self.text_font.render(line, True, (200, 200, 255))
+                elif line == t("cinematic.credits_line8"):  # "Merci d'avoir joué !"
+                    font_size = int(32 + 5 * abs(math.sin(self.scene_timer * 2)))
+                    dynamic_font = pygame.font.SysFont("Arial", font_size, bold=True)
+                    text_surf = dynamic_font.render(line, True, (255, 215, 0))
+                else:
+                    text_surf = self.text_font.render(line, True, (255, 255, 255))
+
+                text_surf.set_alpha(self.alpha)
+                text_rect = text_surf.get_rect(center=(self.width // 2, int(y_pos)))
+                self.surface.blit(text_surf, text_rect)
+
+        # Add some sparkle particles
+        if random.random() < 0.2:
+            x = random.randint(100, self.width - 100)
+            y = random.randint(100, self.height - 100)
+            self._spawn_particles(x, y, (255, 215, 0), 2, 1)
 
     def _draw_skip_hint(self):
         """Draw skip hint."""

@@ -428,3 +428,376 @@ def afficher_modale(titre, md_path, bg_original=None, select_sound=None):
     font_cache.clear()
     image_cache.clear()
     gif_animations.clear()
+
+
+def afficher_modale_credits(titre, md_path, bg_original=None, select_sound=None, on_replay_callback=None):
+    """
+    Affiche une modale avec le contenu des crédits et un bouton pour relancer la cinématique.
+    Utilise le même visuel que afficher_modale() mais avec un bouton supplémentaire.
+
+    Args:
+        titre (str): Le titre de la modale
+        md_path (str): Le chemin vers le fichier Markdown à afficher
+        bg_original (pygame.Surface, optional): L'image de fond originale
+        select_sound (pygame.mixer.Sound, optional): Le son de sélection
+        on_replay_callback (callable, optional): Fonction à appeler quand on clique sur "Revoir la cinématique"
+
+    Returns:
+        str: "replay" si le bouton de relecture est cliqué, None sinon
+    """
+    from src.settings.localization import t
+
+    # Initialisation de l'écran
+    screen = pygame.display.get_surface()
+    if screen is None:
+        info = pygame.display.Info()
+        WIDTH, HEIGHT = info.current_w, info.current_h
+    else:
+        WIDTH, HEIGHT = screen.get_size()
+
+    # Configuration du modal (responsive)
+    modal_width = max(400, min(1000, int(WIDTH * 0.7)))
+    modal_height = max(300, min(700, int(HEIGHT * 0.8)))
+    margin = 20
+    padding = 15
+    scroll_speed = 30
+
+    # Cache pour les ressources
+    font_cache = {}
+    image_cache = {}
+    gif_animations = []
+
+    def get_font(size, bold=False, italic=False):
+        key = (size, bold, italic)
+        if key not in font_cache:
+            font_cache[key] = pygame.font.SysFont("Arial", size, bold=bold, italic=italic)
+        return font_cache[key]
+
+    def load_media(img_path, max_width=620):
+        """Charge une image statique ou un GIF animé"""
+        cache_key = (img_path, max_width)
+        if cache_key in image_cache:
+            return image_cache[cache_key]
+
+        if img_path.startswith('/'):
+            img_path = img_path[1:]
+
+        possible_paths = [
+            img_path,
+            os.path.join("assets", img_path),
+            os.path.join("..", img_path),
+            os.path.join("..", "assets", img_path)
+        ]
+
+        working_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                working_path = path
+                break
+
+        if working_path is None:
+            placeholder = pygame.Surface((200, 100))
+            placeholder.fill((100, 100, 100))
+            font = get_font(14)
+            text = font.render("Image introuvable", True, WHITE)
+            placeholder.blit(text, (20, 40))
+            image_cache[cache_key] = ("static", placeholder)
+            return image_cache[cache_key]
+
+        if working_path.lower().endswith('.gif'):
+            gif_anim = GifAnimation(working_path, max_width)
+            gif_animations.append(gif_anim)
+            image_cache[cache_key] = ("gif", gif_anim)
+            return image_cache[cache_key]
+        else:
+            try:
+                img = pygame.image.load(working_path)
+                if img.get_width() > max_width:
+                    ratio = max_width / img.get_width()
+                    img = pygame.transform.smoothscale(
+                        img,
+                        (int(img.get_width() * ratio), int(img.get_height() * ratio))
+                    )
+                image_cache[cache_key] = ("static", img)
+                return image_cache[cache_key]
+            except Exception as e:
+                print(f"Erreur chargement image: {e}")
+                placeholder = pygame.Surface((200, 100))
+                placeholder.fill((100, 100, 100))
+                image_cache[cache_key] = ("static", placeholder)
+                return image_cache[cache_key]
+
+    def parse_markdown(lines):
+        """Parse le markdown et retourne une liste d'éléments"""
+        elements = []
+        max_content_width = modal_width - 100
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Images
+            img_match = re.match(r'!\[.*?\]\((.*?)\)', line)
+            if img_match:
+                img_path = img_match.group(1)
+                media_type, media = load_media(img_path, int(modal_width * 0.6))
+                elements.append(("media", media_type, media))
+                continue
+
+            default_bold = False
+            default_italic = False
+            text = line
+
+            # Titres
+            if line.startswith("#### "):
+                text = line[5:]
+                default_bold = True
+                color = (200, 200, 150)
+                size = 22
+            elif line.startswith("### "):
+                text = line[4:]
+                default_bold = True
+                color = GOLD
+                size = 26
+            elif line.startswith("## "):
+                text = line[3:]
+                default_bold = False
+                color = GOLD
+                size = 30
+            elif line.startswith("# "):
+                text = line[2:]
+                default_bold = True
+                color = GOLD
+                size = 36
+            else:
+                default_bold = False
+                color = WHITE
+                size = 20
+
+            has_bold = "**" in text
+            has_italic = re.search(r'(?<!\*)\*(?!\*).*?(?<!\*)\*(?!\*)', text) is not None
+
+            text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+            text = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'\1', text)
+
+            is_bold = has_bold or default_bold
+            is_italic = has_italic or default_italic
+
+            elements.append(("text", text, size, is_bold, is_italic, color))
+
+        return elements
+
+    def wrap_elements(elements):
+        """Enveloppe le texte et calcule les hauteurs"""
+        wrapped = []
+        heights = []
+
+        for elem in elements:
+            if elem[0] == "text":
+                _, text, size, bold, italic, color = elem
+                font = get_font(size, bold, italic)
+
+                char_width = font.size("A")[0]
+                wrap_width = (modal_width - 100) // char_width
+
+                lines = textwrap.wrap(text, width=wrap_width) if text else [""]
+                for line in lines:
+                    wrapped.append(("text", line, size, bold, italic, color))
+                    heights.append(size + 8)
+
+            elif elem[0] == "media":
+                media_type, media = elem[1], elem[2]
+                wrapped.append(("media", media_type, media))
+                if media_type == "gif":
+                    heights.append(media.get_size()[1] + 10)
+                else:
+                    heights.append(media.get_height() + 10)
+
+        return wrapped, heights
+
+    # Lecture du fichier markdown
+    try:
+        with open(md_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except:
+        lines = [f"# Erreur: fichier {md_path} introuvable"]
+
+    # Parser et envelopper le contenu
+    parsed_elements = parse_markdown(lines)
+    wrapped_elements, heights = wrap_elements(parsed_elements)
+
+    # Calculs de scroll
+    header_height = 50
+    footer_height = 70
+    content_height = sum(heights) + 2 * padding
+    viewable_height = modal_height - header_height - footer_height
+    max_scroll = max(0, content_height - viewable_height)
+    scroll = 0
+
+    # Création des surfaces
+    modal_surface = pygame.Surface((modal_width, modal_height), pygame.SRCALPHA)
+    modal_rect = modal_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+
+    # Deux boutons : Fermer et Revoir la cinématique
+    btn_width, btn_height = 180, 40
+    btn_spacing = 15
+
+    # Bouton "Revoir la cinématique" à gauche
+    replay_btn = pygame.Rect(20, modal_height - btn_height - 15, btn_width, btn_height)
+
+    # Bouton "Fermer" à droite
+    close_btn = pygame.Rect(modal_width - btn_width - 20, modal_height - btn_height - 15, btn_width, btn_height)
+
+    # Scrollbar
+    scrollbar_width = 15
+    scrollbar_x = modal_width - scrollbar_width - 5
+    scrollbar_track = pygame.Rect(scrollbar_x, header_height, scrollbar_width, modal_height - header_height - footer_height)
+
+    def get_scrollbar_thumb():
+        if max_scroll <= 0:
+            return pygame.Rect(scrollbar_x, header_height, scrollbar_width, scrollbar_track.height)
+
+        visible_ratio = viewable_height / content_height
+        thumb_height = max(30, int(scrollbar_track.height * visible_ratio))
+        scroll_ratio = abs(scroll) / max_scroll
+        thumb_y = header_height + int((scrollbar_track.height - thumb_height) * scroll_ratio)
+
+        return pygame.Rect(scrollbar_x, thumb_y, scrollbar_width, thumb_height)
+
+    # Boucle principale
+    clock = pygame.time.Clock()
+    running = True
+    dragging = False
+    result = None
+
+    while running:
+        mouse_pos = pygame.mouse.get_pos()
+        mx, my = mouse_pos[0] - modal_rect.left, mouse_pos[1] - modal_rect.top
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+                elif event.key == pygame.K_DOWN:
+                    scroll = max(scroll - scroll_speed, -max_scroll)
+                elif event.key == pygame.K_UP:
+                    scroll = min(scroll + scroll_speed, 0)
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 4:  # Molette haut
+                    scroll = min(scroll + scroll_speed, 0)
+                elif event.button == 5:  # Molette bas
+                    scroll = max(scroll - scroll_speed, -max_scroll)
+                elif event.button == 1:  # Clic gauche
+                    if close_btn.collidepoint(mx, my):
+                        if select_sound:
+                            select_sound.play()
+                        running = False
+                    elif replay_btn.collidepoint(mx, my):
+                        if select_sound:
+                            select_sound.play()
+                        result = "replay"
+                        running = False
+                    elif get_scrollbar_thumb().collidepoint(mx, my):
+                        dragging = True
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    dragging = False
+
+            elif event.type == pygame.MOUSEMOTION:
+                if dragging:
+                    my_scroll = event.pos[1] - modal_rect.top - header_height
+                    scroll_ratio = my_scroll / scrollbar_track.height
+                    scroll = -int(max_scroll * max(0, min(1, scroll_ratio)))
+
+        # Rendering
+        screen.fill((10, 10, 10))
+        if bg_original:
+            bg_scaled = pygame.transform.scale(bg_original, (WIDTH, HEIGHT))
+            screen.blit(bg_scaled, (0, 0))
+
+        # Overlay semi-transparent
+        overlay = pygame.Surface((WIDTH, HEIGHT))
+        overlay.fill((0, 0, 0))
+        overlay.set_alpha(150)
+        screen.blit(overlay, (0, 0))
+
+        # Modal
+        modal_surface.fill((30, 30, 30, 240))
+        pygame.draw.rect(modal_surface, GOLD, modal_surface.get_rect(), 3, border_radius=10)
+
+        # Zone de contenu avec clipping
+        content_area = pygame.Rect(0, header_height, modal_width - 30, viewable_height)
+        modal_surface.set_clip(content_area)
+
+        # Dessiner le contenu
+        y = header_height + padding + scroll
+        for elem in wrapped_elements:
+            if elem[0] == "text":
+                _, text, size, bold, italic, color = elem
+                if y + size > header_height and y < header_height + viewable_height:
+                    font = get_font(size, bold, italic)
+                    rendered = font.render(text, True, color)
+                    modal_surface.blit(rendered, (margin, y))
+                y += size + 8
+
+            elif elem[0] == "media":
+                media_type, media = elem[1], elem[2]
+                if media_type == "gif":
+                    current_frame = media.get_current_frame()
+                    height = current_frame.get_height()
+                    if y + height > header_height and y < header_height + viewable_height:
+                        x = (modal_width - 30 - current_frame.get_width()) // 2
+                        modal_surface.blit(current_frame, (x, y))
+                    y += height + 10
+                else:  # static
+                    height = media.get_height()
+                    if y + height > header_height and y < header_height + viewable_height:
+                        x = (modal_width - 30 - media.get_width()) // 2
+                        modal_surface.blit(media, (x, y))
+                    y += height + 10
+
+        modal_surface.set_clip(None)
+
+        # Scrollbar
+        if max_scroll > 0:
+            pygame.draw.rect(modal_surface, DARK_GRAY, scrollbar_track, border_radius=8)
+            thumb = get_scrollbar_thumb()
+            pygame.draw.rect(modal_surface, LIGHT_GRAY if dragging else GRAY, thumb, border_radius=6)
+
+        # Bouton "Revoir la cinématique"
+        replay_hover = replay_btn.collidepoint(mx, my)
+        replay_color = (100, 150, 200) if replay_hover else (70, 120, 180)
+        pygame.draw.rect(modal_surface, replay_color, replay_btn, border_radius=8)
+        pygame.draw.rect(modal_surface, WHITE, replay_btn, 2, border_radius=8)
+        btn_font = get_font(15, bold=True)
+        replay_text = btn_font.render(t("menu.replay_cinematic"), True, WHITE)
+        replay_text_pos = (replay_btn.centerx - replay_text.get_width() // 2, replay_btn.centery - replay_text.get_height() // 2)
+        modal_surface.blit(replay_text, replay_text_pos)
+
+        # Bouton "Fermer"
+        close_hover = close_btn.collidepoint(mx, my)
+        close_color = (220, 70, 70) if close_hover else (200, 50, 50)
+        pygame.draw.rect(modal_surface, close_color, close_btn, border_radius=8)
+        pygame.draw.rect(modal_surface, WHITE, close_btn, 2, border_radius=8)
+        close_text = btn_font.render(t("menu.close"), True, WHITE)
+        close_text_pos = (close_btn.centerx - close_text.get_width() // 2, close_btn.centery - close_text.get_height() // 2)
+        modal_surface.blit(close_text, close_text_pos)
+
+        # Afficher le modal
+        screen.blit(modal_surface, modal_rect.topleft)
+        pygame.display.flip()
+        clock.tick(60)
+
+    # Nettoyage
+    font_cache.clear()
+    image_cache.clear()
+    gif_animations.clear()
+
+    return result

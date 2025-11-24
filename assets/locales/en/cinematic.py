@@ -49,15 +49,31 @@ TRANSLATIONS = {
     "cinematic.fortresses_line3": "Barakdur for the Legion of the Abyss.",
 
     # Scene: Warriors
-    "cinematic.warriors_title": "The Warriors",
+    "cinematic.warriors_title": "The Dawn Warriors",
     "cinematic.warriors_line1": "Scouts, Marauders, Leviathans, Druids, and Architects",
-    "cinematic.warriors_line2": "fight for the glory of their faction.",
+    "cinematic.warriors_line2": "fight for the glory of the Fleet of Dawn.",
+
+    # Scene: Enemy Warriors
+    "cinematic.enemy_warriors_title": "The Abyss Forces",
+    "cinematic.enemy_warriors_line1": "The enemy has the same units,",
+    "cinematic.enemy_warriors_line2": "but corrupted by darkness.",
+    "cinematic.enemy_warriors_line3": "Be ready to face them!",
 
     # Scene: Mission
     "cinematic.mission_title": "Your Mission",
     "cinematic.mission_line1": "Whoever destroys the enemy fortress",
     "cinematic.mission_line2": "will dominate the islands and all the sky of the world.",
     "cinematic.mission_line3": "Lead your troops to victory!",
+
+    # Scene: Credits
+    "cinematic.credits_title": "Credits",
+    "cinematic.credits_line1": "SAE Project - Video Game",
+    "cinematic.credits_line2": "BUT3 Computer Science",
+    "cinematic.credits_line3": "Developed by:",
+    "cinematic.credits_line4": "Alluin Edouard, Behani Julien, Cailliau Ethann",
+    "cinematic.credits_line5": "Damman Alexandre, Fournier Enzo, Lambert Romain",
+    "cinematic.credits_line6": "Academic year: 2025-2026",
+    "cinematic.credits_line7": "",
 
     # Skip hint
     "cinematic.skip_hint": "Press SPACE or ESCAPE to skip",

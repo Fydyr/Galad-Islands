@@ -42,6 +42,7 @@ DEFAULT_CONFIG = {
     "camera_fast_multiplier": 2.5,
     "show_tutorial": True,  # Affichage du tutoriel activé/désactivé
     "read_tips": [],  # Liste des astuces lues pour le tutoriel
+    "cinematic_viewed": False,  # Indique si la cinématique d'intro a déjà été vue
     "key_bindings": {
         "unit_move_forward": ["z"],
         "unit_move_backward": ["s"],
@@ -449,6 +450,33 @@ def is_dev_mode_enabled() -> bool:
     """
     try:
         return config_manager.get('dev_mode', False)
+    except Exception:
+        return False
+
+
+def has_viewed_cinematic() -> bool:
+    """
+    Check if the intro cinematic has been viewed.
+
+    Returns:
+        True if the cinematic has been viewed, False otherwise.
+    """
+    try:
+        return config_manager.get('cinematic_viewed', False)
+    except Exception:
+        return False
+
+
+def mark_cinematic_as_viewed() -> bool:
+    """
+    Mark the intro cinematic as viewed and save the configuration.
+
+    Returns:
+        True if the save was successful, False otherwise.
+    """
+    try:
+        config_manager.set('cinematic_viewed', True)
+        return config_manager.save_config()
     except Exception:
         return False
 

@@ -49,15 +49,31 @@ TRANSLATIONS = {
     "cinematic.fortresses_line3": "Barakdur pour la Légion des Abysses.",
 
     # Scene: Warriors
-    "cinematic.warriors_title": "Les Guerriers",
+    "cinematic.warriors_title": "Les Guerriers de l'Aube",
     "cinematic.warriors_line1": "Scouts, Maraudeurs, Léviathans, Druides et Architectes",
-    "cinematic.warriors_line2": "combattent pour la gloire de leur faction.",
+    "cinematic.warriors_line2": "combattent pour la gloire de la Flotte de l'Aube.",
+
+    # Scene: Enemy Warriors
+    "cinematic.enemy_warriors_title": "Les Forces des Abysses",
+    "cinematic.enemy_warriors_line1": "L'ennemi dispose des mêmes unités,",
+    "cinematic.enemy_warriors_line2": "mais corrompues par les ténèbres.",
+    "cinematic.enemy_warriors_line3": "Soyez prêt à les affronter !",
 
     # Scene: Mission
     "cinematic.mission_title": "Votre Mission",
     "cinematic.mission_line1": "Celui qui détruira la forteresse ennemie",
     "cinematic.mission_line2": "dominera les îles et tout le ciel du monde.",
     "cinematic.mission_line3": "Menez vos troupes à la victoire !",
+
+    # Scene: Credits
+    "cinematic.credits_title": "Crédits",
+    "cinematic.credits_line1": "Projet SAE - Jeu Vidéo",
+    "cinematic.credits_line2": "BUT3 Informatique",
+    "cinematic.credits_line3": "Développé par :",
+    "cinematic.credits_line4": "Alluin Edouard, Behani Julien, Cailliau Ethann",
+    "cinematic.credits_line5": "Damman Alexandre, Fournier Enzo, Lambert Romain",
+    "cinematic.credits_line6": "Année universitaire : 2025-2026",
+    "cinematic.credits_line7": "",
 
     # Skip hint
     "cinematic.skip_hint": "Appuyez sur ESPACE ou ECHAP pour passer",

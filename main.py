@@ -20,7 +20,7 @@ from src.functions.optionsWindow import show_options_window
 from src.settings.localization import t
 from src.settings.docs_manager import get_help_path, get_credits_path, get_scenario_path
 from src.functions.resource_path import get_resource_path
-from src.settings.settings import get_project_version, is_dev_mode_enabled
+from src.settings.settings import get_project_version, is_dev_mode_enabled, has_viewed_cinematic, mark_cinematic_as_viewed
 from src.utils.update_checker import check_for_updates
 from src.ui.update_notification import UpdateNotification
 from src.ui.intro_cinematic import play_intro_cinematic
@@ -80,10 +80,15 @@ class MainMenu:
         self._play_intro()
 
     def _play_intro(self):
-        """Joue la cinématique d'introduction."""
-        if not play_intro_cinematic(self.surface, self.audio_manager):
-            # L'utilisateur veut quitter
-            self.state.running = False
+        """Joue la cinématique d'introduction si c'est la première fois."""
+        # Vérifier si la cinématique a déjà été vue
+        if not has_viewed_cinematic():
+            if not play_intro_cinematic(self.surface, self.audio_manager):
+                # L'utilisateur veut quitter
+                self.state.running = False
+            else:
+                # Marquer la cinématique comme vue
+                mark_cinematic_as_viewed()
 
     def _load_background(self):
         """Loads the background image."""
@@ -196,8 +201,25 @@ class MainMenu:
         show_options_window()
 
     def _on_credits(self):
-        """Shows the credits."""
-        afficher_modale(t("menu.credits"), get_credits_path(), bg_original=self.bg_original, select_sound=self.audio_manager.get_select_sound())
+        """Shows the credits with option to replay cinematic."""
+        from src.functions.afficherModale import afficher_modale_credits
+
+        # Show credits modal with replay button
+        result = afficher_modale_credits(
+            t("menu.credits"),
+            get_credits_path(),
+            bg_original=self.bg_original,
+            select_sound=self.audio_manager.get_select_sound()
+        )
+
+        # If user clicked on "Replay Cinematic"
+        if result == "replay":
+            if not play_intro_cinematic(self.surface, self.audio_manager):
+                # L'utilisateur veut quitter
+                self.state.running = False
+            else:
+                # Restore the main menu theme after cinematic
+                self.audio_manager.play_music(MUSIC_MAIN_THEME)
 
     def _on_help(self):
         """Shows the help."""
