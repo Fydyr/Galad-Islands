@@ -49,7 +49,7 @@
 
 ### Musiques originales
 
-**xDeviruchi - Compositeur**
+#### xDeviruchi - Compositeur**
 
 - "[And The Journey Begins](https://soundcloud.com/xdeviruchi/and-the-journey-begins)" : Thème d'exploration
 - "[Title Theme](https://soundcloud.com/xdeviruchi/title-theme-1)" : Musique du menu principal
@@ -58,9 +58,23 @@
 
 **Crédits complets :**
 
-```
+```text
 Music by xDeviruchi
 Available on: https://xdeviruchi.itch.io/
+Used under Creative Commons license
+```
+
+#### hogyard
+
+- "[Theme for a Cinematic Dream (Introduction and Part 1)](https://soundcloud.com/user-532561500/theme-for-a-cinematic-dream)"
+- Style: Orchestral/Epic fantasy
+- License: Free to use with attribution
+
+**Full Credits:**
+
+```text
+Music by hogyard
+Available on: [Soundcloud](https://soundcloud.com/user-532561500)
 Used under Creative Commons license
 ```
 
