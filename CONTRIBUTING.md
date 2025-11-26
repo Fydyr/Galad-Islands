@@ -126,11 +126,23 @@ PR checks (CI) must pass before merge. Maintainers may require squash or rebase 
 
 - Add or update tests for functional changes.
 - Run tests locally:
-  ```
-  pytest
-  ```
+   ```
+   pytest
+   ```
 - CI runs tests, linters and formatters. Do not merge failing checks.
 - Target coverage: minimum 80%, goal 90%+.
+
+### Running tests in headless CI environments
+
+- Some tests rely on pygame display features (fonts, surfaces) and cinematic rendering. To run these in a headless CI or without opening a window, the test suite includes a fixture that disables image loading and configures a minimal dummy display.
+- The `tests/conftest.py` file contains an autouse fixture named `disable_sprite_loading` which sets `sprite_manager.image_loading_enabled = False` to avoid loading images during most tests. It also initializes a minimal pygame display in session scope.
+- For tests that fully exercise cinematic playback or code paths that explicitly require a display, use the `SDL_VIDEODRIVER=dummy` environment variable when invoking pytest to ensure pygame runs without a physical display:
+   ```bash
+   SDL_VIDEODRIVER=dummy pytest -k intro_cinematic
+   ```
+- If a test reinitializes the pygame display, ensure fonts are reinitialized inside the test (e.g. `pygame.font.init()`) to avoid `font not initialized` errors.
+
+These behaviours were added to make the CI robust when running in headless containers and to provide deterministic tests for rendering-related code.
 
 ---
 

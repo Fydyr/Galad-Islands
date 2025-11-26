@@ -80,7 +80,6 @@ class TestCombatRewardProcessor:
         assert processor is not None
         assert hasattr(processor, 'create_unit_reward')
 
-    @pytest.mark.skip(reason="Test requires pygame display initialization for sprite loading, which is not available in test environment")
     def test_create_unit_reward_ally_unit(self, processor, dead_ally_unit):
         """Test la création de récompense pour une unit alliée morte."""
         # Count entities before
@@ -89,7 +88,7 @@ class TestCombatRewardProcessor:
         # Create la récompense (avec un attaquant fictif)
         attacker_entity = esper.create_entity()
         esper.add_component(attacker_entity, PositionComponent(0, 0))
-        esper.add_component(attacker_entity, ClasseComponent(unit_type="warrior", shop_id="warrior_001", display_name="Warrior"))
+        esper.add_component(attacker_entity, ClasseComponent(unit_type=UnitType.SCOUT, shop_id="scout_001", display_name="Scout"))
         processor.create_unit_reward(dead_ally_unit, attacker_entity)
 
         # Check qu'une nouvelle entity a été créée (le coffre)
@@ -114,7 +113,6 @@ class TestCombatRewardProcessor:
         assert pos_comp.x == 100  # Même position que l'unit morte
         assert pos_comp.y == 100
 
-    @pytest.mark.skip(reason="Test requires pygame display initialization for sprite loading, which is not available in test environment")
     def test_create_unit_reward_enemy_unit(self, processor, dead_enemy_unit):
         """Test la création de récompense pour une unit ennemie morte."""
         # Count entities before
@@ -123,7 +121,7 @@ class TestCombatRewardProcessor:
         # Create la récompense (avec un attaquant fictif)
         attacker_entity = esper.create_entity()
         esper.add_component(attacker_entity, PositionComponent(0, 0))
-        esper.add_component(attacker_entity, ClasseComponent(unit_type="warrior", shop_id="warrior_001", display_name="Warrior"))
+        esper.add_component(attacker_entity, ClasseComponent(unit_type=UnitType.SCOUT, shop_id="scout_001", display_name="Scout"))
         processor.create_unit_reward(dead_enemy_unit, attacker_entity)
 
         # Check qu'une nouvelle entity a été créée
@@ -190,7 +188,6 @@ class TestFlyingChestProcessor:
         assert processor is not None
         assert hasattr(processor, 'process')
 
-    @pytest.mark.skip(reason="Le processeur FlyingChestProcessor ne met pas à jour elapsed_time dans les tests malgré que cela fonctionne manuellement. Problème probable avec esper ou les dataclasses dans le contexte de test.")
     def test_chest_lifetime_update(self, processor, flying_chest):
         """Test la mise à jour de la durée de vie d'un coffre."""
         # Récupérer l'état initial
@@ -203,14 +200,18 @@ class TestFlyingChestProcessor:
         # Check quele temps s'est écoulé
         updated_chest = esper.component_for_entity(flying_chest, FlyingChestComponent)
         assert updated_chest.elapsed_time > initial_time
-        assert updated_chest.elapsed_time == 1.0
+        # Avoid strict equality due to floating point operations; use approx
+        import pytest as _pytest
+        assert _pytest.approx(1.0, rel=1e-6) == updated_chest.elapsed_time
 
-    @pytest.mark.skip(reason="Dépend de test_chest_lifetime_update qui est skip.")
     def test_chest_collection(self, processor, flying_chest):
         """Test la collecte d'un coffre."""
         # Marquer le coffre comme collecté
         chest = esper._entities[flying_chest][FlyingChestComponent]
+        # Mark the chest collected and sinking to simulate a proper post-collection
         chest.is_collected = True
+        chest.is_sinking = True
+        chest.sink_elapsed_time = chest.sink_duration
 
         entities_before = len(esper._entities)
 
@@ -222,7 +223,6 @@ class TestFlyingChestProcessor:
         assert entities_after < entities_before
         assert not esper.entity_exists(flying_chest)
 
-    @pytest.mark.skip(reason="Dépend de test_chest_lifetime_update qui est skip.")
     def test_chest_sinking(self, processor):
         """Test la phase de chute d'un coffre expiré."""
         # Create un coffre près de l'expiration

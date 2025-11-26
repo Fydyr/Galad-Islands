@@ -4,6 +4,7 @@ Configuration commune pour les tests pytest
 Fournit des fixtures pour l'initialisation des components de test
 """
 
+
 import pytest
 import pygame
 import sys
@@ -19,6 +20,7 @@ from components.core.teamComponent import TeamComponent
 from components.core.team_enum import Team
 from components.core.velocityComponent import VelocityComponent
 from components.core.spriteComponent import SpriteComponent
+from src.managers.sprite_manager import sprite_manager
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -89,6 +91,17 @@ def mock_sprite():
             surface.blit(self.image, self.rect)
 
     return MockSprite()
+
+
+@pytest.fixture(autouse=True)
+def disable_sprite_loading(monkeypatch):
+    """Disable actual sprite loading in tests to avoid pygame display dependency.
+
+    This prevents pygame from trying to initialize a display or load surfaces and
+    keeps sprite_manager.create_sprite_component calls cheap and deterministic
+    in a headless test environment.
+    """
+    monkeypatch.setattr(sprite_manager, "image_loading_enabled", False)
 
 
 @pytest.fixture
