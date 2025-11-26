@@ -689,33 +689,15 @@ class CollisionProcessor(esper.Processor):
         the same way (units, monsters, kamikaze, etc.).
         """
         try:
-            # Calculate recoil in pixels along opposite direction
+            # Make a 180° turn when hitting an island
+            pos.direction = (pos.direction + 180) % 360
+
+            # Calculate recoil in pixels along the new direction (opposite to the original)
             dir_rad = math.radians(pos.direction)
-            # Move back while keeping sign (moving back in opposite direction)
             dx = magnitude * math.cos(dir_rad)
             dy = magnitude * math.sin(dir_rad)
-            # New bounce logic: deflect by 45° to 90° instead of 180°
-            # This makes units turn sideways rather than reversing completely
-            current_angle_rad = math.radians(pos.direction)
 
-            # Choose deflection between 45° and 90°
-            deflection_angle = math.radians(random.uniform(45, 90))
-
-            # Randomly choose left or right turn
-            if random.random() < 0.5:
-                deflection_angle = -deflection_angle
-
-            new_direction_rad = current_angle_rad + deflection_angle
-
-            # Apply recoil displacement
-            dx = magnitude * math.cos(new_direction_rad)
-            dy = magnitude * math.sin(new_direction_rad)
-
-            # If entity had speed, set it to 0
-            if hasattr(velocity, 'currentSpeed'):
-                velocity.currentSpeed = 0
-
-            # Apply recoil displacement to position (moving back = opposite to direction)
+            # Apply recoil displacement to position (moving back away from obstacle)
             pos.x += dx
             pos.y += dy
 
@@ -726,12 +708,9 @@ class CollisionProcessor(esper.Processor):
                 pos.x = max(0, min(pos.x, max_x * TILE_SIZE - 1))
                 pos.y = max(0, min(pos.y, max_y * TILE_SIZE - 1))
 
-            pos.direction = (pos.direction + 180) % 360
-            # Apply new recoil position
-            pos.x -= dx
-            pos.y -= dy
-
-            pos.direction = math.degrees(new_direction_rad) % 360
+            # If entity had speed, set it to 0
+            if hasattr(velocity, 'currentSpeed'):
+                velocity.currentSpeed = 0
 
             # Mark short stun on velocity component if possible
             # Store stun_timer on velocity object to avoid introducing new component
