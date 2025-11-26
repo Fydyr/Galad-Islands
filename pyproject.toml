@@ -1,6 +1,6 @@
 [project]
 name = "galad-islands"
-version = "0.13.0"
+version = "1.0.0"
 description = "Jeu Galad Islands"
 authors = [
     { name="Alluin Edouard", email="edouard.alluin@etu.univ-littoral.fr" },
