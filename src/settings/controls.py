@@ -172,26 +172,104 @@ def get_combos(action: str) -> List[KeyCombo]:
 
 def is_action_active(action: str,
 					 pressed_keys: Optional[Iterable[bool]] = None,
-					 modifiers_state: Optional[int] = None) -> bool:
+					 modifiers_state: Optional[int] = None,
+					 check_gamepad: bool = True) -> bool:
 	"""Indique si l'action est actuellement maintenue par l'utilisateur."""
 	if pressed_keys is None:
 		pressed_keys = pygame.key.get_pressed()
 	if modifiers_state is None:
 		modifiers_state = pygame.key.get_mods()
 
+	# Check keyboard first
 	for combo in get_combos(action):
 		if combo.matches_state(pressed_keys, modifiers_state):
 			return True
+
+	# Check gamepad if enabled
+	if check_gamepad:
+		try:
+			from src.managers.gamepad_manager import get_gamepad_manager
+			from src.constants.gamepad_bindings import get_gamepad_binding_manager
+
+			gamepad_manager = get_gamepad_manager()
+			binding_manager = get_gamepad_binding_manager()
+
+			if gamepad_manager.is_enabled():
+				# Check all axes for this action
+				if action in binding_manager.axis_bindings:
+					for axis_idx, threshold, positive_direction in binding_manager.axis_bindings[action]:
+						value = gamepad_manager.get_axis_value(axis_idx)
+						if positive_direction and value >= threshold:
+							return True
+						elif not positive_direction and value <= -threshold:
+							return True
+
+				# Check all buttons for this action
+				if action in binding_manager.button_bindings:
+					for button in binding_manager.button_bindings[action]:
+						if gamepad_manager.get_button_state(button):
+							return True
+
+				# Check triggers for building actions
+				left_trigger, right_trigger = gamepad_manager.get_triggers()
+				from src.constants.gamepad_bindings import TRIGGER_THRESHOLD
+
+				if action == binding_manager.get_trigger_action('left_trigger'):
+					if left_trigger >= TRIGGER_THRESHOLD:
+						return True
+				if action == binding_manager.get_trigger_action('right_trigger'):
+					if right_trigger >= TRIGGER_THRESHOLD:
+						return True
+
+		except ImportError:
+			pass  # Gamepad support not available
+
 	return False
 
 
 def matches_action(action: str, event: pygame.event.Event) -> bool:
-	"""Teste si un événement clavier correspond à une action donnée."""
+	"""Teste si un événement clavier ou manette correspond à une action donnée."""
+	# Check keyboard events
 	key = getattr(event, "key", None)
 	modifiers_state = getattr(event, "mod", 0)
 	for combo in get_combos(action):
 		if combo.matches_event(key, modifiers_state):
 			return True
+
+	# Check gamepad button events
+	if event.type == pygame.JOYBUTTONDOWN:
+		try:
+			from src.constants.gamepad_bindings import get_gamepad_binding_manager
+
+			binding_manager = get_gamepad_binding_manager()
+			button = event.button
+
+			# Check if this button is mapped to the action
+			if action in binding_manager.button_bindings:
+				if button in binding_manager.button_bindings[action]:
+					return True
+
+		except ImportError:
+			pass
+
+	# Check gamepad hat events (D-pad)
+	elif event.type == pygame.JOYHATMOTION:
+		try:
+			from src.constants.gamepad_bindings import get_gamepad_binding_manager
+
+			binding_manager = get_gamepad_binding_manager()
+			hat = event.hat
+			value = event.value
+
+			# Check if this hat position is mapped to the action
+			if action in binding_manager.hat_bindings:
+				for hat_idx, expected_value in binding_manager.hat_bindings[action]:
+					if hat_idx == hat and value == expected_value:
+						return True
+
+		except ImportError:
+			pass
+
 	return False
 
 

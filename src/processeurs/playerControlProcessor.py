@@ -93,12 +93,12 @@ class PlayerControlProcessor(esper.Processor):
             if controls.is_action_active(controls.ACTION_UNIT_PREVIOUS, keys, modifiers_state):
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
-                    if base.troopList > 0:
+                    if len(base.troopList) > 0:
                         base.currentTroop = (base.currentTroop - 1) % len(base.troopList)
             if controls.is_action_active(controls.ACTION_UNIT_NEXT, keys, modifiers_state):
                 if esper.has_component(entity, BaseComponent):
                     base = esper.component_for_entity(entity, BaseComponent)
-                    if base.troopList > 0:
+                    if len(base.troopList) > 0:
                         base.currentTroop = (base.currentTroop + 1) % len(base.troopList)
             if controls.is_action_active(controls.ACTION_UNIT_ATTACK, keys, modifiers_state):
                 print(f"[DEBUG] PlayerControlProcessor - Attack key pressed, radius.cooldown: {radius.cooldown}, bullet_cooldown: {radius.bullet_cooldown}")

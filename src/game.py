@@ -127,6 +127,15 @@ class EventHandler:
     def handle_events(self):
         """Handles all pygame events."""
         for event in pygame.event.get():
+            # Handle gamepad connection/disconnection events
+            try:
+                from src.managers.gamepad_manager import get_gamepad_manager
+                gamepad_manager = get_gamepad_manager()
+                if gamepad_manager.handle_connection_events(event):
+                    continue
+            except ImportError:
+                pass
+
             # Enregistrer les triggers tutoriels dynamiques (hors self_play_mode)
             try:
                 if hasattr(self.game_engine, 'tutorial_manager') and not getattr(self.game_engine, 'self_play_mode', False):
@@ -201,6 +210,8 @@ class EventHandler:
                 continue
             elif event.type == pygame.KEYDOWN:
                 self._handle_keydown(event)
+            elif event.type == pygame.JOYBUTTONDOWN:
+                self._handle_gamepad_button(event)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self._handle_mousedown(event)
             elif event.type == pygame.MOUSEMOTION:
@@ -219,6 +230,75 @@ class EventHandler:
             self.game_engine.victory_modal.close()
         # Reset the game
         self.game_engine.reset_game()
+
+    def _handle_gamepad_button(self, event):
+        """Handles gamepad button press events.
+
+        USER SPECIFIED CONTROLS:
+        - A: Open/navigate shop
+        - B: Slow down/stop
+        - X: Basic attack
+        - Y: Special ability
+        - LB: Previous unit
+        - RB: Next unit
+        - LT/RT: Build towers (when architect selected)
+        """
+        try:
+            from src.managers.gamepad_manager import GamepadButtons
+
+            # Start button - Pause
+            if event.button == GamepadButtons.START:
+                self.game_engine.open_exit_modal()
+                return
+
+            # Back/Share button - Help
+            elif event.button == GamepadButtons.BACK:
+                self._show_help_modal()
+                return
+
+            # A button (Cross on PS) - Open shop
+            elif event.button == GamepadButtons.A:
+                try:
+                    dev_mode_enabled = config_manager.get('dev_mode', False)
+                except Exception:
+                    dev_mode_enabled = False
+
+                if not getattr(self.game_engine, 'self_play_mode', False) or dev_mode_enabled:
+                    self._open_shop()
+                return
+
+            # B button (Circle on PS) - Slow down/Stop
+            elif event.button == GamepadButtons.B:
+                # Handled by is_action_active in processor (ACTION_UNIT_STOP)
+                return
+
+            # X button (Square on PS) - Basic attack
+            elif event.button == GamepadButtons.X:
+                # Handled by is_action_active in processor (ACTION_UNIT_ATTACK)
+                return
+
+            # Y button (Triangle on PS) - Special ability
+            elif event.button == GamepadButtons.Y:
+                # Handled by is_action_active in processor (ACTION_UNIT_SPECIAL)
+                return
+
+            # Left shoulder (LB/L1) - Previous unit
+            elif event.button == GamepadButtons.L_SHOULDER:
+                self.game_engine.select_previous_unit()
+                return
+
+            # Right shoulder (RB/R1) - Next unit
+            elif event.button == GamepadButtons.R_SHOULDER:
+                self.game_engine.select_next_unit()
+                return
+
+            # Left stick click - Toggle camera follow
+            elif event.button == GamepadButtons.L_STICK:
+                self.game_engine.toggle_camera_follow_mode()
+                return
+
+        except ImportError:
+            pass
 
     def _handle_keydown(self, event):
         """Handles key press events."""
@@ -1474,6 +1554,39 @@ class GameEngine:
         units = self._get_player_units()
         self._set_selected_entity(units[0] if units else None)
 
+    def _handle_gamepad_continuous_actions(self) -> None:
+        """Handle continuous gamepad inputs (triggers, held buttons).
+
+        USER SPECIFIED:
+        - LT/RT for building towers (only when architect is selected)
+        - D-pad for camera zoom
+        """
+        try:
+            from src.managers.gamepad_manager import get_gamepad_manager
+            from src.constants.gamepad_bindings import TRIGGER_THRESHOLD
+
+            gamepad_manager = get_gamepad_manager()
+
+            if not gamepad_manager.is_enabled():
+                return
+
+            # Handle triggers for building (only if architect is selected)
+            # Note: The actual building logic is handled by is_action_active in processors
+            # which checks if triggers are pressed. We don't need to do anything here
+            # for building - it's handled automatically through the control system.
+
+            # Handle D-pad for camera zoom (alternative)
+            hat_value = gamepad_manager.get_hat_value(0)
+            if hat_value != (0, 0) and self.camera is not None:
+                # D-pad up/down for zoom
+                if hat_value[1] > 0:  # Up
+                    self.camera.handle_zoom(1, 0)
+                elif hat_value[1] < 0:  # Down
+                    self.camera.handle_zoom(-1, 0)
+
+        except (ImportError, AttributeError):
+            pass
+
     def assign_control_group(self, slot: int) -> None:
         """Save the current selection in the specified group."""
         if slot < 1 or slot > 9:
@@ -2127,6 +2240,9 @@ class GameEngine:
                 self._update_camera_follow(dt, keys, modifiers_state)
             else:
                 self.camera.update(dt, keys, modifiers_state)
+
+        # Handle gamepad continuous actions (triggers, held buttons)
+        self._handle_gamepad_continuous_actions()
 
         # Check for camera tutorial trigger
         if self.camera and self.initial_camera_state and not self.camera_tutorial_triggered:

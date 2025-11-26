@@ -50,6 +50,15 @@ class MainMenu:
         self.audio_manager = AudioManager()
         self.volume_watcher = VolumeWatcher(self.audio_manager)
 
+        # Initialize gamepad support
+        try:
+            from src.managers.gamepad_manager import get_gamepad_manager
+            self.gamepad_manager = get_gamepad_manager()
+            logging.info("Gamepad support initialized")
+        except Exception as e:
+            logging.warning(f"Failed to initialize gamepad support: {e}")
+            self.gamepad_manager = None
+
         # Menu state
         self.state = MenuState()
 
@@ -262,15 +271,26 @@ class MainMenu:
         mouse_pos = pygame.mouse.get_pos()
 
         for event in pygame.event.get():
+            # Handle gamepad connection/disconnection events
+            if self.gamepad_manager:
+                try:
+                    if self.gamepad_manager.handle_connection_events(event):
+                        continue
+                except Exception:
+                    pass
+
             # Laisse la notification gérer l'événement en premier si elle existe
             if self.update_notification and self.update_notification.handle_event(event):
                 continue
-                
+
             if event.type == pygame.QUIT:
                 self.state.running = False
 
             elif event.type == pygame.KEYDOWN:
                 self._handle_keydown(event)
+
+            elif event.type == pygame.JOYBUTTONDOWN:
+                self._handle_gamepad_button(event)
 
             elif event.type == pygame.VIDEORESIZE:
                 self._handle_resize(event)
@@ -280,6 +300,31 @@ class MainMenu:
 
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 self._handle_mouse_up(mouse_pos)
+
+    def _handle_gamepad_button(self, event):
+        """Handles gamepad button events."""
+        try:
+            from src.managers.gamepad_manager import GamepadButtons
+
+            # A button (Cross on PS) - Select/Confirm
+            if event.button == GamepadButtons.A:
+                # Simulate mouse click on the first button if available
+                if self.buttons:
+                    self.buttons[0].callback()
+
+            # B button (Circle on PS) - Back/Cancel
+            elif event.button == GamepadButtons.B:
+                if self.display_manager.is_fullscreen:
+                    self.display_manager.toggle_fullscreen()
+                else:
+                    self.state.running = False
+
+            # Start button - Play game
+            elif event.button == GamepadButtons.START:
+                self._on_play()
+
+        except ImportError:
+            pass
 
     def _handle_keydown(self, event):
         """Handles keyboard events."""
