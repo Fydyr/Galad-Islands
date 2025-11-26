@@ -50,7 +50,6 @@ class TestCombatIntegration:
             'processor': processor
         }
 
-    @pytest.mark.skip(reason="Le processeur CombatRewardProcessor ne crée pas de coffre malgré attacker_entity et ClasseComponent présents. Problème probable avec les constantes UNIT_COST_* ou la logique de création de coffre.")
     def test_unit_death_creates_reward_chest(self, combat_setup):
         """Test qu'une unit morte creates un coffre de récompense."""
         ally_unit = combat_setup['ally_unit']
@@ -83,7 +82,6 @@ class TestCombatIntegration:
 
         assert chest_found, "Aucun coffre de récompense n'a été créé"
 
-    @pytest.mark.skip(reason="Dépend de la logique de création de coffre qui ne fonctionne pas.")
     def test_ally_unit_death_creates_reward(self, combat_setup):
         """Test qu'une unit alliée morte creates aussi une récompense."""
         ally_unit = combat_setup['ally_unit']

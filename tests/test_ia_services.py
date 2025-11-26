@@ -141,33 +141,32 @@ class _DummyController:
         return
 
 
-@pytest.mark.skip(reason="FleeState a été retiré de l'IA rapide.")
-def test_flee_state_declenche_l_invincibilite(monkeypatch: MonkeyPatch) -> None:
-    """Valide que l'état de fuite active la capacité spéciale quand la vie est basse."""
+def test_low_health_triggers_follow_druid(monkeypatch: MonkeyPatch) -> None:
+    """Vérifie que pour une unit faible, l'AI propose un objectif follow_druid si un druide allié est présent."""
 
-    monkeypatch.setattr(esper, "component_for_entity", lambda *_: None)
-    # Éviter l'exception BaseComponent non initialisé
-    from src.components.core.baseComponent import BaseComponent
-    monkeypatch.setattr(BaseComponent, "get_ally_base", staticmethod(lambda: None))
+    # Do not monkeypatch component_for_entity here — we need the actual PositionComponent
 
-    controller = _DummyController()
+    # Create a druid entity allied with the tested context
+    from src.components.special.speDruidComponent import SpeDruid
+    druid_entity = esper.create_entity()
+    esper.add_component(druid_entity, PositionComponent(64, 64))
+    esper.add_component(druid_entity, TeamComponent(Team.ALLY))
+    esper.add_component(druid_entity, SpeDruid())
+
+    # Context for a unit with low health (below LOW_HEALTH_THRESHOLD)
     manager = AIContextManager()
-    controller.context_manager = manager  # type: ignore[assignment]
-
     context = UnitContext(
         entity_id=7,
-        team_id=Team.ENEMY,
+        team_id=Team.ALLY,
         unit_type=None,
         max_health=100.0,
-        health=40.0,
+        health=40.0,  # 40% -> below default threshold (50%)
     )
     context.position = (0.0, 0.0)
-    context.special_component = _DummySpecial()  # type: ignore[assignment]
 
-    state = FleeState("Flee", controller)  # type: ignore[arg-type]
-    state.enter(context)
-    state.update(0.1, context)
+    from src.ia.ia_scout.services.goals import GoalEvaluator
+    evaluator = GoalEvaluator()
+    objective = evaluator._select_druid_objective(context)
 
-    # Vérifie que l'invincibilité a été activée
-    assert isinstance(context.special_component, _DummySpecial) and context.special_component.activated  # type: ignore[union-attr]
-    assert controller.target_history
+    assert objective is not None
+    assert objective.type == "follow_druid"

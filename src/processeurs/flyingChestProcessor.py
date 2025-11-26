@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Iterable, Optional, Tuple
+import logging
 
 import esper
 import pygame
@@ -11,7 +12,6 @@ import numpy as np
 from src.components.core.canCollideComponent import CanCollideComponent
 from src.components.core.positionComponent import PositionComponent
 from src.components.core.spriteComponent import SpriteComponent
-from src.components.core.teamComponent import TeamComponent
 from src.components.events.flyChestComponent import FlyingChestComponent
 from src.constants.gameplay import (
     FLYING_CHEST_GOLD_MAX,
@@ -173,7 +173,8 @@ class FlyingChestProcessor(esper.Processor):
         if sprite_size is None:
             sprite_size = (int(TILE_SIZE * 0.8), int(TILE_SIZE * 0.8))
         sprite_component = sprite_manager.create_sprite_component(SpriteID.CHEST_CLOSE, sprite_size[0], sprite_size[1])
-        esper.add_component(entity, sprite_component)
+        if sprite_component is not None:
+            esper.add_component(entity, sprite_component)
 
         esper.add_component(entity, CanCollideComponent())
         esper.add_component(entity, TeamComponent(team_id=0))
@@ -188,23 +189,27 @@ class FlyingChestProcessor(esper.Processor):
 
     def _update_existing_chests(self, dt: float) -> None:
         """Updates the lifetime of each active chest."""
-        # Iterate over all entities with a FlyingChestComponent
-        for entity in list(esper._entities.keys()):
-            if esper.has_component(entity, FlyingChestComponent):
-                chest = esper.component_for_entity(entity, FlyingChestComponent)
-                chest.elapsed_time += dt
+        # Iterate over all entities that actually have a FlyingChestComponent
+        for entity, chest in list(esper.get_component(FlyingChestComponent)):
+            chest.elapsed_time += dt
 
-                if chest.is_sinking:
-                    chest.sink_elapsed_time += dt
-                    if chest.sink_elapsed_time >= chest.sink_duration:
-                        esper.delete_entity(entity)
-                    continue
+            if chest.is_sinking:
+                chest.sink_elapsed_time += dt
+                # Sink elapsed time updated
+                if chest.sink_elapsed_time >= chest.sink_duration:
+                    # Chest sink duration elapsed; delete entity
+                    esper.delete_entity(entity, immediate=True)
+                continue
 
-                if chest.elapsed_time >= chest.max_lifetime:
-                    chest.is_sinking = True
-                    chest.sink_elapsed_time = 0.0
-                    self._disable_collision(entity)
-                    self._set_sprite(entity, SpriteID.CHEST_OPEN)
+            if chest.elapsed_time >= chest.max_lifetime:
+                chest.is_sinking = True
+                # If elapsed_time overshot max_lifetime in the increment step,
+                # preserve the overshoot as initial sink elapsed time to ensure
+                # the object progresses correctly within the same tick.
+                chest.sink_elapsed_time = max(0.0, chest.elapsed_time - chest.max_lifetime)
+                self._disable_collision(entity)
+                self._set_sprite(entity, SpriteID.CHEST_OPEN)
+            # update complete for entity
 
     def _set_sprite(self, entity: int, sprite_id: SpriteID) -> None:
         """Updates the sprite of a chest while preserving its current dimensions."""
@@ -215,6 +220,8 @@ class FlyingChestProcessor(esper.Processor):
         width = int(sprite_component.width or sprite_component.original_width)
         height = int(sprite_component.height or sprite_component.original_height)
         replacement = sprite_manager.create_sprite_component(sprite_id, width, height)
+        if replacement is None:
+            return
 
         sprite_component.image_path = replacement.image_path
         sprite_component.width = replacement.width
@@ -232,4 +239,4 @@ class FlyingChestProcessor(esper.Processor):
     def _remove_existing_chests(self) -> None:
         """Cleans up existing chests during a reset."""
         for entity, _ in esper.get_component(FlyingChestComponent):
-            esper.delete_entity(entity)
+            esper.delete_entity(entity, immediate=True)
