@@ -8,7 +8,7 @@ import math
 import random
 from src.functions.resource_path import get_resource_path
 from src.settings.localization import t
-from src.constants.assets import MUSIC_MAIN_THEME
+from src.constants.assets import MUSIC_IN_CINEMATIC
 
 
 class IntroCinematic:
@@ -37,9 +37,11 @@ class IntroCinematic:
         # Scene configuration
         self.scenes = self._create_scenes()
 
-        # Start cinematic music if audio manager is available
+        # Start cinematic music (stop first to restart from beginning)
         if self.audio_manager:
-            self.audio_manager.play_music(MUSIC_MAIN_THEME)
+            self.audio_manager.stop_music()
+            self.audio_manager.current_music_path = None  # Reset to force reload
+            self.audio_manager.play_music(MUSIC_IN_CINEMATIC)
 
     def _load_assets(self):
         """Load images and fonts."""

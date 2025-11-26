@@ -89,6 +89,8 @@ class MainMenu:
             else:
                 # Marquer la cinématique comme vue
                 mark_cinematic_as_viewed()
+                # Restore the main menu theme after cinematic
+                self.audio_manager.play_music(MUSIC_MAIN_THEME)
 
     def _load_background(self):
         """Loads the background image."""
