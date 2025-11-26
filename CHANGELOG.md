@@ -1,5 +1,45 @@
 # 🧾 Notes de mise à jour
 
+## v1.1.0 (2025-11-26)
+
+### Feat
+
+- ajout de la possibilité de jouer à la manette
+- ajout de la musique
+- mode fog tiles & améliorations bench (#27)
+- ajout d'une cinématique au lancement du jeu
+- ajouter le mode de rendu du brouillard avec options d'image et de tuiles
+- ajouter un système de cache pour les surfaces et les polices afin d'optimiser le rendu
+- ajouter un message de notification pour les changements de résolution appliqués après redémarrage
+- ajouter des limites par type d'unité dans BaseAi et tests associés
+- ajout de limite de troupe par équipe
+- Update AI context management and danger map handling for improved troop behavior
+- Optimize ia scout
+- Enhance AI Scout behavior with improved pathfinding and exploration
+- ajout bouton pour activer/désactiver toute les IA
+- ajout du son quand une unité tir
+- ajout de nouvelles options de gameplay et de mise à jour dans l'outil de configuration
+
+### Fix
+
+- fix bug collision
+- changement music de la cinématique
+- mise à jour de la cinématique
+- mettre à jour la configuration par défaut pour la résolution et le mode de rendu du brouillard
+- mise à jour des tuiles d'images
+- update nombre d'unité max
+- check if enough money to buy tower before placing one
+- Remove code for deleting recursive pycache directories
+- Improve navigation handling in ExploreState to ensure proper pathfinding and crowd avoidance
+- Remove debug print statement and enhance exploration state management with crowd avoidance and target offset
+- possibilité de désactiver l'ia du maraudeur
+- **bandits**: les balles passe à travers la map maintenant pour les bandits
+- **collision**: mise à jour des collision
+
+### Refactor
+
+- Transfer Maraudeur Ai Cleaner functions into Galad Config Tool
+
 ## v0.13.0 (2025-11-23)
 
 ### ✨ Nouvelles fonctionnalités
