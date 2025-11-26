@@ -222,9 +222,6 @@ The project uses `pytest` for automated testing with three categories of tests:
 
 #### Test Categories
 
-- **Unit Tests** (`--unit`): Test individual components and functions
-- **Integration Tests** (`--integration`): Test interactions between components
-- **Performance Tests** (`--performance`): Test system performance under load
 
 #### Running Tests
 
@@ -243,6 +240,14 @@ python run_tests.py --coverage
 # Run with verbose output
 python run_tests.py --verbose
 ```
+
+#### Headless CI / Running pygame tests without a display
+
+- The test-suite includes behaviors to run smoothly in headless CI containers. To avoid initializing a real display and loading heavy assets during tests, the project provides a `disable_sprite_loading` fixture (see `tests/conftest.py`) which disables sprite loading and initializes a minimal dummy display for pygame.
+- For tests that really need a display (e.g. the intro cinematic or rendering checks), set the `SDL_VIDEODRIVER` environment variable to `dummy` when running tests, e.g.: `SDL_VIDEODRIVER=dummy pytest -k intro_cinematic`.
+- If your test re-initializes the pygame display during the run, ensure to reinitialize pygame font rendering (`pygame.font.init()`) within the test to avoid font-related errors.
+
+These options make it straightforward to run the full test-suite in CI pipelines without modifying test code that requires lightweight rendering behavior.
 
 #### Test Structure
 
