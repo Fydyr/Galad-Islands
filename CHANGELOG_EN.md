@@ -1,5 +1,42 @@
 # 🧾 Changelog
 
+## v1.1.0 (2025-11-26)
+
+### ✨ New Features
+
+- Controller support (gamepads) for improved accessibility.
+- New background music and introductory cinematic.
+- New fog-of-war tile rendering mode and performance improvements.
+- Surface and font caching for smoother rendering and faster load times.
+- Resolution change warning that informs the player when a restart is required.
+- Per-unit and per-team limits to improve game balance.
+- AI improvements (Scout behavior and danger map handling) for smoother exploration and navigation.
+- A single toggle to enable/disable all AIs in the game.
+- Improved audio: weapons now play sounds when fired.
+- New gameplay options in the configuration tool.
+
+### 🐛 Bug Fixes
+
+- Fixed collisions and edge cases that could block movement or cause unexpected behaviour.
+- Updated the cinematic and its music.
+- Improved default resolution and fog-rendering settings.
+- Updated tile images and visuals.
+- Enforced unit count limits per team and per unit type.
+- Prevented tower placement if the player does not have enough gold.
+- Improved exploration pathfinding to avoid crowding and reduce stuck units.
+- Option to disable the Maraudeur AI (helpful for custom games and tests).
+- Fixed projectile behavior for bandits near map edges.
+
+### 🔧 Technical Improvements
+
+- Added caching to speed up rendering (surfaces and fonts).
+- Internal code cleanup and improvements to the configuration tool.
+- Moved Maraudeur AI cleaner functionality into the Galad Config Tool.
+
+## v1.0.0
+
+- Initial release version.
+
 ## v0.13.0 (2025-11-23)
 
 ### ✨ New Features

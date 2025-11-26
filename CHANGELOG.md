@@ -2,43 +2,41 @@
 
 ## v1.1.0 (2025-11-26)
 
-### Feat
+### ✨ Nouvelles fonctionnalités
 
-- ajout de la possibilité de jouer à la manette
-- ajout de la musique
-- mode fog tiles & améliorations bench (#27)
-- ajout d'une cinématique au lancement du jeu
-- ajouter le mode de rendu du brouillard avec options d'image et de tuiles
-- ajouter un système de cache pour les surfaces et les polices afin d'optimiser le rendu
-- ajouter un message de notification pour les changements de résolution appliqués après redémarrage
-- ajouter des limites par type d'unité dans BaseAi et tests associés
-- ajout de limite de troupe par équipe
-- Update AI context management and danger map handling for improved troop behavior
-- Optimize ia scout
-- Enhance AI Scout behavior with improved pathfinding and exploration
-- ajout bouton pour activer/désactiver toute les IA
-- ajout du son quand une unité tir
-- ajout de nouvelles options de gameplay et de mise à jour dans l'outil de configuration
+- Support des manettes de jeu (contrôleurs) pour une expérience plus accessible.
+- Nouvelle musique d'ambiance et cinématique d'introduction au lancement du jeu.
+- Nouveau mode d'affichage du brouillard (tuiles) et améliorations des outils de performance.
+- Système de cache pour surfaces et polices : rendu plus fluide et chargements plus rapides.
+- Notification de changement de résolution : un message indique quand une résolution nécessite un redémarrage du jeu.
+- Limites par type d'unités et par équipe ajoutées pour mieux équilibrer les parties.
+- Améliorations de l'IA (Scout, gestion du danger) : meilleur pathfinding et comportement en exploration.
+- Bouton global pour activer/désactiver toutes les IA.
+- Nouveauté audio : son d'arme lors du tir des unités.
+- Nouvelles options de gameplay disponibles dans l'outil de configuration.
 
-### Fix
+### 🐛 Corrections de bugs
 
-- fix bug collision
-- changement music de la cinématique
-- mise à jour de la cinématique
-- mettre à jour la configuration par défaut pour la résolution et le mode de rendu du brouillard
-- mise à jour des tuiles d'images
-- update nombre d'unité max
-- check if enough money to buy tower before placing one
-- Remove code for deleting recursive pycache directories
-- Improve navigation handling in ExploreState to ensure proper pathfinding and crowd avoidance
-- Remove debug print statement and enhance exploration state management with crowd avoidance and target offset
-- possibilité de désactiver l'ia du maraudeur
-- **bandits**: les balles passe à travers la map maintenant pour les bandits
-- **collision**: mise à jour des collision
+- Correction d'un problème de collisions dans certaines situations (impliquant unités et projectiles).
+- Mise à jour de la cinématique et de sa musique.
+- Mise à jour par défaut des paramètres de résolution et du mode d'affichage du brouillard.
+- Amélioration des tuiles d'images (visuel et rendu).
+- Application correcte des limites de troupe par équipe et par type d'unité.
+- Vérification de l'or avant la construction d'une tour : le jeu empêche désormais le placement si vous n'avez pas assez d'or.
+- Amélioration du pathfinding en exploration pour éviter les blocages et mieux gérer les foules.
+- Option pour désactiver l'IA du Maraudeur (pratique pour tests ou parties personnalisées).
+- Correction du comportement des projectiles des bandits près des bords de la carte.
 
-### Refactor
+### 🔧 Améliorations techniques
 
-- Transfer Maraudeur Ai Cleaner functions into Galad Config Tool
+- Ajout d'un cache pour accélérer le rendu (surfaces et polices) et réduire les temps de chargement.
+- Nettoyage de code interne et amélioration de l'outil de configuration.
+- Transfert des fonctions de nettoyage des modèles (Maraudeur AI Cleaner) vers l'outil de configuration `Galad Config Tool`.
+
+## v1.0.0
+
+- Version initiale.
+
 
 ## v0.13.0 (2025-11-23)
 
