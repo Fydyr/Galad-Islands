@@ -2,14 +2,14 @@
 
 ## v1.1.1 (2025-11-27)
 
-### Fix
+### 🐛 Corrections et améliorations
 
-- changes to architect behavior
-- fix pour le bouton (voir trello)
-- architect running into islands
-- correction de la cinématique qui affichais mal certaines choses
-- correction de fautes d'orthographes
-- fix de bug
+- Amélioration du comportement de l'Architecte : mouvements plus fluides et meilleure sélection des objectifs.
+- Correction d'un bouton de l'interface qui ne répondait pas.
+- Correction d'un bug où certains Architectes se retrouvaient bloqués dans les îles.
+- Correction d'affichage dans la cinématique d'introduction (éléments graphiques et rythme ajustés).
+- Correction de fautes d'orthographe dans l'interface et le texte du jeu.
+- Divers correctifs mineurs et améliorations de stabilité.
 
 ## v1.1.0 (2025-11-26)
 

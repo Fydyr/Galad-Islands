@@ -1,7 +1,17 @@
 # 🧾 Changelog
+ 
+## v1.1.1 (2025-11-27)
+
+### 🐛 Bug Fixes
+
+- Improved Architect behavior: smoother movement and more reliable target selection.
+- Fixed a UI button that could be unresponsive in some situations.
+- Fixed an issue where Architect units could get stuck inside islands.
+- Fixed cinematic display glitches and improved the intro cutscene visuals.
+- Fixed several typos and localization errors.
+- Various minor bug fixes and stability improvements.
 
 ## v1.1.0 (2025-11-26)
-
 ### ✨ New Features
 
 - Controller support (gamepads) for improved accessibility.
