@@ -1662,13 +1662,18 @@ class GameEngine:
             toggle_all: Si True, bascule l'IA de toutes les unités du joueur
         """
         if toggle_all:
-            # Basculer l'IA de toutes les unités du joueur
+            # Basculer l'IA de toutes les unités du joueur (sauf les bases)
             units = self._get_player_units()
             toggled_count = 0
             new_state = None
-            
+
             for unit_id in units:
+                # Exclure les bases du toggle global
                 if es.entity_exists(unit_id) and es.has_component(unit_id, AIEnabledComponent):
+                    # Ne pas affecter les bases
+                    if es.has_component(unit_id, BaseComponent):
+                        continue
+
                     ai_component = es.component_for_entity(unit_id, AIEnabledComponent)
                     if ai_component.can_toggle:
                         # Utiliser le premier état pour déterminer l'action
@@ -1705,7 +1710,6 @@ class GameEngine:
                 success = ai_component.toggle()
                 if success:
                     # Si c'est une base, désactiver aussi le BaseAi correspondant
-                    from src.components.core.baseComponent import BaseComponent
                     if es.has_component(self.selected_unit_id, BaseComponent):
                         # Déterminer quelle base c'est
                         team_comp = es.component_for_entity(self.selected_unit_id, TeamComponent)

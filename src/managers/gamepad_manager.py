@@ -276,6 +276,8 @@ class GamepadManager:
             True if the event was handled, False otherwise
         """
         if event.type == pygame.JOYDEVICEADDED:
+            if not hasattr(event, 'device_index'):
+                return False
             device_index = event.device_index
             try:
                 joystick = pygame.joystick.Joystick(device_index)
@@ -295,6 +297,8 @@ class GamepadManager:
                 logger.error(f"Error connecting gamepad: {e}")
 
         elif event.type == pygame.JOYDEVICEREMOVED:
+            if not hasattr(event, 'device_index'):
+                return False
             device_index = event.device_index
 
             if device_index in self.joysticks:
