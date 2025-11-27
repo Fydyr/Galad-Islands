@@ -4,15 +4,16 @@ System translations for Galad Islands
 """
 
 TRANSLATIONS = {
-    # Messages système
+    # System messages
     "system.main_window_title": "Galad Islands",
-    "system.music_load_error": "Impossible de charger la musique: {error}",
-    "system.sound_load_error": "Impossible de charger le son de sélection: {error}",
-    "system.options_menu": "Menu des options",
-    "system.main_loop_error": "Erreur dans la boucle principale: {error}",
-    "system.game_launched": "Lancement du jeu...",
-    
-    "update.available_message": "A new version ({version}) is available! \nYou are currently using version {current_version}.",
+    "system.music_load_error": "Unable to load music: {error}",
+    "system.sound_load_error": "Unable to load selection sound: {error}",
+    "system.options_menu": "Options menu",
+    "system.main_loop_error": "Error in main loop: {error}",
+    "system.game_launched": "Launching game...",
+    "system.game_window_title": "Galad Islands - Map",
+
+    "update.available_message": "A new version ({version}) is available!\\nYou are currently using version {current_version}.",
     "update.available_title": "Update Available",
     "update.check_failed": "Unable to check for updates",
     "update.checking": "Checking for updates...",

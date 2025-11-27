@@ -41,13 +41,13 @@ TRANSLATIONS = {
     "mode.normal": "Normal",
     "placement.must_be_on_island": "Buildings must be placed on island tiles!",
     "placement.tower_already_here": "A tower is already present at this location",
-    
-    # Messages de feedback
-    "feedback.unit_created": "{} créé (camp {})!",
-    "feedback.ability_used": "Capacité {} utilisée (visuel uniquement)!",
-    "feedback.ability_cooldown": "Capacité en cooldown: {:.1f}s",
-    "feedback.already_active": "Déjà actif!",
-    "feedback.no_unit_selected": "Aucune unité sélectionnée!",
-    "feedback.dev_gold_given": "500 or ajoutés (mode debug)",
-    "feedback.error": "Erreur",
+
+    # Feedback messages
+    "feedback.unit_created": "{} created (camp {})!",
+    "feedback.ability_used": "Ability {} used (visual only)!",
+    "feedback.ability_cooldown": "Ability on cooldown: {:.1f}s",
+    "feedback.already_active": "Already active!",
+    "feedback.no_unit_selected": "No unit selected!",
+    "feedback.dev_gold_given": "500 gold added (debug mode)",
+    "feedback.error": "Error",
 }

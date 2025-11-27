@@ -34,7 +34,7 @@ TRANSLATIONS = {
     "tip.33": "Attention, il est interdit à une IA d'affronter la notre.",
     "tip.34": "Tu savais que le jeu n'est pas disponible sur Steam ?",
     "tip.35": "T'as pas 100 balles pour le mettre sur Steam ?",
-    "tip.36": "Les profesionnels ont des standards.",
+    "tip.36": "Les professionnels ont des standards.",
     "tip.37": "Ce jeu a été fait avec amour (et surtout avec de la douleur)",
     "tip.38": "Enzo, tu peux débloquer le main ?",
     "tip.39": "All hail the git master",
