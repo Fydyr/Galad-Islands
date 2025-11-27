@@ -213,6 +213,13 @@ class ArchitectAIProcessor(esper.Processor):
                     total_allies_hp += ally_health.currentHealth
                     total_allies_max_hp += ally_health.maxHealth
 
+        # Get all allied tower positions
+        allied_tower_positions = []
+        for _, (tower_pos, tower_team, _) in esper.get_components(PositionComponent, TeamComponent, TowerComponent):
+            if tower_team.team_id == team.team_id:
+                allied_tower_positions.append((tower_pos.x, tower_pos.y))
+
+
             
         return GameState(
             # --- Core Unit State ---
@@ -242,6 +249,7 @@ class ArchitectAIProcessor(esper.Processor):
             closest_island_resource_dist=closest_island_resource_dist,
             is_tower_on_current_island=is_tower_on_current_island,
             island_groups=self._get_island_groups(),
+            allied_tower_positions=allied_tower_positions,
             # --- Status Information ---
             closest_mine_dist=closest_mine_dist,
             closest_mine_bearing=closest_mine_bearing,
@@ -344,7 +352,7 @@ class ArchitectAIProcessor(esper.Processor):
                     ai_comp.start_build_cooldown()
                     self._clear_path(entity)
                     # after avoir construit, chercher une autre île
-                    target_pos = self._find_island_in_different_group((pos.x, pos.y))
+                    target_pos = self._find_unoccupied_distant_island((pos.x, pos.y), state.allied_tower_positions)
             else:
                 # Pas assez d'or, l'IA doit attendre ou faire autre chose
                 vel.currentSpeed = 0
@@ -355,7 +363,7 @@ class ArchitectAIProcessor(esper.Processor):
                     self._spend_player_gold(state.team_id, UNIT_COST_HEAL_TOWER)
                     ai_comp.start_build_cooldown()
                     self._clear_path(entity)
-                    target_pos = self._find_island_in_different_group((pos.x, pos.y))
+                    target_pos = self._find_unoccupied_distant_island((pos.x, pos.y), state.allied_tower_positions)
             else:
                 vel.currentSpeed = 0
 
@@ -683,6 +691,36 @@ class ArchitectAIProcessor(esper.Processor):
 
         # Pick a random island from the filtered list.
         return random.choice(distant_islands)
+
+    def _find_unoccupied_distant_island(self, current_pos: Tuple[float, float], allied_tower_positions: list[Tuple[float, float]]) -> Optional[Tuple[float, float]]:
+        """
+        Finds a random, available island that is not too close to any existing allied tower.
+        This encourages the Architect to spread out its constructions.
+        """
+        # First, get all available (unoccupied) islands.
+        _, _, _ = self._find_closest_island(PositionComponent(current_pos[0], current_pos[1])) # Populates cache
+        
+        available_islands = []
+        if self.map_grid is not None:
+            for y, row in enumerate(self.map_grid):
+                for x, tile_val in enumerate(row):
+                    tile_type = TileType(tile_val)
+                    if tile_type.is_island_buildable():
+                        island_center = (x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2)
+                        available_islands.append(island_center)
+
+        if not available_islands:
+            return None
+
+        # Filter out islands that are too close to an existing allied tower.
+        MIN_DIST_FROM_TOWER = TILE_SIZE * 15  # e.g., 15 tiles
+        suitable_islands = []
+        for island_pos in available_islands:
+            is_too_close = any(np.hypot(island_pos[0] - tower_pos[0], island_pos[1] - tower_pos[1]) < MIN_DIST_FROM_TOWER for tower_pos in allied_tower_positions)
+            if not is_too_close:
+                suitable_islands.append(island_pos)
+
+        return random.choice(suitable_islands) if suitable_islands else random.choice(available_islands)
 
     def _find_random_island(self, current_island_pos: Optional[Tuple[float, float]] = None) -> Optional[Tuple[float, float]]:
         """Finds a random island, avoiding the current one if provided."""

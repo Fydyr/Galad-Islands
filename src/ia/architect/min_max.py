@@ -46,6 +46,7 @@ class GameState:
     closest_chest_bearing: Optional[float]
     closest_island_resource_dist: Optional[float]
     island_groups: List[List[Tuple[float, float]]]  # Clusters of adjacent island tiles
+    allied_tower_positions: List[Tuple[float, float]] # Positions of existing allied towers
     closest_mine_dist: Optional[float]
     closest_mine_bearing: Optional[float]
     is_stuck: bool
@@ -219,12 +220,13 @@ class ArchitectMinimax:
         if state.closest_island_dist is not None:
             if state.is_on_island:
                 # High penalty for being on an island, as it's a vulnerable position.
-                # The Architect should operate from the water.
-                score -= 10000
+                # The Architect should operate from the water. Increased penalty.
+                score -= 20000
             else:
                 # Reward being at an ideal distance from an island.
                 distance_error = abs(state.closest_island_dist - IDEAL_BUILD_DISTANCE)
-                score += 500 - distance_error * 0.8
+                # Stronger reward for being at the ideal distance, with a sharper penalty for deviation.
+                score += 1000 - distance_error * 1.5
         
         # --- Tower Building Action Evaluation ---
         # This section evaluates the *action itself*, not the resulting state.

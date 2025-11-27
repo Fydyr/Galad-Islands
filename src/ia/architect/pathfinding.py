@@ -10,7 +10,7 @@ class SimplePathfinder:
     A* pathfinding that uses the map grid directly.
     """
     # --- Tile Movement Costs ---
-    COST_ISLAND = 100.0  # High cost to cross islands, but not impossible.
+    COST_ISLAND = 250.0  # Increased cost to make crossing islands less desirable.
     COST_OBSTACLE = 5000.0 # Very high cost for mines/clouds, making them highly undesirable.
 
     def __init__(self, map_grid, tile_size: int):
