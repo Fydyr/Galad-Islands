@@ -1,5 +1,16 @@
 # 🧾 Notes de mise à jour
 
+## v1.1.1 (2025-11-27)
+
+### Fix
+
+- changes to architect behavior
+- fix pour le bouton (voir trello)
+- architect running into islands
+- correction de la cinématique qui affichais mal certaines choses
+- correction de fautes d'orthographes
+- fix de bug
+
 ## v1.1.0 (2025-11-26)
 
 ### ✨ Nouvelles fonctionnalités
