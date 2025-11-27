@@ -664,12 +664,13 @@ class IntroCinematic:
             key = f"enemy_{unit}"
             if key in self.unit_sprites:
                 sprite = self.unit_sprites[key]
-                size = 50
+                size = 80  # Increased size for better visibility
                 sprite_scaled = pygame.transform.scale(sprite, (size, size))
-                sprite_scaled.set_alpha(self.alpha)
+                # Ensure full opacity
+                sprite_scaled.set_alpha(min(255, int(self.alpha * 1.2)))
 
                 # Menacing movement
-                base_x = 3 * self.width // 4 - 60 + i * 60
+                base_x = 3 * self.width // 4 - 60 + i * 80  # Adjusted spacing for larger sprites
                 base_y = self.height // 2 + 50
                 float_offset = math.sin(self.scene_timer * 2 + i + math.pi) * 15
 
@@ -813,13 +814,6 @@ class IntroCinematic:
                     size = int(70 * progress)
                     if size > 0:
                         sprite_scaled = pygame.transform.scale(sprite, (size, size))
-
-                        # Dark/purple tint for enemy units
-                        sprite_scaled = sprite_scaled.copy()
-                        dark_overlay = pygame.Surface((size, size), pygame.SRCALPHA)
-                        dark_overlay.fill((80, 40, 100, 100))
-                        sprite_scaled.blit(dark_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-
                         sprite_scaled.set_alpha(int(self.alpha * progress))
 
                         x = unit_spacing * (i + 1) - size // 2
