@@ -759,16 +759,20 @@ class ActionBar:
         return False
 
     def _are_all_ai_enabled(self) -> bool:
-        """Vérifie si toutes les IA sont activées."""
+        """Vérifie si toutes les IA sont activées (en excluant les bases)."""
         if not esper:
             return False
 
-        # Parcourir toutes les entités avec AIEnabledComponent
+        # Parcourir toutes les entités avec AIEnabledComponent, en excluant les bases
         ai_entities = list(esper.get_component(AIEnabledComponent))
         if not ai_entities:
             return True  # Pas d'unités avec IA = considéré comme "toutes activées"
 
         for entity, ai_comp in ai_entities:
+            # Exclure les bases du calcul
+            if esper.has_component(entity, BaseComponent):
+                continue
+
             if not ai_comp.enabled:
                 return False
 
