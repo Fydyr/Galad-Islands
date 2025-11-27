@@ -53,7 +53,7 @@ class GameState:
     # --- Architect-Specific State ---
     architect_ability_available: bool
     architect_ability_cooldown: float
-    build_cooldown_active: bool  # True if the AI has recently built a tower
+    build_cooldown_active: float  # Cooldown remaining before the AI can build again. 0 if ready.
 
 
 # --- AI Action Definitions ---
@@ -119,8 +119,8 @@ class ArchitectMinimax:
 
         # Override 2: If allied health is critical, and we can build, build a healing tower.
         # This bypasses the standard evaluation to address emergencies.
-        can_build = (state.is_on_island or (state.closest_island_dist is not None and state.closest_island_dist < TILE_SIZE * 4))
-        if can_build and not state.build_cooldown_active and state.player_gold >= UNIT_COST_HEAL_TOWER:
+        can_build = (state.is_on_island or (state.closest_island_dist is not None and state.closest_island_dist < TILE_SIZE * 4)) and state.build_cooldown_active <= 0
+        if can_build and state.player_gold >= UNIT_COST_HEAL_TOWER:
             if state.total_allies_max_hp > 0:
                 allied_health_ratio = state.total_allies_hp / state.total_allies_max_hp
                 # If health is below 60%, it's an emergency.
@@ -148,7 +148,7 @@ class ArchitectMinimax:
 
         if can_reach_island_to_build:
             # If near an island, the primary goal is to build, unless the cooldown is active.
-            current_actions = [] if state.build_cooldown_active else [
+            current_actions = [] if state.build_cooldown_active > 0 else [
                 DecisionAction.BUILD_DEFENSE_TOWER,
                 DecisionAction.BUILD_HEAL_TOWER,
                 DecisionAction.DO_NOTHING, # Doing nothing is an option if building is not ideal.
@@ -180,7 +180,6 @@ class ArchitectMinimax:
         if state.total_allies_max_hp > 0:
             health_percentage = (state.total_allies_hp / state.total_allies_max_hp) * 100
         
-        logger.info(f"Architect AI decided: {best_action} with score {best_score:.2f} | Allied Health: {health_percentage:.1f}% | total: {state.total_allies_hp:.2f} | max: {state.total_allies_max_hp:.2f}")
         return best_action
 
     def _minimax(self, state: GameState, depth: int, is_maximizing_player: bool, possible_actions: List[str], action_taken: Optional[str] = None) -> float:
@@ -270,14 +269,16 @@ class ArchitectMinimax:
         move_dist = self.SIM_SPEED * self.SIM_TIME_STEP
 
         # --- Simulate Build Action Effects ---
-        if action == DecisionAction.BUILD_DEFENSE_TOWER or action == DecisionAction.BUILD_HEAL_TOWER:
+        if (action == DecisionAction.BUILD_DEFENSE_TOWER or action == DecisionAction.BUILD_HEAL_TOWER) and next_state.build_cooldown_active <= 0:
             can_build = (next_state.is_on_island or (next_state.closest_island_dist is not None and next_state.closest_island_dist < DISTANCE_MIN_FROM_ISLAND))
             if can_build and next_state.player_gold >= self.TOWER_COST_THRESHOLD:
                 next_state.player_gold -= self.TOWER_COST_THRESHOLD
-                next_state.build_cooldown_active = True  # Simulate cooldown start.
+                next_state.build_cooldown_active = 4.0  # Simulate cooldown start with a value.
                 # After building, the AI will want to move to a new island.
                 # Simulate this by marking the current island as occupied.
                 next_state.is_tower_on_current_island = True
+        elif next_state.build_cooldown_active > 0: 
+            next_state.build_cooldown_active -= self.SIM_TIME_STEP
 
 
         # --- Simulate Unit Movement ---

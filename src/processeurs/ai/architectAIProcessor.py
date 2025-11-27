@@ -257,7 +257,7 @@ class ArchitectAIProcessor(esper.Processor):
             # --- Architect-Specific State ---
             architect_ability_available=ability_available,
             architect_ability_cooldown=ability_cooldown,
-            build_cooldown_active=ai_comp.build_cooldown_remaining > 0,
+            build_cooldown_active=ai_comp.build_cooldown_remaining,
         )
 
     def _execute_action(
@@ -438,11 +438,15 @@ class ArchitectAIProcessor(esper.Processor):
                     self._clear_path(entity)
                     return
             
-            # If we are on an island and the original goal was an island, stop.
-            if self._find_closest_island(pos)[2] and self._is_island_target(target_pos):
-                vel.currentSpeed = 0
-                self._clear_path(entity)
-                return
+            # If the original goal was an island, check if we are close enough to stop.
+            # This prevents the AI from driving onto the island.
+            if self._is_island_target(target_pos):
+                dist_to_island, _, _ = self._find_closest_island(pos)
+                # Stop if within 4 tiles of an unoccupied island.
+                if dist_to_island is not None and dist_to_island < TILE_SIZE * 4:
+                    vel.currentSpeed = 0
+                    self._clear_path(entity)
+                    return
             
             # Move towards the current waypoint.
             target_angle = self._get_angle_to_target(pos, waypoint)

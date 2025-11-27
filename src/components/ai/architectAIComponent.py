@@ -1,5 +1,5 @@
 class ArchitectAIComponent:
-    def __init__(self, decisionVetoTime: int = 0.00):
+    def __init__(self, decisionVetoTime: int = 0.80):
         self.decisionVetoTime = decisionVetoTime
         self.vetoTimeRemaining = 0
         self.currentDecision = None
