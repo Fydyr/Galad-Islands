@@ -10,7 +10,7 @@ class SimplePathfinder:
     A* pathfinding that uses the map grid directly.
     """
     # --- Tile Movement Costs ---
-    COST_ISLAND = 250.0  # Increased cost to make crossing islands less desirable.
+    COST_ISLAND = 350.0  # Increased cost to make crossing islands less desirable.
     COST_OBSTACLE = 5000.0 # Very high cost for mines/clouds, making them highly undesirable.
 
     def __init__(self, map_grid, tile_size: int):
@@ -181,13 +181,11 @@ class SimplePathfinder:
         """
         try:
             tile_type = self.map_grid[pos[1]][pos[0]]
-            tile = TileType(tile_type)
 
             if self._isObstacle(pos, tile_type):
                 return self.COST_OBSTACLE
             elif self._is_island_buildable(pos, tile_type):
-                # Penalize entering an island from water. Crossing between island tiles is free.
-                return 0.0 if on_buildable_island else self.COST_ISLAND
+                return self.COST_ISLAND
 
             cost = 0.0
             # Add cost for being near an enemy
